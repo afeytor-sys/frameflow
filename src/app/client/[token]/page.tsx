@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, daysUntil } from '@/lib/utils'
 import { FileText, Images, Clock, CheckCircle2, ChevronRight, PenLine } from 'lucide-react'
+import WeatherWidget from '@/components/client-portal/WeatherWidget'
+import MoodBoard from '@/components/client-portal/MoodBoard'
 
 export default async function ClientPortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -70,6 +72,16 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             <span className="text-[#A8A49E]"> · {formatDate(project.shoot_date, 'de')}</span>
           )}
         </p>
+
+        {/* Weather — only if shoot is within 14 days */}
+        {project.shoot_date && !isDelivered && days !== null && days >= 0 && days <= 14 && (
+          <div className="mt-4">
+            <WeatherWidget
+              date={project.shoot_date}
+              location={project.location || 'Deutschland'}
+            />
+          </div>
+        )}
       </div>
 
       {/* Portal cards */}
@@ -161,6 +173,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </div>
         )}
       </div>
+
+      {/* Moodboard — always visible for client to add inspirations */}
+      <MoodBoard projectId={project.id} token={token} />
     </div>
   )
 }

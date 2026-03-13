@@ -43,7 +43,7 @@ export default function LoginPage() {
             <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="font-display text-[#F7F6F3] font-semibold text-[18px] tracking-tight">
-            FrameFlow
+            Studioflow
           </span>
         </Link>
 
@@ -51,7 +51,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="w-8 h-0.5 bg-[#C4A47C] mb-6" />
           <blockquote className="text-[#F7F6F3]/70 text-[16px] leading-relaxed font-light mb-6" style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic' }}>
-            "Meine Kunden kommentieren immer, wie professionell das Portal aussieht. FrameFlow hat mein Business verändert."
+            "Meine Kunden kommentieren immer, wie professionell das Portal aussieht. Studioflow hat mein Business verändert."
           </blockquote>
           <div>
             <p className="text-[#F7F6F3] text-[13px] font-semibold">Marco R.</p>
@@ -81,7 +81,7 @@ export default function LoginPage() {
               <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className="font-display text-[#0D0D0C] font-semibold text-[17px]">FrameFlow</span>
+            <span className="font-display text-[#0D0D0C] font-semibold text-[17px]">Studioflow</span>
           </Link>
 
           <div className="mb-8">

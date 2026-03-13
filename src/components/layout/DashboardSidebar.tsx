@@ -93,7 +93,7 @@ export default function DashboardSidebar({ photographer }: Props) {
             className="font-bold text-[17px] tracking-tight leading-none"
             style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}
           >
-            FrameFlow
+            Studioflow
           </span>
         )}
       </div>

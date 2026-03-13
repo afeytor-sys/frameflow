@@ -12,7 +12,7 @@ interface FAQItem {
 const DEFAULT_ITEMS: FAQItem[] = [
   {
     q: 'Ist die E-Signatur in Deutschland rechtsgültig?',
-    a: 'Ja. FrameFlow verwendet eine einfache elektronische Signatur (eES) gemäß eIDAS-Verordnung. Für Fotografieverträge ist diese Signaturform rechtlich anerkannt. Wir speichern Zeitstempel, IP-Adresse und das signierte PDF als Nachweis.',
+    a: 'Ja. Studioflow verwendet eine einfache elektronische Signatur (eES) gemäß eIDAS-Verordnung. Für Fotografieverträge ist diese Signaturform rechtlich anerkannt. Wir speichern Zeitstempel, IP-Adresse und das signierte PDF als Nachweis.',
   },
   {
     q: 'Was passiert, wenn ich mein Kundenlimit erreiche?',

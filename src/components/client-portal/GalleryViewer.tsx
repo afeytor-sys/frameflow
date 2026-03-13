@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import PhotoComments from './PhotoComments'
 
 type PhotoTag = 'green' | 'yellow' | 'red' | null
 type GalleryLayout = 'masonry' | 'grid' | 'columns'
@@ -25,10 +26,12 @@ interface Photo {
 
 interface Props {
   galleryId: string
+  projectId: string
   galleryTitle: string
   clientName: string
   initialPhotos: Photo[]
   downloadEnabled: boolean
+  commentsEnabled: boolean
   showWatermark: boolean
   token: string
 }
@@ -47,10 +50,13 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
 
 export default function GalleryViewer({
   galleryId,
+  projectId,
   galleryTitle,
   clientName,
   initialPhotos,
   downloadEnabled,
+  commentsEnabled,
+  token,
 }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -495,6 +501,13 @@ export default function GalleryViewer({
                 {cfg.label}
               </button>
             ))}
+            <PhotoComments
+              photoId={currentPhoto.id}
+              projectId={projectId}
+              token={token}
+              clientName={clientName}
+              commentsEnabled={commentsEnabled}
+            />
           </div>
         </div>
       )}

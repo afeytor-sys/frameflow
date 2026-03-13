@@ -19,7 +19,7 @@
     "or": "oder",
     "and": "und",
     "of": "von",
-    "poweredBy": "Bereitgestellt von FrameFlow",
+    "poweredBy": "Bereitgestellt von Studioflow",
     "new": "Neu",
     "view": "Ansehen",
     "download": "Herunterladen",
@@ -68,7 +68,7 @@
     "hasAccount": "Bereits ein Konto?",
     "signupFree": "Kostenlos registrieren",
     "loginTitle": "Willkommen zurück",
-    "loginSubtitle": "Melde dich bei deinem FrameFlow-Konto an",
+    "loginSubtitle": "Melde dich bei deinem Studioflow-Konto an",
     "signupTitle": "Konto erstellen",
     "signupSubtitle": "Starte kostenlos — keine Kreditkarte erforderlich",
     "resetTitle": "Passwort zurücksetzen",
@@ -87,7 +87,7 @@
     }
   },
   "onboarding": {
-    "title": "Willkommen bei FrameFlow",
+    "title": "Willkommen bei Studioflow",
     "subtitle": "Lass uns dein Konto einrichten",
     "step1": "Dein Profil",
     "step2": "Dein Studio",
@@ -300,7 +300,7 @@
       "title": "Branding",
       "proOnly": "Nur für Pro und Studio verfügbar",
       "primaryColor": "Primärfarbe",
-      "hidePoweredBy": "\"Bereitgestellt von FrameFlow\" ausblenden",
+      "hidePoweredBy": "\"Bereitgestellt von Studioflow\" ausblenden",
       "customFooter": "Benutzerdefinierter Footer-Text"
     },
     "notifications": {
@@ -334,7 +334,7 @@
       "features": [
         "2 aktive Kunden",
         "1 Vertrag pro Kunde",
-        "Galerie mit FrameFlow-Wasserzeichen",
+        "Galerie mit Studioflow-Wasserzeichen",
         "Kein eigenes Branding"
       ]
     },
@@ -429,7 +429,7 @@
   "landing": {
     "hero": {
       "headline": "Deine Kunden verdienen mehr als einen WeTransfer-Link.",
-      "subtext": "FrameFlow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.",
+      "subtext": "Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.",
       "cta": "Kostenlos starten",
       "ctaSecondary": "So funktioniert es",
       "socialProof": "Vertraut von 200+ Fotografen in Europa"
@@ -510,7 +510,7 @@
     "faq": {
       "title": "Häufige Fragen",
       "q1": "Ist die E-Signatur in Deutschland rechtsgültig?",
-      "a1": "Ja. Die E-Signatur in FrameFlow entspricht den Anforderungen der eIDAS-Verordnung für einfache elektronische Signaturen, die für Fotografieverträge vollständig ausreicht.",
+      "a1": "Ja. Die E-Signatur in Studioflow entspricht den Anforderungen der eIDAS-Verordnung für einfache elektronische Signaturen, die für Fotografieverträge vollständig ausreicht.",
       "q2": "Was passiert, wenn ich mein Kundenlimit erreiche?",
       "a2": "Du siehst ein freundliches Upgrade-Modal mit allen Vorteilen des nächsten Plans. Kein Fehler, kein Datenverlust — einfach upgraden und weitermachen.",
       "q3": "Können meine Kunden die Portale anderer Kunden sehen?",

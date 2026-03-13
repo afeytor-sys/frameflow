@@ -110,7 +110,7 @@ export default function OnboardingPage() {
       return
     }
 
-    toast.success('Willkommen bei FrameFlow!')
+    toast.success('Willkommen bei Studioflow!')
     router.push('/dashboard')
     router.refresh()
   }
@@ -123,7 +123,7 @@ export default function OnboardingPage() {
           <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
             <Camera className="w-3.5 h-3.5 text-[#C8A882]" />
           </div>
-          <span className="font-display text-lg font-semibold text-[#1A1A1A]">FrameFlow</span>
+          <span className="font-display text-lg font-semibold text-[#1A1A1A]">Studioflow</span>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
               <div className="space-y-6">
                 <div>
                   <h1 className="font-display text-2xl font-semibold text-[#1A1A1A] mb-1">
-                    Willkommen bei FrameFlow
+                    Willkommen bei Studioflow
                   </h1>
                   <p className="text-[#6B6B6B] text-sm">Lass uns dein Profil einrichten</p>
                 </div>

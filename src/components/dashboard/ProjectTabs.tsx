@@ -68,7 +68,7 @@ export default function ProjectTabs({ project, contracts, gallery, timeline, pla
             projectId={project.id}
             photographerId={project.photographer_id}
             clientUrl={project.client_url}
-            gallery={gallery ? { id: gallery.id, title: gallery.title, description: gallery.description ?? null, status: gallery.status, password: gallery.password ?? null, watermark: gallery.watermark, download_enabled: gallery.download_enabled, expires_at: gallery.expires_at ?? null, view_count: gallery.view_count, download_count: gallery.download_count } : null}
+            gallery={gallery ? { id: gallery.id, title: gallery.title, description: gallery.description ?? null, status: gallery.status, password: gallery.password ?? null, watermark: gallery.watermark, download_enabled: gallery.download_enabled, comments_enabled: (gallery as { comments_enabled?: boolean }).comments_enabled ?? true, expires_at: gallery.expires_at ?? null, view_count: gallery.view_count, download_count: gallery.download_count } : null}
             photos={(gallery?.photos ?? []) as { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number; is_favorite: boolean }[]}
             showWatermark={showWatermark}
           />

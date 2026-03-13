@@ -21,7 +21,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
 
   const { data: gallery } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, view_count')
+    .select('id, title, description, status, download_enabled, watermark, comments_enabled, view_count')
     .eq('project_id', project.id)
     .eq('status', 'active')
     .single()
@@ -120,10 +120,12 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
         ) : (
           <GalleryViewer
             galleryId={gallery.id}
+            projectId={project.id}
             galleryTitle={gallery.title || project.title || 'Galerie'}
             clientName={client?.full_name || ''}
             initialPhotos={sortedPhotos}
             downloadEnabled={gallery.download_enabled}
+            commentsEnabled={gallery.comments_enabled ?? true}
             showWatermark={false}
             token={token}
           />

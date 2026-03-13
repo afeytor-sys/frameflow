@@ -26,7 +26,7 @@ export default async function ClientPortalLayout({
     plan: string
   }
 
-  const studioName = photographer?.studio_name || photographer?.full_name || 'FrameFlow'
+  const studioName = photographer?.studio_name || photographer?.full_name || 'Studioflow'
   const showBranding = !['pro', 'studio'].includes(photographer?.plan || '')
 
   return (
@@ -62,7 +62,7 @@ export default async function ClientPortalLayout({
               href="/"
               className="text-[11px] text-[#A8A49E] hover:text-[#6E6A63] transition-colors font-medium"
             >
-              Powered by FrameFlow
+              Powered by Studioflow
             </a>
           )}
         </div>

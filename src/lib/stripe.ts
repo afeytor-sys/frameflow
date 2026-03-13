@@ -40,7 +40,7 @@ export interface PlanLimits {
   maxContractsPerClient: number | null
   maxGalleries: number | null     // null = unlimited
   watermark: boolean
-  customBranding: boolean         // hide "Powered by FrameFlow"
+  customBranding: boolean         // hide "Powered by Studioflow"
   teamSeats: number
   customDomain: boolean
   analytics: boolean
@@ -108,13 +108,13 @@ export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
     'Bis zu 15 aktive Kunden',
     'Unbegrenzte Verträge',
     'Bis zu 15 Galerien',
-    '"FrameFlow" Badge ausblenden',
+    '"Studioflow" Badge ausblenden',
     'E-Mail-Vorlagen',
   ],
   pro: [
     'Unbegrenzte Kunden',
     'Alles unbegrenzt',
-    '"Powered by FrameFlow" ausblenden',
+    '"Powered by Studioflow" ausblenden',
     'Analytics-Dashboard',
     'Prioritäts-Support',
   ],

@@ -256,8 +256,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-[#FAFAF8] rounded-lg border border-[#E8E8E4]">
                 <div>
-                  <p className="text-sm font-medium text-[#1A1A1A]">"Powered by FrameFlow" ausblenden</p>
-                  <p className="text-xs text-[#6B6B6B] mt-0.5">Entfernt den FrameFlow-Hinweis aus dem Kunden-Portal</p>
+                  <p className="text-sm font-medium text-[#1A1A1A]">"Powered by Studioflow" ausblenden</p>
+                  <p className="text-xs text-[#6B6B6B] mt-0.5">Entfernt den Studioflow-Hinweis aus dem Kunden-Portal</p>
                 </div>
                 <div className="w-9 h-5 rounded-full bg-[#3DBA6F] relative cursor-pointer">
                   <div className="absolute top-0.5 left-4 w-4 h-4 bg-white rounded-full shadow" />

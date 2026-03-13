@@ -33,7 +33,7 @@ const PLANS = [
       'Bis zu 15 aktive Kunden',
       'Unbegrenzte Verträge',
       'Bis zu 15 Galerien',
-      '"FrameFlow" Badge ausblenden',
+      '"Studioflow" Badge ausblenden',
       'E-Mail-Vorlagen',
     ],
     cta: 'Starter wählen',
@@ -50,7 +50,7 @@ const PLANS = [
     features: [
       'Unbegrenzte Kunden',
       'Alles unbegrenzt',
-      '"Powered by FrameFlow" ausblenden',
+      '"Powered by Studioflow" ausblenden',
       'Analytics-Dashboard',
       'Prioritäts-Support',
     ],

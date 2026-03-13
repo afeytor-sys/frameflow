@@ -25,7 +25,7 @@ export const CONTRACT_TEMPLATES: ContractTemplate[] = [
 </ul>
 
 <h3>3. Bildlieferung</h3>
-<p>Die bearbeiteten Bilder werden innerhalb von 6–8 Wochen nach dem Hochzeitstag über das FrameFlow-Kundenportal bereitgestellt. Der Auftraggeber erhält mindestens 400 bearbeitete Bilder in digitaler Form.</p>
+<p>Die bearbeiteten Bilder werden innerhalb von 6–8 Wochen nach dem Hochzeitstag über das Studioflow-Kundenportal bereitgestellt. Der Auftraggeber erhält mindestens 400 bearbeitete Bilder in digitaler Form.</p>
 
 <h3>4. Nutzungsrechte</h3>
 <p>Der Auftraggeber erhält das einfache Nutzungsrecht für private Zwecke. Eine kommerzielle Nutzung bedarf der schriftlichen Zustimmung des Auftragnehmers. Der Auftragnehmer behält das Recht, ausgewählte Bilder für Portfolio- und Marketingzwecke zu verwenden.</p>
@@ -62,7 +62,7 @@ export const CONTRACT_TEMPLATES: ContractTemplate[] = [
 <p>Die vereinbarte Vergütung ist vor oder am Tag der Session zu entrichten. Zahlungsmethoden: Überweisung, PayPal oder Barzahlung.</p>
 
 <h3>3. Bildlieferung</h3>
-<p>Der Auftraggeber erhält innerhalb von 2–3 Wochen nach der Session 20–30 bearbeitete Bilder in digitaler Form über das FrameFlow-Kundenportal. Der Auftraggeber kann bis zu 5 Favoriten markieren, die bevorzugt bearbeitet werden.</p>
+<p>Der Auftraggeber erhält innerhalb von 2–3 Wochen nach der Session 20–30 bearbeitete Bilder in digitaler Form über das Studioflow-Kundenportal. Der Auftraggeber kann bis zu 5 Favoriten markieren, die bevorzugt bearbeitet werden.</p>
 
 <h3>4. Nutzungsrechte</h3>
 <p>Die gelieferten Bilder dürfen für private Zwecke genutzt werden, einschließlich sozialer Medien. Eine kommerzielle Nutzung ist nicht gestattet ohne schriftliche Vereinbarung.</p>
@@ -88,7 +88,7 @@ export const CONTRACT_TEMPLATES: ContractTemplate[] = [
 <p>Die Vergütung richtet sich nach dem vereinbarten Stundensatz oder Pauschalpreis. Reisekosten werden separat berechnet, sofern der Veranstaltungsort mehr als 30 km vom Standort des Fotografen entfernt ist.</p>
 
 <h3>3. Bildlieferung</h3>
-<p>Die bearbeiteten Bilder werden innerhalb von 2–4 Wochen nach dem Event über das FrameFlow-Kundenportal bereitgestellt. Die Anzahl der gelieferten Bilder richtet sich nach der Eventdauer (ca. 50–100 Bilder pro Stunde).</p>
+<p>Die bearbeiteten Bilder werden innerhalb von 2–4 Wochen nach dem Event über das Studioflow-Kundenportal bereitgestellt. Die Anzahl der gelieferten Bilder richtet sich nach der Eventdauer (ca. 50–100 Bilder pro Stunde).</p>
 
 <h3>4. Nutzungsrechte</h3>
 <p>Der Auftraggeber erhält das Recht, die Bilder für interne und externe Kommunikation zu nutzen, einschließlich sozialer Medien und Marketingmaterialien. Der Auftragnehmer behält das Recht zur Portfolio-Nutzung.</p>

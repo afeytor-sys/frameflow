@@ -129,7 +129,7 @@ export default function LandingPage() {
               className="font-semibold text-[#111110]"
               style={{ ...CD, fontSize: '17px', letterSpacing: '-0.02em' }}
             >
-              FrameFlow
+              Studioflow
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 className="text-[#7A7670] leading-relaxed mb-10 max-w-[640px] mx-auto"
                 style={{ fontSize: '19px' }}
               >
-                FrameFlow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.
+                Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.
                 Für Hochzeiten, Portraits, Events und alles dazwischen.
               </p>
             </RevealSection>
@@ -263,7 +263,7 @@ export default function LandingPage() {
                       <div className="w-3 h-3 rounded-full bg-[#28C840]" />
                     </div>
                     <div className="flex-1 mx-4 h-6 rounded-md bg-white border border-[#E4E1DC] flex items-center px-3">
-                      <span className="text-[11px] text-[#B0ACA6]">frameflow.app/client/abc123</span>
+                      <span className="text-[11px] text-[#B0ACA6]">studioflow.app/client/abc123</span>
                     </div>
                   </div>
                   {/* Mock portal content */}
@@ -606,7 +606,7 @@ export default function LandingPage() {
                   className="text-[#F8F7F4] font-semibold mb-2"
                   style={{ ...CD, fontSize: '17px', letterSpacing: '-0.02em' }}
                 >
-                  FrameFlow
+                  Studioflow
                 </p>
                 <p className="text-[#7A7670] text-[13px] max-w-[240px] leading-relaxed">
                   Elegante Kundenportale für Fotografen.
@@ -660,7 +660,7 @@ export default function LandingPage() {
 
             <div className="border-t border-white/[0.06] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-[12px] text-[#7A7670]">
-                © {new Date().getFullYear()} FrameFlow. Alle Rechte vorbehalten.
+                © {new Date().getFullYear()} Studioflow. Alle Rechte vorbehalten.
               </p>
               <div className="flex items-center gap-4">
                 <Link href="/login" className="text-[12px] text-[#7A7670] hover:text-[#F8F7F4] transition-colors">EN</Link>

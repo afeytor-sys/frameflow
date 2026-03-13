@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       .eq('id', project.photographer_id)
       .single()
 
-    const studioName = photographer?.studio_name || photographer?.full_name || 'FrameFlow'
+    const studioName = photographer?.studio_name || photographer?.full_name || 'Studioflow'
 
     // ─── Generate PDF ───────────────────────────────────────────────
     const pdfDoc = await PDFDocument.create()
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Header
-    drawText('FrameFlow', { bold: true, size: 18, color: [0.78, 0.66, 0.51] })
+    drawText('Studioflow', { bold: true, size: 18, color: [0.78, 0.66, 0.51] })
     y -= 4
     drawText(studioName, { bold: true, size: 13 })
     y -= 4
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     drawText(`IP-Adresse: ${ipAddress}`)
     y -= 8
     drawLine()
-    drawText('Dieses Dokument wurde digital unterzeichnet über FrameFlow (frameflow.app)', {
+    drawText('Dieses Dokument wurde digital unterzeichnet über Studioflow (studioflow.app)', {
       size: 8,
       color: [0.6, 0.6, 0.6],
     })
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
     // ─── Notify photographer via email ───────────────────────────────
     if (photographer?.email) {
       await resend.emails.send({
-        from: 'FrameFlow <noreply@frameflow.app>',
+        from: 'Studioflow <noreply@studioflow.app>',
         to: photographer.email,
         subject: `✅ ${project.client.full_name} hat den Vertrag unterschrieben`,
         html: `

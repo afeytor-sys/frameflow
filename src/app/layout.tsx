@@ -31,29 +31,29 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'FrameFlow — Elegante Kunden-Portale für Fotografen',
-    template: '%s | FrameFlow',
+    default: 'Studioflow — Elegante Kunden-Portale für Fotografen',
+    template: '%s | Studioflow',
   },
   description:
-    'FrameFlow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.',
+    'Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.',
   keywords: ['Fotografie', 'Kundenportal', 'Vertrag', 'Galerie', 'Hochzeitsfotograf'],
-  authors: [{ name: 'FrameFlow' }],
-  creator: 'FrameFlow',
+  authors: [{ name: 'Studioflow' }],
+  creator: 'Studioflow',
   openGraph: {
     type: 'website',
     locale: 'de_DE',
     alternateLocale: 'en_US',
     url: process.env.NEXT_PUBLIC_APP_URL,
-    siteName: 'FrameFlow',
-    title: 'FrameFlow — Elegante Kunden-Portale für Fotografen',
+    siteName: 'Studioflow',
+    title: 'Studioflow — Elegante Kunden-Portale für Fotografen',
     description:
-      'FrameFlow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
+      'Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FrameFlow — Elegante Kunden-Portale für Fotografen',
+    title: 'Studioflow — Elegante Kunden-Portale für Fotografen',
     description:
-      'FrameFlow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
+      'Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
   },
   robots: { index: true, follow: true },
 }

@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { ArrowLeft, Copy, ExternalLink, FileText, Images, Clock } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import ProjectTabs from '@/components/dashboard/ProjectTabs'
+import QRCodeModal from '@/components/dashboard/QRCodeModal'
+import DeliveryChecklist from '@/components/dashboard/DeliveryChecklist'
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -73,7 +75,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Client portal link */}
+      {/* Client portal link + QR */}
       <div className="bg-white rounded-xl border border-[#E8E8E4] p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -81,6 +83,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm font-mono text-[#1A1A1A] truncate">{project.client_url}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <QRCodeModal clientUrl={project.client_url} projectTitle={project.title} />
             <a
               href={project.client_url}
               target="_blank"
@@ -92,6 +95,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </div>
+
+      {/* Delivery Checklist */}
+      <DeliveryChecklist
+        hasContract={(contracts?.length ?? 0) > 0}
+        contractSent={(contracts ?? []).some(c => c.status !== 'draft')}
+        hasPhotos={(gallery as { photos?: unknown[] } | null)?.photos ? ((gallery as { photos: unknown[] }).photos.length > 0) : false}
+        hasTimeline={(timeline?.events as unknown[])?.length > 0}
+        hasShootDate={!!project.shoot_date}
+        hasClientEmail={!!(client as { email?: string }).email}
+      />
 
       {/* Tabs */}
       <ProjectTabs

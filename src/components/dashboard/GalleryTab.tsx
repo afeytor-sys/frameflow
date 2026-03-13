@@ -42,6 +42,7 @@ interface Gallery {
   password: string | null
   watermark: boolean
   download_enabled: boolean
+  comments_enabled: boolean
   expires_at: string | null
   view_count: number
   download_count: number
@@ -151,6 +152,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
   const [settingsDesc, setSettingsDesc] = useState(gallery?.description || '')
   const [settingsDownload, setSettingsDownload] = useState(gallery?.download_enabled ?? true)
+  const [settingsComments, setSettingsComments] = useState(gallery?.comments_enabled ?? true)
   const [settingsPassword, setSettingsPassword] = useState('')
   const [settingsExpiry, setSettingsExpiry] = useState(gallery?.expires_at?.split('T')[0] || '')
 
@@ -252,6 +254,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
       title: settingsTitle,
       description: settingsDesc || null,
       download_enabled: settingsDownload,
+      comments_enabled: settingsComments,
       expires_at: settingsExpiry ? new Date(settingsExpiry).toISOString() : null,
     }
     if (settingsPassword) updates.password = settingsPassword
@@ -418,6 +421,22 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
               </div>
               <span className="text-sm text-[#1A1A1A]">Galerie aktiv</span>
             </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <div
+                onClick={() => setSettingsComments(!settingsComments)}
+                className={cn(
+                  'w-9 h-5 rounded-full transition-all relative cursor-pointer',
+                  settingsComments ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]'
+                )}
+              >
+                <div className={cn(
+                  'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all',
+                  settingsComments ? 'left-4' : 'left-0.5'
+                )} />
+              </div>
+              <span className="text-sm text-[#1A1A1A]">Kommentare erlauben</span>
+            </label>
           </div>
 
           <div className="flex items-center gap-2">
@@ -494,7 +513,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
       {showWatermark && (
         <div className="flex items-center gap-2 p-3 bg-[#E8A21A]/10 rounded-lg border border-[#E8A21A]/20">
           <span className="text-xs text-[#E8A21A]">
-            ⚠️ Fotos werden mit FrameFlow-Wasserzeichen angezeigt (Free-Plan). Upgrade auf Starter oder höher, um das Wasserzeichen zu entfernen.
+            ⚠️ Fotos werden mit Studioflow-Wasserzeichen angezeigt (Free-Plan). Upgrade auf Starter oder höher, um das Wasserzeichen zu entfernen.
           </span>
         </div>
       )}
