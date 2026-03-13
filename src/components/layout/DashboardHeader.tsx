@@ -1,18 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
-import { Plus, Globe } from 'lucide-react'
+import { Globe, ChevronDown } from 'lucide-react'
 
 interface Props {
   photographer: Photographer
 }
 
 export default function DashboardHeader({ photographer }: Props) {
-  const t = useTranslations()
   const [langOpen, setLangOpen] = useState(false)
 
   const switchLanguage = (lang: string) => {
@@ -22,57 +19,61 @@ export default function DashboardHeader({ photographer }: Props) {
   }
 
   return (
-    <header className="h-14 bg-white border-b border-[#E4E1DC] flex items-center justify-between px-6 flex-shrink-0">
-      <div />
-
-      <div className="flex items-center gap-1.5">
-        {/* New client */}
-        <Link
-          href="/dashboard/clients/new"
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-semibold bg-[#111110] text-[#F8F7F4] hover:bg-[#1E1E1C] transition-colors"
-          style={{ letterSpacing: '0.01em' }}
+    <header
+      className="h-[52px] flex items-center justify-end px-5 flex-shrink-0"
+      style={{
+        background: '#0D0D0C',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+      }}
+    >
+      {/* Language switcher */}
+      <div className="relative">
+        <button
+          onClick={() => setLangOpen(!langOpen)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all"
         >
-          <Plus className="w-3.5 h-3.5" />
-          {t('nav.newClient')}
-        </Link>
+          <Globe className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider font-mono">
+            {photographer.language || 'de'}
+          </span>
+          <ChevronDown className={cn('w-3 h-3 transition-transform', langOpen && 'rotate-180')} />
+        </button>
 
-        {/* Language switcher */}
-        <div className="relative">
-          <button
-            onClick={() => setLangOpen(!langOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[#7A7670] hover:text-[#111110] hover:bg-[#F2F0EC] transition-colors"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider font-mono">
-              {photographer.language || 'de'}
-            </span>
-          </button>
-
-          {langOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setLangOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 bg-white border border-[#E4E1DC] rounded-lg shadow-lg z-20 overflow-hidden min-w-[120px]">
-                {[
-                  { code: 'de', label: 'Deutsch' },
-                  { code: 'en', label: 'English' },
-                ].map(({ code, label }) => (
-                  <button
-                    key={code}
-                    onClick={() => switchLanguage(code)}
-                    className={cn(
-                      'w-full text-left px-4 py-2.5 text-[13px] hover:bg-[#F2F0EC] transition-colors',
-                      photographer.language === code
-                        ? 'text-[#C8A882] font-semibold'
-                        : 'text-[#111110]'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        {langOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setLangOpen(false)} />
+            <div
+              className="absolute right-0 top-full mt-1.5 rounded-xl overflow-hidden z-20 min-w-[130px]"
+              style={{
+                background: '#141413',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              }}
+            >
+              {[
+                { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+                { code: 'en', label: 'English', flag: '🇬🇧' },
+              ].map(({ code, label, flag }) => (
+                <button
+                  key={code}
+                  onClick={() => switchLanguage(code)}
+                  className={cn(
+                    'w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors',
+                    photographer.language === code
+                      ? 'text-[#C4A47C] bg-white/[0.04]'
+                      : 'text-white/50 hover:text-white/80 hover:bg-white/[0.04]'
+                  )}
+                >
+                  <span>{flag}</span>
+                  <span className="font-medium">{label}</span>
+                  {photographer.language === code && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#C4A47C]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </header>
   )
