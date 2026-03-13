@@ -38,13 +38,8 @@ export function generateToken(length: number = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
   const randomValues = new Uint8Array(length)
-  if (typeof window !== 'undefined') {
-    window.crypto.getRandomValues(randomValues)
-  } else {
-    // Node.js environment
-    const { randomFillSync } = require('crypto')
-    randomFillSync(randomValues)
-  }
+  // Works in both browser and Node.js (via globalThis.crypto in Node 19+)
+  globalThis.crypto.getRandomValues(randomValues)
   for (let i = 0; i < length; i++) {
     result += chars[randomValues[i] % chars.length]
   }
