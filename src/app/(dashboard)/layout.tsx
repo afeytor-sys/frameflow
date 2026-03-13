@@ -33,7 +33,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-[#0D0D0C] overflow-hidden">
+    <div className="flex h-screen bg-[#FAFAF8] overflow-hidden">
       {/* Sidebar */}
       <DashboardSidebar photographer={photographer} />
 

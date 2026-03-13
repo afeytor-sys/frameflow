@@ -22,15 +22,15 @@ export default function DashboardHeader({ photographer }: Props) {
     <header
       className="h-[52px] flex items-center justify-end px-5 flex-shrink-0"
       style={{
-        background: '#0D0D0C',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        background: '#FAFAF8',
+        borderBottom: '1px solid #E8E4DE',
       }}
     >
       {/* Language switcher */}
       <div className="relative">
         <button
           onClick={() => setLangOpen(!langOpen)}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[#B0A99E] hover:text-[#1A1A1A] hover:bg-[#F0EDE8] transition-all"
         >
           <Globe className="w-3.5 h-3.5" />
           <span className="text-[11px] font-semibold uppercase tracking-wider font-mono">
@@ -45,9 +45,9 @@ export default function DashboardHeader({ photographer }: Props) {
             <div
               className="absolute right-0 top-full mt-1.5 rounded-xl overflow-hidden z-20 min-w-[130px]"
               style={{
-                background: '#141413',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                background: '#FFFFFF',
+                border: '1px solid #E8E4DE',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
               }}
             >
               {[
@@ -60,14 +60,14 @@ export default function DashboardHeader({ photographer }: Props) {
                   className={cn(
                     'w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5 transition-colors',
                     photographer.language === code
-                      ? 'text-[#C4A47C] bg-white/[0.04]'
-                      : 'text-white/50 hover:text-white/80 hover:bg-white/[0.04]'
+                      ? 'text-[#1A1A1A] font-semibold bg-[#F5F2EE]'
+                      : 'text-[#6B6560] hover:text-[#1A1A1A] hover:bg-[#F5F2EE]'
                   )}
                 >
                   <span>{flag}</span>
                   <span className="font-medium">{label}</span>
                   {photographer.language === code && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#C4A47C]" />
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1A1A1A]" />
                   )}
                 </button>
               ))}

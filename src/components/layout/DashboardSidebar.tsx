@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
 import {
@@ -34,15 +33,12 @@ const navItems = [
 ]
 
 const bottomItems = [
-  { key: 'settings', href: '/dashboard/settings', icon: Settings,    label: 'Einstellungen' },
-  { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard,  label: 'Abonnement' },
+  { key: 'settings', href: '/dashboard/settings', icon: Settings,   label: 'Einstellungen' },
+  { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard, label: 'Abonnement' },
 ]
 
-const planColors: Record<string, string> = {
-  free:    '#A8A49E',
-  starter: '#C4A47C',
-  pro:     '#2A9B68',
-  studio:  '#7C6FCD',
+const planLabel: Record<string, string> = {
+  free: 'Free', starter: 'Starter', pro: 'Pro', studio: 'Studio',
 }
 
 export default function DashboardSidebar({ photographer }: Props) {
@@ -73,35 +69,40 @@ export default function DashboardSidebar({ photographer }: Props) {
   return (
     <aside
       className={cn(
-        'flex flex-col bg-[#0D0D0C] transition-all duration-300 ease-in-out relative flex-shrink-0 select-none',
-        collapsed ? 'w-[56px]' : 'w-[220px]'
+        'flex flex-col transition-all duration-300 ease-in-out relative flex-shrink-0 select-none',
+        collapsed ? 'w-[60px]' : 'w-[228px]'
       )}
+      style={{
+        background: '#FAFAF8',
+        borderRight: '1px solid #E8E4DE',
+      }}
     >
       {/* Logo */}
       <div className={cn(
-        'flex items-center h-[52px] border-b border-white/[0.05] flex-shrink-0',
-        collapsed ? 'justify-center' : 'px-4 gap-2.5'
-      )}>
-        {/* Logo mark */}
+        'flex items-center h-[56px] flex-shrink-0',
+        collapsed ? 'justify-center' : 'px-5 gap-2.5',
+      )}
+        style={{ borderBottom: '1px solid #E8E4DE' }}
+      >
         <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.15"/>
-            <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect width="20" height="20" rx="5" fill="#1A1A1A" fillOpacity="0.08"/>
+            <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#1A1A1A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7.5 14V10.5H12.5V14" stroke="#1A1A1A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
         {!collapsed && (
-          <span className="font-display text-[#F7F6F3] font-semibold text-[17px] tracking-tight leading-none">
+          <span className="font-display text-[#1A1A1A] font-bold text-[17px] tracking-tight leading-none">
             FrameFlow
           </span>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {!collapsed && (
-          <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/20">
-            Menü
+          <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#B0A99E]">
+            Navigation
           </p>
         )}
         {navItems.map(({ key, href, icon: Icon, label }) => {
@@ -112,20 +113,16 @@ export default function DashboardSidebar({ photographer }: Props) {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                'flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 relative group',
-                collapsed ? 'justify-center p-2.5' : 'px-2.5 py-2',
+                'flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 relative group',
+                collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5',
                 active
-                  ? 'bg-white/[0.08] text-[#F7F6F3]'
-                  : 'text-white/40 hover:text-white/75 hover:bg-white/[0.04]'
+                  ? 'bg-[#1A1A1A] text-white'
+                  : 'text-[#6B6560] hover:text-[#1A1A1A] hover:bg-[#F0EDE8]'
               )}
             >
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[#C4A47C] rounded-r-full" />
-              )}
               <Icon className={cn(
                 'flex-shrink-0 transition-colors',
                 collapsed ? 'w-[17px] h-[17px]' : 'w-[15px] h-[15px]',
-                active ? 'text-[#C4A47C]' : ''
               )} />
               {!collapsed && <span className="truncate">{label}</span>}
             </Link>
@@ -134,7 +131,10 @@ export default function DashboardSidebar({ photographer }: Props) {
       </nav>
 
       {/* Bottom section */}
-      <div className="px-2 pb-3 border-t border-white/[0.05] pt-2 space-y-0.5">
+      <div
+        className="px-2.5 pb-3 pt-2 space-y-0.5"
+        style={{ borderTop: '1px solid #E8E4DE' }}
+      >
         {bottomItems.map(({ key, href, icon: Icon, label }) => {
           const active = isActive(href)
           return (
@@ -143,20 +143,16 @@ export default function DashboardSidebar({ photographer }: Props) {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                'flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 relative',
-                collapsed ? 'justify-center p-2.5' : 'px-2.5 py-2',
+                'flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150',
+                collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5',
                 active
-                  ? 'bg-white/[0.08] text-[#F7F6F3]'
-                  : 'text-white/40 hover:text-white/75 hover:bg-white/[0.04]'
+                  ? 'bg-[#1A1A1A] text-white'
+                  : 'text-[#6B6560] hover:text-[#1A1A1A] hover:bg-[#F0EDE8]'
               )}
             >
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[#C4A47C] rounded-r-full" />
-              )}
               <Icon className={cn(
                 'flex-shrink-0',
                 collapsed ? 'w-[17px] h-[17px]' : 'w-[15px] h-[15px]',
-                active ? 'text-[#C4A47C]' : ''
               )} />
               {!collapsed && <span className="truncate">{label}</span>}
             </Link>
@@ -168,8 +164,8 @@ export default function DashboardSidebar({ photographer }: Props) {
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? 'Erweitern' : 'Einklappen'}
           className={cn(
-            'flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 w-full text-white/25 hover:text-white/50 hover:bg-white/[0.04]',
-            collapsed ? 'justify-center p-2.5' : 'px-2.5 py-2'
+            'flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 w-full text-[#B0A99E] hover:text-[#1A1A1A] hover:bg-[#F0EDE8]',
+            collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'
           )}
         >
           {collapsed
@@ -180,14 +176,16 @@ export default function DashboardSidebar({ photographer }: Props) {
         </button>
 
         {/* User row */}
-        <div className={cn(
-          'flex items-center gap-2 mt-1 pt-2 border-t border-white/[0.05]',
-          collapsed ? 'justify-center px-1' : 'px-1'
-        )}>
+        <div
+          className={cn(
+            'flex items-center gap-2.5 mt-1 pt-2',
+            collapsed ? 'justify-center px-1' : 'px-1'
+          )}
+          style={{ borderTop: '1px solid #E8E4DE' }}
+        >
           {/* Avatar */}
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold"
-            style={{ background: `${planColors[plan]}22`, color: planColors[plan], border: `1px solid ${planColors[plan]}33` }}
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-bold bg-[#1A1A1A] text-white"
           >
             {initials}
           </div>
@@ -195,16 +193,16 @@ export default function DashboardSidebar({ photographer }: Props) {
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <p className="text-[#F7F6F3] text-[12px] font-medium truncate leading-tight">
+                <p className="text-[#1A1A1A] text-[12px] font-semibold truncate leading-tight">
                   {photographer.full_name?.split(' ')[0] || photographer.email?.split('@')[0]}
                 </p>
-                <p className="text-[11px] truncate leading-tight capitalize" style={{ color: planColors[plan] }}>
-                  {plan}
+                <p className="text-[11px] text-[#B0A99E] truncate leading-tight">
+                  {planLabel[plan] || plan}
                 </p>
               </div>
               <button
                 onClick={handleLogout}
-                className="text-white/25 hover:text-white/60 transition-colors flex-shrink-0 p-1 rounded"
+                className="text-[#B0A99E] hover:text-[#1A1A1A] transition-colors flex-shrink-0 p-1 rounded-lg hover:bg-[#F0EDE8]"
                 title="Abmelden"
               >
                 <LogOut className="w-3.5 h-3.5" />
