@@ -1,56 +1,17 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext } from 'react'
 
-export type Theme = 'light' | 'warm' | 'dark'
-
-const ThemeContext = createContext<{
-  theme: Theme
-  setTheme: (t: Theme) => void
-  cycle: () => void
-}>({ theme: 'warm', setTheme: () => {}, cycle: () => {} })
-
-const THEMES: Theme[] = ['light', 'warm', 'dark']
-
-function applyTheme(theme: Theme) {
-  const root = document.documentElement
-  root.classList.remove('light', 'warm', 'dark')
-  if (theme !== 'light') root.classList.add(theme)
-  // light = :root (no class needed, it's the default)
-}
+// Single theme — no toggle needed
+const ThemeContext = createContext({ theme: 'light' })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('ff-theme') as Theme | null
-    const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    const initial = stored || preferred
-    setThemeState(initial)
-    applyTheme(initial)
-    setMounted(true)
-  }, [])
-
-  const setTheme = (t: Theme) => {
-    setThemeState(t)
-    localStorage.setItem('ff-theme', t)
-    applyTheme(t)
-  }
-
-  const cycle = () => {
-    const idx = THEMES.indexOf(theme)
-    const next = THEMES[(idx + 1) % THEMES.length]
-    setTheme(next)
-  }
-
-  if (!mounted) return <>{children}</>
-
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, cycle }}>
+    <ThemeContext.Provider value={{ theme: 'light' }}>
       {children}
     </ThemeContext.Provider>
   )
 }
 
 export const useTheme = () => useContext(ThemeContext)
+export type Theme = 'light'

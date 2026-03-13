@@ -3,7 +3,6 @@ import { DM_Sans, Cormorant_Garamond, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
-import Script from 'next/script'
 import CookieBanner from '@/components/CookieBanner'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
@@ -70,13 +69,6 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('ff-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var theme=t||p;if(theme==='dark')document.documentElement.classList.add('dark');else if(theme==='warm')document.documentElement.classList.add('warm');}catch(e){}})()`,
-          }}
-        />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages} locale={locale}>
             {children}
