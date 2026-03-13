@@ -68,13 +68,13 @@ export default async function RootLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
+    <html lang={locale} suppressHydrationWarning className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
         <Script
           id="theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('ff-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if((t||p)==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('ff-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var theme=t||p;if(theme==='dark')document.documentElement.classList.add('dark');else if(theme==='warm')document.documentElement.classList.add('warm');}catch(e){}})()`,
           }}
         />
         <ThemeProvider>
