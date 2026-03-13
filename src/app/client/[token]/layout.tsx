@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { Camera } from 'lucide-react'
 
 export default async function ClientPortalLayout({
   children,
@@ -31,23 +30,27 @@ export default async function ClientPortalLayout({
   const showBranding = !['pro', 'studio'].includes(photographer?.plan || '')
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8]">
+    <div className="min-h-screen bg-[#F7F6F3]">
       {/* Portal header */}
-      <header className="bg-white border-b border-[#E8E8E4] sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+      <header className="bg-white/80 backdrop-blur-md border-b border-[#E2DED8]/60 sticky top-0 z-20">
+        <div className="max-w-2xl mx-auto px-5 h-[52px] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {photographer?.logo_url ? (
               <img
                 src={photographer.logo_url}
                 alt={studioName}
-                className="h-8 w-auto object-contain"
+                className="h-7 w-auto object-contain"
               />
             ) : (
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
-                  <Camera className="w-3.5 h-3.5 text-[#C8A882]" />
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.15"/>
+                    <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-                <span className="font-display text-base font-semibold text-[#1A1A1A]">
+                <span className="font-display text-[#0D0D0C] font-semibold text-[15px] tracking-tight">
                   {studioName}
                 </span>
               </div>
@@ -57,7 +60,7 @@ export default async function ClientPortalLayout({
           {showBranding && (
             <a
               href="/"
-              className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+              className="text-[11px] text-[#A8A49E] hover:text-[#6E6A63] transition-colors font-medium"
             >
               Powered by FrameFlow
             </a>

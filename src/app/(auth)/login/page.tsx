@@ -4,10 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -18,68 +20,80 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError(error.message); setLoading(false) }
+    if (error) { setError('E-Mail oder Passwort ist falsch.'); setLoading(false) }
     else { router.push('/dashboard'); router.refresh() }
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4] flex">
+    <div className="min-h-screen bg-[#F7F6F3] flex">
 
-      {/* Left — dark brand panel */}
-      <div className="hidden lg:flex lg:w-[480px] bg-[#111110] flex-col justify-between p-12 flex-shrink-0">
-        <Link
-          href="/"
-          className="text-[#F8F7F4] font-semibold"
-          style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '18px', letterSpacing: '-0.02em' }}
-        >
-          FrameFlow
+      {/* Left — brand panel */}
+      <div className="hidden lg:flex lg:w-[420px] xl:w-[480px] bg-[#0D0D0C] flex-col justify-between p-10 xl:p-14 flex-shrink-0 relative overflow-hidden">
+        {/* Subtle texture */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+          backgroundSize: '32px 32px'
+        }} />
+
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 relative z-10">
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
+            <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.2"/>
+            <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="font-display text-[#F7F6F3] font-semibold text-[18px] tracking-tight">
+            FrameFlow
+          </span>
         </Link>
 
-        <div>
-          <p className="text-[#F8F7F4]/70 text-[17px] leading-relaxed mb-6" style={{ fontFamily: 'Satoshi, system-ui, sans-serif' }}>
-            "Meine Kunden kommentieren immer, wie professionell das Portal aussieht."
-          </p>
+        {/* Quote */}
+        <div className="relative z-10">
+          <div className="w-8 h-0.5 bg-[#C4A47C] mb-6" />
+          <blockquote className="text-[#F7F6F3]/70 text-[16px] leading-relaxed font-light mb-6" style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic' }}>
+            "Meine Kunden kommentieren immer, wie professionell das Portal aussieht. FrameFlow hat mein Business verändert."
+          </blockquote>
           <div>
-            <p className="text-[#F8F7F4] text-[14px] font-semibold">Marco R.</p>
-            <p className="text-[#7A7670] text-[13px] mt-0.5">Event-Fotograf, München</p>
+            <p className="text-[#F7F6F3] text-[13px] font-semibold">Marco R.</p>
+            <p className="text-white/35 text-[12px] mt-0.5">Event-Fotograf · München</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        {/* Bottom features */}
+        <div className="flex items-center gap-5 relative z-10">
           {['Verträge', 'Galerien', 'Zeitpläne'].map((item, i) => (
-            <span key={item} className="flex items-center gap-6">
-              <span className="text-[#7A7670] text-[12px]">{item}</span>
-              {i < 2 && <span className="w-1 h-1 rounded-full bg-[#2A2A28]" />}
-            </span>
+            <div key={item} className="flex items-center gap-5">
+              <span className="text-white/30 text-[11px] font-medium tracking-wide">{item}</span>
+              {i < 2 && <span className="w-px h-3 bg-white/10" />}
+            </div>
           ))}
         </div>
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-12">
-        <div className="w-full max-w-[360px] mx-auto">
+      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12">
+        <div className="w-full max-w-[360px]">
 
-          <Link
-            href="/"
-            className="text-[#111110] font-semibold mb-10 block lg:hidden"
-            style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '18px', letterSpacing: '-0.02em' }}
-          >
-            FrameFlow
+          {/* Mobile logo */}
+          <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.15"/>
+              <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="font-display text-[#0D0D0C] font-semibold text-[17px]">FrameFlow</span>
           </Link>
 
           <div className="mb-8">
-            <h1
-              className="text-[#111110] font-semibold mb-2"
-              style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '28px', letterSpacing: '-0.03em' }}
-            >
+            <h1 className="font-display text-[#0D0D0C] font-semibold mb-2" style={{ fontSize: '30px', letterSpacing: '-0.02em' }}>
               Willkommen zurück
             </h1>
-            <p className="text-[#7A7670] text-[14px]">Melde dich in deinem Studio-Account an.</p>
+            <p className="text-[#6E6A63] text-[14px]">Melde dich in deinem Studio-Account an.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
+              <label className="block text-[11.5px] font-semibold text-[#0D0D0C] mb-1.5 uppercase tracking-[0.07em]">
                 E-Mail
               </label>
               <input
@@ -88,53 +102,71 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="max@studio.de"
-                className="w-full px-3.5 py-2.5 rounded-md border border-[#E4E1DC] bg-white text-[14px] text-[#111110] placeholder:text-[#B0ACA6] focus:outline-none focus:border-[#111110] transition-colors"
-                style={{ fontFamily: 'Satoshi, system-ui, sans-serif' }}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2DED8] bg-white text-[14px] text-[#0D0D0C] placeholder:text-[#A8A49E] focus:outline-none focus:border-[#0D0D0C] focus:ring-2 focus:ring-[#0D0D0C]/5 transition-all"
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[12px] font-semibold text-[#111110] uppercase tracking-wide">
+                <label className="block text-[11.5px] font-semibold text-[#0D0D0C] uppercase tracking-[0.07em]">
                   Passwort
                 </label>
-                <Link href="/reset-password" className="text-[12px] text-[#7A7670] hover:text-[#111110] transition-colors">
+                <Link href="/reset-password" className="text-[12px] text-[#A8A49E] hover:text-[#0D0D0C] transition-colors">
                   Vergessen?
                 </Link>
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-md border border-[#E4E1DC] bg-white text-[14px] text-[#111110] placeholder:text-[#B0ACA6] focus:outline-none focus:border-[#111110] transition-colors"
-                style={{ fontFamily: 'Satoshi, system-ui, sans-serif' }}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-[#E2DED8] bg-white text-[14px] text-[#0D0D0C] placeholder:text-[#A8A49E] focus:outline-none focus:border-[#0D0D0C] focus:ring-2 focus:ring-[#0D0D0C]/5 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A49E] hover:text-[#6E6A63] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {error && (
-              <div className="rounded-md bg-[#C94030]/8 border border-[#C94030]/20 px-3.5 py-2.5">
-                <p className="text-[13px] text-[#C94030]">{error}</p>
+              <div className="rounded-lg bg-[#C43B2C]/6 border border-[#C43B2C]/15 px-3.5 py-2.5">
+                <p className="text-[13px] text-[#C43B2C]">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
-              style={{ letterSpacing: '0.01em' }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#0D0D0C] text-[#F7F6F3] text-[13.5px] font-semibold rounded-lg hover:bg-[#1A1A18] disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-1 group"
             >
-              {loading ? 'Anmelden...' : 'Anmelden'}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Anmelden...
+                </span>
+              ) : (
+                <>
+                  Anmelden
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </>
+              )}
             </button>
           </form>
 
-          <p className="text-[14px] text-[#7A7670] text-center mt-8">
-            Noch kein Konto?{' '}
-            <Link href="/signup" className="text-[#111110] font-semibold hover:underline">
-              Kostenlos registrieren
-            </Link>
-          </p>
+          <div className="mt-8 pt-6 border-t border-[#E2DED8]">
+            <p className="text-[13.5px] text-[#6E6A63] text-center">
+              Noch kein Konto?{' '}
+              <Link href="/signup" className="text-[#0D0D0C] font-semibold hover:text-[#C4A47C] transition-colors">
+                Kostenlos registrieren
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

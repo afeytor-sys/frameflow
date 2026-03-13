@@ -1,12 +1,26 @@
 import type { Metadata } from 'next'
-import { JetBrains_Mono } from 'next/font/google'
+import { DM_Sans, Cormorant_Garamond, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
 import CookieBanner from '@/components/CookieBanner'
 import './globals.css'
 
-// JetBrains Mono from Google Fonts (for mono/code elements)
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-body',
+  display: 'swap',
+})
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
@@ -52,16 +66,8 @@ export default async function RootLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} className={jetbrainsMono.variable}>
-      <head>
-        {/* Clash Display + Satoshi from Fontshare CDN */}
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,600,700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="antialiased" style={{ fontFamily: 'Satoshi, system-ui, sans-serif' }}>
+    <html lang={locale} className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
+      <body className="antialiased">
         <NextIntlClientProvider messages={messages} locale={locale}>
           {children}
           <CookieBanner />
@@ -70,20 +76,21 @@ export default async function RootLayout({
             toastOptions={{
               duration: 4000,
               style: {
-                background: '#111110',
-                color: '#F8F7F4',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontFamily: 'Satoshi, system-ui, sans-serif',
+                background: '#0D0D0C',
+                color: '#F7F6F3',
+                borderRadius: '8px',
+                fontSize: '13.5px',
+                fontFamily: 'var(--font-body), DM Sans, system-ui, sans-serif',
                 fontWeight: '500',
                 border: '1px solid #1E1E1C',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                padding: '10px 14px',
               },
               success: {
-                iconTheme: { primary: '#2D9E6B', secondary: '#F8F7F4' },
+                iconTheme: { primary: '#2A9B68', secondary: '#F7F6F3' },
               },
               error: {
-                iconTheme: { primary: '#C94030', secondary: '#F8F7F4' },
+                iconTheme: { primary: '#C43B2C', secondary: '#F7F6F3' },
               },
             }}
           />

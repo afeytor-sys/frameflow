@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { headers } from 'next/headers'
 import ContractSigningClient from '@/components/client-portal/ContractSigningClient'
 
 export default async function ClientContractPage({ params }: { params: Promise<{ token: string }> }) {
