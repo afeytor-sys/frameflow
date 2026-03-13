@@ -19,6 +19,7 @@ export type PlanKey = 'free' | 'starter' | 'pro' | 'studio'
 export interface PlanLimits {
   maxClients: number | null       // null = unlimited
   maxContractsPerClient: number | null
+  maxGalleries: number | null     // null = unlimited
   watermark: boolean
   customBranding: boolean         // hide "Powered by FrameFlow"
   teamSeats: number
@@ -31,7 +32,8 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   free: {
     maxClients: 2,
     maxContractsPerClient: 1,
-    watermark: true,
+    maxGalleries: 3,
+    watermark: false,
     customBranding: false,
     teamSeats: 1,
     customDomain: false,
@@ -41,6 +43,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   starter: {
     maxClients: 10,
     maxContractsPerClient: null,
+    maxGalleries: null,
     watermark: false,
     customBranding: false,
     teamSeats: 1,
@@ -51,6 +54,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   pro: {
     maxClients: null,
     maxContractsPerClient: null,
+    maxGalleries: null,
     watermark: false,
     customBranding: true,
     teamSeats: 1,
@@ -61,6 +65,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   studio: {
     maxClients: null,
     maxContractsPerClient: null,
+    maxGalleries: null,
     watermark: false,
     customBranding: true,
     teamSeats: 5,

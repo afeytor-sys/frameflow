@@ -85,9 +85,10 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
       ) : (
         <GalleryViewer
           galleryId={gallery.id}
+          galleryTitle={gallery.title || 'Galerie'}
           initialPhotos={sortedPhotos}
           downloadEnabled={gallery.download_enabled}
-          showWatermark={showWatermark}
+          showWatermark={false}
           token={token}
         />
       )}

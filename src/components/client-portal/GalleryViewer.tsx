@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Heart, Download, X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
+import { Heart, Download, X, ChevronLeft, ChevronRight, ZoomIn, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -17,15 +17,18 @@ interface Photo {
 
 interface Props {
   galleryId: string
+  galleryTitle: string
   initialPhotos: Photo[]
   downloadEnabled: boolean
   showWatermark: boolean
   token: string
 }
 
-export default function GalleryViewer({ galleryId, initialPhotos, downloadEnabled, showWatermark, token }: Props) {
+export default function GalleryViewer({ galleryId, galleryTitle, initialPhotos, downloadEnabled, token }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [downloadingAll, setDownloadingAll] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState(0)
   const supabase = createClient()
 
   const favoriteCount = photos.filter((p) => p.is_favorite).length
@@ -43,7 +46,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
       .eq('id', photoId)
 
     if (error) {
-      // Revert on error
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: !newValue } : p))
       toast.error('Fehler beim Speichern')
     }
@@ -59,11 +61,60 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
       a.download = photo.filename
       a.click()
       URL.revokeObjectURL(url)
-
-      // Increment download count (best-effort)
       try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
     } catch {
       toast.error('Download fehlgeschlagen')
+    }
+  }
+
+  const downloadAll = async () => {
+    if (downloadingAll || photos.length === 0) return
+    setDownloadingAll(true)
+    setDownloadProgress(0)
+
+    try {
+      // Dynamic import to keep bundle small
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+
+      const total = photos.length
+      let done = 0
+
+      // Fetch all photos in parallel (batches of 5 to avoid overwhelming)
+      const batchSize = 5
+      for (let i = 0; i < photos.length; i += batchSize) {
+        const batch = photos.slice(i, i + batchSize)
+        await Promise.all(
+          batch.map(async (photo) => {
+            try {
+              const response = await fetch(photo.storage_url)
+              const blob = await response.blob()
+              zip.file(photo.filename, blob)
+            } catch {
+              // Skip failed photos silently
+            }
+            done++
+            setDownloadProgress(Math.round((done / total) * 100))
+          })
+        )
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${galleryTitle || 'Galerie'}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+
+      try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
+      toast.success(`${total} Fotos heruntergeladen!`)
+    } catch (err) {
+      console.error(err)
+      toast.error('Download fehlgeschlagen')
+    } finally {
+      setDownloadingAll(false)
+      setDownloadProgress(0)
     }
   }
 
@@ -88,11 +139,43 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
 
   return (
     <>
-      {/* Favorite count */}
-      {favoriteCount > 0 && (
-        <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
-          <Heart className="w-4 h-4 text-[#E84C1A] fill-[#E84C1A]" />
-          <span>{favoriteCount} {favoriteCount === 1 ? 'Favorit' : 'Favoriten'}</span>
+      {/* Header row: favorites + download all */}
+      <div className="flex items-center justify-between">
+        {favoriteCount > 0 ? (
+          <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+            <Heart className="w-4 h-4 text-[#E84C1A] fill-[#E84C1A]" />
+            <span>{favoriteCount} {favoriteCount === 1 ? 'Favorit' : 'Favoriten'}</span>
+          </div>
+        ) : <div />}
+
+        {downloadEnabled && photos.length > 0 && (
+          <button
+            onClick={downloadAll}
+            disabled={downloadingAll}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] disabled:opacity-70 transition-colors"
+          >
+            {downloadingAll ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {downloadProgress > 0 ? `${downloadProgress}%` : 'Wird vorbereitet...'}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Alle herunterladen ({photos.length})
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {downloadingAll && downloadProgress > 0 && (
+        <div className="w-full bg-[#F0F0EC] rounded-full h-1.5 overflow-hidden">
+          <div
+            className="h-full bg-[#1A1A1A] rounded-full transition-all duration-300"
+            style={{ width: `${downloadProgress}%` }}
+          />
         </div>
       )}
 
@@ -108,19 +191,11 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
               onClick={() => openLightbox(index)}
             />
 
-            {/* Overlay */}
+            {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg" />
-
-            {/* Watermark */}
-            {showWatermark && (
-              <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5 rounded font-medium pointer-events-none select-none">
-                Delivered via FrameFlow
-              </div>
-            )}
 
             {/* Actions overlay */}
             <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
-              {/* Favorite */}
               <button
                 onClick={(e) => { e.stopPropagation(); toggleFavorite(photo.id) }}
                 className={cn(
@@ -133,7 +208,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
                 <Heart className={cn('w-3.5 h-3.5', photo.is_favorite && 'fill-white')} />
               </button>
 
-              {/* Download */}
               {downloadEnabled && (
                 <button
                   onClick={(e) => { e.stopPropagation(); downloadPhoto(photo) }}
@@ -143,7 +217,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
                 </button>
               )}
 
-              {/* Zoom */}
               <button
                 onClick={(e) => { e.stopPropagation(); openLightbox(index) }}
                 className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-[#6B6B6B] hover:text-[#1A1A1A] transition-all shadow-sm"
@@ -152,7 +225,7 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
               </button>
             </div>
 
-            {/* Favorite indicator (always visible) */}
+            {/* Favorite indicator */}
             {photo.is_favorite && (
               <div className="absolute top-2 left-2">
                 <Heart className="w-4 h-4 text-[#E84C1A] fill-[#E84C1A] drop-shadow-sm" />
@@ -162,19 +235,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
         ))}
       </div>
 
-      {/* Download all button */}
-      {downloadEnabled && photos.length > 0 && (
-        <div className="text-center pt-4">
-          <a
-            href={`/api/galleries/${galleryId}/download`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 border border-[#E8E8E4] text-sm font-medium text-[#1A1A1A] rounded-lg hover:bg-white transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Alle Fotos herunterladen
-          </a>
-        </div>
-      )}
-
       {/* Lightbox */}
       {lightboxIndex !== null && currentPhoto && (
         <div
@@ -183,7 +243,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
           tabIndex={0}
           onClick={closeLightbox}
         >
-          {/* Close */}
           <button
             onClick={closeLightbox}
             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all z-10"
@@ -191,12 +250,10 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
             <X className="w-5 h-5" />
           </button>
 
-          {/* Counter */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
             {lightboxIndex + 1} / {photos.length}
           </div>
 
-          {/* Prev */}
           <button
             onClick={(e) => { e.stopPropagation(); prevPhoto() }}
             className="absolute left-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
@@ -204,7 +261,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Image */}
           <img
             src={currentPhoto.storage_url}
             alt={currentPhoto.filename}
@@ -212,7 +268,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
             onClick={(e) => e.stopPropagation()}
           />
 
-          {/* Next */}
           <button
             onClick={(e) => { e.stopPropagation(); nextPhoto() }}
             className="absolute right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
@@ -220,7 +275,6 @@ export default function GalleryViewer({ galleryId, initialPhotos, downloadEnable
             <ChevronRight className="w-5 h-5" />
           </button>
 
-          {/* Bottom actions */}
           <div
             className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3"
             onClick={(e) => e.stopPropagation()}
