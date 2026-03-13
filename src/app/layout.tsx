@@ -3,6 +3,7 @@ import { DM_Sans, Cormorant_Garamond, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
+import Script from 'next/script'
 import CookieBanner from '@/components/CookieBanner'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
@@ -68,15 +69,14 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
-      <head>
-        {/* Anti-flash: apply saved theme before paint */}
-        <script
+      <body className="antialiased">
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('ff-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if((t||p)==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
-      </head>
-      <body className="antialiased">
         <ThemeProvider>
           <NextIntlClientProvider messages={messages} locale={locale}>
             {children}
