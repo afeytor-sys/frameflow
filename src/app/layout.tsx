@@ -1,24 +1,16 @@
 import type { Metadata } from 'next'
-import { DM_Sans, Cormorant_Garamond, JetBrains_Mono } from 'next/font/google'
+import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
 import CookieBanner from '@/components/CookieBanner'
-import { ThemeProvider } from '@/components/ThemeProvider'
+import ThemeProvider from '@/components/ThemeProvider'
 import './globals.css'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700', '800'],
   variable: '--font-body',
-  display: 'swap',
-})
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
   display: 'swap',
 })
 
@@ -67,7 +59,7 @@ export default async function RootLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} suppressHydrationWarning className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
+    <html lang={locale} suppressHydrationWarning className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
         <ThemeProvider>
           <NextIntlClientProvider messages={messages} locale={locale}>
@@ -78,16 +70,15 @@ export default async function RootLayout({
               toastOptions={{
                 duration: 4000,
                 style: {
-                  background: 'var(--bg-surface-solid)',
+                  background: 'var(--bg-surface)',
                   color: 'var(--text-primary)',
                   borderRadius: '12px',
                   fontSize: '13.5px',
-                  fontFamily: 'var(--font-body), DM Sans, system-ui, sans-serif',
+                  fontFamily: 'DM Sans, system-ui, sans-serif',
                   fontWeight: '500',
                   border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--glass-shadow)',
+                  boxShadow: 'var(--card-shadow-hover)',
                   padding: '10px 14px',
-                  backdropFilter: 'blur(16px)',
                 },
                 success: {
                   iconTheme: { primary: '#2A9B68', secondary: 'white' },

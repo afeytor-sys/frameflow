@@ -16,6 +16,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Receipt,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -30,6 +31,7 @@ const navItems = [
   { key: 'projects',  href: '/dashboard/projects',  icon: FolderOpen,      label: 'Projekte' },
   { key: 'contracts', href: '/dashboard/contracts', icon: FileText,        label: 'Verträge' },
   { key: 'galleries', href: '/dashboard/galleries', icon: Images,          label: 'Galerien' },
+  { key: 'invoices',  href: '/dashboard/invoices',  icon: Receipt,         label: 'Rechnungen' },
 ]
 
 const bottomItems = [
