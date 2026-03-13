@@ -10,8 +10,14 @@ export default getRequestConfig(async () => {
   const localeCookie = cookieStore.get('locale')?.value
   const locale = (locales.includes(localeCookie as Locale) ? localeCookie : defaultLocale) as Locale
 
+  // Use static imports so the bundler can resolve them at build time
+  const messages =
+    locale === 'en'
+      ? (await import('./messages/en.json')).default
+      : (await import('./messages/de.json')).default
+
   return {
     locale,
-    messages: (await import(`./messages/${locale}.json`)).default,
+    messages,
   }
 })
