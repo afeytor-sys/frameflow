@@ -113,21 +113,10 @@ export default function DashboardSidebar({ photographer }: Props) {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                'flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 relative group',
+                'sidebar-nav-item flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 relative group',
                 collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5',
+                active ? 'sidebar-nav-active' : 'sidebar-nav-inactive',
               )}
-              style={{
-                background: active ? 'var(--bg-active)' : 'transparent',
-                color: active ? 'var(--text-on-active)' : 'var(--text-secondary)',
-              }}
-              onMouseEnter={e => {
-                if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'
-                if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-              }}
-              onMouseLeave={e => {
-                if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'
-                if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'
-              }}
             >
               <Icon className={cn('flex-shrink-0', collapsed ? 'w-[17px] h-[17px]' : 'w-[15px] h-[15px]')} />
               {!collapsed && <span className="truncate">{label}</span>}
@@ -149,21 +138,10 @@ export default function DashboardSidebar({ photographer }: Props) {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                'flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150',
+                'sidebar-nav-item flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150',
                 collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5',
+                active ? 'sidebar-nav-active' : 'sidebar-nav-inactive',
               )}
-              style={{
-                background: active ? 'var(--bg-active)' : 'transparent',
-                color: active ? 'var(--text-on-active)' : 'var(--text-secondary)',
-              }}
-              onMouseEnter={e => {
-                if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'
-                if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-              }}
-              onMouseLeave={e => {
-                if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'
-                if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'
-              }}
             >
               <Icon className={cn('flex-shrink-0', collapsed ? 'w-[17px] h-[17px]' : 'w-[15px] h-[15px]')} />
               {!collapsed && <span className="truncate">{label}</span>}
@@ -176,18 +154,9 @@ export default function DashboardSidebar({ photographer }: Props) {
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? 'Erweitern' : 'Einklappen'}
           className={cn(
-            'flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 w-full',
+            'sidebar-nav-item sidebar-nav-inactive flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 w-full',
             collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'
           )}
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'
-            ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent'
-            ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-          }}
         >
           {collapsed
             ? <PanelLeftOpen className="w-[15px] h-[15px] flex-shrink-0" />
@@ -227,17 +196,8 @@ export default function DashboardSidebar({ photographer }: Props) {
               </div>
               <button
                 onClick={handleLogout}
-                className="transition-colors flex-shrink-0 p-1 rounded-lg"
-                style={{ color: 'var(--text-muted)' }}
+                className="sidebar-nav-item sidebar-nav-inactive transition-colors flex-shrink-0 p-1 rounded-lg"
                 title="Abmelden"
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                }}
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>

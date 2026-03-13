@@ -319,6 +319,43 @@
   }
 }
 
+/* ── Sidebar nav items ── */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.sidebar-nav-active {
+  background: var(--bg-active) !important;
+  color: var(--text-on-active) !important;
+}
+
+.sidebar-nav-inactive {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.sidebar-nav-inactive:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── Header icon buttons ── */
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.header-icon-btn:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
 /* ── TipTap editor ── */
 .tiptap-editor .ProseMirror {
   outline: none;
