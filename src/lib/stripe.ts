@@ -1,17 +1,36 @@
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover',
+// Lazy initialization — avoids crash when STRIPE_SECRET_KEY is not set
+let _stripe: Stripe | null = null
+
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    const key = process.env.STRIPE_SECRET_KEY
+    if (!key || key === 'sk_test_placeholder') {
+      throw new Error('STRIPE_SECRET_KEY is not configured')
+    }
+    _stripe = new Stripe(key, {
+      apiVersion: '2026-02-25.clover',
+    })
+  }
+  return _stripe
+}
+
+// Keep named export for backwards compatibility — lazy getter
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    return getStripe()[prop as keyof Stripe]
+  },
 })
 
 // Plan price IDs — set these in your .env.local after creating products in Stripe Dashboard
 export const STRIPE_PRICES = {
-  starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY!,
-  starter_annual: process.env.STRIPE_PRICE_STARTER_ANNUAL!,
-  pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY!,
-  pro_annual: process.env.STRIPE_PRICE_PRO_ANNUAL!,
-  studio_monthly: process.env.STRIPE_PRICE_STUDIO_MONTHLY!,
-  studio_annual: process.env.STRIPE_PRICE_STUDIO_ANNUAL!,
+  starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY ?? '',
+  starter_annual: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? '',
+  pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? '',
+  pro_annual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? '',
+  studio_monthly: process.env.STRIPE_PRICE_STUDIO_MONTHLY ?? '',
+  studio_annual: process.env.STRIPE_PRICE_STUDIO_ANNUAL ?? '',
 } as const
 
 export type PlanKey = 'free' | 'starter' | 'pro' | 'studio'
