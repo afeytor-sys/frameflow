@@ -72,7 +72,7 @@ export default async function DashboardPage() {
             </p>
             <h1
               className="text-[#1A1A1A] font-bold leading-tight"
-              style={{ fontSize: '30px', letterSpacing: '-0.025em', fontFamily: 'var(--font-display)' }}
+              style={{ fontSize: '30px', letterSpacing: '-0.025em' }}
             >
               {greeting}{firstName ? `, ${firstName}` : ''}.
             </h1>
