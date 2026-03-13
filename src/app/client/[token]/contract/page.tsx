@@ -27,7 +27,7 @@ export default async function ClientContractPage({ params }: { params: Promise<{
 
   if (!contract) {
     return (
-      <div className="text-center py-16">
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
         <p className="text-[#6B6B6B]">Kein Vertrag verfügbar.</p>
       </div>
     )
@@ -44,10 +44,12 @@ export default async function ClientContractPage({ params }: { params: Promise<{
   const client = project.client as { full_name: string; email?: string }
 
   return (
+    <div className="max-w-3xl mx-auto px-4 py-8">
     <ContractSigningClient
       contract={{ ...contract, status: contract.status === 'sent' ? 'viewed' : contract.status }}
       clientName={client.full_name}
       token={token}
     />
+    </div>
   )
 }

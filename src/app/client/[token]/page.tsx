@@ -38,7 +38,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const timelineEvents = timeline?.events || []
 
   return (
-    <div className="space-y-8 animate-in">
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8 animate-in">
       {/* Greeting */}
       <div>
         <h1 className="font-display text-3xl font-semibold text-[#1A1A1A] mb-2">

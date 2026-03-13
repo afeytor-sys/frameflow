@@ -66,7 +66,7 @@ export default async function ClientPortalLayout({
       </header>
 
       {/* Content */}
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main>
         {children}
       </main>
     </div>
