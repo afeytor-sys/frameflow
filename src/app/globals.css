@@ -26,40 +26,9 @@
 }
 
 /* ─────────────────────────────────────────────
-   WARM MODE (default) — rosado quente
+   LIGHT MODE (default) — Notion-style: pure white
 ───────────────────────────────────────────── */
 :root {
-  --bg-page:        #F3E8E7;
-  --bg-page-2:      #EDE0DF;
-  --bg-surface:     rgba(255, 255, 255, 0.72);
-  --bg-surface-solid: #FFFFFF;
-  --bg-sidebar:     rgba(255, 255, 255, 0.60);
-  --bg-hover:       rgba(255, 255, 255, 0.85);
-  --bg-active:      #111827;
-
-  --text-primary:   #111827;
-  --text-secondary: #4B5563;
-  --text-muted:     #9CA3AF;
-  --text-on-active: #FFFFFF;
-
-  --border-color:   rgba(17, 24, 39, 0.10);
-  --border-strong:  rgba(17, 24, 39, 0.18);
-
-  --glass-blur:     blur(20px);
-  --glass-bg:       rgba(255, 255, 255, 0.65);
-  --glass-border:   rgba(255, 255, 255, 0.80);
-  --glass-shadow:   0 8px 32px rgba(17, 24, 39, 0.08), 0 1px 0 rgba(255,255,255,0.9) inset;
-
-  --gradient-page:  linear-gradient(135deg, #F3E8E7 0%, #EDE0DF 40%, #E8D5D3 100%);
-  --gradient-orb-1: radial-gradient(circle at 20% 20%, rgba(196, 164, 124, 0.25) 0%, transparent 60%);
-  --gradient-orb-2: radial-gradient(circle at 80% 80%, rgba(219, 222, 229, 0.40) 0%, transparent 60%);
-  --gradient-orb-3: radial-gradient(circle at 50% 50%, rgba(243, 232, 231, 0.60) 0%, transparent 70%);
-}
-
-/* ─────────────────────────────────────────────
-   LIGHT MODE — Notion-style: pure white, clean
-───────────────────────────────────────────── */
-.light {
   --bg-page:        #FFFFFF;
   --bg-page-2:      #F7F7F5;
   --bg-surface:     #FFFFFF;
@@ -85,6 +54,37 @@
   --gradient-orb-1: none;
   --gradient-orb-2: none;
   --gradient-orb-3: none;
+}
+
+/* ─────────────────────────────────────────────
+   WARM MODE — rosado quente
+───────────────────────────────────────────── */
+.warm {
+  --bg-page:        #F3E8E7;
+  --bg-page-2:      #EDE0DF;
+  --bg-surface:     rgba(255, 255, 255, 0.72);
+  --bg-surface-solid: #FFFFFF;
+  --bg-sidebar:     rgba(255, 255, 255, 0.60);
+  --bg-hover:       rgba(255, 255, 255, 0.85);
+  --bg-active:      #111827;
+
+  --text-primary:   #111827;
+  --text-secondary: #4B5563;
+  --text-muted:     #9CA3AF;
+  --text-on-active: #FFFFFF;
+
+  --border-color:   rgba(17, 24, 39, 0.10);
+  --border-strong:  rgba(17, 24, 39, 0.18);
+
+  --glass-blur:     blur(20px);
+  --glass-bg:       rgba(255, 255, 255, 0.65);
+  --glass-border:   rgba(255, 255, 255, 0.80);
+  --glass-shadow:   0 8px 32px rgba(17, 24, 39, 0.08), 0 1px 0 rgba(255,255,255,0.9) inset;
+
+  --gradient-page:  linear-gradient(135deg, #F3E8E7 0%, #EDE0DF 40%, #E8D5D3 100%);
+  --gradient-orb-1: radial-gradient(circle at 20% 20%, rgba(196, 164, 124, 0.25) 0%, transparent 60%);
+  --gradient-orb-2: radial-gradient(circle at 80% 80%, rgba(219, 222, 229, 0.40) 0%, transparent 60%);
+  --gradient-orb-3: radial-gradient(circle at 50% 50%, rgba(243, 232, 231, 0.60) 0%, transparent 70%);
 }
 
 /* ─────────────────────────────────────────────
