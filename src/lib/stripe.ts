@@ -49,8 +49,8 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   free: {
-    maxClients: 2,
-    maxContractsPerClient: 1,
+    maxClients: 3,
+    maxContractsPerClient: 3,
     maxGalleries: 3,
     watermark: false,
     customBranding: false,
@@ -60,11 +60,11 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     prioritySupport: false,
   },
   starter: {
-    maxClients: 10,
+    maxClients: 15,
     maxContractsPerClient: null,
-    maxGalleries: null,
+    maxGalleries: 15,
     watermark: false,
-    customBranding: false,
+    customBranding: true,
     teamSeats: 1,
     customDomain: false,
     analytics: false,
@@ -105,9 +105,10 @@ export const PLAN_DISPLAY = {
 export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
   free: [],
   starter: [
-    'Bis zu 10 aktive Kunden',
+    'Bis zu 15 aktive Kunden',
     'Unbegrenzte Verträge',
-    'Galerie ohne Wasserzeichen',
+    'Bis zu 15 Galerien',
+    '"FrameFlow" Badge ausblenden',
     'E-Mail-Vorlagen',
   ],
   pro: [
