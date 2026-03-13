@@ -10,7 +10,7 @@ interface Stat {
   icon: React.ElementType
   href: string
   description: string
-  accent: string
+  accentColor: string
 }
 
 function useCountUp(target: number, duration = 1200, delay = 0) {
@@ -55,52 +55,72 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
       ref={ref}
       className="relative group"
       style={{
-        animation: `statFadeUp 0.45s ease forwards`,
-        animationDelay: `${index * 80}ms`,
+        animation: `statFadeUp 0.5s ease forwards`,
+        animationDelay: `${index * 90}ms`,
         opacity: 0,
       }}
     >
       <Link href={stat.href} className="block">
         <div
-          className="relative rounded-2xl p-5 border bg-white overflow-hidden cursor-pointer transition-all duration-200 group-hover:shadow-md group-hover:-translate-y-0.5"
+          className="relative rounded-2xl p-5 overflow-hidden cursor-pointer transition-all duration-300 group-hover:-translate-y-1"
           style={{
-            borderColor: '#E8E4DE',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--glass-shadow)',
           }}
         >
-          {/* Top accent line */}
+          {/* Top accent line on hover */}
           <div
-            className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            style={{ background: stat.accent }}
+            className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-2xl"
+            style={{ background: stat.accentColor }}
+          />
+
+          {/* Subtle inner glow */}
+          <div
+            className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            style={{
+              background: `radial-gradient(circle at 50% 0%, ${stat.accentColor}15 0%, transparent 60%)`,
+            }}
           />
 
           {/* Icon */}
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center mb-4 transition-transform duration-200 group-hover:scale-110"
-            style={{ background: '#F5F2EE', border: '1px solid #E8E4DE' }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center mb-4 transition-transform duration-200 group-hover:scale-110 relative z-10"
+            style={{
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border-color)',
+            }}
           >
-            <Icon className="w-4 h-4 text-[#8A8480]" />
+            <Icon className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
           </div>
 
           {/* Number */}
-          <div className="flex items-end gap-1 mb-1">
+          <div className="flex items-end gap-1 mb-1 relative z-10">
             <span
-              className="font-bold leading-none tabular-nums text-[#1A1A1A]"
-              style={{ fontSize: '40px', letterSpacing: '-0.04em', fontFamily: 'var(--font-display)' }}
+              className="font-bold leading-none tabular-nums"
+              style={{
+                fontSize: '40px',
+                letterSpacing: '-0.04em',
+                color: 'var(--text-primary)',
+              }}
             >
               {count}
             </span>
           </div>
 
           {/* Label */}
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#B0A99E] mb-0.5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-0.5 relative z-10" style={{ color: 'var(--text-muted)' }}>
             {stat.label}
           </p>
-          <p className="text-[12px] text-[#C8C4BE]">{stat.description}</p>
+          <p className="text-[12px] relative z-10" style={{ color: 'var(--text-muted)' }}>
+            {stat.description}
+          </p>
 
           {/* Arrow */}
           <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
-            <ArrowUpRight className="w-4 h-4 text-[#B0A99E]" />
+            <ArrowUpRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           </div>
         </div>
       </Link>
@@ -122,7 +142,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       icon: Users,
       href: '/dashboard/clients',
       description: activeClients === 0 ? 'Noch keine Kunden' : `${activeClients} aktiv`,
-      accent: '#1A1A1A',
+      accentColor: '#C4A47C',
     },
     {
       label: 'Offene Verträge',
@@ -130,7 +150,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       icon: FileText,
       href: '/dashboard/contracts',
       description: pendingContracts === 0 ? 'Alles unterschrieben ✓' : 'Warten auf Signatur',
-      accent: pendingContracts > 0 ? '#E8A030' : '#1A1A1A',
+      accentColor: pendingContracts > 0 ? '#E8A030' : '#C4A47C',
     },
     {
       label: 'Aktive Galerien',
@@ -138,7 +158,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       icon: Images,
       href: '/dashboard/galleries',
       description: activeGalleries === 0 ? 'Noch keine Galerien' : 'Galerien online',
-      accent: '#1A1A1A',
+      accentColor: '#C4A47C',
     },
   ]
 
@@ -146,7 +166,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
     <>
       <style>{`
         @keyframes statFadeUp {
-          from { opacity: 0; transform: translateY(14px); }
+          from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>

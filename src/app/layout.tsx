@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
 import CookieBanner from '@/components/CookieBanner'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -67,34 +68,45 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className={`${dmSans.variable} ${cormorant.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        {/* Anti-flash: apply saved theme before paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('ff-theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';if((t||p)==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="antialiased">
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          {children}
-          <CookieBanner />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#0D0D0C',
-                color: '#F7F6F3',
-                borderRadius: '8px',
-                fontSize: '13.5px',
-                fontFamily: 'var(--font-body), DM Sans, system-ui, sans-serif',
-                fontWeight: '500',
-                border: '1px solid #1E1E1C',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                padding: '10px 14px',
-              },
-              success: {
-                iconTheme: { primary: '#2A9B68', secondary: '#F7F6F3' },
-              },
-              error: {
-                iconTheme: { primary: '#C43B2C', secondary: '#F7F6F3' },
-              },
-            }}
-          />
-        </NextIntlClientProvider>
+        <ThemeProvider>
+          <NextIntlClientProvider messages={messages} locale={locale}>
+            {children}
+            <CookieBanner />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: 'var(--bg-surface-solid)',
+                  color: 'var(--text-primary)',
+                  borderRadius: '12px',
+                  fontSize: '13.5px',
+                  fontFamily: 'var(--font-body), DM Sans, system-ui, sans-serif',
+                  fontWeight: '500',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--glass-shadow)',
+                  padding: '10px 14px',
+                  backdropFilter: 'blur(16px)',
+                },
+                success: {
+                  iconTheme: { primary: '#2A9B68', secondary: 'white' },
+                },
+                error: {
+                  iconTheme: { primary: '#C43B2C', secondary: 'white' },
+                },
+              }}
+            />
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

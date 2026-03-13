@@ -15,30 +15,27 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  // Get photographer profile
   const { data: photographer } = await supabase
     .from('photographers')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  // If no profile yet, redirect to onboarding
   if (!photographer) {
     redirect('/onboarding')
   }
 
-  // If onboarding not completed, redirect to onboarding
   if (!photographer.onboarding_completed) {
     redirect('/onboarding')
   }
 
   return (
-    <div className="flex h-screen bg-[#FAFAF8] overflow-hidden">
+    <div className="flex h-screen overflow-hidden page-bg">
       {/* Sidebar */}
       <DashboardSidebar photographer={photographer} />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
         <DashboardHeader photographer={photographer} />
         <main className="flex-1 overflow-y-auto">
           {children}

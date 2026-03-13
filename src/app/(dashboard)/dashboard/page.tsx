@@ -50,33 +50,35 @@ export default async function DashboardPage() {
   const plan = photographer?.plan || 'free'
 
   return (
-    <div className="min-h-full bg-[#FAFAF8]">
+    <div className="min-h-full relative z-10">
       <style>{`
         @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(16px); }
+          from { opacity: 0; transform: translateY(18px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .anim-0 { animation: fadeUp 0.45s ease forwards; opacity: 0; }
-        .anim-1 { animation: fadeUp 0.45s ease 0.08s forwards; opacity: 0; }
-        .anim-2 { animation: fadeUp 0.45s ease 0.16s forwards; opacity: 0; }
-        .anim-3 { animation: fadeUp 0.45s ease 0.24s forwards; opacity: 0; }
+        .anim-0 { animation: fadeUp 0.5s ease forwards; opacity: 0; }
+        .anim-1 { animation: fadeUp 0.5s ease 0.1s forwards; opacity: 0; }
+        .anim-2 { animation: fadeUp 0.5s ease 0.2s forwards; opacity: 0; }
       `}</style>
 
-      <div className="max-w-[1080px] mx-auto px-6 py-8 space-y-7">
+      <div className="max-w-[1080px] mx-auto px-6 py-8 space-y-6">
 
         {/* Header */}
         <div className="anim-0 flex items-start justify-between gap-4">
           <div>
-            <p className="text-[#B0A99E] text-[11px] font-semibold mb-1.5 uppercase tracking-[0.1em]">
+            <p
+              className="text-[11px] font-bold uppercase tracking-[0.12em] mb-2"
+              style={{ color: 'var(--text-muted)' }}
+            >
               {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
             <h1
-              className="text-[#1A1A1A] font-bold leading-tight"
-              style={{ fontSize: '30px', letterSpacing: '-0.025em' }}
+              className="font-bold leading-tight"
+              style={{ fontSize: '28px', letterSpacing: '-0.025em', color: 'var(--text-primary)' }}
             >
               {greeting}{firstName ? `, ${firstName}` : ''}.
             </h1>
-            <p className="text-[#8A8480] text-[14px] mt-1">
+            <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>
               Hier ist dein Studio-Überblick für heute.
             </p>
           </div>
@@ -84,14 +86,25 @@ export default async function DashboardPage() {
           <div className="hidden sm:flex items-center gap-2 flex-shrink-0 mt-1">
             <Link
               href="/dashboard/clients/new"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: 'var(--text-primary)',
+                color: 'var(--bg-page)',
+              }}
             >
               <Plus className="w-3.5 h-3.5" />
               Neuer Kunde
             </Link>
             <Link
               href="/dashboard/projects/new"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold border border-[#E0DDD8] text-[#6B6560] hover:text-[#1A1A1A] hover:border-[#C8C4BE] hover:bg-[#F5F2EE] transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)',
+              }}
             >
               <Plus className="w-3.5 h-3.5" />
               Neues Projekt
@@ -99,7 +112,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Animated Stats */}
+        {/* Stats */}
         <div className="anim-1">
           <AnimatedStatsLight
             activeClients={activeClients ?? 0}
@@ -113,24 +126,42 @@ export default async function DashboardPage() {
 
           {/* Upcoming shoots */}
           <div
-            className="lg:col-span-3 rounded-2xl border overflow-hidden bg-white"
-            style={{ borderColor: '#E8E4DE', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+            className="lg:col-span-3 rounded-2xl overflow-hidden"
+            style={{
+              background: 'var(--glass-bg)',
+              backdropFilter: 'var(--glass-blur)',
+              WebkitBackdropFilter: 'var(--glass-blur)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: 'var(--glass-shadow)',
+            }}
           >
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #F0EDE8' }}>
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: '1px solid var(--border-color)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[#F5F2EE] flex items-center justify-center">
-                  <Calendar className="w-3.5 h-3.5 text-[#8A8480]" />
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                >
+                  <Calendar className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
                 </div>
-                <h2 className="font-semibold text-[#1A1A1A] text-[14px]">Bevorstehende Shootings</h2>
+                <h2 className="font-semibold text-[14px]" style={{ color: 'var(--text-primary)' }}>
+                  Bevorstehende Shootings
+                </h2>
               </div>
-              <Link href="/dashboard/projects" className="text-[12px] font-semibold text-[#8A8480] hover:text-[#1A1A1A] transition-colors flex items-center gap-1">
+              <Link
+                href="/dashboard/projects"
+                className="text-[12px] font-semibold flex items-center gap-1 transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Alle <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
             {upcomingProjects && upcomingProjects.length > 0 ? (
-              <div className="divide-y divide-[#F5F2EE]">
-                {upcomingProjects.map((project, i) => {
+              <div>
+                {upcomingProjects.map((project) => {
                   const days = project.shoot_date ? daysUntil(project.shoot_date) : null
                   const isToday = days === 0
                   const isSoon = days !== null && days <= 7 && days > 0
@@ -140,29 +171,38 @@ export default async function DashboardPage() {
                     <Link
                       key={project.id}
                       href={`/dashboard/projects/${project.id}`}
-                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAF8] transition-colors group"
+                      className="flex items-center gap-4 px-5 py-3.5 transition-colors group"
+                      style={{ borderBottom: '1px solid var(--border-color)' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                     >
                       {/* Date block */}
                       <div
                         className="w-11 h-11 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
                         style={{
-                          background: isToday ? '#1A1A1A' : '#F5F2EE',
-                          border: isToday ? 'none' : '1px solid #E8E4DE',
+                          background: isToday ? 'var(--text-primary)' : 'var(--bg-hover)',
+                          border: isToday ? 'none' : '1px solid var(--border-color)',
                         }}
                       >
-                        <span className="text-[9px] font-bold uppercase tracking-wider leading-none" style={{ color: isToday ? 'rgba(255,255,255,0.6)' : '#B0A99E' }}>
+                        <span
+                          className="text-[9px] font-bold uppercase tracking-wider leading-none"
+                          style={{ color: isToday ? 'rgba(255,255,255,0.6)' : 'var(--text-muted)' }}
+                        >
                           {project.shoot_date ? new Date(project.shoot_date).toLocaleDateString('de-DE', { month: 'short' }) : '—'}
                         </span>
-                        <span className="text-[17px] font-bold leading-tight" style={{ color: isToday ? 'white' : '#1A1A1A' }}>
+                        <span
+                          className="text-[17px] font-bold leading-tight"
+                          style={{ color: isToday ? 'white' : 'var(--text-primary)' }}
+                        >
                           {project.shoot_date ? new Date(project.shoot_date).getDate() : '—'}
                         </span>
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13.5px] font-semibold text-[#1A1A1A] truncate group-hover:text-[#6B6560] transition-colors">
+                        <p className="text-[13.5px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                           {clientName}
                         </p>
-                        <p className="text-[12px] text-[#B0A99E] mt-0.5 capitalize">
+                        <p className="text-[12px] mt-0.5 capitalize" style={{ color: 'var(--text-muted)' }}>
                           {project.project_type || 'Projekt'}
                           {project.shoot_date && ` · ${formatDate(project.shoot_date, 'de')}`}
                         </p>
@@ -172,8 +212,9 @@ export default async function DashboardPage() {
                         <span
                           className="text-[11px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
                           style={{
-                            background: isToday ? '#1A1A1A' : isSoon ? '#FEF3C7' : '#F5F2EE',
-                            color: isToday ? 'white' : isSoon ? '#92400E' : '#B0A99E',
+                            background: isToday ? 'var(--text-primary)' : isSoon ? 'rgba(232,160,48,0.15)' : 'var(--bg-hover)',
+                            color: isToday ? 'white' : isSoon ? '#E8A030' : 'var(--text-muted)',
+                            border: `1px solid ${isToday ? 'transparent' : isSoon ? 'rgba(232,160,48,0.3)' : 'var(--border-color)'}`,
                           }}
                         >
                           {isToday ? 'Heute' : `${days}d`}
@@ -185,11 +226,20 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-[#F5F2EE] flex items-center justify-center mb-3 border border-[#E8E4DE]">
-                  <Calendar className="w-5 h-5 text-[#C8C4BE]" />
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                >
+                  <Calendar className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                 </div>
-                <p className="text-[#B0A99E] text-[13px]">Keine Shootings in den nächsten 30 Tagen</p>
-                <Link href="/dashboard/projects/new" className="mt-3 text-[12px] font-semibold text-[#1A1A1A] hover:text-[#6B6560] transition-colors">
+                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                  Keine Shootings in den nächsten 30 Tagen
+                </p>
+                <Link
+                  href="/dashboard/projects/new"
+                  className="mt-3 text-[12px] font-semibold transition-colors"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   Projekt erstellen →
                 </Link>
               </div>
@@ -201,11 +251,19 @@ export default async function DashboardPage() {
 
             {/* Quick actions */}
             <div
-              className="rounded-2xl border overflow-hidden bg-white"
-              style={{ borderColor: '#E8E4DE', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+              }}
             >
-              <div className="px-5 py-4" style={{ borderBottom: '1px solid #F0EDE8' }}>
-                <h2 className="font-semibold text-[#1A1A1A] text-[14px]">Schnellaktionen</h2>
+              <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <h2 className="font-semibold text-[14px]" style={{ color: 'var(--text-primary)' }}>
+                  Schnellaktionen
+                </h2>
               </div>
               <div className="p-2 space-y-0.5">
                 {[
@@ -216,44 +274,60 @@ export default async function DashboardPage() {
                   <Link
                     key={label}
                     href={href}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F5F2EE] transition-all group"
+                    className="flex items-center gap-3 p-3 rounded-xl transition-all group"
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-[#F5F2EE] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110 border border-[#E8E4DE]">
-                      <Icon className="w-3.5 h-3.5 text-[#8A8480]" />
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                    >
+                      <Icon className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">{label}</p>
-                      <p className="text-[11px] text-[#B0A99E]">{sub}</p>
+                      <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{sub}</p>
                     </div>
-                    <ArrowUpRight className="w-3.5 h-3.5 text-[#D0CCC8] group-hover:text-[#8A8480] transition-colors flex-shrink-0" />
+                    <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Plan card */}
+            {/* Plan card — glassmorphism dark */}
             <div
-              className="rounded-2xl p-5 relative overflow-hidden bg-[#1A1A1A]"
-              style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.12)' }}
+              className="rounded-2xl p-5 relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(196,164,124,0.15) 0%, rgba(196,164,124,0.05) 100%)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(196,164,124,0.25)',
+                boxShadow: '0 8px 32px rgba(196,164,124,0.08)',
+              }}
             >
-              {/* Subtle top shimmer */}
-              <div className="absolute top-0 left-0 right-0 h-px" style={{
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
-              }} />
+              {/* Shimmer top */}
+              <div
+                className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(196,164,124,0.5), transparent)' }}
+              />
 
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-3.5 h-3.5 text-[#C4A47C]" />
-                  <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#C4A47C]">
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: '#C4A47C' }} />
+                  <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: '#C4A47C' }}>
                     {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
                   </span>
                 </div>
-                <p className="text-white/60 text-[13px] leading-relaxed mb-4">
+                <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
                   Upgrade für unbegrenzte Kunden, Galerien ohne Limit und mehr.
                 </p>
                 <Link
                   href="/dashboard/billing"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#1A1A1A] text-[12.5px] font-bold rounded-xl hover:bg-[#F5F2EE] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    background: 'var(--text-primary)',
+                    color: 'var(--bg-page)',
+                  }}
                 >
                   Upgrade ansehen
                   <ArrowUpRight className="w-3.5 h-3.5" />
