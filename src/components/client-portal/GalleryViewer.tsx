@@ -4,12 +4,14 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Heart, Download, X, ChevronLeft, ChevronRight,
-  ZoomIn, Loader2, Play, Pause, Maximize2, Filter
+  ZoomIn, Loader2, Play, Pause, Maximize2,
+  LayoutGrid, Columns2, AlignJustify, SlidersHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 type PhotoTag = 'green' | 'yellow' | 'red' | null
+type GalleryLayout = 'masonry' | 'grid' | 'columns'
 
 interface Photo {
   id: string
@@ -32,10 +34,16 @@ interface Props {
 }
 
 const TAG_CONFIG = {
-  green:  { label: 'Auswahl',   bg: '#22C55E', ring: '#16A34A', dot: 'bg-green-500' },
-  yellow: { label: 'Vielleicht', bg: '#EAB308', ring: '#CA8A04', dot: 'bg-yellow-500' },
-  red:    { label: 'Ablehnen',  bg: '#EF4444', ring: '#DC2626', dot: 'bg-red-500' },
+  green:  { label: 'Auswahl',    bg: '#22C55E', ring: '#16A34A' },
+  yellow: { label: 'Vielleicht', bg: '#EAB308', ring: '#CA8A04' },
+  red:    { label: 'Ablehnen',   bg: '#EF4444', ring: '#DC2626' },
 }
+
+const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: string }[] = [
+  { key: 'masonry',  icon: LayoutGrid,    label: 'Masonry' },
+  { key: 'grid',     icon: AlignJustify,  label: 'Raster' },
+  { key: 'columns',  icon: Columns2,      label: 'Spalten' },
+]
 
 export default function GalleryViewer({
   galleryId,
@@ -50,8 +58,14 @@ export default function GalleryViewer({
   const [downloadingAll, setDownloadingAll] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
-  const [showTagMenu, setShowTagMenu] = useState<string | null>(null) // photo id
-  // Präsentationsmodus
+  const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
+
+  // Layout & size controls
+  const [layout, setLayout] = useState<GalleryLayout>('masonry')
+  const [imageSize, setImageSize] = useState(3) // 1–5 scale
+  const [showControls, setShowControls] = useState(false)
+
+  // Presentation mode
   const [presentMode, setPresentMode] = useState(false)
   const [presentIndex, setPresentIndex] = useState(0)
   const [presentPlaying, setPresentPlaying] = useState(true)
@@ -75,6 +89,50 @@ export default function GalleryViewer({
     : photos
 
   const currentPhoto = lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null
+
+  // Persist layout preference
+  useEffect(() => {
+    const saved = localStorage.getItem(`ff-gallery-layout-${galleryId}`)
+    if (saved) setLayout(saved as GalleryLayout)
+    const savedSize = localStorage.getItem(`ff-gallery-size-${galleryId}`)
+    if (savedSize) setImageSize(Number(savedSize))
+  }, [galleryId])
+
+  const setLayoutPersist = (l: GalleryLayout) => {
+    setLayout(l)
+    localStorage.setItem(`ff-gallery-layout-${galleryId}`, l)
+  }
+  const setSizePersist = (s: number) => {
+    setImageSize(s)
+    localStorage.setItem(`ff-gallery-size-${galleryId}`, String(s))
+  }
+
+  // Grid columns based on imageSize (1=2col, 5=6col)
+  const gridCols = {
+    1: 'grid-cols-2',
+    2: 'grid-cols-3',
+    3: 'grid-cols-4',
+    4: 'grid-cols-5',
+    5: 'grid-cols-6',
+  }[imageSize] || 'grid-cols-4'
+
+  // Masonry columns based on imageSize
+  const masonryCols = {
+    1: 'columns-2',
+    2: 'columns-2 sm:columns-3',
+    3: 'columns-2 sm:columns-3 lg:columns-4',
+    4: 'columns-3 sm:columns-4 lg:columns-5',
+    5: 'columns-3 sm:columns-5 lg:columns-6',
+  }[imageSize] || 'columns-2 sm:columns-3 lg:columns-4'
+
+  // Columns layout (2 fixed columns, size affects height)
+  const columnHeight = {
+    1: 'h-48',
+    2: 'h-56',
+    3: 'h-64',
+    4: 'h-72',
+    5: 'h-80',
+  }[imageSize] || 'h-64'
 
   // ── Keyboard navigation ──────────────────────────────────────────
   useEffect(() => {
@@ -115,25 +173,10 @@ export default function GalleryViewer({
     return () => { if (presentTimer.current) clearInterval(presentTimer.current) }
   }, [presentMode, presentPlaying, photos.length])
 
-  const presentNext = () => {
-    setPresentLoaded(false)
-    setPresentIndex((i) => (i + 1) % photos.length)
-  }
-  const presentPrev = () => {
-    setPresentLoaded(false)
-    setPresentIndex((i) => (i - 1 + photos.length) % photos.length)
-  }
-  const exitPresent = () => {
-    setPresentMode(false)
-    setPresentPlaying(true)
-    if (presentTimer.current) clearInterval(presentTimer.current)
-  }
-  const startPresent = () => {
-    setPresentIndex(0)
-    setPresentLoaded(false)
-    setPresentPlaying(true)
-    setPresentMode(true)
-  }
+  const presentNext = () => { setPresentLoaded(false); setPresentIndex((i) => (i + 1) % photos.length) }
+  const presentPrev = () => { setPresentLoaded(false); setPresentIndex((i) => (i - 1 + photos.length) % photos.length) }
+  const exitPresent = () => { setPresentMode(false); setPresentPlaying(true); if (presentTimer.current) clearInterval(presentTimer.current) }
+  const startPresent = () => { setPresentIndex(0); setPresentLoaded(false); setPresentPlaying(true); setPresentMode(true) }
 
   // ── Toggle favorite ──────────────────────────────────────────────
   const toggleFavorite = async (photoId: string) => {
@@ -152,7 +195,7 @@ export default function GalleryViewer({
   const setTag = async (photoId: string, tag: PhotoTag) => {
     const photo = photos.find((p) => p.id === photoId)
     if (!photo) return
-    const newTag = photo.tag === tag ? null : tag // toggle off if same
+    const newTag = photo.tag === tag ? null : tag
     setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, tag: newTag } : p))
     setShowTagMenu(null)
     const { error } = await supabase.from('photos').update({ tag: newTag }).eq('id', photoId)
@@ -169,59 +212,39 @@ export default function GalleryViewer({
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url
-      a.download = photo.filename
-      a.click()
+      a.href = url; a.download = photo.filename; a.click()
       URL.revokeObjectURL(url)
       try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
-    } catch {
-      toast.error('Download fehlgeschlagen')
-    }
+    } catch { toast.error('Download fehlgeschlagen') }
   }
 
   const downloadAll = async () => {
     if (downloadingAll || photos.length === 0) return
-    setDownloadingAll(true)
-    setDownloadProgress(0)
+    setDownloadingAll(true); setDownloadProgress(0)
     try {
       const JSZip = (await import('jszip')).default
       const zip = new JSZip()
-      const total = photos.length
-      let done = 0
+      const total = photos.length; let done = 0
       for (let i = 0; i < photos.length; i += 5) {
         const batch = photos.slice(i, i + 5)
         await Promise.all(batch.map(async (photo) => {
-          try {
-            const response = await fetch(photo.storage_url)
-            const blob = await response.blob()
-            zip.file(photo.filename, blob)
-          } catch {}
-          done++
-          setDownloadProgress(Math.round((done / total) * 100))
+          try { const r = await fetch(photo.storage_url); zip.file(photo.filename, await r.blob()) } catch {}
+          done++; setDownloadProgress(Math.round((done / total) * 100))
         }))
       }
       const zipBlob = await zip.generateAsync({ type: 'blob' })
       const url = URL.createObjectURL(zipBlob)
       const a = document.createElement('a')
-      a.href = url
-      a.download = `${galleryTitle || clientName || 'Galerie'}.zip`
-      a.click()
+      a.href = url; a.download = `${galleryTitle || clientName || 'Galerie'}.zip`; a.click()
       URL.revokeObjectURL(url)
       try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
       toast.success(`${total} Fotos heruntergeladen!`)
-    } catch {
-      toast.error('Download fehlgeschlagen')
-    } finally {
-      setDownloadingAll(false)
-      setDownloadProgress(0)
-    }
+    } catch { toast.error('Download fehlgeschlagen') }
+    finally { setDownloadingAll(false); setDownloadProgress(0) }
   }
 
   // ── Lightbox ─────────────────────────────────────────────────────
-  const openLightbox = (index: number) => {
-    setLightboxLoaded(false)
-    setLightboxIndex(index)
-  }
+  const openLightbox = (index: number) => { setLightboxLoaded(false); setLightboxIndex(index) }
   const closeLightbox = () => setLightboxIndex(null)
   const prevPhoto = useCallback(() => {
     setLightboxLoaded(false)
@@ -232,90 +255,168 @@ export default function GalleryViewer({
     setLightboxIndex((i) => (i !== null ? (i + 1) % filteredPhotos.length : null))
   }, [filteredPhotos.length])
 
-  // ── Tag dot indicator ────────────────────────────────────────────
-  const TagDot = ({ tag }: { tag: PhotoTag }) => {
-    if (!tag) return null
-    const cfg = TAG_CONFIG[tag]
-    return (
-      <span
-        className="w-3 h-3 rounded-full border-2 border-black/30 flex-shrink-0"
-        style={{ background: cfg.bg }}
+  // ── Photo card (shared between layouts) ─────────────────────────
+  const PhotoCard = ({ photo, index, className }: { photo: Photo; index: number; className?: string }) => (
+    <div
+      className={cn('relative group cursor-pointer overflow-hidden rounded-sm', className)}
+      onClick={() => openLightbox(index)}
+    >
+      <img
+        src={photo.thumbnail_url || photo.storage_url}
+        alt={photo.filename}
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+        loading="lazy"
       />
-    )
-  }
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-all duration-300" />
+      {/* Zoom */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+          <ZoomIn className="w-4 h-4 text-white" />
+        </div>
+      </div>
+      {/* Top-right actions */}
+      <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => toggleFavorite(photo.id)}
+          className={cn('w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
+        >
+          <Heart className={cn('w-3.5 h-3.5', photo.is_favorite && 'fill-white')} />
+        </button>
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowTagMenu(showTagMenu === photo.id ? null : photo.id) }}
+            className={cn('w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
+            style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
+          >
+            <span className="text-[10px] font-bold text-white">●</span>
+          </button>
+          {showTagMenu === photo.id && (
+            <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
+              {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
+                <button key={tag} onClick={() => setTag(photo.id, tag)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors', photo.tag === tag ? 'text-white bg-white/8' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
+                  {cfg.label}
+                  {photo.tag === tag && <span className="ml-auto text-white/40">✓</span>}
+                </button>
+              ))}
+              {photo.tag && (
+                <button onClick={() => setTag(photo.id, photo.tag ?? null)} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5">
+                  Tag entfernen
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {downloadEnabled && (
+          <button onClick={() => downloadPhoto(photo)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg">
+            <Download className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+      {/* Indicators */}
+      <div className="absolute top-2 left-2 flex items-center gap-1">
+        {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />}
+        {photo.tag && <span className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg" style={{ background: TAG_CONFIG[photo.tag].bg }} />}
+      </div>
+    </div>
+  )
 
   return (
     <>
       {/* ── Toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        {/* Left: filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Favorite filter */}
           <button
             onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all',
-              filterTag === 'favorite'
-                ? 'bg-rose-500 text-white'
-                : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12'
-            )}
+            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all', filterTag === 'favorite' ? 'bg-rose-500 text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12')}
           >
             <Heart className={cn('w-3 h-3', filterTag === 'favorite' && 'fill-white')} />
             {favoriteCount > 0 ? `${favoriteCount} Favoriten` : 'Favoriten'}
           </button>
-
-          {/* Tag filters */}
           {(Object.keys(TAG_CONFIG) as Array<keyof typeof TAG_CONFIG>).map((tag) => {
-            const cfg = TAG_CONFIG[tag]
-            const count = tagCounts[tag]
+            const cfg = TAG_CONFIG[tag]; const count = tagCounts[tag]
             if (count === 0 && filterTag !== tag) return null
             return (
-              <button
-                key={tag}
-                onClick={() => setFilterTag(filterTag === tag ? null : tag)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all',
-                  filterTag === tag ? 'text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12'
-                )}
-                style={filterTag === tag ? { background: cfg.bg } : {}}
-              >
+              <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all', filterTag === tag ? 'text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12')} style={filterTag === tag ? { background: cfg.bg } : {}}>
                 <span className="w-2 h-2 rounded-full" style={{ background: cfg.bg }} />
                 {cfg.label} {count > 0 && `(${count})`}
               </button>
             )
           })}
-
-          {filterTag && (
-            <button
-              onClick={() => setFilterTag(null)}
-              className="text-[11px] text-white/30 hover:text-white/60 transition-colors px-2"
-            >
-              × Alle anzeigen
-            </button>
-          )}
+          {filterTag && <button onClick={() => setFilterTag(null)} className="text-[11px] text-white/30 hover:text-white/60 transition-colors px-2">× Alle anzeigen</button>}
         </div>
 
+        {/* Right: layout + controls + actions */}
         <div className="flex items-center gap-2">
-          {/* Präsentationsmodus */}
-          <button
-            onClick={startPresent}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/8 text-white/60 hover:text-white hover:bg-white/14 text-[12px] font-semibold transition-all"
-          >
+          {/* Layout toggle */}
+          <div className="flex items-center gap-0.5 bg-white/8 rounded-xl p-1">
+            {LAYOUT_OPTIONS.map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                onClick={() => setLayoutPersist(key)}
+                title={label}
+                className={cn('w-7 h-7 rounded-lg flex items-center justify-center transition-all', layout === key ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/70')}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </button>
+            ))}
+          </div>
+
+          {/* Image size controls */}
+          <div className="relative">
+            <button
+              onClick={() => setShowControls(!showControls)}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all', showControls ? 'bg-white/20 text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12')}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </button>
+            {showControls && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowControls(false)} />
+                <div className="absolute right-0 top-full mt-2 z-20 rounded-2xl p-4 min-w-[200px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-3">Bildgröße</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-white/30 text-[10px]">S</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={5}
+                      value={imageSize}
+                      onChange={(e) => setSizePersist(Number(e.target.value))}
+                      className="flex-1 accent-[#C4A47C]"
+                    />
+                    <span className="text-white/30 text-[10px]">XL</span>
+                  </div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/40 mt-4 mb-3">Layout</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {LAYOUT_OPTIONS.map(({ key, icon: Icon, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setLayoutPersist(key)}
+                        className={cn('flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all text-[11px] font-medium', layout === key ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70 hover:bg-white/8')}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Presentation */}
+          <button onClick={startPresent} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/8 text-white/60 hover:text-white hover:bg-white/14 text-[12px] font-semibold transition-all">
             <Maximize2 className="w-3.5 h-3.5" />
             Präsentation
           </button>
 
           {/* Download all */}
           {downloadEnabled && photos.length > 0 && (
-            <button
-              onClick={downloadAll}
-              disabled={downloadingAll}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-[#0C0C0B] text-[12px] font-semibold rounded-full hover:bg-white/90 disabled:opacity-60 transition-all"
-            >
-              {downloadingAll ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</>
-              ) : (
-                <><Download className="w-3.5 h-3.5" />Alle ({photos.length})</>
-              )}
+            <button onClick={downloadAll} disabled={downloadingAll} className="flex items-center gap-2 px-4 py-2 bg-white text-[#0C0C0B] text-[12px] font-semibold rounded-full hover:bg-white/90 disabled:opacity-60 transition-all">
+              {downloadingAll ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</> : <><Download className="w-3.5 h-3.5" />Alle ({photos.length})</>}
             </button>
           )}
         </div>
@@ -328,135 +429,38 @@ export default function GalleryViewer({
         </div>
       )}
 
-      {/* ── Masonry Grid ── */}
-      <div className="columns-2 sm:columns-3 lg:columns-4 gap-1.5 space-y-1.5">
-        {filteredPhotos.map((photo, index) => (
-          <div
-            key={photo.id}
-            className="relative break-inside-avoid group cursor-pointer overflow-hidden rounded-sm"
-            onClick={() => openLightbox(index)}
-          >
-            <img
-              src={photo.thumbnail_url || photo.storage_url}
-              alt={photo.filename}
-              className="w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-              loading="lazy"
-            />
-
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-all duration-300" />
-
-            {/* Zoom icon */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                <ZoomIn className="w-4 h-4 text-white" />
-              </div>
-            </div>
-
-            {/* Top-right actions */}
-            <div
-              className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Favorite */}
-              <button
-                onClick={() => toggleFavorite(photo.id)}
-                className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg',
-                  photo.is_favorite
-                    ? 'bg-rose-500 text-white'
-                    : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400'
-                )}
-              >
-                <Heart className={cn('w-3.5 h-3.5', photo.is_favorite && 'fill-white')} />
-              </button>
-
-              {/* Tag button */}
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowTagMenu(showTagMenu === photo.id ? null : photo.id) }}
-                  className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg',
-                    photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white'
-                  )}
-                  style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
-                >
-                  <span className="text-[10px] font-bold text-white">●</span>
-                </button>
-
-                {/* Tag dropdown */}
-                {showTagMenu === photo.id && (
-                  <div
-                    className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]"
-                    style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
-                      <button
-                        key={tag}
-                        onClick={() => setTag(photo.id, tag)}
-                        className={cn(
-                          'w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors',
-                          photo.tag === tag ? 'text-white bg-white/8' : 'text-white/60 hover:text-white hover:bg-white/5'
-                        )}
-                      >
-                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
-                        {cfg.label}
-                        {photo.tag === tag && <span className="ml-auto text-white/40">✓</span>}
-                      </button>
-                    ))}
-                    {photo.tag && (
-                      <button
-                        onClick={() => setTag(photo.id, photo.tag ?? null)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5"
-                      >
-                        Tag entfernen
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Download */}
-              {downloadEnabled && (
-                <button
-                  onClick={() => downloadPhoto(photo)}
-                  className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Indicators (always visible) */}
-            <div className="absolute top-2 left-2 flex items-center gap-1">
-              {photo.is_favorite && (
-                <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />
-              )}
-              {photo.tag && (
-                <span
-                  className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg"
-                  style={{ background: TAG_CONFIG[photo.tag].bg }}
-                />
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredPhotos.length === 0 && (
+      {/* ── Gallery Grid ── */}
+      {filteredPhotos.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-white/30 text-sm">Keine Fotos in dieser Auswahl.</p>
-          <button onClick={() => setFilterTag(null)} className="mt-2 text-[12px] text-white/40 hover:text-white/70 transition-colors">
-            Filter zurücksetzen
-          </button>
+          <button onClick={() => setFilterTag(null)} className="mt-2 text-[12px] text-white/40 hover:text-white/70 transition-colors">Filter zurücksetzen</button>
+        </div>
+      ) : layout === 'masonry' ? (
+        /* MASONRY */
+        <div className={cn(masonryCols, 'gap-1.5 space-y-1.5')}>
+          {filteredPhotos.map((photo, index) => (
+            <PhotoCard key={photo.id} photo={photo} index={index} className="break-inside-avoid" />
+          ))}
+        </div>
+      ) : layout === 'grid' ? (
+        /* GRID — uniform squares */
+        <div className={cn('grid gap-1.5', gridCols)}>
+          {filteredPhotos.map((photo, index) => (
+            <PhotoCard key={photo.id} photo={photo} index={index} className="aspect-square" />
+          ))}
+        </div>
+      ) : (
+        /* COLUMNS — 2 columns, landscape-ish */
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {filteredPhotos.map((photo, index) => (
+            <PhotoCard key={photo.id} photo={photo} index={index} className={cn('w-full', columnHeight)} />
+          ))}
         </div>
       )}
 
       {/* ── LIGHTBOX ── */}
       {lightboxIndex !== null && currentPhoto && (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center" onClick={closeLightbox}>
-          {/* Top bar */}
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/70 to-transparent z-10" onClick={(e) => e.stopPropagation()}>
             <span className="text-white/40 text-sm">{lightboxIndex + 1} <span className="text-white/20">/ {filteredPhotos.length}</span></span>
             <div className="flex items-center gap-2">
@@ -470,46 +474,23 @@ export default function GalleryViewer({
               </button>
             </div>
           </div>
-
           <button onClick={(e) => { e.stopPropagation(); prevPhoto() }} className="absolute left-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>
-
           <div className="relative flex items-center justify-center w-full h-full px-16 py-16" onClick={(e) => e.stopPropagation()}>
             {!lightboxLoaded && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>}
-            <img
-              key={currentPhoto.id}
-              src={currentPhoto.storage_url}
-              alt={currentPhoto.filename}
-              className={cn('max-w-full max-h-full object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
-              onLoad={() => setLightboxLoaded(true)}
-            />
+            <img key={currentPhoto.id} src={currentPhoto.storage_url} alt={currentPhoto.filename} className={cn('max-w-full max-h-full object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')} onLoad={() => setLightboxLoaded(true)} />
           </div>
-
           <button onClick={(e) => { e.stopPropagation(); nextPhoto() }} className="absolute right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">
             <ChevronRight className="w-5 h-5" />
           </button>
-
-          {/* Bottom bar — favorite + tag */}
           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 pb-6 pt-12 bg-gradient-to-t from-black/70 to-transparent z-10" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => toggleFavorite(currentPhoto.id)}
-              className={cn('flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all', currentPhoto.is_favorite ? 'bg-rose-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white')}
-            >
+            <button onClick={() => toggleFavorite(currentPhoto.id)} className={cn('flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all', currentPhoto.is_favorite ? 'bg-rose-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white')}>
               <Heart className={cn('w-4 h-4', currentPhoto.is_favorite && 'fill-white')} />
               {currentPhoto.is_favorite ? 'Favorit ✓' : 'Favorit'}
             </button>
-
             {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
-              <button
-                key={tag}
-                onClick={() => setTag(currentPhoto.id, tag)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold transition-all"
-                style={{
-                  background: currentPhoto.tag === tag ? cfg.bg : 'rgba(255,255,255,0.08)',
-                  color: currentPhoto.tag === tag ? 'white' : 'rgba(255,255,255,0.5)',
-                }}
-              >
+              <button key={tag} onClick={() => setTag(currentPhoto.id, tag)} className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold transition-all" style={{ background: currentPhoto.tag === tag ? cfg.bg : 'rgba(255,255,255,0.08)', color: currentPhoto.tag === tag ? 'white' : 'rgba(255,255,255,0.5)' }}>
                 <span className="w-2 h-2 rounded-full" style={{ background: currentPhoto.tag === tag ? 'white' : cfg.bg }} />
                 {cfg.label}
               </button>
@@ -521,82 +502,36 @@ export default function GalleryViewer({
       {/* ── PRÄSENTATIONSMODUS ── */}
       {presentMode && photos.length > 0 && (
         <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
-          {/* Image */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {!presentLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-white/20 animate-spin" />
-              </div>
-            )}
-            <img
-              key={photos[presentIndex].id}
-              src={photos[presentIndex].storage_url}
-              alt={photos[presentIndex].filename}
-              className={cn('max-w-full max-h-full object-contain transition-opacity duration-700', presentLoaded ? 'opacity-100' : 'opacity-0')}
-              onLoad={() => setPresentLoaded(true)}
-            />
+            {!presentLoaded && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-8 h-8 text-white/20 animate-spin" /></div>}
+            <img key={photos[presentIndex].id} src={photos[presentIndex].storage_url} alt={photos[presentIndex].filename} className={cn('max-w-full max-h-full object-contain transition-opacity duration-700', presentLoaded ? 'opacity-100' : 'opacity-0')} onLoad={() => setPresentLoaded(true)} />
           </div>
-
-          {/* Progress bar */}
           {presentPlaying && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
-              <div
-                key={`${presentIndex}-${presentPlaying}`}
-                className="h-full bg-white/60 rounded-full"
-                style={{ animation: `slideProgress ${SLIDE_DURATION}ms linear forwards` }}
-              />
+              <div key={`${presentIndex}-${presentPlaying}`} className="h-full bg-white/60 rounded-full" style={{ animation: `slideProgress ${SLIDE_DURATION}ms linear forwards` }} />
             </div>
           )}
-
-          {/* Top controls */}
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-5 bg-gradient-to-b from-black/80 to-transparent z-10">
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                  <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.2"/>
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
               <span className="text-white/60 text-sm font-medium">{galleryTitle}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white/30 text-sm font-mono">{presentIndex + 1} / {photos.length}</span>
-              <button onClick={exitPresent} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all ml-2">
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={exitPresent} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all ml-2"><X className="w-4 h-4" /></button>
             </div>
           </div>
-
-          {/* Side navigation */}
-          <button onClick={presentPrev} className="absolute left-4 z-10 w-12 h-12 rounded-full bg-white/8 hover:bg-white/18 flex items-center justify-center text-white transition-all">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <button onClick={presentNext} className="absolute right-4 z-10 w-12 h-12 rounded-full bg-white/8 hover:bg-white/18 flex items-center justify-center text-white transition-all">
-            <ChevronRight className="w-6 h-6" />
-          </button>
-
-          {/* Bottom controls */}
+          <button onClick={presentPrev} className="absolute left-4 z-10 w-12 h-12 rounded-full bg-white/8 hover:bg-white/18 flex items-center justify-center text-white transition-all"><ChevronLeft className="w-6 h-6" /></button>
+          <button onClick={presentNext} className="absolute right-4 z-10 w-12 h-12 rounded-full bg-white/8 hover:bg-white/18 flex items-center justify-center text-white transition-all"><ChevronRight className="w-6 h-6" /></button>
           <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-3 z-10">
-            <button
-              onClick={() => setPresentPlaying((p) => !p)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all"
-            >
+            <button onClick={() => setPresentPlaying((p) => !p)} className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all">
               {presentPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               {presentPlaying ? 'Pause' : 'Abspielen'}
             </button>
-
-            {/* Thumbnail strip */}
             <div className="hidden md:flex items-center gap-1 max-w-xs overflow-hidden">
               {photos.slice(Math.max(0, presentIndex - 2), presentIndex + 3).map((p, i) => {
                 const realIndex = Math.max(0, presentIndex - 2) + i
                 return (
-                  <button
-                    key={p.id}
-                    onClick={() => { setPresentLoaded(false); setPresentIndex(realIndex) }}
-                    className={cn('flex-shrink-0 rounded overflow-hidden transition-all', realIndex === presentIndex ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70')}
-                    style={{ width: 40, height: 28 }}
-                  >
+                  <button key={p.id} onClick={() => { setPresentLoaded(false); setPresentIndex(realIndex) }} className={cn('flex-shrink-0 rounded overflow-hidden transition-all', realIndex === presentIndex ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70')} style={{ width: 40, height: 28 }}>
                     <img src={p.thumbnail_url || p.storage_url} alt="" className="w-full h-full object-cover" />
                   </button>
                 )

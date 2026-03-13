@@ -57,34 +57,34 @@
 }
 
 /* ─────────────────────────────────────────────
-   DARK MODE
+   DARK MODE — pure inversion of light palette
 ───────────────────────────────────────────── */
 .dark {
-  --bg-page:        #111827;
-  --bg-page-2:      #0D1520;
-  --bg-surface:     rgba(30, 42, 58, 0.70);
-  --bg-surface-solid: #1E2A3A;
-  --bg-sidebar:     rgba(17, 24, 39, 0.80);
-  --bg-hover:       rgba(255, 255, 255, 0.06);
-  --bg-active:      rgba(255, 255, 255, 0.12);
+  --bg-page:        #1A1714;
+  --bg-page-2:      #141210;
+  --bg-surface:     rgba(30, 26, 22, 0.72);
+  --bg-surface-solid: #231F1B;
+  --bg-sidebar:     rgba(26, 23, 20, 0.80);
+  --bg-hover:       rgba(243, 232, 231, 0.06);
+  --bg-active:      #F3E8E7;
 
-  --text-primary:   #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --text-muted:     #6B7280;
-  --text-on-active: #FFFFFF;
+  --text-primary:   #F3E8E7;
+  --text-secondary: #B8AFA8;
+  --text-muted:     #7A7068;
+  --text-on-active: #1A1714;
 
-  --border-color:   rgba(255, 255, 255, 0.08);
-  --border-strong:  rgba(255, 255, 255, 0.14);
+  --border-color:   rgba(243, 232, 231, 0.08);
+  --border-strong:  rgba(243, 232, 231, 0.14);
 
   --glass-blur:     blur(20px);
-  --glass-bg:       rgba(30, 42, 58, 0.65);
-  --glass-border:   rgba(255, 255, 255, 0.08);
-  --glass-shadow:   0 8px 32px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255,255,255,0.05) inset;
+  --glass-bg:       rgba(30, 26, 22, 0.65);
+  --glass-border:   rgba(243, 232, 231, 0.08);
+  --glass-shadow:   0 8px 32px rgba(0, 0, 0, 0.40), 0 1px 0 rgba(243,232,231,0.05) inset;
 
-  --gradient-page:  linear-gradient(135deg, #111827 0%, #0D1520 50%, #0A1628 100%);
-  --gradient-orb-1: radial-gradient(circle at 20% 20%, rgba(196, 164, 124, 0.12) 0%, transparent 60%);
-  --gradient-orb-2: radial-gradient(circle at 80% 80%, rgba(30, 58, 138, 0.20) 0%, transparent 60%);
-  --gradient-orb-3: radial-gradient(circle at 50% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+  --gradient-page:  linear-gradient(135deg, #1A1714 0%, #141210 50%, #100E0C 100%);
+  --gradient-orb-1: radial-gradient(circle at 20% 20%, rgba(196, 164, 124, 0.15) 0%, transparent 60%);
+  --gradient-orb-2: radial-gradient(circle at 80% 80%, rgba(196, 164, 124, 0.08) 0%, transparent 60%);
+  --gradient-orb-3: radial-gradient(circle at 50% 50%, rgba(243, 232, 231, 0.04) 0%, transparent 70%);
 }
 
 @layer base {
