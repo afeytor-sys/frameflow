@@ -171,10 +171,8 @@ export default async function DashboardPage() {
                     <Link
                       key={project.id}
                       href={`/dashboard/projects/${project.id}`}
-                      className="flex items-center gap-4 px-5 py-3.5 transition-colors group"
+                      className="sidebar-nav-item sidebar-nav-inactive flex items-center gap-4 px-5 py-3.5 group"
                       style={{ borderBottom: '1px solid var(--border-color)' }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                     >
                       {/* Date block */}
                       <div
@@ -274,9 +272,7 @@ export default async function DashboardPage() {
                   <Link
                     key={label}
                     href={href}
-                    className="flex items-center gap-3 p-3 rounded-xl transition-all group"
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                    className="sidebar-nav-item sidebar-nav-inactive flex items-center gap-3 p-3 rounded-xl group"
                   >
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
