@@ -1,0 +1,548 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "of": "of",
+    "poweredBy": "Powered by FrameFlow",
+    "new": "New",
+    "view": "View",
+    "download": "Download",
+    "share": "Share",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "optional": "Optional",
+    "required": "Required",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "notes": "Notes",
+    "settings": "Settings",
+    "logout": "Log out",
+    "profile": "Profile",
+    "upgrade": "Upgrade",
+    "noResults": "No results found",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "projects": "Projects",
+    "contracts": "Contracts",
+    "galleries": "Galleries",
+    "settings": "Settings",
+    "billing": "Billing",
+    "newClient": "New Client",
+    "newProject": "New Project"
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out",
+    "email": "Email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset password",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signupFree": "Sign up for free",
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your FrameFlow account",
+    "signupTitle": "Create your account",
+    "signupSubtitle": "Start for free — no credit card required",
+    "resetTitle": "Reset your password",
+    "resetSubtitle": "We'll send you a reset link",
+    "resetSent": "Email sent! Check your inbox.",
+    "checkEmail": "Check your email",
+    "verifyEmail": "Please verify your email address",
+    "emailVerified": "Email verified!",
+    "errors": {
+      "invalidEmail": "Invalid email address",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "invalidCredentials": "Invalid email or password",
+      "emailTaken": "This email is already registered",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "onboarding": {
+    "title": "Welcome to FrameFlow",
+    "subtitle": "Let's set up your account",
+    "step1": "Your Profile",
+    "step2": "Your Studio",
+    "step3": "Photography Types",
+    "step4": "Choose a Plan",
+    "fullName": "Full name",
+    "studioName": "Studio name",
+    "photographyTypes": "Photography types",
+    "selectTypes": "Select all that apply",
+    "uploadLogo": "Upload logo",
+    "logoHint": "PNG or SVG, max 2MB",
+    "complete": "Complete setup",
+    "skip": "Skip",
+    "types": {
+      "wedding": "Wedding",
+      "portrait": "Portrait",
+      "event": "Event",
+      "commercial": "Commercial",
+      "realEstate": "Real Estate",
+      "fineArt": "Fine Art",
+      "newborn": "Newborn",
+      "family": "Family",
+      "fashion": "Fashion",
+      "sport": "Sport"
+    }
+  },
+  "dashboard": {
+    "welcome": "Good morning",
+    "welcomeAfternoon": "Good afternoon",
+    "welcomeEvening": "Good evening",
+    "stats": {
+      "activeClients": "Active clients",
+      "pendingContracts": "Pending contracts",
+      "deliveredGalleries": "Delivered galleries",
+      "storageUsed": "Storage used"
+    },
+    "recentActivity": "Recent activity",
+    "upcomingShoots": "Upcoming shoots",
+    "quickActions": "Quick actions",
+    "noActivity": "No activity yet",
+    "noUpcomingShoots": "No upcoming shoots",
+    "activity": {
+      "signedContract": "signed the contract",
+      "viewedGallery": "viewed the gallery",
+      "favoritedPhotos": "favorited {count} photos",
+      "viewedContract": "viewed the contract"
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "newClient": "New client",
+    "searchPlaceholder": "Search clients...",
+    "noClients": "No clients yet",
+    "noClientsDesc": "Create your first client to get started",
+    "createFirst": "Create first client",
+    "table": {
+      "name": "Name",
+      "shootDate": "Shoot date",
+      "projectType": "Project type",
+      "status": "Status",
+      "lastActivity": "Last activity",
+      "actions": "Actions"
+    },
+    "status": {
+      "lead": "Lead",
+      "active": "Active",
+      "delivered": "Delivered",
+      "archived": "Archived"
+    },
+    "form": {
+      "title": "New client",
+      "editTitle": "Edit client",
+      "fullName": "Full name",
+      "email": "Email address",
+      "phone": "Phone number",
+      "shootDate": "Shoot date",
+      "location": "Location",
+      "projectType": "Project type",
+      "notes": "Notes",
+      "status": "Status",
+      "create": "Create client",
+      "update": "Update client"
+    },
+    "projectTypes": {
+      "wedding": "Wedding",
+      "portrait": "Portrait",
+      "event": "Event",
+      "commercial": "Commercial",
+      "realEstate": "Real Estate",
+      "fineArt": "Fine Art",
+      "newborn": "Newborn",
+      "family": "Family",
+      "other": "Other"
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New project",
+    "noProjects": "No projects yet",
+    "noProjectsDesc": "Create your first project",
+    "tabs": {
+      "contract": "Contract",
+      "gallery": "Gallery",
+      "timeline": "Timeline"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "delivered": "Delivered",
+      "completed": "Completed"
+    },
+    "clientPortalLink": "Client portal link",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied!"
+  },
+  "contracts": {
+    "title": "Contracts",
+    "newContract": "New contract",
+    "noContracts": "No contracts yet",
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "viewed": "Viewed",
+      "signed": "Signed"
+    },
+    "sendToClient": "Send to client",
+    "sent": "Contract sent!",
+    "downloadPdf": "Download PDF",
+    "signedBy": "Signed by",
+    "signedAt": "Signed at",
+    "templates": {
+      "title": "Templates",
+      "wedding": "Wedding Photography Agreement",
+      "portrait": "Portrait Session Agreement",
+      "event": "Event Photography Agreement",
+      "commercial": "Commercial Photography Agreement"
+    }
+  },
+  "gallery": {
+    "title": "Gallery",
+    "upload": "Upload photos",
+    "uploading": "Uploading...",
+    "noPhotos": "No photos yet",
+    "noPhotosDesc": "Upload your first photos",
+    "settings": "Gallery settings",
+    "shareGallery": "Share gallery",
+    "password": "Password",
+    "passwordHint": "Optional — protect the gallery with a password",
+    "expiry": "Expiry date",
+    "downloadEnabled": "Allow downloads",
+    "watermark": "Watermark",
+    "favorites": "Favorites",
+    "downloadAll": "Download all",
+    "selectAll": "Select all",
+    "deleteSelected": "Delete selected",
+    "photoCount": "{count} photos",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "expired": "Expired"
+    }
+  },
+  "timeline": {
+    "title": "Timeline",
+    "addEvent": "Add event",
+    "noEvents": "No events yet",
+    "noEventsDesc": "Build your shoot schedule",
+    "phases": {
+      "preparation": "Preparation",
+      "shoot": "Shoot",
+      "wrap": "Wrap",
+      "other": "Other"
+    },
+    "event": {
+      "time": "Time",
+      "title": "Title",
+      "location": "Location",
+      "duration": "Duration (minutes)",
+      "phase": "Phase",
+      "notes": "Notes",
+      "photographerNote": "Photographer note (private)"
+    },
+    "print": "Print"
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "profile": "Profile",
+      "studio": "Studio",
+      "branding": "Branding",
+      "notifications": "Notifications"
+    },
+    "profile": {
+      "fullName": "Full name",
+      "email": "Email address",
+      "phone": "Phone number",
+      "bio": "Bio",
+      "bioHint": "Shown in client portal (Pro+)",
+      "profilePhoto": "Profile photo",
+      "photographyTypes": "Photography types",
+      "language": "Language"
+    },
+    "studio": {
+      "studioName": "Studio name",
+      "logo": "Logo",
+      "website": "Website",
+      "instagram": "Instagram"
+    },
+    "branding": {
+      "title": "Branding",
+      "proOnly": "Available on Pro and Studio plans",
+      "primaryColor": "Primary color",
+      "hidePoweredBy": "Hide \"Powered by FrameFlow\"",
+      "customFooter": "Custom footer text"
+    },
+    "notifications": {
+      "contractSigned": "Contract signed",
+      "galleryViewed": "Gallery viewed",
+      "photoFavorited": "Photo favorited",
+      "digestFrequency": "Digest frequency",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "never": "Never"
+    },
+    "saved": "Settings saved!"
+  },
+  "billing": {
+    "title": "Billing",
+    "currentPlan": "Current plan",
+    "manageBilling": "Manage billing",
+    "upgrade": "Upgrade",
+    "plans": {
+      "free": "Free",
+      "starter": "Starter",
+      "pro": "Pro",
+      "studio": "Studio"
+    }
+  },
+  "plans": {
+    "free": {
+      "name": "Free",
+      "price": "0",
+      "description": "Perfect for getting started",
+      "features": [
+        "2 active clients",
+        "1 contract per client",
+        "Gallery with FrameFlow watermark",
+        "No custom branding"
+      ]
+    },
+    "starter": {
+      "name": "Starter",
+      "price": "9",
+      "description": "For growing photographers",
+      "features": [
+        "10 active clients",
+        "Unlimited contracts",
+        "Gallery without watermark",
+        "Basic email templates"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "19",
+      "description": "For professional photographers",
+      "popular": "Most popular",
+      "features": [
+        "Unlimited clients",
+        "Unlimited everything",
+        "Basic white label",
+        "Priority support",
+        "Analytics dashboard"
+      ]
+    },
+    "studio": {
+      "name": "Studio",
+      "price": "39",
+      "description": "For studios and teams",
+      "features": [
+        "Everything in Pro",
+        "Up to 5 photographers",
+        "Full white label",
+        "Custom domain",
+        "Custom email domain"
+      ]
+    }
+  },
+  "upgradeModal": {
+    "title": "Upgrade required",
+    "subtitle": "You've reached your limit",
+    "clientLimit": "You've reached the limit of {limit} active clients.",
+    "contractLimit": "You've reached the contract limit.",
+    "upgrade": "Upgrade now",
+    "learnMore": "Learn more",
+    "cancel": "Maybe later"
+  },
+  "clientPortal": {
+    "greeting": "Hi",
+    "shootCountdown": "Your shoot is in {days} days",
+    "shootToday": "Your shoot is today!",
+    "photosReady": "Your photos are ready!",
+    "contract": {
+      "title": "Contract",
+      "pending": "Pending",
+      "signed": "Signed",
+      "viewSign": "View & Sign"
+    },
+    "gallery": {
+      "title": "Gallery",
+      "photosReady": "Your photos are ready",
+      "viewPhotos": "View photos"
+    },
+    "timeline": {
+      "title": "Timeline",
+      "viewSchedule": "View schedule"
+    },
+    "signing": {
+      "title": "Sign contract",
+      "scrollToRead": "Please read the contract in full",
+      "agree": "I have read and agree",
+      "fullName": "Full name",
+      "signature": "Signature",
+      "clear": "Clear",
+      "sign": "Sign contract",
+      "success": "Contract signed!",
+      "successDesc": "Thank you! Your contract has been successfully signed.",
+      "downloadSigned": "Download signed PDF",
+      "alreadySigned": "This contract has already been signed."
+    },
+    "galleryPage": {
+      "favorites": "Favorites",
+      "downloadAll": "Download all",
+      "passwordRequired": "Password required",
+      "enterPassword": "Enter password",
+      "wrongPassword": "Wrong password",
+      "expired": "This gallery has expired"
+    }
+  },
+  "landing": {
+    "hero": {
+      "headline": "Your clients deserve better than a WeTransfer link.",
+      "subtext": "FrameFlow gives every shoot a beautiful client portal — contracts, galleries, timelines. For weddings, portraits, events, and everything in between.",
+      "cta": "Start for free",
+      "ctaSecondary": "See how it works",
+      "socialProof": "Trusted by 200+ photographers across Europe"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "step1Title": "Create your project",
+      "step1Desc": "Add client, upload contract, set up gallery",
+      "step2Title": "Send one link",
+      "step2Desc": "Your client receives a beautiful portal with a single link",
+      "step3Title": "Done",
+      "step3Desc": "Client signs, browses gallery, downloads photos"
+    },
+    "features": {
+      "title": "Everything you need",
+      "contract": {
+        "title": "Digital contracts",
+        "desc": "Legally valid e-signature directly in the browser"
+      },
+      "gallery": {
+        "title": "Beautiful galleries",
+        "desc": "Professional photo galleries with download control"
+      },
+      "timeline": {
+        "title": "Timeline builder",
+        "desc": "Shoot schedules for any project type"
+      },
+      "portal": {
+        "title": "One link per client",
+        "desc": "No login required — simple and elegant"
+      },
+      "bilingual": {
+        "title": "Bilingual",
+        "desc": "Fully available in English and German"
+      },
+      "stripe": {
+        "title": "Stripe payments",
+        "desc": "Secure subscriptions, cancel anytime"
+      }
+    },
+    "photographyTypes": {
+      "title": "For every photographer",
+      "wedding": "Wedding",
+      "portrait": "Portrait",
+      "event": "Event",
+      "commercial": "Commercial",
+      "realEstate": "Real Estate",
+      "fineArt": "Fine Art"
+    },
+    "testimonials": {
+      "title": "What photographers say",
+      "t1": {
+        "quote": "I used to spend 2 hours per client on admin. Now it's 15 minutes.",
+        "author": "Sarah K.",
+        "role": "Portrait photographer · Berlin"
+      },
+      "t2": {
+        "quote": "My clients always comment on how professional the portal looks.",
+        "author": "Marco R.",
+        "role": "Event photographer · München"
+      },
+      "t3": {
+        "quote": "Finally a tool made by someone who actually photographs for a living.",
+        "author": "Lisa T.",
+        "role": "Commercial photographer · Hamburg"
+      }
+    },
+    "pricing": {
+      "title": "Simple, transparent pricing",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yearlyDiscount": "2 months free",
+      "perMonth": "/ month",
+      "getStarted": "Get started",
+      "startFree": "Start for free",
+      "mostPopular": "Most popular"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "q1": "Is the e-signature legally valid in Germany?",
+      "a1": "Yes. The e-signature in FrameFlow complies with the eIDAS regulation for simple electronic signatures, which is fully sufficient for photography contracts.",
+      "q2": "What happens when I reach my client limit?",
+      "a2": "You'll see a friendly upgrade modal showing all the benefits of the next plan. No error, no data loss — just upgrade and continue.",
+      "q3": "Can my clients see each other's portals?",
+      "a3": "No. Each client receives a unique, random link. Without that link, there is no access.",
+      "q4": "How are photos stored and for how long?",
+      "a4": "Photos are stored securely in the EU (Supabase EU region). As long as your account is active, your photos are retained.",
+      "q5": "Can I use my own domain?",
+      "a5": "Yes, with the Studio plan you can use a custom domain for the client portal.",
+      "q6": "How do I cancel?",
+      "a6": "Anytime with one click in the billing section. No hidden fees, no notice period."
+    },
+    "footer": {
+      "tagline": "Beautiful client portals for photographers.",
+      "features": "Features",
+      "pricing": "Pricing",
+      "blog": "Blog",
+      "login": "Log in",
+      "signup": "Sign up",
+      "impressum": "Impressum",
+      "datenschutz": "Privacy",
+      "agb": "Terms",
+      "language": "Language"
+    }
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "notFoundDesc": "The page you're looking for doesn't exist.",
+    "serverError": "Server error",
+    "serverErrorDesc": "Something went wrong. Please try again.",
+    "unauthorized": "Unauthorized",
+    "unauthorizedDesc": "You don't have permission to view this page.",
+    "invalidToken": "Invalid link",
+    "invalidTokenDesc": "This link is invalid or has expired."
+  }
+}
