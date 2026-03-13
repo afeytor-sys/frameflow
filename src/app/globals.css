@@ -26,7 +26,7 @@
 }
 
 /* ─────────────────────────────────────────────
-   LIGHT MODE (default)
+   WARM MODE (default) — rosado quente
 ───────────────────────────────────────────── */
 :root {
   --bg-page:        #F3E8E7;
@@ -54,6 +54,37 @@
   --gradient-orb-1: radial-gradient(circle at 20% 20%, rgba(196, 164, 124, 0.25) 0%, transparent 60%);
   --gradient-orb-2: radial-gradient(circle at 80% 80%, rgba(219, 222, 229, 0.40) 0%, transparent 60%);
   --gradient-orb-3: radial-gradient(circle at 50% 50%, rgba(243, 232, 231, 0.60) 0%, transparent 70%);
+}
+
+/* ─────────────────────────────────────────────
+   LIGHT MODE — Notion-style: pure white, clean
+───────────────────────────────────────────── */
+.light {
+  --bg-page:        #FFFFFF;
+  --bg-page-2:      #F7F7F5;
+  --bg-surface:     #FFFFFF;
+  --bg-surface-solid: #FFFFFF;
+  --bg-sidebar:     rgba(255, 255, 255, 0.95);
+  --bg-hover:       #F1F1EF;
+  --bg-active:      #111827;
+
+  --text-primary:   #111827;
+  --text-secondary: #4B5563;
+  --text-muted:     #9CA3AF;
+  --text-on-active: #FFFFFF;
+
+  --border-color:   rgba(17, 24, 39, 0.08);
+  --border-strong:  rgba(17, 24, 39, 0.14);
+
+  --glass-blur:     blur(0px);
+  --glass-bg:       #FFFFFF;
+  --glass-border:   rgba(17, 24, 39, 0.08);
+  --glass-shadow:   0 1px 3px rgba(17, 24, 39, 0.08), 0 0 0 1px rgba(17,24,39,0.04);
+
+  --gradient-page:  #FFFFFF;
+  --gradient-orb-1: none;
+  --gradient-orb-2: none;
+  --gradient-orb-3: none;
 }
 
 /* ─────────────────────────────────────────────
