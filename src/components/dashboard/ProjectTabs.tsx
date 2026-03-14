@@ -401,16 +401,20 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
     if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
     setSaving(true)
 
+    // Always use the authenticated user's ID to satisfy RLS
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { toast.error('Nicht angemeldet'); setSaving(false); return }
+
     const amountCents = Math.round(gross * 100)
     const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`
-    let descParts: string[] = []
+    const descParts: string[] = []
     if (form.description) descParts.push(form.description)
     if (form.include_mwst) descParts.push(`inkl. 19% MwSt (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
     const finalDescription = descParts.join(' · ') || null
 
     const { error } = await supabase.from('invoices').insert({
       project_id: projectId,
-      photographer_id: photographerId,
+      photographer_id: user.id,
       amount: amountCents,
       currency: 'eur',
       status: 'draft',
