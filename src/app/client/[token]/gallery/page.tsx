@@ -43,14 +43,14 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     )
   }
 
-  // Load photos with section_id
+  // Load photos — only base columns that exist in production
   const { data: photos } = await supabase
     .from('photos')
-    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, tag, section_id')
+    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order')
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
-  // Load sections
+  // Load sections (may not exist in production — ignore errors)
   const { data: sections } = await supabase
     .from('gallery_sections')
     .select('id, title, display_order')
@@ -64,7 +64,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     .eq('id', gallery.id)
     .then(() => {})
 
-  const sortedPhotos = (photos || []).sort((a, b) => a.display_order - b.display_order)
+  const sortedPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
   const gallerySections = sections || []
 
   // Get theme
@@ -154,61 +154,6 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           <div style={{ textAlign: 'center', padding: '96px 0' }}>
             <Images style={{ width: 40, height: 40, color: theme.textMuted, margin: '0 auto 16px', opacity: 0.4 }} />
             <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
-          </div>
-        ) : gallerySections.length > 0 ? (
-          // Sectioned view
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
-            {gallerySections.map(section => {
-              const sectionPhotos = sortedPhotos.filter(p => (p as { section_id?: string | null }).section_id === section.id)
-              if (sectionPhotos.length === 0) return null
-              return (
-                <div key={section.id}>
-                  <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `1px solid ${theme.border}` }}>
-                    <h2 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
-                      {section.title}
-                    </h2>
-                    <p style={{ color: theme.textMuted, fontSize: '0.8rem', marginTop: 4 }}>{sectionPhotos.length} Fotos</p>
-                  </div>
-                  <GalleryViewer
-                    galleryId={gallery.id}
-                    projectId={project.id}
-                    galleryTitle={section.title}
-                    clientName={client?.full_name || ''}
-                    initialPhotos={sectionPhotos}
-                    downloadEnabled={gallery.download_enabled}
-                    commentsEnabled={gallery.comments_enabled ?? true}
-                    showWatermark={false}
-                    token={token}
-                    theme={theme}
-                  />
-                </div>
-              )
-            })}
-            {/* Unsectioned photos */}
-            {(() => {
-              const unsectioned = sortedPhotos.filter(p => !(p as { section_id?: string | null }).section_id)
-              if (unsectioned.length === 0) return null
-              return (
-                <div>
-                  <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `1px solid ${theme.border}` }}>
-                    <h2 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: '1.25rem', fontWeight: 600 }}>Weitere Fotos</h2>
-                    <p style={{ color: theme.textMuted, fontSize: '0.8rem', marginTop: 4 }}>{unsectioned.length} Fotos</p>
-                  </div>
-                  <GalleryViewer
-                    galleryId={gallery.id}
-                    projectId={project.id}
-                    galleryTitle={gallery.title || project.title || 'Galerie'}
-                    clientName={client?.full_name || ''}
-                    initialPhotos={unsectioned}
-                    downloadEnabled={gallery.download_enabled}
-                    commentsEnabled={gallery.comments_enabled ?? true}
-                    showWatermark={false}
-                    token={token}
-                    theme={theme}
-                  />
-                </div>
-              )
-            })()}
           </div>
         ) : (
           // No sections — single grid

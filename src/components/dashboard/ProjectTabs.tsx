@@ -150,7 +150,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           </button>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {galleries.map(g => {
             const coverPhoto = g.photos?.[0]
             const photoCount = g.photos?.length ?? 0
@@ -159,53 +159,33 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
             return (
               <div
                 key={g.id}
-                className="group rounded-xl overflow-hidden cursor-pointer transition-all"
-                style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(196,164,124,0.4)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow-hover)'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-                }}
+                className="group cursor-pointer"
                 onClick={() => setSelectedGalleryId(g.id)}
               >
-                {/* Cover — 3:4 portrait ratio */}
-                <div className="relative overflow-hidden" style={{ background: 'var(--bg-hover)', aspectRatio: '3/4' }}>
+                {/* Cover — 4:3 landscape ratio (Pixiset style) */}
+                <div
+                  className="relative overflow-hidden rounded-lg mb-2.5 transition-all duration-200"
+                  style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}
+                >
                   {coverPhoto ? (
                     <img
                       src={coverPhoto.thumbnail_url || coverPhoto.storage_url}
                       alt={g.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Images className="w-8 h-8" style={{ color: 'var(--border-strong)' }} />
+                      <Images className="w-7 h-7" style={{ color: 'var(--border-strong)' }} />
                     </div>
                   )}
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 60%)' }} />
-                  <div className="absolute top-2 right-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                      style={{
-                        background: isActive ? 'rgba(42,155,104,0.85)' : 'rgba(107,114,128,0.75)',
-                        color: '#fff',
-                      }}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                      {isActive ? 'Aktiv' : 'Entwurf'}
-                    </span>
-                  </div>
-                  {photoCount > 0 && (
-                    <div className="absolute bottom-2 left-2">
-                      <span className="text-[11px] font-semibold text-white/90">{photoCount} Fotos</span>
-                    </div>
-                  )}
+                  {/* subtle overlay on hover */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200" />
                 </div>
 
-                {/* Body */}
-                <div className="p-3 flex items-center justify-between gap-2">
+                {/* Body — Pixiset style: title + meta below image */}
+                <div>
                   {editingTitleId === g.id ? (
-                    <div className="flex items-center gap-1.5 flex-1" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                       <input
                         autoFocus
                         value={editingTitle}
@@ -221,17 +201,37 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                       </button>
                     </div>
                   ) : (
-                    <>
-                      <span className="font-medium text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{g.title}</span>
+                    <div className="flex items-start justify-between gap-1">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[13px] truncate leading-snug" style={{ color: 'var(--text-primary)' }}>{g.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: isActive ? '#3DBA6F' : 'var(--text-muted)' }}>
+                            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: isActive ? '#3DBA6F' : 'var(--text-muted)' }} />
+                            {isActive ? 'Aktiv' : 'Entwurf'}
+                          </span>
+                          {photoCount > 0 && (
+                            <>
+                              <span style={{ color: 'var(--border-strong)' }}>·</span>
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{photoCount} Fotos</span>
+                            </>
+                          )}
+                          {g.view_count > 0 && (
+                            <>
+                              <span style={{ color: 'var(--border-strong)' }}>·</span>
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{g.view_count} Aufrufe</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                       <button
                         onClick={e => { e.stopPropagation(); startRenaming(g) }}
-                        className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                        className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 mt-0.5"
                         style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
                         title="Umbenennen"
                       >
                         <Pencil className="w-3 h-3" />
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
