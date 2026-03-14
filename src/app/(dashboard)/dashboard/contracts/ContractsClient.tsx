@@ -202,6 +202,15 @@ export default function ContractsClient({
         </button>
       </div>
 
+      <style>{`
+        .contract-card {
+          transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease !important;
+        }
+        .contract-card:hover {
+          transform: translateY(-4px) !important;
+        }
+      `}</style>
+
       {/* ── My Templates (user-saved) ── */}
       {userTemplates.length > 0 && (
         <div>
@@ -217,7 +226,7 @@ export default function ContractsClient({
               return (
                 <div
                   key={tpl.id}
-                  className="rounded-xl overflow-hidden flex flex-col gap-0 transition-all duration-300 group cursor-pointer"
+                  className="contract-card rounded-xl overflow-hidden flex flex-col gap-0 group cursor-pointer"
                   style={{
                     background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
                     border: `1px solid ${accent.color}28`,
@@ -227,12 +236,10 @@ export default function ContractsClient({
                     opacity: 0,
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-4px)'
                     e.currentTarget.style.boxShadow = `0 10px 28px ${accent.color}22`
                     e.currentTarget.style.borderColor = accent.color + '45'
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)'
                     e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
                     e.currentTarget.style.borderColor = accent.color + '28'
                   }}
@@ -330,7 +337,7 @@ export default function ContractsClient({
             return (
               <div
                 key={tpl.id}
-                className="rounded-xl overflow-hidden flex flex-col gap-0 transition-all duration-300 group"
+                className="contract-card rounded-xl overflow-hidden flex flex-col gap-0 group"
                 style={{
                   background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
                   border: `1px solid ${accent.color}28`,
@@ -340,12 +347,10 @@ export default function ContractsClient({
                   opacity: 0,
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-4px)'
                   e.currentTarget.style.boxShadow = `0 10px 28px ${accent.color}22`
                   e.currentTarget.style.borderColor = accent.color + '45'
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)'
                   e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
                   e.currentTarget.style.borderColor = accent.color + '28'
                 }}

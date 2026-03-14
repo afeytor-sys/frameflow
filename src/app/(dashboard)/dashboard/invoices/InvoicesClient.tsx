@@ -243,15 +243,41 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8 animate-in-delay-1">
-        {[
-          { label: 'Bezahlt', value: formatEur(totalPaid), color: '#2A9B68', bg: 'rgba(42,155,104,0.08)' },
-          { label: 'Ausstehend', value: formatEur(totalPending), color: 'var(--accent)', bg: 'var(--accent-muted)' },
-          { label: 'Überfällig', value: formatEur(totalOverdue), color: '#C43B2C', bg: 'rgba(196,59,44,0.08)' },
-        ].map(({ label, value, color, bg }) => (
-          <div key={label} className="glass-card p-5">
-            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{label}</p>
-            <p className="font-black text-[22px]" style={{ color, letterSpacing: '-0.03em' }}>{value}</p>
+      <style>{`
+        .invoice-stat-card {
+          transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease !important;
+        }
+        .invoice-stat-card:hover {
+          transform: translateY(-4px) !important;
+          box-shadow: var(--card-shadow-hover) !important;
+        }
+      `}</style>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {([
+          { label: 'Bezahlt',    value: formatEur(totalPaid),    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)',  iconBg: 'rgba(42,155,104,0.12)',  Icon: CheckCircle2, delay: 0 },
+          { label: 'Ausstehend', value: formatEur(totalPending), color: 'var(--accent)', bg: 'var(--accent-muted)', iconBg: 'var(--accent-muted)', Icon: Clock,         delay: 80 },
+          { label: 'Überfällig', value: formatEur(totalOverdue), color: '#C43B2C', bg: 'rgba(196,59,44,0.08)',  iconBg: 'rgba(196,59,44,0.10)',  Icon: AlertCircle,  delay: 160 },
+        ] as const).map(({ label, value, color, bg, iconBg, Icon, delay }) => (
+          <div
+            key={label}
+            className="invoice-stat-card rounded-2xl p-5 flex items-center gap-4"
+            style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--card-border)',
+              boxShadow: 'var(--card-shadow)',
+              animation: 'fadeSlideIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards',
+              animationDelay: `${delay}ms`,
+              opacity: 0,
+            }}
+          >
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: iconBg }}>
+              <Icon className="w-5 h-5" style={{ color }} />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+              <p className="font-black text-[22px] leading-none" style={{ color, letterSpacing: '-0.03em' }}>{value}</p>
+            </div>
           </div>
         ))}
       </div>
