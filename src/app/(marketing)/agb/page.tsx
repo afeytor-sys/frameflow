@@ -10,7 +10,7 @@ export default function AGBPage() {
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-3">§ 1 Geltungsbereich</h2>
             <p>
               Diese Allgemeinen Geschäftsbedingungen gelten für alle Verträge zwischen
-              [Firmenname] (nachfolgend „Anbieter") und den Nutzern der Plattform Fotonizer
+              Allan Feitor, Kiefholzstr 14, 12435 Berlin (nachfolgend „Anbieter") und den Nutzern der Plattform Fotonizer
               (nachfolgend „Nutzer").
             </p>
           </section>
@@ -81,14 +81,19 @@ export default function AGBPage() {
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-3">§ 9 Anwendbares Recht</h2>
             <p>
               Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts.
-              Gerichtsstand ist [Ort des Anbieters].
+              Gerichtsstand ist Berlin.
             </p>
           </section>
 
-          <p className="text-xs text-[#C0C0C0] pt-4 border-t border-[#E8E8E4]">
-            ⚠️ Diese AGB sind ein Platzhalter. Bitte lass sie von einem Rechtsanwalt prüfen
-            und passe alle Angaben in eckigen Klammern an, bevor du die Seite veröffentlichst.
-          </p>
+          <section>
+            <h2 className="text-base font-semibold text-[#1A1A1A] mb-3">§ 10 Kontakt</h2>
+            <p>
+              Allan Feitor<br />
+              Kiefholzstr 14, 12435 Berlin<br />
+              E-Mail: af.photographer.berlin@gmail.com<br />
+              Telefon: +49 173 8701139
+            </p>
+          </section>
         </div>
 
         <div className="mt-8">

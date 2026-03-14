@@ -8,9 +8,9 @@ export default function ImpressumPage() {
           <section>
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-2">Angaben gemäß § 5 TMG</h2>
             <p>
-              [Dein Name / Firmenname]<br />
-              [Straße und Hausnummer]<br />
-              [PLZ Ort]<br />
+              Allan Feitor<br />
+              Kiefholzstr 14<br />
+              12435 Berlin<br />
               Deutschland
             </p>
           </section>
@@ -18,8 +18,8 @@ export default function ImpressumPage() {
           <section>
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-2">Kontakt</h2>
             <p>
-              E-Mail: [deine@email.de]<br />
-              Telefon: [+49 ...]
+              E-Mail: af.photographer.berlin@gmail.com<br />
+              Telefon: +49 173 8701139
             </p>
           </section>
 
@@ -27,15 +27,15 @@ export default function ImpressumPage() {
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-2">Umsatzsteuer-ID</h2>
             <p>
               Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:<br />
-              DE [Nummer]
+              362/285/01034
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-2">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
             <p>
-              [Dein Name]<br />
-              [Adresse]
+              Allan Feitor<br />
+              Kiefholzstr 14, 12435 Berlin
             </p>
           </section>
 
@@ -52,11 +52,6 @@ export default function ImpressumPage() {
               Verbraucherschlichtungsstelle teilzunehmen.
             </p>
           </section>
-
-          <p className="text-xs text-[#C0C0C0] pt-4">
-            ⚠️ Dieses Impressum ist ein Platzhalter. Bitte ersetze alle Angaben in eckigen Klammern
-            durch deine tatsächlichen Daten, bevor du die Seite veröffentlichst.
-          </p>
         </div>
 
         <div className="mt-8">
