@@ -218,25 +218,24 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                   )}
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200" />
-                  {/* Icon buttons — centered */}
-                  <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                    <button
-                      onClick={e => { e.stopPropagation(); shareGallery(g) }}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white transition-all hover:scale-110"
-                      style={{ background: 'rgba(255,255,255,0.20)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.30)' }}
-                      title="Link kopieren"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); deleteGallery(g.id) }}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white transition-all hover:scale-110"
-                      style={{ background: 'rgba(232,76,26,0.75)', backdropFilter: 'blur(6px)', border: '1px solid rgba(232,76,26,0.40)' }}
-                      title="Galerie löschen"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Share — top right */}
+                  <button
+                    onClick={e => { e.stopPropagation(); shareGallery(g) }}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                    style={{ background: 'rgba(255,255,255,0.20)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.30)' }}
+                    title="Link kopieren"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                  {/* Delete — bottom right */}
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteGallery(g.id) }}
+                    className="absolute bottom-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                    style={{ background: 'rgba(232,76,26,0.75)', backdropFilter: 'blur(6px)', border: '1px solid rgba(232,76,26,0.40)' }}
+                    title="Galerie löschen"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
 
                 {/* Body */}
