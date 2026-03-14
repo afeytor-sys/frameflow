@@ -66,48 +66,49 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
         <div
           className="relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
           style={{
-            background: stat.gradient,
-            boxShadow: `0 4px 24px ${stat.accentColor}25`,
+            background: 'var(--card-bg)',
+            border: `1px solid ${stat.accentColor}20`,
+            boxShadow: `0 2px 12px ${stat.accentColor}12`,
           }}
           onMouseEnter={(e) => {
             const el = e.currentTarget
-            el.style.transform = 'translateY(-6px) scale(1.01)'
-            el.style.boxShadow = `0 16px 48px ${stat.accentColor}40`
+            el.style.transform = 'translateY(-4px)'
+            el.style.boxShadow = `0 12px 32px ${stat.accentColor}22`
+            el.style.borderColor = stat.accentColor + '40'
           }}
           onMouseLeave={(e) => {
             const el = e.currentTarget
-            el.style.transform = 'translateY(0) scale(1)'
-            el.style.boxShadow = `0 4px 24px ${stat.accentColor}25`
+            el.style.transform = 'translateY(0)'
+            el.style.boxShadow = `0 2px 12px ${stat.accentColor}12`
+            el.style.borderColor = stat.accentColor + '20'
           }}
         >
-          {/* Top shimmer line */}
+          {/* Subtle top accent bar */}
           <div
-            className="absolute top-0 left-0 right-0 h-[2px]"
-            style={{ background: `linear-gradient(90deg, transparent, ${stat.accentColor}, transparent)` }}
+            className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
+            style={{ background: stat.accentColor, opacity: 0.7 }}
           />
 
-          {/* Background pattern */}
+          {/* Very subtle background tint */}
           <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage: `radial-gradient(circle at 80% 20%, ${stat.accentColor} 0%, transparent 60%)`,
-            }}
+            className="absolute inset-0 rounded-2xl"
+            style={{ background: stat.gradient, opacity: 0.5 }}
           />
 
           <div className="relative z-10 p-6">
             {/* Icon + Arrow row */}
             <div className="flex items-start justify-between mb-4">
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
-                style={{ background: stat.accentColor + '20', border: `1px solid ${stat.accentColor}30` }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+                style={{ background: stat.accentColor + '15', border: `1px solid ${stat.accentColor}25` }}
               >
                 <Icon className="w-5 h-5" style={{ color: stat.accentColor }} />
               </div>
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
-                style={{ background: stat.accentColor + '15' }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                style={{ background: stat.accentColor + '12' }}
               >
-                <ArrowUpRight className="w-4 h-4" style={{ color: stat.accentColor }} />
+                <ArrowUpRight className="w-3.5 h-3.5" style={{ color: stat.accentColor }} />
               </div>
             </div>
 
@@ -116,10 +117,9 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
               <span
                 className="font-black tabular-nums leading-none"
                 style={{
-                  fontSize: '56px',
+                  fontSize: '52px',
                   letterSpacing: '-0.05em',
                   color: stat.accentColor,
-                  textShadow: `0 0 40px ${stat.accentColor}30`,
                 }}
               >
                 {count}
@@ -127,7 +127,7 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
             </div>
 
             {/* Label */}
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: stat.accentColor + 'AA' }}>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: stat.accentColor + '99' }}>
               {stat.label}
             </p>
             <p className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>

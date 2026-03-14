@@ -66,7 +66,7 @@ export default function ProjectsPage() {
           </div>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-40 rounded-2xl shimmer" />)}
+          {[1,2,3].map(i => <div key={i} className="h-48 rounded-2xl shimmer" />)}
         </div>
       </div>
     )
@@ -90,7 +90,7 @@ export default function ProjectsPage() {
         <Link
           href="/dashboard/projects/new"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
-          style={{ background: 'var(--text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+          style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
         >
           <Plus className="w-4 h-4" />
           Neues Projekt
@@ -99,79 +99,116 @@ export default function ProjectsPage() {
 
       {projects.length > 0 ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => {
+          {projects.map((project, index) => {
             const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
             const client = project.client
             const clientName = Array.isArray(client) ? client[0]?.full_name : client?.full_name
 
             return (
-              <div key={project.id} className="relative group">
+              <div
+                key={project.id}
+                className="relative group"
+                style={{
+                  animation: 'statFadeUp 0.45s ease forwards',
+                  animationDelay: `${index * 60}ms`,
+                  opacity: 0,
+                }}
+              >
+                <style>{`
+                  @keyframes statFadeUp {
+                    from { opacity: 0; transform: translateY(14px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                  }
+                `}</style>
+
                 <Link
                   href={`/dashboard/projects/${project.id}`}
-                  className="block rounded-2xl p-5 transition-all duration-200 hover:-translate-y-1"
+                  className="block rounded-2xl overflow-hidden transition-all duration-300"
                   style={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-color)',
-                    boxShadow: 'var(--card-shadow)',
+                    background: 'var(--card-bg)',
+                    border: `1px solid ${sc.color}20`,
+                    boxShadow: `0 2px 12px ${sc.color}10`,
                   }}
                   onMouseEnter={e => {
                     const el = e.currentTarget
-                    el.style.boxShadow = 'var(--card-shadow-hover)'
+                    el.style.transform = 'translateY(-4px)'
+                    el.style.boxShadow = `0 12px 32px ${sc.color}22`
                     el.style.borderColor = sc.color + '40'
                   }}
                   onMouseLeave={e => {
                     const el = e.currentTarget
-                    el.style.boxShadow = 'var(--card-shadow)'
-                    el.style.borderColor = 'var(--border-color)'
+                    el.style.transform = 'translateY(0)'
+                    el.style.boxShadow = `0 2px 12px ${sc.color}10`
+                    el.style.borderColor = sc.color + '20'
                   }}
                 >
                   {/* Color accent top bar */}
                   <div
-                    className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
-                    style={{ background: sc.color, opacity: 0.5 }}
+                    className="h-[3px] w-full"
+                    style={{ background: sc.color, opacity: 0.7 }}
                   />
 
-                  {/* Status badge */}
-                  <div className="flex items-center justify-between mb-4">
+                  {/* Very subtle background tint */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${sc.color}08 0%, ${sc.color}03 100%)`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  <div className="relative p-5">
+                    {/* Icon + Status row */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        style={{ background: sc.color + '15', border: `1px solid ${sc.color}25` }}
+                      >
+                        <FolderOpen className="w-5 h-5" style={{ color: sc.color }} />
+                      </div>
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        style={{ background: sc.color + '12' }}
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" style={{ color: sc.color }} />
+                      </div>
+                    </div>
+
+                    {/* Title — big like stat number */}
+                    <h3
+                      className="font-black leading-tight mb-2"
+                      style={{
+                        fontSize: '22px',
+                        letterSpacing: '-0.03em',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {project.title}
+                    </h3>
+
+                    {/* Status badge */}
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold mb-3"
                       style={{ background: sc.bg, color: sc.color }}
                     >
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
                       {sc.label}
                     </span>
-                    {/* Spacer for delete button */}
-                    <div className="w-7 h-7" />
-                  </div>
 
-                  {/* Title */}
-                  <h3
-                    className="font-bold text-[15px] mb-3 leading-snug"
-                    style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
-                  >
-                    {project.title}
-                  </h3>
-
-                  {/* Meta */}
-                  <div className="space-y-1.5">
-                    {clientName && (
-                      <div className="flex items-center gap-1.5">
-                        <User className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                        <span className="text-[12.5px] truncate" style={{ color: 'var(--text-muted)' }}>{clientName}</span>
-                      </div>
-                    )}
-                    {project.shoot_date && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                        <span className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>{formatDate(project.shoot_date, 'de')}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Arrow on hover */}
-                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: sc.bg }}>
-                      <ArrowUpRight className="w-3.5 h-3.5" style={{ color: sc.color }} />
+                    {/* Meta */}
+                    <div className="space-y-1.5 mt-1">
+                      {clientName && (
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                          <span className="text-[12.5px] truncate" style={{ color: 'var(--text-muted)' }}>{clientName}</span>
+                        </div>
+                      )}
+                      {project.shoot_date && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                          <span className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>{formatDate(project.shoot_date, 'de')}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -179,7 +216,7 @@ export default function ProjectsPage() {
                 {/* Delete button */}
                 <button
                   onClick={(e) => deleteProject(e, project.id, project.title)}
-                  className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                  className="absolute top-[calc(3px+12px)] right-3 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
                   style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
                   title="Projekt löschen"
                 >
@@ -196,9 +233,9 @@ export default function ProjectsPage() {
         >
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-            style={{ background: 'rgba(196,164,124,0.08)' }}
+            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}
           >
-            <FolderOpen className="w-7 h-7" style={{ color: '#C4A47C' }} />
+            <FolderOpen className="w-7 h-7" style={{ color: '#F59E0B' }} />
           </div>
           <h3
             className="font-black mb-2"
@@ -212,7 +249,7 @@ export default function ProjectsPage() {
           <Link
             href="/dashboard/projects/new"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
-            style={{ background: 'var(--text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+            style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
           >
             <Plus className="w-4 h-4" />
             Erstes Projekt erstellen
