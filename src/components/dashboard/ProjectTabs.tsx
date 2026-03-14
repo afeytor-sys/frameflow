@@ -524,9 +524,6 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
     if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
     setSaving(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { toast.error('Nicht angemeldet'); setSaving(false); return }
-
     const amountCents = Math.round(gross * 100)
     const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`
     const descParts: string[] = []
@@ -536,7 +533,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
 
     const { error } = await supabase.from('invoices').insert({
       project_id: projectId,
-      photographer_id: user.id,
+      photographer_id: photographerId,
       amount: amountCents,
       currency: 'eur',
       status: 'draft',
@@ -545,7 +542,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
       invoice_number: invoiceNumber,
     })
 
-    if (error) { toast.error('Fehler beim Erstellen'); setSaving(false); return }
+    if (error) { console.error('Invoice error:', error); toast.error(`Fehler: ${error.message}`); setSaving(false); return }
     setSaving(false)
     setCreated(true)
     toast.success('Rechnung erstellt!')
