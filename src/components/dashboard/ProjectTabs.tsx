@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2 } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
@@ -137,6 +137,21 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     toast.success('Galerie umbenannt')
   }
 
+  const deleteGallery = async (id: string) => {
+    if (!confirm('Galerie wirklich löschen? Alle Fotos werden ebenfalls gelöscht.')) return
+    const { error } = await supabase.from('galleries').delete().eq('id', id)
+    if (error) { toast.error('Fehler beim Löschen'); return }
+    setGalleries(prev => prev.filter(g => g.id !== id))
+    toast.success('Galerie gelöscht')
+  }
+
+  const shareGallery = async (g: GalleryItem) => {
+    const url = `${project.client_url}/gallery`
+    const ok = await navigator.clipboard.writeText(url).then(() => true).catch(() => false)
+    if (ok) toast.success('Link kopiert!')
+    else toast.error('Kopieren fehlgeschlagen')
+  }
+
   // Gallery list view (when no gallery is selected)
   const GalleryListView = () => (
     <div className="space-y-4">
@@ -199,8 +214,28 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                       <Images className="w-7 h-7" style={{ color: 'var(--border-strong)' }} />
                     </div>
                   )}
-                  {/* subtle overlay on hover */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200" />
+                  {/* Hover overlay with Share (top) and Delete (bottom) */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200" />
+                  {/* Share button — top center */}
+                  <button
+                    onClick={e => { e.stopPropagation(); shareGallery(g) }}
+                    className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
+                    style={{ background: 'rgba(255,255,255,0.20)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.30)' }}
+                    title="Link kopieren"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    Teilen
+                  </button>
+                  {/* Delete button — bottom center */}
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteGallery(g.id) }}
+                    className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
+                    style={{ background: 'rgba(232,76,26,0.75)', backdropFilter: 'blur(6px)', border: '1px solid rgba(232,76,26,0.40)' }}
+                    title="Galerie löschen"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Löschen
+                  </button>
                 </div>
 
                 {/* Body — Pixiset style: title + meta below image */}
