@@ -15,13 +15,16 @@ interface Booking {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  lead:      { bg: 'rgba(107,114,128,0.10)', color: '#6B7280', label: 'Lead' },
-  booked:    { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C', label: 'Gebucht' },
-  shooting:  { bg: 'rgba(59,130,246,0.10)',  color: '#3B82F6', label: 'Shooting' },
-  editing:   { bg: 'rgba(168,85,247,0.10)',  color: '#A855F7', label: 'Bearbeitung' },
-  delivered: { bg: 'rgba(42,155,104,0.10)',  color: '#2A9B68', label: 'Geliefert' },
-  completed: { bg: 'rgba(42,155,104,0.10)',  color: '#2A9B68', label: 'Abgeschlossen' },
+  inquiry:   { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Anfrage' },
+  active:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Aktiv' },
+  shooting:  { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C', label: 'Shooting' },
+  editing:   { bg: 'rgba(139,92,246,0.12)',  color: '#8B5CF6', label: 'Bearbeitung' },
+  delivered: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', label: 'Geliefert' },
+  completed: { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Abgeschlossen' },
   cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', label: 'Storniert' },
+  // legacy fallbacks
+  lead:      { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Anfrage' },
+  booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Aktiv' },
 }
 
 const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
@@ -162,6 +165,13 @@ export default function BookingsPage() {
             </div>
           ) : (
             <>
+              <style>{`
+                @keyframes bookingFadeUp {
+                  from { opacity: 0; transform: translateY(16px); }
+                  to   { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+
               {/* Upcoming */}
               {upcoming.length > 0 && (
                 <div>
@@ -169,57 +179,80 @@ export default function BookingsPage() {
                     Bevorstehend
                   </p>
                   <div className="space-y-2">
-                    {upcoming.map(b => {
+                    {upcoming.map((b, i) => {
                       const days = daysUntil(b.shoot_date)
-                      const st = STATUS_COLORS[b.status] || STATUS_COLORS.booked
+                      const st = STATUS_COLORS[b.status] || STATUS_COLORS.inquiry
                       const isToday = days === 0
                       return (
                         <Link key={b.id} href={`/dashboard/projects/${b.id}`}
-                          className="flex items-center gap-4 p-4 rounded-2xl transition-all hover:-translate-y-0.5"
-                          style={{ background: 'var(--bg-surface)', border: isToday ? '1px solid rgba(196,164,124,0.4)' : '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
-                          {/* Date block */}
-                          <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
-                            style={{ background: isToday ? 'var(--accent-muted)' : 'var(--bg-hover)' }}>
-                            <span className="text-[11px] font-bold uppercase" style={{ color: isToday ? 'var(--accent)' : 'var(--text-muted)' }}>
-                              {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString('de-DE', { month: 'short' })}
-                            </span>
-                            <span className="text-[22px] font-black leading-none" style={{ color: isToday ? 'var(--accent)' : 'var(--text-primary)' }}>
-                              {new Date(b.shoot_date + 'T00:00:00').getDate()}
-                            </span>
-                          </div>
+                          className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                          style={{
+                            background: `linear-gradient(135deg, ${st.color}14 0%, ${st.color}05 100%)`,
+                            border: isToday ? `1px solid ${st.color}50` : `1px solid ${st.color}28`,
+                            boxShadow: isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`,
+                            animation: 'bookingFadeUp 0.4s ease forwards',
+                            animationDelay: `${i * 70}ms`,
+                            opacity: 0,
+                          }}
+                          onMouseEnter={e => {
+                            const el = e.currentTarget
+                            el.style.boxShadow = `0 10px 30px ${st.color}25`
+                            el.style.borderColor = st.color + '45'
+                          }}
+                          onMouseLeave={e => {
+                            const el = e.currentTarget
+                            el.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`
+                            el.style.borderColor = isToday ? st.color + '50' : st.color + '28'
+                          }}
+                        >
+                          {/* Left color bar */}
+                          <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.7 }} />
 
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
-                              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0"
-                                style={{ background: st.bg, color: st.color }}>
-                                {st.label}
+                          <div className="flex items-center gap-4 p-4 flex-1 min-w-0">
+                            {/* Date block */}
+                            <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
+                              style={{ background: st.color + '18', border: `1px solid ${st.color}25` }}>
+                              <span className="text-[11px] font-bold uppercase" style={{ color: st.color }}>
+                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString('de-DE', { month: 'short' })}
+                              </span>
+                              <span className="text-[22px] font-black leading-none" style={{ color: st.color }}>
+                                {new Date(b.shoot_date + 'T00:00:00').getDate()}
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap">
-                              {b.client && (
-                                <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                  <User className="w-3 h-3" />{b.client.full_name}
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="font-bold text-[14.5px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0"
+                                  style={{ background: st.color + '18', color: st.color }}>
+                                  {st.label}
                                 </span>
-                              )}
-                              {b.location && (
-                                <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                  <MapPin className="w-3 h-3" />{b.location}
+                              </div>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {b.client && (
+                                  <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    <User className="w-3 h-3" />{b.client.full_name}
+                                  </span>
+                                )}
+                                {b.location && (
+                                  <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    <MapPin className="w-3 h-3" />{b.location}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Days until */}
+                            <div className="flex-shrink-0 text-right">
+                              {isToday ? (
+                                <span className="text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: st.color + '20', color: st.color }}>Heute!</span>
+                              ) : (
+                                <span className="text-[12px] font-medium" style={{ color: st.color + 'CC' }}>
+                                  in {days} {days === 1 ? 'Tag' : 'Tagen'}
                                 </span>
                               )}
                             </div>
-                          </div>
-
-                          {/* Days until */}
-                          <div className="flex-shrink-0 text-right">
-                            {isToday ? (
-                              <span className="text-[12px] font-bold" style={{ color: 'var(--accent)' }}>Heute!</span>
-                            ) : (
-                              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                in {days} {days === 1 ? 'Tag' : 'Tagen'}
-                              </span>
-                            )}
                           </div>
                         </Link>
                       )
@@ -235,45 +268,63 @@ export default function BookingsPage() {
                     Vergangen
                   </p>
                   <div className="space-y-2">
-                    {[...past].reverse().map(b => {
-                      const st = STATUS_COLORS[b.status] || STATUS_COLORS.booked
+                    {[...past].reverse().map((b, i) => {
+                      const st = STATUS_COLORS[b.status] || STATUS_COLORS.inquiry
                       return (
                         <Link key={b.id} href={`/dashboard/projects/${b.id}`}
-                          className="flex items-center gap-4 p-4 rounded-2xl transition-all hover:-translate-y-0.5 opacity-60 hover:opacity-100"
-                          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-                          <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
-                            style={{ background: 'var(--bg-hover)' }}>
-                            <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>
-                              {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString('de-DE', { month: 'short' })}
-                            </span>
-                            <span className="text-[22px] font-black leading-none" style={{ color: 'var(--text-secondary)' }}>
-                              {new Date(b.shoot_date + 'T00:00:00').getDate()}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
-                              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0"
-                                style={{ background: st.bg, color: st.color }}>
-                                {st.label}
+                          className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+                          style={{
+                            opacity: 0,
+                            animation: 'bookingFadeUp 0.4s ease forwards',
+                            animationDelay: `${(upcoming.length + i) * 70}ms`,
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                          onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                        >
+                          {/* Left color bar (muted) */}
+                          <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
+
+                          <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
+                            style={{
+                              background: 'var(--bg-surface)',
+                              border: '1px solid var(--border-color)',
+                              borderLeft: 'none',
+                              borderRadius: '0 16px 16px 0',
+                            }}>
+                            <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
+                              style={{ background: 'var(--bg-hover)' }}>
+                              <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString('de-DE', { month: 'short' })}
+                              </span>
+                              <span className="text-[22px] font-black leading-none" style={{ color: 'var(--text-secondary)' }}>
+                                {new Date(b.shoot_date + 'T00:00:00').getDate()}
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap">
-                              {b.client && (
-                                <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                  <User className="w-3 h-3" />{b.client.full_name}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0"
+                                  style={{ background: st.bg, color: st.color }}>
+                                  {st.label}
                                 </span>
-                              )}
-                              {b.location && (
-                                <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                  <MapPin className="w-3 h-3" />{b.location}
-                                </span>
-                              )}
+                              </div>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {b.client && (
+                                  <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    <User className="w-3 h-3" />{b.client.full_name}
+                                  </span>
+                                )}
+                                {b.location && (
+                                  <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                    <MapPin className="w-3 h-3" />{b.location}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                            <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                              {formatDateDE(b.shoot_date)}
+                            </span>
                           </div>
-                          <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                            {formatDateDE(b.shoot_date)}
-                          </span>
                         </Link>
                       )
                     })}
