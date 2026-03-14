@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2 } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
 import type { Contract, Plan } from '@/types/database'
+import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 
 type Photo = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number; is_favorite: boolean }
@@ -53,10 +54,10 @@ interface Props {
 }
 
 const TABS = [
-  { key: 'contract', label: 'Vertrag',          icon: FileText },
-  { key: 'gallery',  label: 'Galerie',           icon: Images },
-  { key: 'booking',  label: 'Booking Details',   icon: CalendarDays },
-  { key: 'invoice',  label: 'Rechnung',          icon: Receipt },
+  { key: 'contract', label: 'Vertrag',        icon: FileText },
+  { key: 'gallery',  label: 'Galerie',         icon: Images },
+  { key: 'booking',  label: 'Booking Details', icon: CalendarDays },
+  { key: 'invoice',  label: 'Rechnung',        icon: Receipt },
 ]
 
 const MWST_RATE = 0.19
@@ -65,6 +66,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const [activeTab, setActiveTab] = useState('contract')
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createTheme, setCreateTheme] = useState('classic-white')
   const [creatingGallery, setCreatingGallery] = useState(false)
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -81,7 +84,6 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
   const supabase = createClient()
   const client = project.client as { full_name?: string; email?: string } | null
-
   const selectedGallery = galleries.find(g => g.id === selectedGalleryId) ?? null
 
   const createGallery = async () => {
@@ -98,6 +100,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         download_enabled: true,
         view_count: 0,
         download_count: 0,
+        design_theme: createTheme,
       })
       .select()
       .single()
@@ -120,6 +123,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     setGalleries(prev => [...prev, newGallery])
     setSelectedGalleryId(newGallery.id)
     setCreatingGallery(false)
+    setShowCreateModal(false)
     toast.success('Galerie erstellt!')
   }
 
@@ -145,14 +149,14 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     toast.success('Galerie gelöscht')
   }
 
-  const shareGallery = async (g: GalleryItem) => {
+  const shareGallery = async (_g: GalleryItem) => {
     const url = `${project.client_url}/gallery`
     const ok = await navigator.clipboard.writeText(url).then(() => true).catch(() => false)
     if (ok) toast.success('Link kopiert!')
     else toast.error('Kopieren fehlgeschlagen')
   }
 
-  // Gallery list view (when no gallery is selected)
+  // ── Gallery list view ──────────────────────────────────────────────────────
   const GalleryListView = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -160,9 +164,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           Galerien ({galleries.length})
         </h3>
         <button
-          onClick={createGallery}
-          disabled={creatingGallery}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg text-white transition-colors disabled:opacity-50"
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg text-white transition-colors"
           style={{ background: 'var(--accent)' }}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'var(--accent)')}
@@ -177,12 +180,11 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           <Images className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
           <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
           <button
-            onClick={createGallery}
-            disabled={creatingGallery}
-            className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
             style={{ background: 'var(--accent)' }}
           >
-            {creatingGallery ? 'Erstelle...' : 'Erste Galerie erstellen'}
+            Erste Galerie erstellen
           </button>
         </div>
       ) : (
@@ -198,7 +200,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                 className="group cursor-pointer"
                 onClick={() => setSelectedGalleryId(g.id)}
               >
-                {/* Cover — 4:3 landscape ratio (Pixiset style) */}
+                {/* Cover — 4:3 landscape ratio */}
                 <div
                   className="relative overflow-hidden rounded-lg mb-2.5 transition-all duration-200"
                   style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}
@@ -214,7 +216,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                       <Images className="w-7 h-7" style={{ color: 'var(--border-strong)' }} />
                     </div>
                   )}
-                  {/* Hover overlay with Share (top) and Delete (bottom) */}
+                  {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200" />
                   {/* Share button — top center */}
                   <button
@@ -238,7 +240,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                   </button>
                 </div>
 
-                {/* Body — Pixiset style: title + meta below image */}
+                {/* Body */}
                 <div>
                   {editingTitleId === g.id ? (
                     <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
@@ -299,114 +301,201 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   )
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-      {/* Tab bar */}
-      <div className="flex" style={{ borderBottom: '1px solid var(--border-color)' }}>
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => { setActiveTab(key); if (key !== 'gallery') setSelectedGalleryId(null) }}
-            className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-all border-b-2 -mb-px"
-            style={{
-              borderBottomColor: activeTab === key ? 'var(--accent)' : 'transparent',
-              color: activeTab === key ? 'var(--text-primary)' : 'var(--text-muted)',
-            }}
+    <>
+      {/* ── Create Gallery Modal ─────────────────────────────────────────── */}
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl p-6 shadow-2xl"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+            onClick={e => e.stopPropagation()}
           >
-            <Icon className="w-4 h-4" />
-            {label}
-            {key === 'gallery' && galleries.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
-                style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                {galleries.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="p-6">
-        {activeTab === 'contract' && (
-          <ContractTab
-            projectId={project.id}
-            contracts={contracts}
-            clientEmail={client?.email}
-            clientName={client?.full_name}
-            userTemplates={userTemplates}
-          />
-        )}
-
-        {activeTab === 'gallery' && (
-          <>
-            {selectedGallery ? (
-              <div>
-                {/* Back button */}
-                <button
-                  onClick={() => setSelectedGalleryId(null)}
-                  className="flex items-center gap-1.5 text-[13px] mb-4 transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Alle Galerien
-                </button>
-                <GalleryTab
-                  projectId={project.id}
-                  photographerId={project.photographer_id}
-                  clientUrl={project.client_url}
-                  gallery={{
-                    id: selectedGallery.id,
-                    title: selectedGallery.title,
-                    description: selectedGallery.description,
-                    status: selectedGallery.status,
-                    password: selectedGallery.password,
-                    watermark: selectedGallery.watermark,
-                    download_enabled: selectedGallery.download_enabled,
-                    comments_enabled: selectedGallery.comments_enabled,
-                    expires_at: selectedGallery.expires_at,
-                    view_count: selectedGallery.view_count,
-                    download_count: selectedGallery.download_count,
-                  }}
-                  photos={(selectedGallery.photos ?? []) as Photo[]}
-                  showWatermark={false}
-                />
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
+                  <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                </div>
+                <div>
+                  <h2 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Neue Galerie</h2>
+                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Wähle ein Design für deine Galerie</p>
+                </div>
               </div>
-            ) : (
-              <GalleryListView />
-            )}
-          </>
-        )}
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-        {activeTab === 'booking' && (
-          <BookingDetailsTab
-            projectId={project.id}
-            initialData={{
-              shoot_date: (project.shoot_date as string | null) ?? null,
-              location: (project.location as string | null) ?? null,
-              project_type: (project.project_type as string | null) ?? null,
-              notes: (project.notes as string | null) ?? null,
-              status: (project.status as string) ?? 'booked',
-            }}
-          />
-        )}
+            {/* Theme grid */}
+            <div className="grid grid-cols-2 gap-3 mb-5 max-h-72 overflow-y-auto pr-1">
+              {GALLERY_THEMES.map(theme => (
+                <button
+                  key={theme.key}
+                  onClick={() => setCreateTheme(theme.key)}
+                  className="relative rounded-xl p-3 text-left transition-all"
+                  style={{
+                    background: createTheme === theme.key ? 'var(--accent-muted)' : 'var(--bg-hover)',
+                    border: `2px solid ${createTheme === theme.key ? 'var(--accent)' : 'var(--border-color)'}`,
+                  }}
+                >
+                  {/* Color swatches */}
+                  <div className="flex gap-1 mb-2">
+                    {[theme.bg, theme.surface, theme.accent].map((c, i) => (
+                      <span key={i} className="w-4 h-4 rounded-full border border-black/10" style={{ background: c }} />
+                    ))}
+                  </div>
+                  <p className="font-bold text-[12px]" style={{ color: 'var(--text-primary)' }}>{theme.name}</p>
+                  {createTheme === theme.key && (
+                    <span className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                      <Check className="w-2.5 h-2.5 text-white" />
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
 
-        {activeTab === 'invoice' && (
-          <InvoiceTab
-            projectId={project.id}
-            photographerId={project.photographer_id}
-            projectTitle={project.title}
-            clientName={client?.full_name}
-            form={invoiceForm}
-            setForm={setInvoiceForm}
-            saving={savingInvoice}
-            setSaving={setSavingInvoice}
-            created={invoiceCreated}
-            setCreated={setInvoiceCreated}
-          />
-        )}
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={createGallery}
+                disabled={creatingGallery}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50 transition-all hover:opacity-90"
+                style={{ background: 'var(--accent)' }}
+              >
+                {creatingGallery
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <><Plus className="w-4 h-4" />Galerie erstellen</>
+                }
+              </button>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main card ───────────────────────────────────────────────────── */}
+      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+        {/* Tab bar */}
+        <div className="flex" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => { setActiveTab(key); if (key !== 'gallery') setSelectedGalleryId(null) }}
+              className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-all border-b-2 -mb-px"
+              style={{
+                borderBottomColor: activeTab === key ? 'var(--accent)' : 'transparent',
+                color: activeTab === key ? 'var(--text-primary)' : 'var(--text-muted)',
+              }}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+              {key === 'gallery' && galleries.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                  style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
+                  {galleries.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="p-6">
+          {activeTab === 'contract' && (
+            <ContractTab
+              projectId={project.id}
+              contracts={contracts}
+              clientEmail={client?.email}
+              clientName={client?.full_name}
+              userTemplates={userTemplates}
+            />
+          )}
+
+          {activeTab === 'gallery' && (
+            <>
+              {selectedGallery ? (
+                <div>
+                  <button
+                    onClick={() => setSelectedGalleryId(null)}
+                    className="flex items-center gap-1.5 text-[13px] mb-4 transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Alle Galerien
+                  </button>
+                  <GalleryTab
+                    projectId={project.id}
+                    photographerId={project.photographer_id}
+                    clientUrl={project.client_url}
+                    gallery={{
+                      id: selectedGallery.id,
+                      title: selectedGallery.title,
+                      description: selectedGallery.description,
+                      status: selectedGallery.status,
+                      password: selectedGallery.password,
+                      watermark: selectedGallery.watermark,
+                      download_enabled: selectedGallery.download_enabled,
+                      comments_enabled: selectedGallery.comments_enabled,
+                      expires_at: selectedGallery.expires_at,
+                      view_count: selectedGallery.view_count,
+                      download_count: selectedGallery.download_count,
+                    }}
+                    photos={(selectedGallery.photos ?? []) as Photo[]}
+                    showWatermark={false}
+                  />
+                </div>
+              ) : (
+                <GalleryListView />
+              )}
+            </>
+          )}
+
+          {activeTab === 'booking' && (
+            <BookingDetailsTab
+              projectId={project.id}
+              initialData={{
+                shoot_date: (project.shoot_date as string | null) ?? null,
+                location: (project.location as string | null) ?? null,
+                project_type: (project.project_type as string | null) ?? null,
+                notes: (project.notes as string | null) ?? null,
+                status: (project.status as string) ?? 'booked',
+              }}
+            />
+          )}
+
+          {activeTab === 'invoice' && (
+            <InvoiceTab
+              projectId={project.id}
+              photographerId={project.photographer_id}
+              projectTitle={project.title}
+              clientName={client?.full_name}
+              form={invoiceForm}
+              setForm={setInvoiceForm}
+              saving={savingInvoice}
+              setSaving={setSavingInvoice}
+              created={invoiceCreated}
+              setCreated={setInvoiceCreated}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -436,7 +525,6 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
     if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
     setSaving(true)
 
-    // Always use the authenticated user's ID to satisfy RLS
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast.error('Nicht angemeldet'); setSaving(false); return }
 
