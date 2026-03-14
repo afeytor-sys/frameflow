@@ -14,7 +14,7 @@ export default async function ClientsPage() {
     .order('created_at', { ascending: false })
 
   const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
-    lead:      { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8' },
+    lead:      { bg: 'rgba(59,130,246,0.10)',  color: '#3B82F6', dot: '#3B82F6' },
     active:    { bg: 'rgba(16,185,129,0.10)',  color: '#10B981', dot: '#10B981' },
     delivered: { bg: 'rgba(196,164,124,0.10)', color: '#C4A47C', dot: '#C4A47C' },
     archived:  { bg: 'rgba(100,116,139,0.08)', color: '#94A3B8', dot: '#94A3B8' },
@@ -27,14 +27,13 @@ export default async function ClientsPage() {
     archived: 'Archiviert',
   }
 
-  // Avatar color palette
   const avatarColors = [
-    { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6' },
-    { bg: 'rgba(16,185,129,0.12)',  color: '#10B981' },
-    { bg: 'rgba(245,158,11,0.12)',  color: '#F59E0B' },
-    { bg: 'rgba(139,92,246,0.12)',  color: '#8B5CF6' },
-    { bg: 'rgba(236,72,153,0.12)',  color: '#EC4899' },
-    { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C' },
+    { bg: 'rgba(59,130,246,0.15)',  color: '#3B82F6' },
+    { bg: 'rgba(16,185,129,0.15)',  color: '#10B981' },
+    { bg: 'rgba(245,158,11,0.15)',  color: '#F59E0B' },
+    { bg: 'rgba(139,92,246,0.15)',  color: '#8B5CF6' },
+    { bg: 'rgba(236,72,153,0.15)',  color: '#EC4899' },
+    { bg: 'rgba(196,164,124,0.15)', color: '#C4A47C' },
   ]
 
   return (
@@ -49,15 +48,15 @@ export default async function ClientsPage() {
             Kunden
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {clients?.length ?? 0} {(clients?.length ?? 0) === 1 ? 'Kunde' : 'Kunden'} insgesamt
+            {clients?.length ?? 0} {(clients?.length ?? 0) === 1 ? 'Kunde' : 'Kunden'} · Verwalte deine Kundenkontakte
           </p>
         </div>
         <Link
           href="/dashboard/clients/new"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
           style={{
-            background: 'var(--text-primary)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            background: '#3B82F6',
+            boxShadow: '0 1px 8px rgba(59,130,246,0.30)',
           }}
         >
           <Plus className="w-4 h-4" />
@@ -93,13 +92,14 @@ export default async function ClientsPage() {
                 return (
                   <tr
                     key={client.id}
-                    className="group transition-colors hover:bg-[var(--bg-hover)]"
+                    className="group transition-all duration-150 hover:bg-[var(--bg-hover)]"
                     style={{ borderBottom: '1px solid var(--border-color)' }}
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3.5">
+                        {/* Larger avatar */}
                         <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] font-bold"
+                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[14px] font-black transition-transform duration-150 group-hover:scale-105"
                           style={{ background: av.bg, color: av.color }}
                         >
                           {client.full_name[0].toUpperCase()}
@@ -128,7 +128,7 @@ export default async function ClientsPage() {
                         style={{ background: sc.bg, color: sc.color }}
                       >
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: sc.dot }} />
-                        {statusLabels[client.status]}
+                        {statusLabels[client.status] || client.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 hidden lg:table-cell">
@@ -139,8 +139,8 @@ export default async function ClientsPage() {
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/dashboard/clients/${client.id}`}
-                        className="inline-flex items-center gap-1 text-[12.5px] font-semibold transition-all opacity-0 group-hover:opacity-100"
-                        style={{ color: 'var(--accent)' }}
+                        className="inline-flex items-center gap-1 text-[12.5px] font-semibold transition-all opacity-0 group-hover:opacity-100 px-3 py-1.5 rounded-lg"
+                        style={{ color: '#3B82F6', background: 'rgba(59,130,246,0.08)' }}
                       >
                         Ansehen
                         <ArrowUpRight className="w-3 h-3" />
@@ -174,12 +174,12 @@ export default async function ClientsPage() {
             Noch keine Kunden
           </h3>
           <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Erstelle deinen ersten Kunden, um loszulegen
+            Füge deinen ersten Kunden hinzu und starte dein Studio-Management
           </p>
           <Link
             href="/dashboard/clients/new"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
-            style={{ background: 'var(--text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+            style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
           >
             <Plus className="w-4 h-4" />
             Ersten Kunden erstellen

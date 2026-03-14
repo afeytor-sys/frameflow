@@ -224,16 +224,19 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       {/* Header */}
       <div className="flex items-center justify-between mb-8 animate-in">
         <div>
-          <h1 className="font-black text-[26px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+          <h1
+            className="font-black"
+            style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+          >
             Rechnungen
           </h1>
-          <p className="text-[13.5px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Erstelle und verwalte deine Rechnungen
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            Erstelle und verfolge deine Zahlungen
           </p>
         </div>
         <button onClick={() => setShowNew(true)}
-          className="btn-shimmer flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white"
-          style={{ background: 'var(--accent)' }}>
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
+          style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
           <Plus className="w-4 h-4" />
           Neue Rechnung
         </button>
@@ -256,16 +259,23 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       {/* Invoice list */}
       <div className="space-y-2 animate-in-delay-2">
         {invoices.length === 0 ? (
-          <div className="glass-card p-14 text-center">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-              style={{ background: 'var(--bg-hover)' }}>
-              <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+          <div className="rounded-2xl flex flex-col items-center justify-center py-24 text-center"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+              style={{ background: 'rgba(249,115,22,0.08)' }}>
+              <FileText className="w-7 h-7" style={{ color: '#F97316' }} />
             </div>
-            <p className="font-semibold text-[14px]" style={{ color: 'var(--text-secondary)' }}>Noch keine Rechnungen</p>
-            <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>Erstelle deine erste Rechnung</p>
+            <h3 className="font-black mb-2" style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+              Noch keine Rechnungen
+            </h3>
+            <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
+              Erstelle deine erste Rechnung und behalte deine Zahlungen im Überblick
+            </p>
             <button onClick={() => setShowNew(true)}
-              className="mt-4 btn-gold px-5 py-2 text-[13px]">
-              <Plus className="w-3.5 h-3.5" /> Rechnung erstellen
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
+              style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
+              <Plus className="w-4 h-4" />
+              Erste Rechnung erstellen
             </button>
           </div>
         ) : (

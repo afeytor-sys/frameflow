@@ -90,11 +90,26 @@ export default function GalleriesPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>Galerien</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{galleries.length} Galerien insgesamt</p>
+          <h1
+            className="font-black"
+            style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+          >
+            Galerien
+          </h1>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            {galleries.length} {galleries.length === 1 ? 'Galerie' : 'Galerien'} · Teile deine Fotos mit Kunden
+          </p>
         </div>
+        <Link
+          href="/dashboard/projects"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
+          style={{ background: '#10B981', boxShadow: '0 1px 8px rgba(16,185,129,0.30)' }}
+        >
+          <Plus className="w-4 h-4" />
+          Neue Galerie
+        </Link>
       </div>
 
       {galleries.length > 0 ? (
@@ -124,20 +139,28 @@ export default function GalleriesPage() {
               <div key={gallery.id} className="relative group">
                 <Link
                   href={project ? `/dashboard/projects/${project.id}?tab=gallery` : '#'}
-                  className="block rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+                  className="block rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5"
                   style={{
                     background: 'var(--bg-surface)',
                     border: '1px solid var(--border-color)',
                     boxShadow: 'var(--card-shadow)',
                   }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.18)'
+                    e.currentTarget.style.borderColor = 'rgba(16,185,129,0.30)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.boxShadow = 'var(--card-shadow)'
+                    e.currentTarget.style.borderColor = 'var(--border-color)'
+                  }}
                 >
-                  {/* Cover photo — compact */}
+                  {/* Cover photo */}
                   <div className="relative overflow-hidden" style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}>
                     {gallery.cover_url ? (
                       <img
                         src={gallery.cover_url}
                         alt={gallery.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -145,11 +168,14 @@ export default function GalleriesPage() {
                       </div>
                     )}
 
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
+
                     {/* Status dot */}
                     <div className="absolute top-2 left-2">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
                         style={{
-                          background: isActive ? 'rgba(42,155,104,0.85)' : 'rgba(107,114,128,0.70)',
+                          background: isActive ? 'rgba(16,185,129,0.85)' : 'rgba(107,114,128,0.70)',
                           color: '#fff',
                         }}>
                         <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
@@ -173,30 +199,30 @@ export default function GalleriesPage() {
                     {(gallery.photo_count || 0) > 0 && (
                       <div className="absolute bottom-2 right-2">
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm"
-                          style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.9)' }}>
-                          {gallery.photo_count}
+                          style={{ background: 'rgba(0,0,0,0.60)', color: 'rgba(255,255,255,0.95)' }}>
+                          {gallery.photo_count} Fotos
                         </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Card body — minimal */}
-                  <div className="px-3 py-2.5">
-                    <h3 className="font-semibold text-[13px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                  {/* Card body */}
+                  <div className="px-3.5 py-3">
+                    <h3 className="font-bold text-[13.5px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {gallery.title}
                     </h3>
                     {clientName && (
-                      <p className="text-[11.5px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-[12px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         {clientName}
                       </p>
                     )}
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <div className="flex items-center gap-3 mt-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
                         <Eye className="w-3 h-3" />
                         {gallery.view_count}
                       </span>
                       {gallery.download_count > 0 && (
-                        <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
                           <Download className="w-3 h-3" />
                           {gallery.download_count}
                         </span>

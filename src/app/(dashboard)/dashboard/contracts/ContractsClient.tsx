@@ -189,13 +189,13 @@ export default function ContractsClient({
             Verträge
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {contracts.length} {contracts.length === 1 ? 'Vertrag' : 'Verträge'} insgesamt
+            {contracts.length} {contracts.length === 1 ? 'Vertrag' : 'Verträge'} · Erstelle und verwalte Kundenverträge
           </p>
         </div>
         <button
           onClick={() => openNewContract()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
-          style={{ background: 'var(--text-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+          style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.30)' }}
         >
           <Plus className="w-4 h-4" />
           Neuer Vertrag
