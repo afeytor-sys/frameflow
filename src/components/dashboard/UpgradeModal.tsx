@@ -18,11 +18,13 @@ const COMING_SOON: PlanKey[] = ['studio']
 export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: Props) {
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual')
   const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
 
   const handleUpgrade = async (plan: PlanKey) => {
     setLoading(plan)
+    setError(null)
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -32,8 +34,12 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
+      } else {
+        setError(data.error || 'Fehler beim Weiterleiten zu Stripe. Bitte versuche es erneut.')
+        setLoading(null)
       }
     } catch {
+      setError('Verbindungsfehler. Bitte versuche es erneut.')
       setLoading(null)
     }
   }
@@ -189,6 +195,11 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           })}
         </div>
 
+        {error && (
+          <p className="text-center text-xs text-red-500 px-6 pb-3">
+            ⚠️ {error}
+          </p>
+        )}
         <p className="text-center text-xs text-[#6B6B6B] pb-5">
           Jederzeit kündbar · Sichere Zahlung via Stripe
         </p>
