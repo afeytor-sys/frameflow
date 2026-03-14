@@ -163,12 +163,12 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           {photographer?.logo_url ? (
             <img src={photographer.logo_url} alt={studioName} className="w-6 h-6 rounded-full object-cover" />
           ) : (
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[19px] font-bold text-white"
               style={{ background: 'var(--accent)' }}>
               {studioName[0]}
             </div>
           )}
-          <span className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>{studioName}</span>
+          <span className="text-[18px] font-semibold" style={{ color: 'var(--text-muted)' }}>{studioName}</span>
         </div>
 
         {/* ── GREETING + COUNTDOWN ── */}
@@ -179,7 +179,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
           {/* Shoot date pill */}
           {project.shoot_date && (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[13px] font-semibold mb-3"
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[19px] font-semibold mb-3"
               style={{
                 background: isDelivered ? 'rgba(42,155,104,0.10)' : days === 0 ? 'rgba(196,59,44,0.08)' : 'var(--accent-muted)',
                 color: isDelivered ? '#2A9B68' : days === 0 ? '#C43B2C' : 'var(--accent)',
@@ -192,7 +192,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             </div>
           )}
 
-          <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-[17px]" style={{ color: 'var(--text-secondary)' }}>
             {project.title}
             {project.shoot_date && (
               <span style={{ color: 'var(--text-muted)' }}> · {formatDate(project.shoot_date, 'de')}</span>
@@ -212,7 +212,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <h2 className="font-bold text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            <h2 className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               Projekt Überblick
             </h2>
           </div>
@@ -229,7 +229,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 return (
                   <div key={step.key} className="flex items-center gap-3 relative">
                     {/* Dot */}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-[14px]"
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-[17px]"
                       style={{
                         background: isPast ? 'rgba(42,155,104,0.12)' : isActive ? 'var(--accent-muted)' : 'var(--bg-hover)',
                         border: isPast ? '2px solid #2A9B68' : isActive ? '2px solid var(--accent)' : '2px solid var(--border-color)',
@@ -237,13 +237,13 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       {isPast ? '✓' : step.icon}
                     </div>
                     <div className="flex-1">
-                      <p className="text-[13px] font-semibold" style={{
+                      <p className="text-[19px] font-semibold" style={{
                         color: isPast ? '#2A9B68' : isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                       }}>
                         {step.label}
                       </p>
                       {isActive && (
-                        <p className="text-[11px] mt-0.5" style={{ color: 'var(--accent)' }}>Aktueller Schritt</p>
+                        <p className="text-[17px] mt-0.5" style={{ color: 'var(--accent)' }}>Aktueller Schritt</p>
                       )}
                     </div>
                     {isPast && <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#2A9B68' }} />}
@@ -260,7 +260,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="font-bold text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              <h2 className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                 Nächste Schritte
               </h2>
             </div>
@@ -272,9 +272,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       background: step.done ? 'rgba(42,155,104,0.12)' : 'var(--accent-muted)',
                       border: step.done ? '1.5px solid #2A9B68' : '1.5px solid var(--accent)',
                     }}>
-                    {step.done && <span className="text-[10px]" style={{ color: '#2A9B68' }}>✓</span>}
+                    {step.done && <span className="text-[19px]" style={{ color: '#2A9B68' }}>✓</span>}
                   </div>
-                  <p className="flex-1 text-[13px] font-medium" style={{
+                  <p className="flex-1 text-[19px] font-medium" style={{
                     color: step.done ? 'var(--text-muted)' : 'var(--text-primary)',
                     textDecoration: step.done ? 'line-through' : 'none',
                   }}>
@@ -282,7 +282,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   </p>
                   {!step.done && step.href && (
                     <Link href={step.href}
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg flex-shrink-0"
+                      className="text-[17px] font-bold px-2.5 py-1 rounded-lg flex-shrink-0"
                       style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
                       {step.cta} →
                     </Link>
@@ -308,14 +308,14 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             <div className="flex-1">
               <div className="flex items-center gap-1.5 mb-1">
                 <MessageCircle className="w-3 h-3" style={{ color: 'var(--accent)' }} />
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--accent)' }}>
+                <p className="text-[19px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--accent)' }}>
                   Nachricht von {studioName}
                 </p>
               </div>
-              <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              <p className="font-bold text-[17px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                 {photographerMessage.title}
               </p>
-              <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-[19px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 {photographerMessage.text}
               </p>
             </div>
@@ -342,8 +342,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       : <PenLine className="w-5 h-5" style={{ color: 'var(--accent)' }} />}
                   </div>
                   <div>
-                    <p className="font-bold text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Vertrag</p>
-                    <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Vertrag</p>
+                    <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {contractSigned ? 'Unterschrieben ✓'
                         : latestContract.status === 'viewed' ? 'Angesehen — bitte unterschreiben'
                         : 'Bereit zur Unterschrift'}
@@ -352,7 +352,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {!contractSigned && (
-                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                    <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
                       style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
                       Ausstehend
                     </span>
@@ -374,12 +374,12 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                         )
                       })}
                     </div>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[17px]" style={{ color: 'var(--text-muted)' }}>
                       {latestContract.status === 'draft' ? 'Entwurf' : latestContract.status === 'sent' ? 'Gesendet' : 'Angesehen'}
                     </p>
                   </div>
                   <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <div className="flex items-center gap-1.5 text-[12.5px] font-bold" style={{ color: 'var(--accent)' }}>
+                    <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: 'var(--accent)' }}>
                       <PenLine className="w-3.5 h-3.5" />
                       Jetzt unterschreiben
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -405,15 +405,15 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     <Images className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                   </div>
                   <div>
-                    <p className="font-bold text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Galerie</p>
-                    <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Galerie</p>
+                    <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {photoCount > 0 ? `${photoCount} ${photoCount === 1 ? 'Foto' : 'Fotos'} bereit` : 'Galerie verfügbar'}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {photoCount > 0 && (
-                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                    <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
                       style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
                       {photoCount} Fotos
                     </span>
@@ -423,7 +423,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               </div>
 
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                <div className="flex items-center gap-1.5 text-[12.5px] font-bold" style={{ color: 'var(--accent)' }}>
+                <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: 'var(--accent)' }}>
                   <Heart className="w-3.5 h-3.5" />
                   Fotos ansehen & Favoriten markieren
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -432,8 +432,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
               {(gallery.view_count > 0 || gallery.download_count > 0) && (
                 <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  {gallery.view_count > 0 && <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>👁 {gallery.view_count} Aufrufe</span>}
-                  {gallery.download_count > 0 && <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>⬇️ {gallery.download_count} Downloads</span>}
+                  {gallery.view_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>👁 {gallery.view_count} Aufrufe</span>}
+                  {gallery.download_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>⬇️ {gallery.download_count} Downloads</span>}
                 </div>
               )}
             </div>
@@ -454,8 +454,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     <Clock className="w-5 h-5" style={{ color: '#6B7280' }} />
                   </div>
                   <div>
-                    <p className="font-bold text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Zeitplan</p>
-                    <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Zeitplan</p>
+                    <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {timelineEvents.length} {timelineEvents.length === 1 ? 'Eintrag' : 'Einträge'}
                     </p>
                   </div>
@@ -471,7 +471,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
           <div className="flex items-center gap-2 mb-4">
             <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-            <h2 className="font-bold text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            <h2 className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               Projekt Timeline
             </h2>
           </div>
@@ -486,11 +486,11 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       border: event.done ? '2px solid var(--accent)' : '2px solid var(--border-color)',
                     }} />
                   <div>
-                    <p className="text-[13px] font-semibold" style={{ color: event.done ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                    <p className="text-[19px] font-semibold" style={{ color: event.done ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                       {event.label}
                     </p>
                     {event.date && (
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{event.date}</p>
+                      <p className="text-[17px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{event.date}</p>
                     )}
                   </div>
                 </div>
@@ -504,9 +504,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           <div className="mb-3">
             <div className="flex items-center gap-2 mb-1">
               <Heart className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="font-bold text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Moodboard</h2>
+              <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Moodboard</h2>
             </div>
-            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[19px]" style={{ color: 'var(--text-secondary)' }}>
               Teile Inspirationen, Referenzbilder oder Links mit deinem Fotografen — zeige deinen Stil und deine Wünsche.
             </p>
           </div>
@@ -518,7 +518,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           <div className="animate-in-delay-3">
             <div className="flex items-center gap-2 mb-3">
               <Camera className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="font-bold text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                 Tipps für euer Shooting
               </h2>
             </div>
@@ -535,8 +535,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
                     {tip.icon}
                   </div>
-                  <p className="font-bold text-[12.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
-                  <p className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tip.text}</p>
+                  <p className="font-bold text-[15.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
+                  <p className="text-[17.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tip.text}</p>
                 </div>
               ))}
             </div>
@@ -551,8 +551,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               style={{ background: 'var(--bg-hover)' }}>
               <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
-            <p className="text-[13.5px]" style={{ color: 'var(--text-secondary)' }}>Dein Fotograf bereitet noch alles vor.</p>
-            <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>Schau bald wieder vorbei!</p>
+            <p className="text-[16.5px]" style={{ color: 'var(--text-secondary)' }}>Dein Fotograf bereitet noch alles vor.</p>
+            <p className="text-[18px] mt-1" style={{ color: 'var(--text-muted)' }}>Schau bald wieder vorbei!</p>
           </div>
         )}
 
