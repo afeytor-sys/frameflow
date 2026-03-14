@@ -73,12 +73,14 @@ export default async function DashboardPage() {
               {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
             <h1
-              className="font-bold leading-tight"
-              style={{ fontSize: '28px', letterSpacing: '-0.025em', color: 'var(--text-primary)' }}
+              className="font-black leading-tight"
+              style={{ fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-0.035em', color: 'var(--text-primary)' }}
             >
-              {greeting}{firstName ? `, ${firstName}` : ''}.
+              {greeting}{firstName ? (
+                <>, <span style={{ color: 'var(--accent)' }}>{firstName}</span></>
+              ) : ''}.
             </h1>
-            <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[14px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
               Hier ist dein Studio-Überblick für heute.
             </p>
           </div>

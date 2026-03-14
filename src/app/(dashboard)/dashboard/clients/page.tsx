@@ -32,7 +32,7 @@ export default async function ClientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>Kunden</h1>
+          <h1 className="font-display text-2xl font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>Kunden</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{clients?.length ?? 0} Kunden insgesamt</p>
         </div>
         <Link
