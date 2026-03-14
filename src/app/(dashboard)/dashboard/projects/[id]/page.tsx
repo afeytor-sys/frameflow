@@ -3,10 +3,11 @@ import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import DeliveryChecklist from '@/components/dashboard/DeliveryChecklist'
+import SlugEditor from '@/components/dashboard/SlugEditor'
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -101,35 +102,26 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Client portal link + QR */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-        {clientUrl ? (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
-              <p className="text-sm font-mono truncate" style={{ color: 'var(--text-primary)' }}>{clientUrl}</p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <QRCodeModal clientUrl={clientUrl} projectTitle={project.title} />
-              <a
-                href={clientUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-                style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
+      {project.client_token ? (
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <SlugEditor
+              projectId={project.id}
+              currentSlug={(project as { custom_slug?: string | null }).custom_slug ?? null}
+              clientToken={project.client_token as string}
+              baseUrl={`${protocol}://${host}`}
+            />
           </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kein Token vorhanden — Projekt neu erstellen oder Token generieren</p>
-            </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+            <QRCodeModal clientUrl={clientUrl!} projectTitle={project.title} />
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kein Token vorhanden</p>
+        </div>
+      )}
 
       {/* Delivery Checklist */}
       <DeliveryChecklist

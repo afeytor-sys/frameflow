@@ -11,13 +11,39 @@ export default async function ClientPortalLayout({
   const { token } = await params
   const supabase = await createClient()
 
-  const { data: project, error } = await supabase
-    .from('projects')
-    .select('id, client_token, photographer:photographers(full_name, studio_name, logo_url)')
-    .eq('client_token', token)
-    .single()
+  // Support both client_token (UUID) and custom_slug
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)
 
-  if (error || !project) notFound()
+  let project = null
+
+  if (isUUID) {
+    const { data } = await supabase
+      .from('projects')
+      .select('id, client_token, custom_slug, photographer:photographers(full_name, studio_name, logo_url)')
+      .eq('client_token', token)
+      .single()
+    project = data
+  } else {
+    // Try custom_slug first
+    const { data } = await supabase
+      .from('projects')
+      .select('id, client_token, custom_slug, photographer:photographers(full_name, studio_name, logo_url)')
+      .eq('custom_slug', token)
+      .single()
+    project = data
+
+    // Fallback: also try client_token (short tokens / legacy)
+    if (!project) {
+      const { data: data2 } = await supabase
+        .from('projects')
+        .select('id, client_token, custom_slug, photographer:photographers(full_name, studio_name, logo_url)')
+        .eq('client_token', token)
+        .single()
+      project = data2
+    }
+  }
+
+  if (!project) notFound()
 
   const photographerRaw = project.photographer
   const photographer = (Array.isArray(photographerRaw) ? photographerRaw[0] : photographerRaw) as {
