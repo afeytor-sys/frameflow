@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { CalendarDays, List, MapPin, User, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CalendarDays, List, MapPin, User, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Booking {
   id: string
@@ -14,6 +16,11 @@ interface Booking {
   client: { full_name: string } | null
 }
 
+interface Client {
+  id: string
+  full_name: string
+}
+
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
   inquiry:   { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Anfrage' },
   active:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Aktiv' },
@@ -22,7 +29,6 @@ const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }
   delivered: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', label: 'Geliefert' },
   completed: { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Abgeschlossen' },
   cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', label: 'Storniert' },
-  // legacy fallbacks
   lead:      { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Anfrage' },
   booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Aktiv' },
 }
@@ -49,12 +55,27 @@ export default function BookingsPage() {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
   })
+  const [showModal, setShowModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+  const [photographerId, setPhotographerId] = useState<string | null>(null)
+  const [form, setForm] = useState({
+    title: '',
+    shoot_date: '',
+    location: '',
+    client_id: '',
+    status: 'inquiry',
+    notes: '',
+  })
+
+  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      setPhotographerId(user.id)
 
       const { data } = await supabase
         .from('projects')
@@ -72,6 +93,57 @@ export default function BookingsPage() {
     load()
   }, [])
 
+  const openModal = async () => {
+    setForm({ title: '', shoot_date: '', location: '', client_id: '', status: 'inquiry', notes: '' })
+    setShowModal(true)
+    if (clients.length === 0 && photographerId) {
+      const { data } = await supabase
+        .from('clients')
+        .select('id, full_name')
+        .eq('photographer_id', photographerId)
+        .order('full_name')
+      setClients((data || []) as Client[])
+    }
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
+    if (!form.shoot_date) { toast.error('Bitte ein Datum auswählen'); return }
+    if (!photographerId) return
+    setSaving(true)
+
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        photographer_id: photographerId,
+        title: form.title.trim(),
+        shoot_date: form.shoot_date,
+        location: form.location.trim() || null,
+        client_id: form.client_id || null,
+        status: form.status,
+        notes: form.notes.trim() || null,
+      })
+      .select('id, title, shoot_date, location, status, client:clients(full_name)')
+      .single()
+
+    if (error) { toast.error('Fehler beim Erstellen'); setSaving(false); return }
+
+    const newBooking: Booking = {
+      id: data.id,
+      title: data.title,
+      shoot_date: data.shoot_date,
+      location: data.location,
+      status: data.status,
+      client: Array.isArray(data.client) ? data.client[0] || null : data.client,
+    }
+    setBookings(prev => [...prev, newBooking].sort((a, b) => a.shoot_date.localeCompare(b.shoot_date)))
+    setShowModal(false)
+    setSaving(false)
+    toast.success('Booking erstellt!')
+    router.push(`/dashboard/projects/${data.id}`)
+  }
+
   // Split into upcoming and past
   const today = new Date(); today.setHours(0,0,0,0)
   const upcoming = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') >= today)
@@ -81,7 +153,6 @@ export default function BookingsPage() {
   const { year, month } = calMonth
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  // Monday-first: 0=Mon..6=Sun
   const startDow = (firstDay.getDay() + 6) % 7
   const totalCells = Math.ceil((startDow + lastDay.getDate()) / 7) * 7
   const bookingsByDate: Record<string, Booking[]> = {}
@@ -93,7 +164,7 @@ export default function BookingsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-6 animate-in">
+      <div className="max-w-5xl mx-auto space-y-6 animate-in p-6">
         <div className="h-8 w-36 rounded-lg shimmer" />
         <div className="space-y-3">
           {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl shimmer" />)}
@@ -103,9 +174,9 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in">
+    <div className="max-w-5xl mx-auto space-y-6 animate-in p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1
             className="font-black"
@@ -118,30 +189,41 @@ export default function BookingsPage() {
           </p>
         </div>
 
-        {/* View toggle */}
-        <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+        {/* Right: add button + view toggle */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button
-            onClick={() => setView('list')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
-            style={{
-              background: view === 'list' ? 'var(--bg-active)' : 'transparent',
-              color: view === 'list' ? 'var(--text-on-active)' : 'var(--text-muted)',
-            }}
+            onClick={openModal}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
+            style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
           >
-            <List className="w-3.5 h-3.5" />
-            Liste
+            <Plus className="w-4 h-4" />
+            Booking
           </button>
-          <button
-            onClick={() => setView('calendar')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
-            style={{
-              background: view === 'calendar' ? 'var(--bg-active)' : 'transparent',
-              color: view === 'calendar' ? 'var(--text-on-active)' : 'var(--text-muted)',
-            }}
-          >
-            <CalendarDays className="w-3.5 h-3.5" />
-            Kalender
-          </button>
+
+          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+            <button
+              onClick={() => setView('list')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+              style={{
+                background: view === 'list' ? 'var(--bg-active)' : 'transparent',
+                color: view === 'list' ? 'var(--text-on-active)' : 'var(--text-muted)',
+              }}
+            >
+              <List className="w-3.5 h-3.5" />
+              Liste
+            </button>
+            <button
+              onClick={() => setView('calendar')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+              style={{
+                background: view === 'calendar' ? 'var(--bg-active)' : 'transparent',
+                color: view === 'calendar' ? 'var(--text-on-active)' : 'var(--text-muted)',
+              }}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              Kalender
+            </button>
+          </div>
         </div>
       </div>
 
@@ -156,12 +238,14 @@ export default function BookingsPage() {
                 <CalendarDays className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
               </div>
               <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Keine Bookings</h3>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Füge ein Shooting-Datum zu einem Projekt hinzu</p>
-              <Link href="/dashboard/projects"
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white"
-                style={{ background: 'var(--text-primary)' }}>
-                Zu den Projekten
-              </Link>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Erstelle dein erstes Booking direkt hier</p>
+              <button
+                onClick={openModal}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ background: '#3B82F6' }}
+              >
+                <Plus className="w-3.5 h-3.5" />Booking erstellen
+              </button>
             </div>
           ) : (
             <>
@@ -195,21 +279,16 @@ export default function BookingsPage() {
                             opacity: 0,
                           }}
                           onMouseEnter={e => {
-                            const el = e.currentTarget
-                            el.style.boxShadow = `0 10px 30px ${st.color}25`
-                            el.style.borderColor = st.color + '45'
+                            e.currentTarget.style.boxShadow = `0 10px 30px ${st.color}25`
+                            e.currentTarget.style.borderColor = st.color + '45'
                           }}
                           onMouseLeave={e => {
-                            const el = e.currentTarget
-                            el.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`
-                            el.style.borderColor = isToday ? st.color + '50' : st.color + '28'
+                            e.currentTarget.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`
+                            e.currentTarget.style.borderColor = isToday ? st.color + '50' : st.color + '28'
                           }}
                         >
-                          {/* Left color bar */}
                           <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.7 }} />
-
                           <div className="flex items-center gap-4 p-4 flex-1 min-w-0">
-                            {/* Date block */}
                             <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
                               style={{ background: st.color + '18', border: `1px solid ${st.color}25` }}>
                               <span className="text-[11px] font-bold uppercase" style={{ color: st.color }}>
@@ -219,8 +298,6 @@ export default function BookingsPage() {
                                 {new Date(b.shoot_date + 'T00:00:00').getDate()}
                               </span>
                             </div>
-
-                            {/* Info */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
                                 <p className="font-bold text-[14.5px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
@@ -242,8 +319,6 @@ export default function BookingsPage() {
                                 )}
                               </div>
                             </div>
-
-                            {/* Days until */}
                             <div className="flex-shrink-0 text-right">
                               {isToday ? (
                                 <span className="text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: st.color + '20', color: st.color }}>Heute!</span>
@@ -281,9 +356,7 @@ export default function BookingsPage() {
                           onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
                           onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
                         >
-                          {/* Left color bar (muted) */}
                           <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
-
                           <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
                             style={{
                               background: 'var(--bg-surface)',
@@ -339,7 +412,6 @@ export default function BookingsPage() {
       {/* ── CALENDAR VIEW ── */}
       {view === 'calendar' && (
         <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-          {/* Calendar header */}
           <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
             <button onClick={() => setCalMonth(m => {
               const d = new Date(m.year, m.month - 1, 1)
@@ -358,14 +430,12 @@ export default function BookingsPage() {
             </button>
           </div>
 
-          {/* Day headers */}
           <div className="grid grid-cols-7 px-2 pt-2">
             {DAYS_DE.map(d => (
               <div key={d} className="text-center text-[11px] font-bold py-2" style={{ color: 'var(--text-muted)' }}>{d}</div>
             ))}
           </div>
 
-          {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-px px-2 pb-3" style={{ background: 'var(--border-color)' }}>
             {Array.from({ length: totalCells }).map((_, i) => {
               const dayNum = i - startDow + 1
@@ -382,7 +452,7 @@ export default function BookingsPage() {
                   style={{ background: isCurrentMonth ? 'var(--bg-surface)' : 'var(--bg-page)' }}>
                   {isCurrentMonth && (
                     <>
-                      <span className={`text-[12px] font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1 ${isToday ? 'text-white' : ''}`}
+                      <span className="text-[12px] font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1"
                         style={{
                           background: isToday ? 'var(--accent)' : 'transparent',
                           color: isToday ? '#fff' : 'var(--text-secondary)',
@@ -413,7 +483,6 @@ export default function BookingsPage() {
             })}
           </div>
 
-          {/* Legend */}
           <div className="px-5 py-3 flex flex-wrap gap-3" style={{ borderTop: '1px solid var(--border-color)' }}>
             {Object.entries(STATUS_COLORS).slice(0, 5).map(([key, val]) => (
               <span key={key} className="flex items-center gap-1.5 text-[11px] font-medium">
@@ -421,6 +490,146 @@ export default function BookingsPage() {
                 <span style={{ color: 'var(--text-muted)' }}>{val.label}</span>
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD BOOKING MODAL ── */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div>
+                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>Neues Booking</h2>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Shooting-Termin anlegen</p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <form onSubmit={handleCreate} className="p-6 space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Titel *
+                </label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="z.B. Hochzeit Anna & Max"
+                  className="input-base w-full"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {/* Date + Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Datum *
+                  </label>
+                  <input
+                    type="date"
+                    value={form.shoot_date}
+                    onChange={e => setForm(f => ({ ...f, shoot_date: e.target.value }))}
+                    className="input-base w-full"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Status
+                  </label>
+                  <select
+                    value={form.status}
+                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                    className="input-base w-full"
+                  >
+                    {Object.entries(STATUS_COLORS).slice(0, 7).map(([key, val]) => (
+                      <option key={key} value={key}>{val.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Location (optional)
+                </label>
+                <input
+                  type="text"
+                  value={form.location}
+                  onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                  placeholder="z.B. Schloss Nymphenburg, München"
+                  className="input-base w-full"
+                />
+              </div>
+
+              {/* Client */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Kunde (optional)
+                </label>
+                <select
+                  value={form.client_id}
+                  onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))}
+                  className="input-base w-full"
+                >
+                  <option value="">Kein Kunde</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.full_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Notizen (optional)
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Besondere Wünsche, Infos..."
+                  rows={2}
+                  className="input-base w-full resize-none"
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !form.title.trim() || !form.shoot_date}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                  style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.25)' }}
+                >
+                  {saving
+                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <><CalendarDays className="w-4 h-4" />Booking erstellen</>
+                  }
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
