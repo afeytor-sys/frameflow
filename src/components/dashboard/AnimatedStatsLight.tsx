@@ -12,6 +12,7 @@ interface Stat {
   description: string
   accentColor: string
   accentBg: string
+  gradient: string
 }
 
 function useCountUp(target: number, duration = 1200, delay = 0) {
@@ -63,83 +64,75 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
     >
       <Link href={stat.href} className="block">
         <div
-          className="relative rounded-2xl p-6 overflow-hidden cursor-pointer transition-all duration-200"
+          className="relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300"
           style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--card-border)',
-            boxShadow: 'var(--card-shadow)',
+            background: stat.gradient,
+            boxShadow: `0 4px 24px ${stat.accentColor}25`,
           }}
           onMouseEnter={(e) => {
             const el = e.currentTarget
-            el.style.transform = 'translateY(-4px)'
-            el.style.boxShadow = 'var(--card-shadow-hover)'
-            el.style.borderColor = stat.accentColor + '30'
+            el.style.transform = 'translateY(-6px) scale(1.01)'
+            el.style.boxShadow = `0 16px 48px ${stat.accentColor}40`
           }}
           onMouseLeave={(e) => {
             const el = e.currentTarget
-            el.style.transform = 'translateY(0)'
-            el.style.boxShadow = 'var(--card-shadow)'
-            el.style.borderColor = 'var(--card-border)'
+            el.style.transform = 'translateY(0) scale(1)'
+            el.style.boxShadow = `0 4px 24px ${stat.accentColor}25`
           }}
         >
-          {/* Top accent bar — always visible, stronger on hover */}
+          {/* Top shimmer line */}
           <div
-            className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl transition-opacity duration-200"
-            style={{ background: stat.accentColor, opacity: 0.6 }}
-          />
-          <div
-            className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            style={{ background: stat.accentColor }}
+            className="absolute top-0 left-0 right-0 h-[2px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${stat.accentColor}, transparent)` }}
           />
 
-          {/* Subtle inner glow on hover */}
+          {/* Background pattern */}
           <div
-            className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            className="absolute inset-0 opacity-[0.04]"
             style={{
-              background: `radial-gradient(circle at 50% 0%, ${stat.accentColor}12 0%, transparent 65%)`,
+              backgroundImage: `radial-gradient(circle at 80% 20%, ${stat.accentColor} 0%, transparent 60%)`,
             }}
           />
 
-          {/* Icon */}
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center mb-5 transition-transform duration-200 group-hover:scale-110 relative z-10"
-            style={{
-              background: stat.accentBg,
-            }}
-          >
-            <Icon className="w-5 h-5" style={{ color: stat.accentColor }} />
-          </div>
-
-          {/* Number */}
-          <div className="flex items-end gap-1 mb-1.5 relative z-10">
-            <span
-              className="font-black leading-none tabular-nums"
-              style={{
-                fontSize: '42px',
-                letterSpacing: '-0.04em',
-                color: 'var(--text-primary)',
-              }}
-            >
-              {count}
-            </span>
-          </div>
-
-          {/* Label */}
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
-            {stat.label}
-          </p>
-          <p className="text-[12.5px] relative z-10" style={{ color: 'var(--text-muted)' }}>
-            {stat.description}
-          </p>
-
-          {/* Arrow */}
-          <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ background: stat.accentBg }}
-            >
-              <ArrowUpRight className="w-3.5 h-3.5" style={{ color: stat.accentColor }} />
+          <div className="relative z-10 p-6">
+            {/* Icon + Arrow row */}
+            <div className="flex items-start justify-between mb-4">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+                style={{ background: stat.accentColor + '20', border: `1px solid ${stat.accentColor}30` }}
+              >
+                <Icon className="w-5 h-5" style={{ color: stat.accentColor }} />
+              </div>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                style={{ background: stat.accentColor + '15' }}
+              >
+                <ArrowUpRight className="w-4 h-4" style={{ color: stat.accentColor }} />
+              </div>
             </div>
+
+            {/* Big number */}
+            <div className="mb-1">
+              <span
+                className="font-black tabular-nums leading-none"
+                style={{
+                  fontSize: '56px',
+                  letterSpacing: '-0.05em',
+                  color: stat.accentColor,
+                  textShadow: `0 0 40px ${stat.accentColor}30`,
+                }}
+              >
+                {count}
+              </span>
+            </div>
+
+            {/* Label */}
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: stat.accentColor + 'AA' }}>
+              {stat.label}
+            </p>
+            <p className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>
+              {stat.description}
+            </p>
           </div>
         </div>
       </Link>
@@ -163,6 +156,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       description: activeClients === 0 ? 'Noch keine Kunden' : `${activeClients} aktiv`,
       accentColor: '#3B82F6',
       accentBg: 'rgba(59,130,246,0.08)',
+      gradient: 'linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.03) 100%)',
     },
     {
       label: 'Offene Verträge',
@@ -172,6 +166,9 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       description: pendingContracts === 0 ? 'Alles unterschrieben ✓' : 'Warten auf Signatur',
       accentColor: pendingContracts > 0 ? '#F59E0B' : '#10B981',
       accentBg: pendingContracts > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)',
+      gradient: pendingContracts > 0
+        ? 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%)'
+        : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
     },
     {
       label: 'Aktive Galerien',
@@ -181,6 +178,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       description: activeGalleries === 0 ? 'Noch keine Galerien' : 'Galerien online',
       accentColor: '#10B981',
       accentBg: 'rgba(16,185,129,0.08)',
+      gradient: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
     },
   ]
 

@@ -29,14 +29,38 @@ interface Props {
 }
 
 const navItems = [
-  { key: 'dashboard', href: '/dashboard',           icon: LayoutDashboard, label: 'Übersicht',  plans: null },
-  { key: 'clients',   href: '/dashboard/clients',   icon: Users,           label: 'Kunden',     plans: null },
-  { key: 'projects',  href: '/dashboard/projects',  icon: FolderOpen,      label: 'Projekte',   plans: null },
-  { key: 'bookings',  href: '/dashboard/bookings',  icon: CalendarDays,    label: 'Bookings',   plans: null },
-  { key: 'contracts', href: '/dashboard/contracts', icon: FileText,        label: 'Verträge',   plans: null },
-  { key: 'galleries', href: '/dashboard/galleries', icon: Images,          label: 'Galerien',   plans: null },
-  { key: 'invoices',  href: '/dashboard/invoices',  icon: Receipt,         label: 'Rechnungen', plans: null },
-  { key: 'analytics', href: '/dashboard/analytics', icon: BarChart2,       label: 'Analytics',  plans: ['pro', 'studio'] },
+  {
+    key: 'dashboard', href: '/dashboard', icon: LayoutDashboard, label: 'Übersicht', plans: null,
+    activeColor: '#C4A47C', activeBg: 'rgba(196,164,124,0.15)',
+  },
+  {
+    key: 'clients', href: '/dashboard/clients', icon: Users, label: 'Kunden', plans: null,
+    activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)',
+  },
+  {
+    key: 'projects', href: '/dashboard/projects', icon: FolderOpen, label: 'Projekte', plans: null,
+    activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)',
+  },
+  {
+    key: 'bookings', href: '/dashboard/bookings', icon: CalendarDays, label: 'Bookings', plans: null,
+    activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)',
+  },
+  {
+    key: 'contracts', href: '/dashboard/contracts', icon: FileText, label: 'Verträge', plans: null,
+    activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)',
+  },
+  {
+    key: 'galleries', href: '/dashboard/galleries', icon: Images, label: 'Galerien', plans: null,
+    activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)',
+  },
+  {
+    key: 'invoices', href: '/dashboard/invoices', icon: Receipt, label: 'Rechnungen', plans: null,
+    activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)',
+  },
+  {
+    key: 'analytics', href: '/dashboard/analytics', icon: BarChart2, label: 'Analytics', plans: ['pro', 'studio'],
+    activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)',
+  },
 ]
 
 const bottomItems = [
@@ -120,13 +144,13 @@ export default function DashboardSidebar({ photographer }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {!collapsed && (
           <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
             Navigation
           </p>
         )}
-        {navItems.map(({ key, href, icon: Icon, label, plans }) => {
+        {navItems.map(({ key, href, icon: Icon, label, plans, activeColor, activeBg }) => {
           if (plans && !plans.includes(plan)) return null
           const active = isActive(href)
           return (
@@ -135,18 +159,58 @@ export default function DashboardSidebar({ photographer }: Props) {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                'sidebar-nav-item flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150 relative group',
+                'flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150 relative group',
                 collapsed ? 'justify-center p-3' : 'px-3 py-2.5',
-                active ? 'sidebar-nav-active' : 'sidebar-nav-inactive',
               )}
+              style={active ? {
+                background: activeBg,
+                color: activeColor,
+                fontWeight: 700,
+              } : {
+                color: 'var(--sidebar-text)',
+              }}
+              onMouseEnter={e => {
+                if (!active) {
+                  e.currentTarget.style.background = activeBg
+                  e.currentTarget.style.color = activeColor
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'var(--sidebar-text)'
+                }
+              }}
             >
-              <Icon className={cn('flex-shrink-0', collapsed ? 'w-[18px] h-[18px]' : 'w-[16px] h-[16px]')} />
+              {/* Colored icon container when active */}
+              <div
+                className={cn(
+                  'flex items-center justify-center rounded-lg flex-shrink-0 transition-all duration-150',
+                  active ? 'w-7 h-7' : 'w-5 h-5',
+                )}
+                style={active ? {
+                  background: activeColor + '20',
+                } : {}}
+              >
+                <Icon
+                  className={cn('flex-shrink-0', active ? 'w-[15px] h-[15px]' : 'w-[16px] h-[16px]')}
+                  style={{ color: active ? activeColor : 'inherit' }}
+                />
+              </div>
               {!collapsed && <span className="truncate">{label}</span>}
+
+              {/* Active left bar */}
+              {active && !collapsed && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                  style={{ background: activeColor }}
+                />
+              )}
               {/* Active indicator dot for collapsed */}
               {active && collapsed && (
                 <span
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full"
-                  style={{ background: 'var(--sidebar-active-text)' }}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full"
+                  style={{ background: activeColor }}
                 />
               )}
             </Link>
@@ -156,7 +220,7 @@ export default function DashboardSidebar({ photographer }: Props) {
 
       {/* Bottom section */}
       <div
-        className="px-3 pb-4 pt-3 space-y-1"
+        className="px-3 pb-4 pt-3 space-y-0.5"
         style={{ borderTop: '1px solid var(--border-color)' }}
       >
         {bottomItems.map(({ key, href, icon: Icon, label }) => {
@@ -167,7 +231,7 @@ export default function DashboardSidebar({ photographer }: Props) {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                'sidebar-nav-item flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150',
+                'flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150',
                 collapsed ? 'justify-center p-3' : 'px-3 py-2.5',
                 active ? 'sidebar-nav-active' : 'sidebar-nav-inactive',
               )}
