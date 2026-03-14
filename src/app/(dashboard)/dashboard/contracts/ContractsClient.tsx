@@ -202,6 +202,13 @@ export default function ContractsClient({
         </button>
       </div>
 
+      <style>{`
+        @keyframes contractFadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       {/* ── My Templates (user-saved) ── */}
       {userTemplates.length > 0 && (
         <div>
@@ -217,49 +224,70 @@ export default function ContractsClient({
               return (
                 <div
                   key={tpl.id}
-                  className="rounded-xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01] group"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+                  className="rounded-xl overflow-hidden flex flex-col gap-0 transition-all duration-300 group cursor-pointer"
+                  style={{
+                    background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
+                    border: `1px solid ${accent.color}28`,
+                    boxShadow: `0 2px 12px ${accent.color}10`,
+                    animation: 'contractFadeUp 0.4s ease forwards',
+                    animationDelay: `${i * 60}ms`,
+                    opacity: 0,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.boxShadow = `0 10px 28px ${accent.color}22`
+                    e.currentTarget.style.borderColor = accent.color + '45'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
+                    e.currentTarget.style.borderColor = accent.color + '28'
+                  }}
                 >
-                  <div className="flex items-start justify-between">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
-                    >
-                      <BookMarked className="w-5 h-5" style={{ color: accent.color }} />
+                  {/* Top color bar */}
+                  <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    <div className="flex items-start justify-between">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
+                      >
+                        <BookMarked className="w-5 h-5" style={{ color: accent.color }} />
+                      </div>
+                      <button
+                        onClick={() => handleDeleteUserTemplate(tpl.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                        style={{ color: 'var(--text-muted)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                        title="Vorlage löschen"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleDeleteUserTemplate(tpl.id)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                      style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                      title="Vorlage löschen"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
-                    {tpl.description && (
-                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPreviewKey(`user:${tpl.id}`)}
-                      className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
-                      style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
-                    >
-                      Vorschau
-                    </button>
-                    <button
-                      onClick={() => openNewContract(`user:${tpl.id}`)}
-                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
-                      style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
-                    >
-                      Verwenden
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
+                      {tpl.description && (
+                        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewKey(`user:${tpl.id}`)}
+                        className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
+                        style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+                      >
+                        Vorschau
+                      </button>
+                      <button
+                        onClick={() => openNewContract(`user:${tpl.id}`)}
+                        className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
+                        style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
+                      >
+                        Verwenden
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -309,35 +337,56 @@ export default function ContractsClient({
             return (
               <div
                 key={tpl.id}
-                className="rounded-xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01]"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+                className="rounded-xl overflow-hidden flex flex-col gap-0 transition-all duration-300 group"
+                style={{
+                  background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
+                  border: `1px solid ${accent.color}28`,
+                  boxShadow: `0 2px 12px ${accent.color}10`,
+                  animation: 'contractFadeUp 0.4s ease forwards',
+                  animationDelay: `${(i + 1) * 60}ms`,
+                  opacity: 0,
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-4px)'
+                  e.currentTarget.style.boxShadow = `0 10px 28px ${accent.color}22`
+                  e.currentTarget.style.borderColor = accent.color + '45'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
+                  e.currentTarget.style.borderColor = accent.color + '28'
+                }}
               >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
-                >
-                  <BookOpen className="w-5 h-5" style={{ color: accent.color }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPreviewKey(`builtin:${tpl.id}`)}
-                    className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
-                    style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+                {/* Top color bar */}
+                <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                    style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
                   >
-                    Vorschau
-                  </button>
-                  <button
-                    onClick={() => openNewContract(`builtin:${tpl.id}`)}
-                    className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
-                    style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
-                  >
-                    Verwenden
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                    <BookOpen className="w-5 h-5" style={{ color: accent.color }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
+                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPreviewKey(`builtin:${tpl.id}`)}
+                      className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
+                      style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+                    >
+                      Vorschau
+                    </button>
+                    <button
+                      onClick={() => openNewContract(`builtin:${tpl.id}`)}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
+                      style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
+                    >
+                      Verwenden
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )
@@ -456,52 +505,53 @@ export default function ContractsClient({
 
         {contracts.length > 0 ? (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Vertrag</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>Kunde</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Erstellt</th>
-                  <th className="px-5 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {contracts.map((contract) => {
-                  const sc = STATUS_COLORS[contract.status] || STATUS_COLORS.draft
-                  const project = projectMap[contract.project_id]
-                  return (
-                    <tr key={contract.id} className="transition-colors hover:bg-[var(--bg-hover)]" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(232,162,26,0.10)' }}>
-                            <FileText className="w-4 h-4" style={{ color: '#E8A21A' }} />
-                          </div>
-                          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 hidden md:table-cell">
-                        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: sc.bg, color: sc.color }}>
-                          {STATUS_ICONS[contract.status]}
-                          {STATUS_LABELS[contract.status]}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden lg:table-cell">
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, 'de')}</span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <a href={`/dashboard/projects/${contract.project_id}?tab=contracts`} className="text-xs font-medium transition-colors hover:underline" style={{ color: 'var(--accent)' }}>
-                          Ansehen →
-                        </a>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            {/* Header row */}
+            <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_120px_auto] px-5 py-3"
+              style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Vertrag</span>
+              <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Kunde</span>
+              <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Status</span>
+              <span className="text-xs font-medium uppercase tracking-wide hidden lg:block" style={{ color: 'var(--text-muted)' }}>Erstellt</span>
+              <span />
+            </div>
+            {contracts.map((contract, i) => {
+              const sc = STATUS_COLORS[contract.status] || STATUS_COLORS.draft
+              const project = projectMap[contract.project_id]
+              return (
+                <a
+                  key={contract.id}
+                  href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
+                  className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_120px_auto] items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
+                  style={{
+                    borderBottom: '1px solid var(--border-color)',
+                    animation: 'contractFadeUp 0.35s ease forwards',
+                    animationDelay: `${i * 50}ms`,
+                    opacity: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  {/* Title */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: sc.bg }}>
+                      <FileText className="w-4 h-4" style={{ color: sc.color }} />
+                    </div>
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
+                  </div>
+                  {/* Client */}
+                  <span className="text-sm hidden md:block" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
+                  {/* Status */}
+                  <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit" style={{ background: sc.bg, color: sc.color }}>
+                    {STATUS_ICONS[contract.status]}
+                    {STATUS_LABELS[contract.status]}
+                  </span>
+                  {/* Date */}
+                  <span className="text-xs hidden lg:block" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, 'de')}</span>
+                  {/* Arrow */}
+                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                </a>
+              )
+            })}
           </div>
         ) : (
           <div className="rounded-xl flex flex-col items-center justify-center py-16 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
