@@ -28,12 +28,12 @@ const PROJECT_TYPES = [
 ]
 
 const STATUS_OPTIONS = [
-  { value: 'lead',      label: 'Lead',           color: '#6B7280' },
-  { value: 'booked',    label: 'Gebucht',         color: '#C4A47C' },
-  { value: 'shooting',  label: 'Shooting',        color: '#3B82F6' },
-  { value: 'editing',   label: 'Bearbeitung',     color: '#A855F7' },
-  { value: 'delivered', label: 'Geliefert',       color: '#2A9B68' },
-  { value: 'completed', label: 'Abgeschlossen',   color: '#2A9B68' },
+  { value: 'inquiry',   label: 'Anfrage',         color: '#3B82F6' },
+  { value: 'active',    label: 'Aktiv',           color: '#3DBA6F' },
+  { value: 'shooting',  label: 'Shooting',        color: '#C4A47C' },
+  { value: 'editing',   label: 'Bearbeitung',     color: '#8B5CF6' },
+  { value: 'delivered', label: 'Geliefert',       color: '#10B981' },
+  { value: 'completed', label: 'Abgeschlossen',   color: '#64748B' },
   { value: 'cancelled', label: 'Storniert',       color: '#C43B2C' },
 ]
 
@@ -42,7 +42,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
   const [location, setLocation] = useState(initialData.location ?? '')
   const [projectType, setProjectType] = useState(initialData.project_type ?? '')
   const [notes, setNotes] = useState(initialData.notes ?? '')
-  const [status, setStatus] = useState(initialData.status ?? 'booked')
+  const [status, setStatus] = useState(initialData.status ?? 'inquiry')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 

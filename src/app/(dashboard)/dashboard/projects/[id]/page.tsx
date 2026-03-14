@@ -40,14 +40,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   ])
 
   const statusColors: Record<string, string> = {
-    draft: 'bg-[#6B6B6B]/10 text-[#6B6B6B]',
-    active: 'bg-[#3DBA6F]/10 text-[#3DBA6F]',
-    delivered: 'bg-[#C8A882]/10 text-[#C8A882]',
+    inquiry:   'bg-[#3B82F6]/10 text-[#3B82F6]',
+    active:    'bg-[#3DBA6F]/10 text-[#3DBA6F]',
+    shooting:  'bg-[#C4A47C]/10 text-[#C4A47C]',
+    editing:   'bg-[#8B5CF6]/10 text-[#8B5CF6]',
+    delivered: 'bg-[#10B981]/10 text-[#10B981]',
     completed: 'bg-[#E8E8E4] text-[#6B6B6B]',
+    cancelled: 'bg-[#C43B2C]/10 text-[#C43B2C]',
   }
 
   const statusLabels: Record<string, string> = {
-    draft: 'Entwurf', active: 'Aktiv', delivered: 'Geliefert', completed: 'Abgeschlossen',
+    inquiry: 'Anfrage', active: 'Aktiv', shooting: 'Shooting',
+    editing: 'Bearbeitung', delivered: 'Geliefert',
+    completed: 'Abgeschlossen', cancelled: 'Storniert',
   }
 
   const client = project.client as { full_name: string; email?: string }
