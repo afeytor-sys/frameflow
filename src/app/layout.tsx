@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
-import { getLocale, getMessages } from 'next-intl/server'
+import { getLocale } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
 import CookieBanner from '@/components/CookieBanner'
 import ThemeProvider from '@/components/ThemeProvider'
@@ -56,13 +56,12 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const locale = await getLocale()
-  const messages = await getMessages()
 
   return (
     <html lang={locale} suppressHydrationWarning className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
         <ThemeProvider>
-          <NextIntlClientProvider messages={messages} locale={locale}>
+          <NextIntlClientProvider>
             {children}
             <CookieBanner />
             <Toaster
