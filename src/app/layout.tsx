@@ -23,29 +23,29 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Studioflow — Elegante Kunden-Portale für Fotografen',
-    template: '%s | Studioflow',
+    default: 'Fotonizer — Elegante Kunden-Portale für Fotografen',
+    template: '%s | Fotonizer',
   },
   description:
-    'Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.',
+    'Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.',
   keywords: ['Fotografie', 'Kundenportal', 'Vertrag', 'Galerie', 'Hochzeitsfotograf'],
-  authors: [{ name: 'Studioflow' }],
-  creator: 'Studioflow',
+  authors: [{ name: 'Fotonizer' }],
+  creator: 'Fotonizer',
   openGraph: {
     type: 'website',
     locale: 'de_DE',
     alternateLocale: 'en_US',
     url: process.env.NEXT_PUBLIC_APP_URL,
-    siteName: 'Studioflow',
-    title: 'Studioflow — Elegante Kunden-Portale für Fotografen',
+    siteName: 'Fotonizer',
+    title: 'Fotonizer — Elegante Kunden-Portale für Fotografen',
     description:
-      'Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
+      'Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Studioflow — Elegante Kunden-Portale für Fotografen',
+    title: 'Fotonizer — Elegante Kunden-Portale für Fotografen',
     description:
-      'Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
+      'Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
   },
   robots: { index: true, follow: true },
 }

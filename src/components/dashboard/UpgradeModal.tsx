@@ -12,10 +12,11 @@ interface Props {
   reason?: string // e.g. "Du hast dein Kundenlimit erreicht"
 }
 
-const UPGRADE_TARGETS: PlanKey[] = ['starter', 'pro', 'studio']
+const UPGRADE_TARGETS: PlanKey[] = ['starter', 'pro']
+const COMING_SOON: PlanKey[] = ['studio']
 
 export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: Props) {
-  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual')
   const [loading, setLoading] = useState<string | null>(null)
 
   if (!isOpen) return null
@@ -100,11 +101,12 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
 
         {/* Plans */}
         <div className="p-6 grid sm:grid-cols-3 gap-4">
-          {UPGRADE_TARGETS.map((plan) => {
+          {[...UPGRADE_TARGETS, ...COMING_SOON].map((plan) => {
             const display = PLAN_DISPLAY[plan]
             const features = PLAN_UNLOCK_COPY[plan]
             const isCurrentOrLower = plan === currentPlan
             const isPro = plan === 'pro'
+            const isComingSoon = COMING_SOON.includes(plan)
             const monthlyPrice = display.price
             const annualPrice = annualDiscount(monthlyPrice)
 
@@ -112,10 +114,18 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
               <div
                 key={plan}
                 className={cn(
-                  'rounded-xl border-2 p-4 flex flex-col',
-                  isPro ? 'border-[#1A1A1A]' : 'border-[#E8E8E4]'
+                  'rounded-xl border-2 p-4 flex flex-col relative',
+                  isPro ? 'border-[#1A1A1A]' : 'border-[#E8E8E4]',
+                  isComingSoon && 'opacity-60'
                 )}
               >
+                {isComingSoon && (
+                  <div className="absolute top-2 right-2">
+                    <span className="inline-block bg-[#6B6B6B]/10 text-[#6B6B6B] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                      Coming Soon
+                    </span>
+                  </div>
+                )}
                 {isPro && (
                   <div className="text-center mb-3">
                     <span className="inline-block bg-[#1A1A1A] text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
@@ -126,11 +136,12 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
 
                 <div className="mb-3">
                   <p className="font-semibold text-[#1A1A1A] text-sm">{display.name}</p>
-                  <div className="flex items-baseline gap-1 mt-1">
+                  <div className="flex items-baseline gap-1 mt-1 flex-wrap">
                     <span className="font-display text-2xl font-bold text-[#1A1A1A]">
                       €{billing === 'annual' ? Math.round(annualPrice / 12) : monthlyPrice}
                     </span>
                     <span className="text-xs text-[#6B6B6B]">/Monat</span>
+                    <span className="text-[10px] text-[#9CA3AF] font-medium">zzgl. MwSt.</span>
                   </div>
                   {billing === 'annual' && (
                     <p className="text-xs text-[#6B6B6B] mt-0.5">€{annualPrice}/Jahr</p>
@@ -146,24 +157,33 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => handleUpgrade(plan)}
-                  disabled={isCurrentOrLower || loading === plan}
-                  className={cn(
-                    'w-full py-2 rounded-lg text-sm font-medium transition-all',
-                    isCurrentOrLower
-                      ? 'bg-[#F0F0EC] text-[#6B6B6B] cursor-default'
-                      : isPro
-                      ? 'bg-[#1A1A1A] text-white hover:bg-[#2A2A2A]'
-                      : 'border border-[#E8E8E4] text-[#1A1A1A] hover:bg-[#F0F0EC]'
-                  )}
-                >
-                  {loading === plan
-                    ? 'Weiterleitung...'
-                    : isCurrentOrLower
-                    ? 'Aktueller Plan'
-                    : `Auf ${display.name} upgraden`}
-                </button>
+                {isComingSoon ? (
+                  <button
+                    disabled
+                    className="w-full py-2 rounded-lg text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
+                  >
+                    Demnächst verfügbar
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleUpgrade(plan)}
+                    disabled={isCurrentOrLower || loading === plan}
+                    className={cn(
+                      'w-full py-2 rounded-lg text-sm font-medium transition-all',
+                      isCurrentOrLower
+                        ? 'bg-[#F0F0EC] text-[#6B6B6B] cursor-default'
+                        : isPro
+                        ? 'bg-[#1A1A1A] text-white hover:bg-[#2A2A2A]'
+                        : 'border border-[#E8E8E4] text-[#1A1A1A] hover:bg-[#F0F0EC]'
+                    )}
+                  >
+                    {loading === plan
+                      ? 'Weiterleitung...'
+                      : isCurrentOrLower
+                      ? 'Aktueller Plan'
+                      : `Auf ${display.name} upgraden`}
+                  </button>
+                )}
               </div>
             )
           })}

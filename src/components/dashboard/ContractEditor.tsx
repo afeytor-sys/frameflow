@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
-  Link as LinkIcon, Undo, Redo, AlignLeft,
+  Undo, Redo,
 } from 'lucide-react'
 
 interface Props {
@@ -46,14 +46,17 @@ export default function ContractEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] px-6 py-5 text-[#1A1A1A]',
+        class: 'tiptap-editor-content prose prose-sm max-w-none focus:outline-none min-h-[400px] px-6 py-5',
       },
     },
   })
 
   if (!mounted || !editor) return (
-    <div className="border border-[#E8E8E4] rounded-xl overflow-hidden bg-white min-h-[400px] flex items-center justify-center">
-      <div className="w-5 h-5 border-2 border-[#C8A882] border-t-transparent rounded-full animate-spin" />
+    <div
+      className="rounded-xl overflow-hidden min-h-[400px] flex items-center justify-center"
+      style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
+    >
+      <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
     </div>
   )
 
@@ -77,20 +80,40 @@ export default function ContractEditor({
       title={title}
       className={cn(
         'w-8 h-8 flex items-center justify-center rounded text-sm transition-colors',
-        active
-          ? 'bg-[#1A1A1A] text-white'
-          : 'text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-[#F0F0EC]',
         disabled && 'opacity-30 cursor-not-allowed'
       )}
+      style={
+        active
+          ? { background: 'var(--text-primary)', color: 'var(--bg-page)' }
+          : { color: 'var(--text-muted)' }
+      }
+      onMouseEnter={(e) => {
+        if (!active && !disabled) {
+          e.currentTarget.style.background = 'var(--bg-hover)'
+          e.currentTarget.style.color = 'var(--text-primary)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = active ? 'var(--text-primary)' : 'transparent'
+          e.currentTarget.style.color = active ? 'var(--bg-page)' : 'var(--text-muted)'
+        }
+      }}
     >
       {children}
     </button>
   )
 
   return (
-    <div className="border border-[#E8E8E4] rounded-xl overflow-hidden bg-white">
+    <div
+      className="rounded-xl overflow-hidden tiptap-editor"
+      style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
+    >
       {editable && (
-        <div className="flex items-center gap-0.5 px-3 py-2 border-b border-[#E8E8E4] flex-wrap">
+        <div
+          className="flex items-center gap-0.5 px-3 py-2 flex-wrap"
+          style={{ borderBottom: '1px solid var(--border-color)' }}
+        >
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             active={editor.isActive('bold')}
@@ -106,7 +129,7 @@ export default function ContractEditor({
             <Italic className="w-3.5 h-3.5" />
           </ToolbarButton>
 
-          <div className="w-px h-5 bg-[#E8E8E4] mx-1" />
+          <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -123,7 +146,7 @@ export default function ContractEditor({
             <Heading3 className="w-3.5 h-3.5" />
           </ToolbarButton>
 
-          <div className="w-px h-5 bg-[#E8E8E4] mx-1" />
+          <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -140,7 +163,7 @@ export default function ContractEditor({
             <ListOrdered className="w-3.5 h-3.5" />
           </ToolbarButton>
 
-          <div className="w-px h-5 bg-[#E8E8E4] mx-1" />
+          <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
 
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}

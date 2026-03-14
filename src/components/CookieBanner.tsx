@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-const COOKIE_KEY = 'studioflow_cookie_consent'
+const COOKIE_KEY = 'fotonizer_cookie_consent'
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false)

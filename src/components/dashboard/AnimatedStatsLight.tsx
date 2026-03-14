@@ -11,6 +11,7 @@ interface Stat {
   href: string
   description: string
   accentColor: string
+  accentBg: string
 }
 
 function useCountUp(target: number, duration = 1200, delay = 0) {
@@ -62,46 +63,59 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
     >
       <Link href={stat.href} className="block">
         <div
-          className="relative rounded-2xl p-5 overflow-hidden cursor-pointer transition-all duration-300 group-hover:-translate-y-1"
+          className="relative rounded-2xl p-6 overflow-hidden cursor-pointer transition-all duration-200"
           style={{
-            background: 'var(--glass-bg)',
-            backdropFilter: 'var(--glass-blur)',
-            WebkitBackdropFilter: 'var(--glass-blur)',
-            border: '1px solid var(--glass-border)',
-            boxShadow: 'var(--glass-shadow)',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
+            boxShadow: 'var(--card-shadow)',
+          }}
+          onMouseEnter={(e) => {
+            const el = e.currentTarget
+            el.style.transform = 'translateY(-4px)'
+            el.style.boxShadow = 'var(--card-shadow-hover)'
+            el.style.borderColor = stat.accentColor + '30'
+          }}
+          onMouseLeave={(e) => {
+            const el = e.currentTarget
+            el.style.transform = 'translateY(0)'
+            el.style.boxShadow = 'var(--card-shadow)'
+            el.style.borderColor = 'var(--card-border)'
           }}
         >
-          {/* Top accent line on hover */}
+          {/* Top accent bar — always visible, stronger on hover */}
           <div
-            className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-2xl"
+            className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl transition-opacity duration-200"
+            style={{ background: stat.accentColor, opacity: 0.6 }}
+          />
+          <div
+            className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             style={{ background: stat.accentColor }}
           />
 
-          {/* Subtle inner glow */}
+          {/* Subtle inner glow on hover */}
           <div
             className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
             style={{
-              background: `radial-gradient(circle at 50% 0%, ${stat.accentColor}15 0%, transparent 60%)`,
+              background: `radial-gradient(circle at 50% 0%, ${stat.accentColor}12 0%, transparent 65%)`,
             }}
           />
 
           {/* Icon */}
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center mb-4 transition-transform duration-200 group-hover:scale-110 relative z-10"
+            className="w-10 h-10 rounded-xl flex items-center justify-center mb-5 transition-transform duration-200 group-hover:scale-110 relative z-10"
             style={{
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border-color)',
+              background: stat.accentBg,
             }}
           >
-            <Icon className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            <Icon className="w-5 h-5" style={{ color: stat.accentColor }} />
           </div>
 
           {/* Number */}
-          <div className="flex items-end gap-1 mb-1 relative z-10">
+          <div className="flex items-end gap-1 mb-1.5 relative z-10">
             <span
-              className="font-bold leading-none tabular-nums"
+              className="font-black leading-none tabular-nums"
               style={{
-                fontSize: '40px',
+                fontSize: '42px',
                 letterSpacing: '-0.04em',
                 color: 'var(--text-primary)',
               }}
@@ -111,16 +125,21 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
           </div>
 
           {/* Label */}
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-0.5 relative z-10" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-1 relative z-10" style={{ color: 'var(--text-muted)' }}>
             {stat.label}
           </p>
-          <p className="text-[12px] relative z-10" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[12.5px] relative z-10" style={{ color: 'var(--text-muted)' }}>
             {stat.description}
           </p>
 
           {/* Arrow */}
-          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
-            <ArrowUpRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: stat.accentBg }}
+            >
+              <ArrowUpRight className="w-3.5 h-3.5" style={{ color: stat.accentColor }} />
+            </div>
           </div>
         </div>
       </Link>
@@ -142,7 +161,8 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       icon: Users,
       href: '/dashboard/clients',
       description: activeClients === 0 ? 'Noch keine Kunden' : `${activeClients} aktiv`,
-      accentColor: '#C4A47C',
+      accentColor: '#3B82F6',
+      accentBg: 'rgba(59,130,246,0.08)',
     },
     {
       label: 'Offene Verträge',
@@ -150,7 +170,8 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       icon: FileText,
       href: '/dashboard/contracts',
       description: pendingContracts === 0 ? 'Alles unterschrieben ✓' : 'Warten auf Signatur',
-      accentColor: pendingContracts > 0 ? '#E8A030' : '#C4A47C',
+      accentColor: pendingContracts > 0 ? '#F59E0B' : '#10B981',
+      accentBg: pendingContracts > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)',
     },
     {
       label: 'Aktive Galerien',
@@ -158,7 +179,8 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       icon: Images,
       href: '/dashboard/galleries',
       description: activeGalleries === 0 ? 'Noch keine Galerien' : 'Galerien online',
-      accentColor: '#C4A47C',
+      accentColor: '#10B981',
+      accentBg: 'rgba(16,185,129,0.08)',
     },
   ]
 

@@ -10,7 +10,7 @@ export default function AGBPage() {
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-3">§ 1 Geltungsbereich</h2>
             <p>
               Diese Allgemeinen Geschäftsbedingungen gelten für alle Verträge zwischen
-              [Firmenname] (nachfolgend „Anbieter") und den Nutzern der Plattform Studioflow
+              [Firmenname] (nachfolgend „Anbieter") und den Nutzern der Plattform Fotonizer
               (nachfolgend „Nutzer").
             </p>
           </section>
@@ -18,7 +18,7 @@ export default function AGBPage() {
           <section>
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-3">§ 2 Leistungsbeschreibung</h2>
             <p>
-              Studioflow ist eine webbasierte Software-as-a-Service-Plattform für Fotografen.
+              Fotonizer ist eine webbasierte Software-as-a-Service-Plattform für Fotografen.
               Sie ermöglicht die Verwaltung von Kundenprojekten, digitalen Verträgen,
               Fotogalerien und Zeitplänen.
             </p>

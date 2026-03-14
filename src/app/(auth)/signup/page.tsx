@@ -39,7 +39,7 @@ export default function SignupPage() {
           className="text-[#F8F7F4] font-semibold"
           style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '18px', letterSpacing: '-0.02em' }}
         >
-          Studioflow
+          Fotonizer
         </Link>
 
         <div className="space-y-8">
@@ -61,7 +61,7 @@ export default function SignupPage() {
         </div>
 
         <p className="text-[#7A7670] text-[12px]">
-          Bereits über 200 Fotografen in Europa vertrauen Studioflow.
+          Bereits über 200 Fotografen in Europa vertrauen Fotonizer.
         </p>
       </div>
 
@@ -74,7 +74,7 @@ export default function SignupPage() {
             className="text-[#111110] font-semibold mb-10 block lg:hidden"
             style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '18px', letterSpacing: '-0.02em' }}
           >
-            Studioflow
+            Fotonizer
           </Link>
 
           {success ? (

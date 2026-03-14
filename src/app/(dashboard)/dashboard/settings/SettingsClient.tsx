@@ -47,7 +47,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
   const [logoUrl, setLogoUrl] = useState(photographer?.logo_url || '')
 
   const supabase = createClient()
-  const isPro = true // All plans have access during beta
+  const plan = photographer?.plan || 'free'
+  const isPaidPlan = ['starter', 'pro', 'studio'].includes(plan)
 
   const togglePhotoType = (type: string) => {
     setPhotoTypes(prev =>
@@ -236,7 +237,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
           <h2 className="text-sm font-semibold text-[#1A1A1A]">Branding</h2>
 
-          {!isPro ? (
+          {!isPaidPlan ? (
             <div className="text-center py-8">
               <div className="w-10 h-10 rounded-full bg-[#C8A882]/10 flex items-center justify-center mx-auto mb-3">
                 <Palette className="w-5 h-5 text-[#C8A882]" />
@@ -256,8 +257,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-[#FAFAF8] rounded-lg border border-[#E8E8E4]">
                 <div>
-                  <p className="text-sm font-medium text-[#1A1A1A]">"Powered by Studioflow" ausblenden</p>
-                  <p className="text-xs text-[#6B6B6B] mt-0.5">Entfernt den Studioflow-Hinweis aus dem Kunden-Portal</p>
+                  <p className="text-sm font-medium text-[#1A1A1A]">"Powered by Fotonizer" ausblenden</p>
+                  <p className="text-xs text-[#6B6B6B] mt-0.5">Entfernt den Fotonizer-Hinweis aus dem Kunden-Portal</p>
                 </div>
                 <div className="w-9 h-5 rounded-full bg-[#3DBA6F] relative cursor-pointer">
                   <div className="absolute top-0.5 left-4 w-4 h-4 bg-white rounded-full shadow" />

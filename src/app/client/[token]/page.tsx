@@ -45,7 +45,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const timelineEvents = (timeline?.events as { id: string; time: string; title: string; phase: string }[]) || []
   const nextEvent = timelineEvents[0]
 
-  const studioName = photographer?.studio_name || photographer?.full_name || 'Studioflow'
+  const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-page)' }}>

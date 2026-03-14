@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   DndContext,
@@ -20,10 +20,17 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles } from 'lucide-react'
 import { cn, copyToClipboard } from '@/lib/utils'
 import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
+
+// Creative set name suggestions
+const SET_NAME_SUGGESTIONS = [
+  'Augenblicke', 'Momente', 'Highlights', 'Impressionen', 'Erinnerungen',
+  'Stimmungen', 'Facetten', 'Einblicke', 'Begegnungen', 'Emotionen',
+  'Getting Ready', 'Trauung', 'Feier', 'Portraits', 'Details',
+]
 
 interface Photo {
   id: string
@@ -76,7 +83,7 @@ function SortablePhoto({
 }: {
   photo: Photo
   selected: boolean
-  onSelect: (id: string) => void
+  onSelect: (id: string, shiftKey?: boolean) => void
   onDelete: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.id })
@@ -104,7 +111,7 @@ function SortablePhoto({
       />
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
       <button
-        onClick={() => onSelect(photo.id)}
+        onClick={(e) => onSelect(photo.id, e.shiftKey)}
         className={cn(
           'absolute top-2 left-2 w-5 h-5 rounded border-2 transition-all',
           selected ? 'bg-[#C8A882] border-[#C8A882]' : 'bg-white/80 border-white opacity-0 group-hover:opacity-100'
@@ -151,6 +158,12 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null)
   const [editingSectionTitle, setEditingSectionTitle] = useState('')
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  // Gallery creation modal
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createTheme, setCreateTheme] = useState('classic-white')
+  const [creating, setCreating] = useState(false)
+  // Shift-click selection
+  const lastSelectedRef = useRef<string | null>(null)
 
   // Settings form state
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
@@ -198,7 +211,30 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
     await Promise.all(reordered.map((p) => supabase.from('photos').update({ display_order: p.display_order }).eq('id', p.id)))
   }
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: string, shiftKey?: boolean) => {
+    if (shiftKey && lastSelectedRef.current) {
+      // Find all visible photos in order (sections + unsectioned)
+      const allVisible: string[] = []
+      sections.forEach(s => {
+        photos.filter(p => p.section_id === s.id).forEach(p => allVisible.push(p.id))
+      })
+      photos.filter(p => !p.section_id).forEach(p => allVisible.push(p.id))
+
+      const lastIdx = allVisible.indexOf(lastSelectedRef.current)
+      const currIdx = allVisible.indexOf(id)
+      if (lastIdx !== -1 && currIdx !== -1) {
+        const [from, to] = lastIdx < currIdx ? [lastIdx, currIdx] : [currIdx, lastIdx]
+        const rangeIds = allVisible.slice(from, to + 1)
+        setSelected(prev => {
+          const next = new Set(prev)
+          rangeIds.forEach(rid => next.add(rid))
+          return next
+        })
+        lastSelectedRef.current = id
+        return
+      }
+    }
+    lastSelectedRef.current = id
     setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
   }
   const selectAll = () => setSelected(new Set(photos.map((p) => p.id)))
@@ -231,14 +267,27 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   }
 
   const createGallery = async () => {
+    setCreating(true)
     const { data, error } = await supabase
       .from('galleries')
-      .insert({ project_id: projectId, title: 'Galerie', status: 'active', watermark: showWatermark, download_enabled: true, view_count: 0, download_count: 0 })
+      .insert({
+        project_id: projectId,
+        title: 'Galerie',
+        status: 'active',
+        watermark: showWatermark,
+        download_enabled: true,
+        view_count: 0,
+        download_count: 0,
+        design_theme: createTheme,
+      })
       .select().single()
-    if (error) { toast.error('Fehler beim Erstellen der Galerie'); return }
+    if (error) { toast.error('Fehler beim Erstellen der Galerie'); setCreating(false); return }
     setGallery(data)
+    setSelectedTheme(createTheme)
+    setShowCreateModal(false)
     setShowUploader(true)
-    toast.success('Galerie erstellt')
+    setCreating(false)
+    toast.success('Galerie erstellt!')
   }
 
   const saveSettings = async () => {
@@ -278,16 +327,17 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   }
 
   // Section management
-  const addSection = async () => {
+  const addSection = async (customTitle?: string) => {
     if (!gallery) return
     const order = sections.length
+    const title = customTitle || SET_NAME_SUGGESTIONS[order % SET_NAME_SUGGESTIONS.length]
     const { data, error } = await supabase
       .from('gallery_sections')
-      .insert({ gallery_id: gallery.id, title: `Set ${order + 1}`, display_order: order })
+      .insert({ gallery_id: gallery.id, title, display_order: order })
       .select().single()
     if (error) { toast.error('Fehler'); return }
     setSections(prev => [...prev, data])
-    toast.success('Set erstellt')
+    toast.success(`Set "${title}" erstellt`)
   }
 
   const renameSection = async (id: string) => {
@@ -328,15 +378,77 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
   if (!gallery) {
     return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--bg-hover)' }}>
-          <Images className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+      <>
+        <div className="text-center py-12">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--bg-hover)' }}>
+            <Images className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+          </div>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
+          <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--text-primary)' }}>
+            Galerie erstellen
+          </button>
         </div>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
-        <button onClick={createGallery} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--text-primary)' }}>
-          Galerie erstellen
-        </button>
-      </div>
+
+        {/* Gallery creation modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+            <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <div>
+                  <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Galerie</h2>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Wähle ein Design-Template</p>
+                </div>
+                <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {GALLERY_THEMES.map(theme => (
+                    <button
+                      key={theme.key}
+                      onClick={() => setCreateTheme(theme.key)}
+                      className="relative rounded-xl overflow-hidden text-left transition-all"
+                      style={{
+                        border: createTheme === theme.key ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                        boxShadow: createTheme === theme.key ? '0 0 0 3px rgba(196,164,124,0.2)' : 'none',
+                      }}
+                    >
+                      <div className="h-14 flex flex-col justify-between p-2" style={{ background: theme.bg }}>
+                        <div className="flex gap-1">
+                          {[1,2,3].map(i => (
+                            <div key={i} className="flex-1 rounded" style={{ height: '18px', background: theme.surface, border: `1px solid ${theme.border}` }} />
+                          ))}
+                        </div>
+                        <div className="h-1 rounded-full w-1/2" style={{ background: theme.accent, opacity: 0.7 }} />
+                      </div>
+                      <div className="px-2 py-1.5" style={{ background: theme.bg, borderTop: `1px solid ${theme.border}` }}>
+                        <p className="text-[11px] font-semibold truncate" style={{ color: theme.text }}>{theme.name}</p>
+                      </div>
+                      {createTheme === theme.key && (
+                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <button onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+                <button
+                  onClick={createGallery}
+                  disabled={creating}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {creating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Sparkles className="w-4 h-4" />Galerie erstellen</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     )
   }
 
@@ -512,7 +624,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Teile deine Galerie in Sets auf (z.B. Getting Ready, Trauung)</p>
-                <button onClick={addSection} className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-medium rounded-lg text-white" style={{ background: 'var(--accent)' }}>
+                <button onClick={() => addSection()} className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-medium rounded-lg text-white" style={{ background: 'var(--accent)' }}>
                   <Plus className="w-3 h-3" />Set
                 </button>
               </div>
@@ -634,7 +746,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
                       <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                           {sectionPhotos.map(photo => (
-                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={toggleSelect} onDelete={deletePhoto} />
+                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} />
                           ))}
                         </div>
                       </SortableContext>
@@ -658,7 +770,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
                 <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {unsectionedPhotos.map(photo => (
-                      <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={toggleSelect} onDelete={deletePhoto} />
+                      <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} />
                     ))}
                   </div>
                 </SortableContext>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Mail bestätigen – Fotonizer</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0F0F0F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0F0F0F;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:48px 16px;">
+
+        <!-- Card -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#1A1A1A;border-radius:20px;border:1px solid #2A2A2A;overflow:hidden;">
+
+          <!-- Top accent bar -->
+          <tr>
+            <td style="height:3px;background:linear-gradient(90deg,#C4A47C,#E8C99A,#C4A47C);"></td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding:40px 40px 32px;">
+              <!-- Logo mark -->
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center">
+                    <div style="display:inline-block;background-color:#C4A47C;border-radius:14px;width:52px;height:52px;line-height:52px;text-align:center;font-size:24px;">
+                      &#127968;
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:14px;">
+                    <span style="font-size:22px;font-weight:900;color:#F5F5F3;letter-spacing:-0.04em;">Fotonizer</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="height:1px;background-color:#2A2A2A;"></div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 40px 32px;">
+              <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;color:#F5F5F3;letter-spacing:-0.03em;line-height:1.2;">
+                Willkommen bei Fotonizer! 👋
+              </h1>
+              <p style="margin:0 0 20px;font-size:15px;color:#9CA3AF;line-height:1.6;">
+                Schön, dass du dabei bist! Bitte bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren und loszulegen.
+              </p>
+              <p style="margin:0 0 28px;font-size:15px;color:#9CA3AF;line-height:1.6;">
+                Klicke auf den Button unten, um deine E-Mail-Adresse zu bestätigen:
+              </p>
+
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display:inline-block;background-color:#C4A47C;color:#0F0F0F;font-size:15px;font-weight:800;text-decoration:none;padding:14px 36px;border-radius:12px;letter-spacing:-0.01em;">
+                      E-Mail bestätigen →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <p style="margin:28px 0 0;font-size:12px;color:#6B7280;line-height:1.6;text-align:center;">
+                Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br />
+                <a href="{{ .ConfirmationURL }}" style="color:#C4A47C;word-break:break-all;text-decoration:none;">
+                  {{ .ConfirmationURL }}
+                </a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Info box -->
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                     style="background-color:#111111;border-radius:12px;border:1px solid #2A2A2A;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0;font-size:13px;color:#6B7280;line-height:1.6;">
+                      ⏱ Dieser Link ist <strong style="color:#9CA3AF;">24 Stunden</strong> gültig.<br />
+                      🔒 Falls du kein Konto erstellt hast, kannst du diese E-Mail ignorieren.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="height:1px;background-color:#2A2A2A;"></div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:24px 40px 32px;">
+              <p style="margin:0 0 8px;font-size:12px;color:#4B5563;">
+                © 2025 Fotonizer · Das Studio-Management für Fotografen
+              </p>
+              <p style="margin:0;font-size:12px;color:#374151;">
+                <a href="{{ .SiteURL }}/impressum" style="color:#6B7280;text-decoration:none;">Impressum</a>
+                &nbsp;·&nbsp;
+                <a href="{{ .SiteURL }}/datenschutz" style="color:#6B7280;text-decoration:none;">Datenschutz</a>
+                &nbsp;·&nbsp;
+                <a href="{{ .SiteURL }}/agb" style="color:#6B7280;text-decoration:none;">AGB</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

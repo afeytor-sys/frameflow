@@ -26,14 +26,14 @@ const PLANS = [
   {
     key: 'starter',
     name: 'Starter',
-    monthly: 9,
-    annual: 90,
+    monthly: 8,
+    annual: 80,
     description: 'Für wachsende Studios',
     features: [
-      'Bis zu 15 aktive Kunden',
-      'Unbegrenzte Verträge',
-      'Bis zu 15 Galerien',
-      '"Studioflow" Badge ausblenden',
+      'Bis zu 10 aktive Kunden',
+      'Bis zu 10 Verträge',
+      'Bis zu 10 Galerien',
+      '"Fotonizer" Badge ausblenden',
       'E-Mail-Vorlagen',
     ],
     cta: 'Starter wählen',
@@ -43,14 +43,14 @@ const PLANS = [
   {
     key: 'pro',
     name: 'Pro',
-    monthly: 19,
-    annual: 190,
+    monthly: 17,
+    annual: 170,
     description: 'Für professionelle Fotografen',
     badge: 'Beliebteste Wahl',
     features: [
       'Unbegrenzte Kunden',
       'Alles unbegrenzt',
-      '"Powered by Studioflow" ausblenden',
+      '"Powered by Fotonizer" ausblenden',
       'Analytics-Dashboard',
       'Prioritäts-Support',
     ],
@@ -61,9 +61,10 @@ const PLANS = [
   {
     key: 'studio',
     name: 'Studio',
-    monthly: 39,
-    annual: 390,
+    monthly: 37,
+    annual: 370,
     description: 'Für Teams & Agenturen',
+    comingSoon: true,
     features: [
       'Alles in Pro',
       'Bis zu 5 Fotografen-Accounts',
@@ -78,7 +79,7 @@ const PLANS = [
 ]
 
 export default function PricingSection() {
-  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual')
 
   return (
     <div>
@@ -120,12 +121,21 @@ export default function PricingSection() {
             <div
               key={plan.key}
               className={cn(
-                'rounded-2xl border-2 p-6 flex flex-col',
+                'rounded-2xl border-2 p-6 flex flex-col relative',
                 plan.highlight
                   ? 'border-[#1A1A1A] bg-[#1A1A1A] text-white'
+                  : (plan as {comingSoon?: boolean}).comingSoon
+                  ? 'border-[#E8E8E4] bg-[#F8F8F6] opacity-75'
                   : 'border-[#E8E8E4] bg-white'
               )}
             >
+              {(plan as {comingSoon?: boolean}).comingSoon && (
+                <div className="absolute top-3 right-3">
+                  <span className="inline-block bg-[#6B6B6B]/10 text-[#6B6B6B] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                    Coming Soon
+                  </span>
+                </div>
+              )}
               {plan.badge && (
                 <div className="mb-3">
                   <span className="inline-block bg-[#C8A882] text-[#1A1A1A] text-xs font-semibold px-2.5 py-0.5 rounded-full">
@@ -141,12 +151,15 @@ export default function PricingSection() {
                 <p className={cn('text-xs mb-3', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>
                   {plan.description}
                 </p>
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-1 flex-wrap">
                   <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
                     {price === 0 ? 'Gratis' : `€${price}`}
                   </span>
                   {price > 0 && (
                     <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
+                  )}
+                  {price > 0 && (
+                    <span className={cn('text-[10px] font-medium', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>zzgl. MwSt.</span>
                   )}
                 </div>
                 {billing === 'annual' && annualTotal > 0 && (
@@ -167,17 +180,26 @@ export default function PricingSection() {
                 ))}
               </ul>
 
-              <Link
-                href={plan.href}
-                className={cn(
-                  'block text-center py-2.5 rounded-xl text-sm font-medium transition-all',
-                  plan.highlight
-                    ? 'bg-[#C8A882] text-[#1A1A1A] hover:bg-[#D4B896]'
-                    : 'border border-[#E8E8E4] text-[#1A1A1A] hover:bg-[#F0F0EC]'
-                )}
-              >
-                {plan.cta}
-              </Link>
+              {(plan as {comingSoon?: boolean}).comingSoon ? (
+                <button
+                  disabled
+                  className="block w-full text-center py-2.5 rounded-xl text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
+                >
+                  Demnächst verfügbar
+                </button>
+              ) : (
+                <Link
+                  href={plan.href}
+                  className={cn(
+                    'block text-center py-2.5 rounded-xl text-sm font-medium transition-all',
+                    plan.highlight
+                      ? 'bg-[#C8A882] text-[#1A1A1A] hover:bg-[#D4B896]'
+                      : 'border border-[#E8E8E4] text-[#1A1A1A] hover:bg-[#F0F0EC]'
+                  )}
+                >
+                  {plan.cta}
+                </Link>
+              )}
             </div>
           )
         })}

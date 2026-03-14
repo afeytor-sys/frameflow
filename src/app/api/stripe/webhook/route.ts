@@ -84,15 +84,15 @@ export async function POST(request: NextRequest) {
 
         if (photographer?.email) {
           await resend.emails.send({
-            from: 'Studioflow <noreply@studioflow.app>',
+            from: 'Fotonizer <noreply@fotonizer.com>',
             to: photographer.email,
-            subject: 'Dein Studioflow-Abo wurde beendet',
+            subject: 'Dein Fotonizer-Abo wurde beendet',
             html: `
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px;">
   <h2 style="color:#1A1A1A;margin:0 0 16px;">Abo beendet</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
     Hallo ${photographer.full_name || 'Fotograf'},<br><br>
-    dein Studioflow-Abo wurde beendet. Du wurdest auf den kostenlosen Plan zurückgesetzt.
+    dein Fotonizer-Abo wurde beendet. Du wurdest auf den kostenlosen Plan zurückgesetzt.
   </p>
   <p style="color:#6B6B6B;margin:0 0 24px;">
     Du kannst jederzeit wieder upgraden, um alle Funktionen zu nutzen.
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
         if (photographer?.email) {
           await resend.emails.send({
-            from: 'Studioflow <noreply@studioflow.app>',
+            from: 'Fotonizer <noreply@fotonizer.com>',
             to: photographer.email,
             subject: '⚠️ Zahlung fehlgeschlagen – Bitte aktualisiere deine Zahlungsmethode',
             html: `
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
   <h2 style="color:#E84C1A;margin:0 0 16px;">Zahlung fehlgeschlagen ⚠️</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
     Hallo ${photographer.full_name || 'Fotograf'},<br><br>
-    die Zahlung für dein Studioflow-Abo ist fehlgeschlagen. 
+    die Zahlung für dein Fotonizer-Abo ist fehlgeschlagen. 
     Bitte aktualisiere deine Zahlungsmethode, um eine Unterbrechung zu vermeiden.
   </p>
   <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing" 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 
           if (photographer?.email) {
             await resend.emails.send({
-              from: 'Studioflow <noreply@studioflow.app>',
+              from: 'Fotonizer <noreply@fotonizer.com>',
               to: photographer.email,
               subject: `🎉 Willkommen beim ${plan.charAt(0).toUpperCase() + plan.slice(1)}-Plan!`,
               html: `

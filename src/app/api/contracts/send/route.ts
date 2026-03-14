@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Send email via Resend
     const { error: emailError } = await resend.emails.send({
-      from: `${studioName} via Studioflow <noreply@studioflow.app>`,
+      from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
       to: clientEmail,
       subject: `Dein Vertrag ist bereit, ${clientName} ✍️`,
       html: `
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     <!-- Footer -->
     <div style="padding:20px 32px;border-top:1px solid #F0F0EC;background:#FAFAF8;">
       <p style="margin:0;color:#6B6B6B;font-size:12px;">
-        Diese E-Mail wurde von ${studioName} über Studioflow gesendet.
+        Diese E-Mail wurde von ${studioName} über Fotonizer gesendet.
         Wenn du Fragen hast, antworte direkt auf diese E-Mail.
       </p>
     </div>

@@ -31,10 +31,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     { data: contracts },
     { data: galleries },
     { data: timeline },
+    { data: userTemplates },
   ] = await Promise.all([
     supabase.from('contracts').select('*').eq('project_id', id).order('created_at'),
     supabase.from('galleries').select('*, photos(*)').eq('project_id', id).order('created_at'),
     supabase.from('timelines').select('*').eq('project_id', id).single(),
+    supabase.from('contract_templates').select('id, name, description, content').eq('photographer_id', user!.id).order('created_at'),
   ])
 
   const statusColors: Record<string, string> = {
@@ -140,6 +142,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         contracts={contracts || []}
         galleries={galleries || []}
         plan={photographer?.plan || 'free'}
+        userTemplates={userTemplates || []}
       />
     </div>
   )

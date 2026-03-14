@@ -49,7 +49,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <span className="font-bold text-[18px] text-white" style={{ letterSpacing: '-0.025em' }}>
-            Studioflow
+            Fotonizer
           </span>
         </Link>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
             ))}
           </div>
           <blockquote className="text-white/75 text-[16px] leading-relaxed font-light mb-6">
-            &ldquo;Meine Kunden kommentieren immer, wie professionell das Portal aussieht. Studioflow hat mein Business verändert.&rdquo;
+            &ldquo;Meine Kunden kommentieren immer, wie professionell das Portal aussieht. Fotonizer hat mein Business verändert.&rdquo;
           </blockquote>
           <div>
             <p className="text-white text-[13px] font-bold">Marco R.</p>
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 <path d="M7.5 14V10.5H12.5V14" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>Studioflow</span>
+            <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>Fotonizer</span>
           </Link>
 
           <div className="mb-8 animate-in">

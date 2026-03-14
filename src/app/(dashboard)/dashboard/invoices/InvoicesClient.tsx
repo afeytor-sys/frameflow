@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Invoice {
@@ -27,6 +27,12 @@ interface Project {
   id: string
   title: string
   client?: { full_name: string } | { full_name: string }[]
+}
+
+interface Client {
+  id: string
+  full_name: string
+  email: string | null
 }
 
 interface Props {
@@ -58,6 +64,7 @@ const MWST_RATE = 0.19
 
 export default function InvoicesClient({ invoices: initial, projects, photographerId }: Props) {
   const [invoices, setInvoices] = useState<Invoice[]>(initial)
+  const [projectList, setProjectList] = useState<Project[]>(projects)
   const [showNew, setShowNew] = useState(false)
   const [saving, setSaving] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -71,7 +78,80 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     include_mwst: false,
   })
 
+  // Quick-create project
+  const [showNewProject, setShowNewProject] = useState(false)
+  const [newProjectTitle, setNewProjectTitle] = useState('')
+  const [newProjectClientId, setNewProjectClientId] = useState('')
+  const [savingProject, setSavingProject] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+  const [clientsLoaded, setClientsLoaded] = useState(false)
+
+  // Quick-create client
+  const [showNewClient, setShowNewClient] = useState(false)
+  const [newClientName, setNewClientName] = useState('')
+  const [newClientEmail, setNewClientEmail] = useState('')
+  const [savingClient, setSavingClient] = useState(false)
+
   const supabase = createClient()
+
+  const loadClients = async () => {
+    if (clientsLoaded) return
+    const { data } = await supabase
+      .from('clients')
+      .select('id, full_name, email')
+      .eq('photographer_id', photographerId)
+      .order('full_name')
+    setClients(data || [])
+    setClientsLoaded(true)
+  }
+
+  const handleCreateProject = async () => {
+    if (!newProjectTitle.trim()) { toast.error('Bitte einen Projektnamen eingeben'); return }
+    setSavingProject(true)
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({
+        photographer_id: photographerId,
+        title: newProjectTitle.trim(),
+        client_id: newProjectClientId || null,
+        status: 'inquiry',
+      })
+      .select('id, title, client:clients(full_name)')
+      .single()
+    if (error) { toast.error('Fehler beim Erstellen'); setSavingProject(false); return }
+    const newProject = data as Project
+    setProjectList(prev => [newProject, ...prev])
+    setForm(f => ({ ...f, project_id: newProject.id }))
+    setNewProjectTitle('')
+    setNewProjectClientId('')
+    setShowNewProject(false)
+    setSavingProject(false)
+    toast.success(`Projekt "${newProject.title}" erstellt!`)
+  }
+
+  const handleCreateClient = async () => {
+    if (!newClientName.trim()) { toast.error('Bitte einen Namen eingeben'); return }
+    setSavingClient(true)
+    const { data, error } = await supabase
+      .from('clients')
+      .insert({
+        photographer_id: photographerId,
+        full_name: newClientName.trim(),
+        email: newClientEmail.trim() || null,
+        status: 'active',
+      })
+      .select('id, full_name, email')
+      .single()
+    if (error) { toast.error('Fehler beim Erstellen'); setSavingClient(false); return }
+    const newClient = data as Client
+    setClients(prev => [newClient, ...prev])
+    setNewProjectClientId(newClient.id)
+    setNewClientName('')
+    setNewClientEmail('')
+    setShowNewClient(false)
+    setSavingClient(false)
+    toast.success(`Kunde "${newClient.full_name}" erstellt!`)
+  }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
   const totalPending = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0)
@@ -323,10 +403,93 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               {/* Project */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5"
-                  style={{ color: 'var(--text-primary)' }}>
-                  Projekt *
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]"
+                    style={{ color: 'var(--text-primary)' }}>
+                    Projekt *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewProject(v => !v); loadClients() }}
+                    className="flex items-center gap-1 text-[11px] font-bold transition-colors"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    <FolderPlus className="w-3 h-3" />
+                    + Neues Projekt
+                  </button>
+                </div>
+
+                {/* Quick-create project form */}
+                {showNewProject && (
+                  <div className="mb-2 p-3 rounded-xl space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <input
+                      type="text"
+                      value={newProjectTitle}
+                      onChange={e => setNewProjectTitle(e.target.value)}
+                      placeholder="Projektname *"
+                      className="input-base w-full text-[13px]"
+                      autoFocus
+                      onKeyDown={e => e.key === 'Enter' && handleCreateProject()}
+                    />
+                    {/* Client select for new project */}
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={newProjectClientId}
+                        onChange={e => setNewProjectClientId(e.target.value)}
+                        className="input-base flex-1 text-[13px]"
+                        style={{ color: newProjectClientId ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                      >
+                        <option value="">Kein Kunde</option>
+                        {clients.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewClient(v => !v)}
+                        className="flex items-center gap-1 text-[11px] font-bold flex-shrink-0 transition-colors"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        + Neu
+                      </button>
+                    </div>
+
+                    {/* Quick-create client inline */}
+                    {showNewClient && (
+                      <div className="p-2.5 rounded-lg space-y-1.5" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Neuer Kunde</p>
+                        <input
+                          type="text"
+                          value={newClientName}
+                          onChange={e => setNewClientName(e.target.value)}
+                          placeholder="Name *"
+                          className="input-base w-full text-[12px]"
+                          autoFocus
+                        />
+                        <input
+                          type="email"
+                          value={newClientEmail}
+                          onChange={e => setNewClientEmail(e.target.value)}
+                          placeholder="E-Mail (optional)"
+                          className="input-base w-full text-[12px]"
+                        />
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setShowNewClient(false)} className="flex-1 text-[12px] py-1.5 rounded-lg" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>Abbrechen</button>
+                          <button type="button" onClick={handleCreateClient} disabled={savingClient || !newClientName.trim()} className="flex-1 text-[12px] py-1.5 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: 'var(--accent)' }}>
+                            {savingClient ? '...' : 'Erstellen'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setShowNewProject(false)} className="flex-1 text-[12px] py-1.5 rounded-lg" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>Abbrechen</button>
+                      <button type="button" onClick={handleCreateProject} disabled={savingProject || !newProjectTitle.trim()} className="flex-1 text-[12px] py-1.5 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: 'var(--accent)' }}>
+                        {savingProject ? '...' : '+ Erstellen'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <select
                   value={form.project_id}
                   onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))}
@@ -334,7 +497,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   style={{ color: form.project_id ? 'var(--text-primary)' : 'var(--text-muted)' }}
                 >
                   <option value="">Projekt auswählen...</option>
-                  {projects.map(p => {
+                  {projectList.map(p => {
                     const c = p.client
                     const clientName = Array.isArray(c) ? c[0]?.full_name : c?.full_name
                     return (
@@ -352,16 +515,20 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   style={{ color: 'var(--text-primary)' }}>
                   Betrag (€) *
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-bold"
-                    style={{ color: 'var(--text-muted)' }}>€</span>
+                <div className="flex items-center rounded-xl overflow-hidden"
+                  style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
+                  <span className="flex-shrink-0 px-3 text-[14px] font-bold select-none"
+                    style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>
+                    €
+                  </span>
                   <input
                     type="text"
                     value={form.amount}
                     onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                     required
                     placeholder="0,00"
-                    className="input-base pl-8"
+                    className="flex-1 px-3 py-2.5 bg-transparent text-[14px] outline-none"
+                    style={{ color: 'var(--text-primary)' }}
                   />
                 </div>
               </div>

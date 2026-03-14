@@ -26,6 +26,13 @@ type GalleryItem = {
   photos?: Photo[]
 }
 
+interface UserTemplate {
+  id: string
+  name: string
+  description: string | null
+  content: string
+}
+
 interface Props {
   project: {
     id: string
@@ -42,6 +49,7 @@ interface Props {
   contracts: Contract[]
   galleries: GalleryItem[]
   plan: Plan
+  userTemplates?: UserTemplate[]
 }
 
 const TABS = [
@@ -50,7 +58,7 @@ const TABS = [
   { key: 'booking',  label: 'Booking Details',   icon: CalendarDays },
 ]
 
-export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan }: Props) {
+export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [] }: Props) {
   const [activeTab, setActiveTab] = useState('contract')
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
@@ -276,6 +284,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
             contracts={contracts}
             clientEmail={client?.email}
             clientName={client?.full_name}
+            userTemplates={userTemplates}
           />
         )}
 

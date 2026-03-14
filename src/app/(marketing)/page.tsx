@@ -81,7 +81,7 @@ export default function HomePage() {
               </svg>
             </div>
             <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Studioflow
+              Fotonizer
             </span>
           </Link>
 
@@ -137,7 +137,7 @@ export default function HomePage() {
           {/* Subtext */}
           <p className="animate-in-delay-2 text-[17px] leading-relaxed max-w-2xl mx-auto mb-10"
             style={{ color: 'var(--text-secondary)' }}>
-            Studioflow gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.
+            Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.
             Für Hochzeiten, Portraits, Events und alles dazwischen.
           </p>
 
@@ -235,7 +235,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <p className="label-caps mb-3">Für jeden Fotografen</p>
           <h2 className="font-black mb-10" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>
-            Studioflow funktioniert für alle Bereiche
+            Fotonizer funktioniert für alle Bereiche
           </h2>
           <div className="flex flex-wrap justify-center gap-3">
             {PHOTO_TYPES.map(({ emoji, label }) => (
@@ -256,7 +256,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <p className="label-caps mb-3">Stimmen aus der Community</p>
             <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>
-              Fotografen lieben Studioflow
+              Fotografen lieben Fotonizer
             </h2>
           </div>
 
@@ -358,7 +358,7 @@ export default function HomePage() {
                 <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
                   <Camera className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
                 </div>
-                <span className="font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>Studioflow</span>
+                <span className="font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>Fotonizer</span>
               </div>
               <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
                 Elegante Kunden-Portale für Fotografen.
@@ -386,12 +386,12 @@ export default function HomePage() {
           <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3"
             style={{ borderTop: '1px solid var(--border-color)' }}>
             <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-              © {new Date().getFullYear()} Studioflow. Alle Rechte vorbehalten.
+              © {new Date().getFullYear()} Fotonizer. Alle Rechte vorbehalten.
             </p>
             <div className="flex items-center gap-2">
               <Users className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
               <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                200+ Fotografen vertrauen Studioflow
+                200+ Fotografen vertrauen Fotonizer
               </span>
             </div>
           </div>

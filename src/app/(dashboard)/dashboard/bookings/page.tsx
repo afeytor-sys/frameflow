@@ -104,8 +104,13 @@ export default function BookingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>Bookings</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          <h1
+            className="font-black"
+            style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+          >
+            Bookings
+          </h1>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
             {upcoming.length} bevorstehend · {past.length} vergangen
           </p>
         </div>

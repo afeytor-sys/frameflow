@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
           className="text-[#111110] font-semibold mb-10 block"
           style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '18px', letterSpacing: '-0.02em' }}
         >
-          Studioflow
+          Fotonizer
         </Link>
 
         {success ? (

@@ -25,7 +25,8 @@ export default async function InvoicesPage() {
     .from('projects')
     .select('id, title, client:clients(full_name)')
     .eq('photographer_id', user.id)
-    .eq('status', 'active')
+    .not('status', 'eq', 'cancelled')
+    .order('created_at', { ascending: false })
 
   return (
     <InvoicesClient

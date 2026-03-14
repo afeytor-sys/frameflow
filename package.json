@@ -1,5 +1,5 @@
 {
-  "name": "studioflow",
+  "name": "fotonizer",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -34,6 +34,7 @@
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
+    "recharts": "^3.8.0",
     "resend": "^6.9.3",
     "stripe": "^20.4.1",
     "tailwind-merge": "^3.5.0",

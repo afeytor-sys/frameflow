@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
 import { Globe, ChevronDown, Sun, Moon } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
+import WeatherWidget from '@/components/dashboard/WeatherWidget'
 
 interface Props {
   photographer: Photographer
@@ -22,12 +23,17 @@ export default function DashboardHeader({ photographer }: Props) {
 
   return (
     <header
-      className="h-[52px] flex items-center justify-end px-5 gap-2 flex-shrink-0"
+      className="h-[52px] flex items-center justify-between px-5 gap-2 flex-shrink-0"
       style={{
         background: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-color)',
       }}
     >
+      {/* Weather widget — left side */}
+      <WeatherWidget />
+
+      {/* Right side controls */}
+      <div className="flex items-center gap-2">
       {/* Theme toggle */}
       <button
         onClick={toggleTheme}
@@ -90,6 +96,7 @@ export default function DashboardHeader({ photographer }: Props) {
             </div>
           </>
         )}
+      </div>
       </div>
     </header>
   )

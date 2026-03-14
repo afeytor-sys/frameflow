@@ -110,7 +110,7 @@ export default function OnboardingPage() {
       return
     }
 
-    toast.success('Willkommen bei Studioflow!')
+    toast.success('Willkommen bei Fotonizer!')
     router.push('/dashboard')
     router.refresh()
   }
@@ -123,7 +123,7 @@ export default function OnboardingPage() {
           <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
             <Camera className="w-3.5 h-3.5 text-[#C8A882]" />
           </div>
-          <span className="font-display text-lg font-semibold text-[#1A1A1A]">Studioflow</span>
+          <span className="font-display text-lg font-semibold text-[#1A1A1A]">Fotonizer</span>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
               <div className="space-y-6">
                 <div>
                   <h1 className="font-display text-2xl font-semibold text-[#1A1A1A] mb-1">
-                    Willkommen bei Studioflow
+                    Willkommen bei Fotonizer
                   </h1>
                   <p className="text-[#6B6B6B] text-sm">Lass uns dein Profil einrichten</p>
                 </div>

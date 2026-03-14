@@ -19,7 +19,7 @@
     "or": "or",
     "and": "and",
     "of": "of",
-    "poweredBy": "Powered by Studioflow",
+    "poweredBy": "Powered by Fotonizer",
     "new": "New",
     "view": "View",
     "download": "Download",
@@ -68,7 +68,7 @@
     "hasAccount": "Already have an account?",
     "signupFree": "Sign up for free",
     "loginTitle": "Welcome back",
-    "loginSubtitle": "Sign in to your Studioflow account",
+    "loginSubtitle": "Sign in to your Fotonizer account",
     "signupTitle": "Create your account",
     "signupSubtitle": "Start for free — no credit card required",
     "resetTitle": "Reset your password",
@@ -87,7 +87,7 @@
     }
   },
   "onboarding": {
-    "title": "Welcome to Studioflow",
+    "title": "Welcome to Fotonizer",
     "subtitle": "Let's set up your account",
     "step1": "Your Profile",
     "step2": "Your Studio",
@@ -300,7 +300,7 @@
       "title": "Branding",
       "proOnly": "Available on Pro and Studio plans",
       "primaryColor": "Primary color",
-      "hidePoweredBy": "Hide \"Powered by Studioflow\"",
+      "hidePoweredBy": "Hide \"Powered by Fotonizer\"",
       "customFooter": "Custom footer text"
     },
     "notifications": {
@@ -334,7 +334,7 @@
       "features": [
         "2 active clients",
         "1 contract per client",
-        "Gallery with Studioflow watermark",
+        "Gallery with Fotonizer watermark",
         "No custom branding"
       ]
     },
@@ -429,7 +429,7 @@
   "landing": {
     "hero": {
       "headline": "Your clients deserve better than a WeTransfer link.",
-      "subtext": "Studioflow gives every shoot a beautiful client portal — contracts, galleries, timelines. For weddings, portraits, events, and everything in between.",
+      "subtext": "Fotonizer gives every shoot a beautiful client portal — contracts, galleries, timelines. For weddings, portraits, events, and everything in between.",
       "cta": "Start for free",
       "ctaSecondary": "See how it works",
       "socialProof": "Trusted by 200+ photographers across Europe"
@@ -510,7 +510,7 @@
     "faq": {
       "title": "Frequently asked questions",
       "q1": "Is the e-signature legally valid in Germany?",
-      "a1": "Yes. The e-signature in Studioflow complies with the eIDAS regulation for simple electronic signatures, which is fully sufficient for photography contracts.",
+      "a1": "Yes. The e-signature in Fotonizer complies with the eIDAS regulation for simple electronic signatures, which is fully sufficient for photography contracts.",
       "q2": "What happens when I reach my client limit?",
       "a2": "You'll see a friendly upgrade modal showing all the benefits of the next plan. No error, no data loss — just upgrade and continue.",
       "q3": "Can my clients see each other's portals?",

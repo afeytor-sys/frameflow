@@ -45,7 +45,7 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
   }
 
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Dein Studioflow Portal: ${fullUrl}`)}`
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Dein Fotonizer Portal: ${fullUrl}`)}`
 
   return (
     <>
