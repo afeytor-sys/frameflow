@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatDateTime } from '@/lib/utils'
 import { CONTRACT_TEMPLATES } from '@/lib/contractTemplates'
 import ContractEditor from './ContractEditor'
+import SignatureCanvas from 'react-signature-canvas'
 import {
   FileText, Plus, Send, Download, Check, Trash2,
-  ChevronDown, BookMarked, X, Bookmark,
+  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { Contract } from '@/types/database'
@@ -40,6 +41,175 @@ const STATUS_LABELS: Record<string, string> = {
   sent: 'Gesendet',
   viewed: 'Angesehen',
   signed: 'Unterschrieben',
+}
+
+// ── SignatureBlock — shows a signed signature (client or photographer) ──────
+function SignatureBlock({
+  label,
+  name,
+  signedAt,
+  ipAddress,
+  signatureData,
+  color,
+  bg,
+  border,
+}: {
+  label: string
+  name: string
+  signedAt: string | null
+  ipAddress: string | null
+  signatureData: string | null
+  color: string
+  bg: string
+  border: string
+}) {
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ background: bg, border: `1px solid ${border}` }}>
+      <div className="flex items-center gap-2">
+        <Check className="w-4 h-4 flex-shrink-0" style={{ color }} />
+        <div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {label}: <span style={{ color }}>{name}</span>
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            {signedAt ? formatDateTime(signedAt, 'de') : ''}
+            {ipAddress ? ` · IP: ${ipAddress}` : ''}
+          </p>
+        </div>
+      </div>
+      {signatureData && (
+        <div className="rounded-lg overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', maxWidth: '320px' }}>
+          <img src={signatureData} alt={`Unterschrift ${label}`} className="w-full h-auto" style={{ maxHeight: '100px', objectFit: 'contain' }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── PhotographerSignatureSection — canvas for photographer to sign ────────────
+function PhotographerSignatureSection({
+  contractId,
+  existingSignature,
+  existingName,
+  existingAt,
+  onSaved,
+}: {
+  contractId: string
+  existingSignature: string | null
+  existingName: string | null
+  existingAt: string | null
+  onSaved: (data: { photographer_signature_data: string; photographer_signed_by_name: string; photographer_signed_at: string }) => void
+}) {
+  const sigRef = useRef<SignatureCanvas>(null)
+  const [name, setName] = useState(existingName ?? '')
+  const [saving, setSaving] = useState(false)
+  const [done, setDone] = useState(!!existingSignature)
+
+  const supabase = createClient()
+
+  const handleSign = async () => {
+    if (!name.trim()) { toast.error('Bitte deinen Namen eingeben'); return }
+    if (sigRef.current?.isEmpty()) { toast.error('Bitte unterschreibe im Feld'); return }
+    setSaving(true)
+    const signatureData = sigRef.current!.toDataURL('image/png')
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('contracts')
+      .update({
+        photographer_signed_by_name: name.trim(),
+        photographer_signature_data: signatureData,
+        photographer_signed_at: now,
+      })
+      .eq('id', contractId)
+
+    if (error) { toast.error('Fehler beim Speichern'); setSaving(false); return }
+    onSaved({ photographer_signature_data: signatureData, photographer_signed_by_name: name.trim(), photographer_signed_at: now })
+    setDone(true)
+    setSaving(false)
+    toast.success('Deine Unterschrift wurde gespeichert!')
+  }
+
+  if (done && existingSignature) {
+    return (
+      <SignatureBlock
+        label="Fotograf"
+        name={existingName ?? name}
+        signedAt={existingAt}
+        ipAddress={null}
+        signatureData={existingSignature}
+        color="var(--accent)"
+        bg="rgba(196,164,124,0.10)"
+        border="rgba(196,164,124,0.25)"
+      />
+    )
+  }
+
+  return (
+    <div className="rounded-xl p-5 space-y-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.12)' }}>
+          <PenLine className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+        </div>
+        <div>
+          <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Deine Unterschrift (Fotograf)</p>
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Unterschreibe den Vertrag als Fotograf</p>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+          Vollständiger Name *
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Dein vollständiger Name"
+          className="input-base w-full text-[13px]"
+        />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+            Unterschrift *
+          </label>
+          <button
+            type="button"
+            onClick={() => sigRef.current?.clear()}
+            className="flex items-center gap-1 text-[11px] transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+          >
+            <RotateCcw className="w-3 h-3" />
+            Löschen
+          </button>
+        </div>
+        <div className="rounded-xl overflow-hidden" style={{ border: '2px dashed var(--border-color)', background: 'var(--bg-hover)' }}>
+          <SignatureCanvas
+            ref={sigRef}
+            canvasProps={{ className: 'w-full', style: { height: '140px', touchAction: 'none' } }}
+            backgroundColor="transparent"
+            penColor="var(--text-primary)"
+          />
+        </div>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Mit Maus oder Finger unterschreiben</p>
+      </div>
+
+      <button
+        onClick={handleSign}
+        disabled={saving || !name.trim()}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-40 hover:opacity-90"
+        style={{ background: 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}
+      >
+        {saving
+          ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          : <><PenLine className="w-4 h-4" />Jetzt unterschreiben</>
+        }
+      </button>
+    </div>
+  )
 }
 
 export default function ContractTab({
@@ -359,23 +529,18 @@ export default function ContractTab({
           </div>
         </div>
 
-        {/* Signed info */}
+        {/* ── Client signature block ── */}
         {activeContract.status === 'signed' && (
-          <div
-            className="flex items-center gap-3 p-3 rounded-lg"
-            style={{ background: 'rgba(61,186,111,0.10)', border: '1px solid rgba(61,186,111,0.20)' }}
-          >
-            <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#3DBA6F' }} />
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                Unterschrieben von {activeContract.signed_by_name}
-              </p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {activeContract.signed_at ? formatDateTime(activeContract.signed_at, 'de') : ''}
-                {activeContract.ip_address ? ` · IP: ${activeContract.ip_address}` : ''}
-              </p>
-            </div>
-          </div>
+          <SignatureBlock
+            label="Kunde"
+            name={activeContract.signed_by_name ?? ''}
+            signedAt={activeContract.signed_at ?? null}
+            ipAddress={(activeContract as Contract & { ip_address?: string }).ip_address ?? null}
+            signatureData={(activeContract as Contract & { signature_data?: string }).signature_data ?? null}
+            color="#3DBA6F"
+            bg="rgba(61,186,111,0.10)"
+            border="rgba(61,186,111,0.20)"
+          />
         )}
 
         <ContractEditor
@@ -383,6 +548,19 @@ export default function ContractTab({
           onChange={setContent}
           editable={activeContract.status === 'draft'}
         />
+
+        {/* ── Photographer signature block ── */}
+        {activeContract.status === 'signed' && (
+          <PhotographerSignatureSection
+            contractId={activeContract.id}
+            existingSignature={(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data ?? null}
+            existingName={(activeContract as Contract & { photographer_signed_by_name?: string }).photographer_signed_by_name ?? null}
+            existingAt={(activeContract as Contract & { photographer_signed_at?: string }).photographer_signed_at ?? null}
+            onSaved={(data) => {
+              setActiveContract(prev => prev ? { ...prev, ...data } : prev)
+            }}
+          />
+        )}
 
         {/* Save as template modal */}
         {showSaveTemplate && (
