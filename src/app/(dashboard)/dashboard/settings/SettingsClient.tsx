@@ -47,7 +47,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
   const [logoUrl, setLogoUrl] = useState(photographer?.logo_url || '')
 
   const supabase = createClient()
-  const isPro = ['pro', 'studio'].includes(photographer?.plan || '')
+  const isPro = true // All plans have access during beta
 
   const togglePhotoType = (type: string) => {
     setPhotoTypes(prev =>
