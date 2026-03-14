@@ -106,7 +106,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </p>
 
           {/* Weather */}
-          {project.shoot_date && !isDelivered && days !== null && days >= 0 && days <= 14 && (
+          {project.shoot_date && !isDelivered && days !== null && days >= 0 && days <= 30 && (
             <div className="mt-4">
               <WeatherWidget date={project.shoot_date} location={project.location || 'Deutschland'} />
             </div>

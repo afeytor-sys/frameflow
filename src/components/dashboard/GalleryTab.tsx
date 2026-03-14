@@ -438,41 +438,29 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
                     <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
                   </label>
                 ))}
-              </div>
-
-              {/* Color tag toggles */}
-              <div className="pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
-                <p className="text-xs font-medium mb-2.5" style={{ color: 'var(--text-muted)' }}>Farb-Tags für Kunden</p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {[
-                    { key: 'green',  label: 'Auswahl',    color: '#22C55E' },
-                    { key: 'yellow', label: 'Vielleicht', color: '#EAB308' },
-                    { key: 'red',    label: 'Ablehnen',   color: '#EF4444' },
-                  ].map(({ key, label, color }) => {
-                    const isEnabled = enabledTags.includes(key)
-                    return (
-                      <button
-                        key={key}
-                        type="button"
+                {/* Color tag toggles — same style as other toggles */}
+                {[
+                  { key: 'green',  label: 'Tag: Auswahl',    color: '#22C55E' },
+                  { key: 'yellow', label: 'Tag: Vielleicht', color: '#EAB308' },
+                  { key: 'red',    label: 'Tag: Ablehnen',   color: '#EF4444' },
+                ].map(({ key, label, color }) => {
+                  const isEnabled = enabledTags.includes(key)
+                  return (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                      <div
                         onClick={() => toggleTag(key)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
-                        style={{
-                          background: isEnabled ? `${color}22` : 'var(--bg-hover)',
-                          border: `1.5px solid ${isEnabled ? color : 'var(--border-color)'}`,
-                          color: isEnabled ? color : 'var(--text-muted)',
-                          opacity: isEnabled ? 1 : 0.6,
-                        }}
+                        className="relative cursor-pointer rounded-full transition-all"
+                        style={{ width: '36px', height: '20px', background: isEnabled ? color : 'var(--border-strong)' }}
                       >
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color, opacity: isEnabled ? 1 : 0.4 }} />
+                        <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: isEnabled ? '16px' : '2px' }} />
+                      </div>
+                      <span className="text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: color }} />
                         {label}
-                        {isEnabled && <Check className="w-3 h-3 ml-0.5" />}
-                      </button>
-                    )
-                  })}
-                </div>
-                <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
-                  Aktivierte Tags können Kunden in der Galerie verwenden
-                </p>
+                      </span>
+                    </label>
+                  )
+                })}
               </div>
             </div>
           )}

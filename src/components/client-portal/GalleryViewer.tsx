@@ -116,25 +116,25 @@ export default function GalleryViewer({
     localStorage.setItem(`ff-gallery-size-${galleryId}`, String(s))
   }
 
-  // Grid columns based on imageSize (1=2col, 5=6col)
+  // Grid columns based on imageSize — S(1)=many cols=small, XL(5)=few cols=large
   const gridCols = {
-    1: 'grid-cols-2',
-    2: 'grid-cols-3',
+    1: 'grid-cols-6',
+    2: 'grid-cols-5',
     3: 'grid-cols-4',
-    4: 'grid-cols-5',
-    5: 'grid-cols-6',
+    4: 'grid-cols-3',
+    5: 'grid-cols-2',
   }[imageSize] || 'grid-cols-4'
 
-  // Masonry columns based on imageSize
+  // Masonry columns based on imageSize — S(1)=many cols=small, XL(5)=few cols=large
   const masonryCols = {
-    1: 'columns-2',
-    2: 'columns-2 sm:columns-3',
+    1: 'columns-3 sm:columns-5 lg:columns-6',
+    2: 'columns-3 sm:columns-4 lg:columns-5',
     3: 'columns-2 sm:columns-3 lg:columns-4',
-    4: 'columns-3 sm:columns-4 lg:columns-5',
-    5: 'columns-3 sm:columns-5 lg:columns-6',
+    4: 'columns-2 sm:columns-3',
+    5: 'columns-2',
   }[imageSize] || 'columns-2 sm:columns-3 lg:columns-4'
 
-  // Columns layout (2 fixed columns, size affects height)
+  // Columns layout — S(1)=small height, XL(5)=large height
   const columnHeight = {
     1: 'h-48',
     2: 'h-56',
