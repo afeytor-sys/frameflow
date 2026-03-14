@@ -129,6 +129,7 @@ export default function GalleryViewer({
   const [downloadProgress, setDownloadProgress] = useState(0)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
+  const [showTagFilters, setShowTagFilters] = useState(false)
 
   // Layout & size controls
   const [layout, setLayout] = useState<GalleryLayout>('masonry')
@@ -408,6 +409,7 @@ export default function GalleryViewer({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         {/* Left: filters */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Favorites filter */}
           <button
             onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
@@ -420,25 +422,67 @@ export default function GalleryViewer({
             <Heart className={cn('w-3 h-3', filterTag === 'favorite' && 'fill-white')} />
             {favoriteCount > 0 ? `${favoriteCount} Favoriten` : 'Favoriten'}
           </button>
-          {(Object.keys(TAG_CONFIG) as Array<keyof typeof TAG_CONFIG>).map((tag) => {
-            const cfg = TAG_CONFIG[tag]; const count = tagCounts[tag]
-            if (count === 0 && filterTag !== tag) return null
-            return (
-              <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
-                style={{
-                  background: filterTag === tag ? cfg.bg : tbBg,
-                  color: filterTag === tag ? '#fff' : tbText,
-                  border: `1px solid ${tbBorder}`,
-                }}>
-                <span className="w-2 h-2 rounded-full" style={{ background: cfg.bg }} />
-                {cfg.label} {count > 0 && `(${count})`}
-              </button>
-            )
-          })}
-          {filterTag && (
+
+          {/* Tags toggle button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowTagFilters(!showTagFilters)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+              style={{
+                background: showTagFilters || (filterTag && filterTag !== 'favorite') ? (theme ? theme.accent + '33' : 'rgba(255,255,255,0.2)') : tbBg,
+                color: showTagFilters || (filterTag && filterTag !== 'favorite') ? tbTextHover : tbText,
+                border: `1px solid ${tbBorder}`,
+              }}
+            >
+              {/* Show active tag dot if one is selected */}
+              {filterTag && filterTag !== 'favorite' ? (
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: TAG_CONFIG[filterTag as keyof typeof TAG_CONFIG].bg }} />
+              ) : (
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M1 3h10M3 6h6M5 9h2" strokeLinecap="round" />
+                </svg>
+              )}
+              Tags
+            </button>
+            {showTagFilters && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowTagFilters(false)} />
+                <div className="absolute left-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden min-w-[140px]"
+                  style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+                  {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => {
+                    const count = tagCounts[tag]
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => { setFilterTag(filterTag === tag ? null : tag); setShowTagFilters(false) }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors"
+                        style={{
+                          color: filterTag === tag ? '#fff' : 'rgba(255,255,255,0.6)',
+                          background: filterTag === tag ? `${cfg.bg}22` : 'transparent',
+                        }}
+                      >
+                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
+                        <span className="flex-1 text-left">{count}</span>
+                        {filterTag === tag && <span className="text-white/40 text-[10px]">✓</span>}
+                      </button>
+                    )
+                  })}
+                  {filterTag && filterTag !== 'favorite' && (
+                    <button
+                      onClick={() => { setFilterTag(null); setShowTagFilters(false) }}
+                      className="w-full px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5 text-left"
+                    >
+                      Filter entfernen
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {filterTag && filterTag !== 'favorite' && (
             <button onClick={() => setFilterTag(null)} className="text-[11px] transition-colors px-2" style={{ color: tbText }}>
-              × Alle anzeigen
+              × Alle
             </button>
           )}
         </div>
@@ -600,12 +644,36 @@ export default function GalleryViewer({
               <Heart className={cn('w-4 h-4', currentPhoto.is_favorite && 'fill-white')} />
               {currentPhoto.is_favorite ? 'Favorit ✓' : 'Favorit'}
             </button>
-            {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
-              <button key={tag} onClick={() => setTag(currentPhoto.id, tag)} className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-semibold transition-all" style={{ background: currentPhoto.tag === tag ? cfg.bg : 'rgba(255,255,255,0.08)', color: currentPhoto.tag === tag ? 'white' : 'rgba(255,255,255,0.5)' }}>
-                <span className="w-2 h-2 rounded-full" style={{ background: currentPhoto.tag === tag ? 'white' : cfg.bg }} />
-                {cfg.label}
-              </button>
-            ))}
+            {/* Tag buttons — color only, no text */}
+            <div className="flex items-center gap-2">
+              {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
+                <button
+                  key={tag}
+                  onClick={() => setTag(currentPhoto.id, tag)}
+                  title={cfg.label}
+                  className="transition-all"
+                  style={{
+                    width: currentPhoto.tag === tag ? '36px' : '28px',
+                    height: currentPhoto.tag === tag ? '36px' : '28px',
+                    borderRadius: '50%',
+                    background: cfg.bg,
+                    border: currentPhoto.tag === tag ? '3px solid white' : '2px solid rgba(255,255,255,0.2)',
+                    boxShadow: currentPhoto.tag === tag ? `0 0 0 2px ${cfg.bg}` : 'none',
+                    opacity: currentPhoto.tag && currentPhoto.tag !== tag ? 0.4 : 1,
+                  }}
+                />
+              ))}
+              {currentPhoto.tag && (
+                <button
+                  onClick={() => setTag(currentPhoto.id, currentPhoto.tag ?? null)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+                  title="Tag entfernen"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
             <PhotoComments
               photoId={currentPhoto.id}
               projectId={projectId}

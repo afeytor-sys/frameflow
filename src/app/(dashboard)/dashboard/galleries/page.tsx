@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Images, Plus, Eye, Download } from 'lucide-react'
+import { Images, Plus, Eye, Download, Share2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Gallery {
   id: string
@@ -13,6 +14,7 @@ interface Gallery {
   download_count: number
   photo_count?: number
   cover_url?: string | null
+  client_token?: string | null
   project?: { id: string; title: string; client?: { full_name: string } | { full_name: string }[] | null } | null
 }
 
@@ -37,7 +39,7 @@ export default function GalleriesPage() {
 
       const { data } = await supabase
         .from('galleries')
-        .select('id, title, status, view_count, download_count, project:projects(id, title, client:clients(full_name))')
+        .select('id, title, status, view_count, download_count, project:projects(id, title, client_token, client:clients(full_name))')
         .in('project_id', projectIds)
         .order('created_at', { ascending: false })
 
@@ -58,10 +60,14 @@ export default function GalleriesPage() {
           .limit(1)
           .single()
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const proj = (g.project as any)
+
         return {
           ...g,
           photo_count: count || 0,
           cover_url: firstPhoto?.thumbnail_url || firstPhoto?.storage_url || null,
+          client_token: proj?.client_token || null,
         }
       }))
 
@@ -99,78 +105,106 @@ export default function GalleriesPage() {
             const clientName = Array.isArray(client) ? client[0]?.full_name : client?.full_name
             const isActive = gallery.status === 'active'
 
+            const handleShare = (e: React.MouseEvent) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (!gallery.client_token) {
+                toast.error('Kein Client-Token gefunden')
+                return
+              }
+              const url = `${window.location.origin}/client/${gallery.client_token}/gallery`
+              navigator.clipboard.writeText(url).then(() => {
+                toast.success('Galerie-Link kopiert!')
+              }).catch(() => {
+                toast.error('Kopieren fehlgeschlagen')
+              })
+            }
+
             return (
-              <Link
-                key={gallery.id}
-                href={project ? `/dashboard/projects/${project.id}?tab=gallery` : '#'}
-                className="group block rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
-                style={{
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--card-shadow)',
-                }}
-              >
-                {/* Cover photo — compact */}
-                <div className="relative overflow-hidden" style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}>
-                  {gallery.cover_url ? (
-                    <img
-                      src={gallery.cover_url}
-                      alt={gallery.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Images className="w-8 h-8" style={{ color: 'var(--border-strong)', opacity: 0.4 }} />
-                    </div>
-                  )}
+              <div key={gallery.id} className="relative group">
+                <Link
+                  href={project ? `/dashboard/projects/${project.id}?tab=gallery` : '#'}
+                  className="block rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: 'var(--card-shadow)',
+                  }}
+                >
+                  {/* Cover photo — compact */}
+                  <div className="relative overflow-hidden" style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}>
+                    {gallery.cover_url ? (
+                      <img
+                        src={gallery.cover_url}
+                        alt={gallery.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Images className="w-8 h-8" style={{ color: 'var(--border-strong)', opacity: 0.4 }} />
+                      </div>
+                    )}
 
-                  {/* Status dot */}
-                  <div className="absolute top-2 left-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
-                      style={{
-                        background: isActive ? 'rgba(42,155,104,0.85)' : 'rgba(107,114,128,0.70)',
-                        color: '#fff',
-                      }}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                      {isActive ? 'Aktiv' : 'Entwurf'}
-                    </span>
-                  </div>
-
-                  {/* Photo count */}
-                  {(gallery.photo_count || 0) > 0 && (
-                    <div className="absolute bottom-2 right-2">
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm"
-                        style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.9)' }}>
-                        {gallery.photo_count}
+                    {/* Status dot */}
+                    <div className="absolute top-2 left-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
+                        style={{
+                          background: isActive ? 'rgba(42,155,104,0.85)' : 'rgba(107,114,128,0.70)',
+                          color: '#fff',
+                        }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+                        {isActive ? 'Aktiv' : 'Entwurf'}
                       </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Card body — minimal */}
-                <div className="px-3 py-2.5">
-                  <h3 className="font-semibold text-[13px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
-                    {gallery.title}
-                  </h3>
-                  {clientName && (
-                    <p className="text-[11.5px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      {clientName}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                      <Eye className="w-3 h-3" />
-                      {gallery.view_count}
-                    </span>
-                    {gallery.download_count > 0 && (
-                      <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        <Download className="w-3 h-3" />
-                        {gallery.download_count}
-                      </span>
+                    {/* Share button — top right, visible on hover */}
+                    {gallery.client_token && (
+                      <button
+                        onClick={handleShare}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm"
+                        style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+                        title="Galerie-Link kopieren"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {/* Photo count */}
+                    {(gallery.photo_count || 0) > 0 && (
+                      <div className="absolute bottom-2 right-2">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm"
+                          style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.9)' }}>
+                          {gallery.photo_count}
+                        </span>
+                      </div>
                     )}
                   </div>
-                </div>
-              </Link>
+
+                  {/* Card body — minimal */}
+                  <div className="px-3 py-2.5">
+                    <h3 className="font-semibold text-[13px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {gallery.title}
+                    </h3>
+                    {clientName && (
+                      <p className="text-[11.5px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        {clientName}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <Eye className="w-3 h-3" />
+                        {gallery.view_count}
+                      </span>
+                      {gallery.download_count > 0 && (
+                        <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          <Download className="w-3 h-3" />
+                          {gallery.download_count}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </div>
             )
           })}
         </div>

@@ -1,4 +1,4 @@
--- Add missing columns to galleries table
+, assim-- Add missing columns to galleries table
 -- Run this in Supabase SQL Editor
 
 ALTER TABLE galleries ADD COLUMN IF NOT EXISTS comments_enabled boolean NOT NULL DEFAULT true;
