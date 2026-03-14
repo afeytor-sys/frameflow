@@ -63,8 +63,8 @@ export function usePlanLimits(): PlanLimitsState {
     loading,
     canCreateClient,
     canCreateContract,
-    showWatermark: limits.watermark,
-    canHideBranding: limits.customBranding,
+    showWatermark: false, // disabled for all plans during beta
+    canHideBranding: true, // enabled for all plans during beta
     canAccessAnalytics: limits.analytics,
     canAddTeamMembers: limits.teamSeats > 1,
     canUseCustomDomain: limits.customDomain,

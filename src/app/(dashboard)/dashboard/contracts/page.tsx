@@ -60,9 +60,7 @@ export default async function ContractsPage() {
               {contracts.map((contract) => {
                 const sc = statusColors[contract.status] || statusColors.draft
                 return (
-                  <tr key={contract.id} className="transition-colors" style={{ borderBottom: '1px solid var(--border-color)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <tr key={contract.id} className="transition-colors hover:bg-[var(--bg-hover)]" style={{ borderBottom: '1px solid var(--border-color)' }}>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"

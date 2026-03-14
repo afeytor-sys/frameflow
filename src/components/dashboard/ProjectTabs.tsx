@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, Clock, Plus, ArrowLeft, Pencil, Check, X } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
-import TimelineBuilder from './TimelineBuilder'
-import type { Contract, Timeline, Plan } from '@/types/database'
+import BookingDetailsTab from './BookingDetailsTab'
+import type { Contract, Plan } from '@/types/database'
 import toast from 'react-hot-toast'
 
 type Photo = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number; is_favorite: boolean }
@@ -27,20 +27,30 @@ type GalleryItem = {
 }
 
 interface Props {
-  project: { id: string; title: string; client_url: string; photographer_id: string; [key: string]: unknown }
+  project: {
+    id: string
+    title: string
+    client_url: string
+    photographer_id: string
+    shoot_date?: string | null
+    location?: string | null
+    project_type?: string | null
+    notes?: string | null
+    status?: string
+    [key: string]: unknown
+  }
   contracts: Contract[]
   galleries: GalleryItem[]
-  timeline: Timeline | null
   plan: Plan
 }
 
 const TABS = [
-  { key: 'contract', label: 'Vertrag', icon: FileText },
-  { key: 'gallery', label: 'Galerie', icon: Images },
-  { key: 'timeline', label: 'Zeitplan', icon: Clock },
+  { key: 'contract', label: 'Vertrag',          icon: FileText },
+  { key: 'gallery',  label: 'Galerie',           icon: Images },
+  { key: 'booking',  label: 'Booking Details',   icon: CalendarDays },
 ]
 
-export default function ProjectTabs({ project, contracts, galleries: initialGalleries, timeline, plan }: Props) {
+export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan }: Props) {
   const [activeTab, setActiveTab] = useState('contract')
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
@@ -50,10 +60,6 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
   const supabase = createClient()
   const client = project.client as { full_name?: string; email?: string } | null
-
-  // Extract timeline data
-  const timelineId = timeline?.id ?? null
-  const timelineEvents = (timeline?.events as { id: string; time: string; title: string; location?: string; duration_minutes?: number; phase: 'preparation' | 'shoot' | 'wrap' | 'other'; notes?: string; photographer_note?: string }[]) ?? []
 
   const selectedGallery = galleries.find(g => g.id === selectedGalleryId) ?? null
 
@@ -165,8 +171,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                 }}
                 onClick={() => setSelectedGalleryId(g.id)}
               >
-                {/* Cover */}
-                <div className="relative h-32 overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+                {/* Cover — 3:4 portrait ratio */}
+                <div className="relative overflow-hidden" style={{ background: 'var(--bg-hover)', aspectRatio: '3/4' }}>
                   {coverPhoto ? (
                     <img
                       src={coverPhoto.thumbnail_url || coverPhoto.storage_url}
@@ -315,11 +321,16 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           </>
         )}
 
-        {activeTab === 'timeline' && (
-          <TimelineBuilder
+        {activeTab === 'booking' && (
+          <BookingDetailsTab
             projectId={project.id}
-            timelineId={timelineId}
-            initialEvents={timelineEvents}
+            initialData={{
+              shoot_date: (project.shoot_date as string | null) ?? null,
+              location: (project.location as string | null) ?? null,
+              project_type: (project.project_type as string | null) ?? null,
+              notes: (project.notes as string | null) ?? null,
+              status: (project.status as string) ?? 'booked',
+            }}
           />
         )}
       </div>

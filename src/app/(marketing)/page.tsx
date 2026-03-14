@@ -91,10 +91,7 @@ export default function HomePage() {
               { href: '#pricing', label: 'Preise' },
               { href: '#faq', label: 'FAQ' },
             ].map(({ href, label }) => (
-              <a key={href} href={href} className="text-[13.5px] font-medium transition-colors" style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-              >
+              <a key={href} href={href} className="text-[13.5px] font-medium transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-muted)' }}>
                 {label}
               </a>
             ))}

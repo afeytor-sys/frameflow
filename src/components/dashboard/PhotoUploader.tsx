@@ -18,10 +18,11 @@ interface UploadFile {
 interface Props {
   galleryId: string
   photographerId: string
+  sectionId?: string | null
   onUploadComplete: (photos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[]) => void
 }
 
-export default function PhotoUploader({ galleryId, photographerId, onUploadComplete }: Props) {
+export default function PhotoUploader({ galleryId, photographerId, sectionId, onUploadComplete }: Props) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -113,9 +114,10 @@ export default function PhotoUploader({ galleryId, photographerId, onUploadCompl
             gallery_id: galleryId,
             filename: uploadFile.file.name,
             storage_url: storageUrl,
-            thumbnail_url: storageUrl, // Same URL for now; thumbnail generation can be added via edge function
+            thumbnail_url: storageUrl,
             file_size: uploadFile.file.size,
             display_order: orderOffset++,
+            ...(sectionId ? { section_id: sectionId } : {}),
           })
           .select()
           .single()

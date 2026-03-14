@@ -26,10 +26,19 @@ export default function GalleriesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // galleries don't have photographer_id — fetch via projects
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('photographer_id', user.id)
+
+      const projectIds = (projects || []).map(p => p.id)
+      if (projectIds.length === 0) { setLoading(false); return }
+
       const { data } = await supabase
         .from('galleries')
         .select('id, title, status, view_count, download_count, project:projects(id, title, client:clients(full_name))')
-        .eq('photographer_id', user.id)
+        .in('project_id', projectIds)
         .order('created_at', { ascending: false })
 
       if (!data) { setLoading(false); return }
@@ -83,7 +92,7 @@ export default function GalleriesPage() {
       </div>
 
       {galleries.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {galleries.map((gallery) => {
             const project = gallery.project as { id: string; title: string; client?: { full_name: string } | { full_name: string }[] | null } | null
             const client = project?.client
@@ -94,25 +103,15 @@ export default function GalleriesPage() {
               <Link
                 key={gallery.id}
                 href={project ? `/dashboard/projects/${project.id}?tab=gallery` : '#'}
-                className="group block rounded-2xl overflow-hidden transition-all duration-300"
+                className="group block rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-color)',
                   boxShadow: 'var(--card-shadow)',
                 }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow-hover)'
-                  ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(196,164,124,0.3)'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow)'
-                  ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'
-                }}
               >
-                {/* Cover photo */}
-                <div className="relative h-44 overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+                {/* Cover photo — compact */}
+                <div className="relative overflow-hidden" style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}>
                   {gallery.cover_url ? (
                     <img
                       src={gallery.cover_url}
@@ -121,20 +120,15 @@ export default function GalleriesPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Images className="w-10 h-10" style={{ color: 'var(--border-strong)' }} />
+                      <Images className="w-8 h-8" style={{ color: 'var(--border-strong)', opacity: 0.4 }} />
                     </div>
                   )}
 
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0" style={{
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)'
-                  }} />
-
-                  {/* Status badge */}
-                  <div className="absolute top-3 right-3">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold backdrop-blur-sm"
+                  {/* Status dot */}
+                  <div className="absolute top-2 left-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
                       style={{
-                        background: isActive ? 'rgba(42,155,104,0.85)' : 'rgba(107,114,128,0.75)',
+                        background: isActive ? 'rgba(42,155,104,0.85)' : 'rgba(107,114,128,0.70)',
                         color: '#fff',
                       }}>
                       <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
@@ -142,36 +136,35 @@ export default function GalleriesPage() {
                     </span>
                   </div>
 
-                  {/* Photo count bottom-left */}
+                  {/* Photo count */}
                   {(gallery.photo_count || 0) > 0 && (
-                    <div className="absolute bottom-3 left-3">
-                      <span className="text-[12px] font-semibold text-white/90">
-                        {gallery.photo_count} {gallery.photo_count === 1 ? 'Foto' : 'Fotos'}
+                    <div className="absolute bottom-2 right-2">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm"
+                        style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.9)' }}>
+                        {gallery.photo_count}
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* Card body */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-[14px] mb-0.5 truncate" style={{ color: 'var(--text-primary)' }}>
+                {/* Card body — minimal */}
+                <div className="px-3 py-2.5">
+                  <h3 className="font-semibold text-[13px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
                     {gallery.title}
                   </h3>
                   {clientName && (
-                    <p className="text-[12.5px] truncate mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11.5px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
                       {clientName}
                     </p>
                   )}
-
-                  {/* Stats row */}
-                  <div className="flex items-center gap-4 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <span className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                      <Eye className="w-3.5 h-3.5" />
-                      {gallery.view_count} Aufrufe
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      <Eye className="w-3 h-3" />
+                      {gallery.view_count}
                     </span>
                     {gallery.download_count > 0 && (
-                      <span className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                        <Download className="w-3.5 h-3.5" />
+                      <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <Download className="w-3 h-3" />
                         {gallery.download_count}
                       </span>
                     )}

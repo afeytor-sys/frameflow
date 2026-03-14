@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import PhotoComments from './PhotoComments'
+import type { GalleryTheme } from '@/lib/galleryThemes'
 
 type PhotoTag = 'green' | 'yellow' | 'red' | null
 type GalleryLayout = 'masonry' | 'grid' | 'columns'
@@ -34,6 +35,7 @@ interface Props {
   commentsEnabled: boolean
   showWatermark: boolean
   token: string
+  theme?: GalleryTheme
 }
 
 const TAG_CONFIG = {
@@ -57,6 +59,7 @@ export default function GalleryViewer({
   downloadEnabled,
   commentsEnabled,
   token,
+  theme,
 }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -328,6 +331,16 @@ export default function GalleryViewer({
     </div>
   )
 
+  // Theme-aware colors for toolbar
+  const isDark = theme ? (theme.bg < '#888888') : true
+  const tbBg = theme ? `${theme.surface}CC` : 'rgba(255,255,255,0.08)'
+  const tbText = theme ? theme.textMuted : 'rgba(255,255,255,0.5)'
+  const tbTextHover = theme ? theme.text : '#ffffff'
+  const tbActiveBg = theme ? theme.accent : '#EF4444'
+  const tbBorder = theme ? theme.border : 'rgba(255,255,255,0.1)'
+  const tbDownloadBg = theme ? theme.text : '#ffffff'
+  const tbDownloadText = theme ? theme.bg : '#0C0C0B'
+
   return (
     <>
       {/* ── Toolbar ── */}
@@ -336,7 +349,12 @@ export default function GalleryViewer({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
-            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all', filterTag === 'favorite' ? 'bg-rose-500 text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+            style={{
+              background: filterTag === 'favorite' ? '#EF4444' : tbBg,
+              color: filterTag === 'favorite' ? '#fff' : tbText,
+              border: `1px solid ${tbBorder}`,
+            }}
           >
             <Heart className={cn('w-3 h-3', filterTag === 'favorite' && 'fill-white')} />
             {favoriteCount > 0 ? `${favoriteCount} Favoriten` : 'Favoriten'}
@@ -345,25 +363,39 @@ export default function GalleryViewer({
             const cfg = TAG_CONFIG[tag]; const count = tagCounts[tag]
             if (count === 0 && filterTag !== tag) return null
             return (
-              <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all', filterTag === tag ? 'text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12')} style={filterTag === tag ? { background: cfg.bg } : {}}>
+              <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                style={{
+                  background: filterTag === tag ? cfg.bg : tbBg,
+                  color: filterTag === tag ? '#fff' : tbText,
+                  border: `1px solid ${tbBorder}`,
+                }}>
                 <span className="w-2 h-2 rounded-full" style={{ background: cfg.bg }} />
                 {cfg.label} {count > 0 && `(${count})`}
               </button>
             )
           })}
-          {filterTag && <button onClick={() => setFilterTag(null)} className="text-[11px] text-white/30 hover:text-white/60 transition-colors px-2">× Alle anzeigen</button>}
+          {filterTag && (
+            <button onClick={() => setFilterTag(null)} className="text-[11px] transition-colors px-2" style={{ color: tbText }}>
+              × Alle anzeigen
+            </button>
+          )}
         </div>
 
         {/* Right: layout + controls + actions */}
         <div className="flex items-center gap-2">
           {/* Layout toggle */}
-          <div className="flex items-center gap-0.5 bg-white/8 rounded-xl p-1">
+          <div className="flex items-center gap-0.5 rounded-xl p-1" style={{ background: tbBg, border: `1px solid ${tbBorder}` }}>
             {LAYOUT_OPTIONS.map(({ key, icon: Icon, label }) => (
               <button
                 key={key}
                 onClick={() => setLayoutPersist(key)}
                 title={label}
-                className={cn('w-7 h-7 rounded-lg flex items-center justify-center transition-all', layout === key ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/70')}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                style={{
+                  background: layout === key ? (theme ? theme.accent + '33' : 'rgba(255,255,255,0.2)') : 'transparent',
+                  color: layout === key ? tbTextHover : tbText,
+                }}
               >
                 <Icon className="w-3.5 h-3.5" />
               </button>
@@ -374,7 +406,12 @@ export default function GalleryViewer({
           <div className="relative">
             <button
               onClick={() => setShowControls(!showControls)}
-              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all', showControls ? 'bg-white/20 text-white' : 'bg-white/8 text-white/50 hover:text-white hover:bg-white/12')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+              style={{
+                background: showControls ? (theme ? theme.accent + '22' : 'rgba(255,255,255,0.2)') : tbBg,
+                color: showControls ? tbTextHover : tbText,
+                border: `1px solid ${tbBorder}`,
+              }}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
             </button>

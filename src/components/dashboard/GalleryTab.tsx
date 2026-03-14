@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   DndContext,
@@ -20,8 +20,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal } from 'lucide-react'
 import { cn, copyToClipboard } from '@/lib/utils'
+import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 
 interface Photo {
@@ -32,6 +33,13 @@ interface Photo {
   file_size: number
   display_order: number
   is_favorite: boolean
+  section_id?: string | null
+}
+
+interface Section {
+  id: string
+  title: string
+  display_order: number
 }
 
 interface Gallery {
@@ -46,6 +54,8 @@ interface Gallery {
   expires_at: string | null
   view_count: number
   download_count: number
+  design_theme?: string | null
+  tags_enabled?: string[] | null
 }
 
 interface Props {
@@ -92,18 +102,12 @@ function SortablePhoto({
         className="w-full aspect-square object-cover"
         loading="lazy"
       />
-
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
-
-      {/* Select checkbox */}
       <button
         onClick={() => onSelect(photo.id)}
         className={cn(
           'absolute top-2 left-2 w-5 h-5 rounded border-2 transition-all',
-          selected
-            ? 'bg-[#C8A882] border-[#C8A882]'
-            : 'bg-white/80 border-white opacity-0 group-hover:opacity-100'
+          selected ? 'bg-[#C8A882] border-[#C8A882]' : 'bg-white/80 border-white opacity-0 group-hover:opacity-100'
         )}
       >
         {selected && (
@@ -112,8 +116,6 @@ function SortablePhoto({
           </svg>
         )}
       </button>
-
-      {/* Drag handle */}
       <div
         {...attributes}
         {...listeners}
@@ -121,15 +123,11 @@ function SortablePhoto({
       >
         <GripVertical className="w-3.5 h-3.5 text-white" />
       </div>
-
-      {/* Favorite indicator */}
       {photo.is_favorite && (
         <div className="absolute bottom-2 left-2">
           <Heart className="w-3.5 h-3.5 text-white fill-white" />
         </div>
       )}
-
-      {/* Delete */}
       <button
         onClick={() => onDelete(photo.id)}
         className="absolute bottom-2 right-2 w-6 h-6 bg-[#E84C1A]/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
@@ -143,10 +141,16 @@ function SortablePhoto({
 export default function GalleryTab({ projectId, photographerId, clientUrl, gallery: initialGallery, photos: initialPhotos, showWatermark }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
+  const [sections, setSections] = useState<Section[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showSettings, setShowSettings] = useState(false)
   const [showUploader, setShowUploader] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'general' | 'design' | 'sections'>('general')
+  const [uploadSectionId, setUploadSectionId] = useState<string | null>(null)
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null)
+  const [editingSectionTitle, setEditingSectionTitle] = useState('')
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
   // Settings form state
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
@@ -155,6 +159,14 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const [settingsComments, setSettingsComments] = useState(gallery?.comments_enabled ?? true)
   const [settingsPassword, setSettingsPassword] = useState('')
   const [settingsExpiry, setSettingsExpiry] = useState(gallery?.expires_at?.split('T')[0] || '')
+  const [selectedTheme, setSelectedTheme] = useState(gallery?.design_theme || 'classic-white')
+  // Tags enabled: default all enabled if not set
+  const defaultTags = gallery?.tags_enabled ?? ['green', 'yellow', 'red']
+  const [enabledTags, setEnabledTags] = useState<string[]>(defaultTags)
+
+  const toggleTag = (tag: string) => {
+    setEnabledTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -163,50 +175,45 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
   const supabase = createClient()
 
+  // Load sections
+  useEffect(() => {
+    if (!gallery) return
+    supabase
+      .from('gallery_sections')
+      .select('*')
+      .eq('gallery_id', gallery.id)
+      .order('display_order')
+      .then(({ data }) => {
+        if (data) setSections(data)
+      })
+  }, [gallery?.id])
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-
     const oldIndex = photos.findIndex((p) => p.id === active.id)
     const newIndex = photos.findIndex((p) => p.id === over.id)
     const reordered = arrayMove(photos, oldIndex, newIndex).map((p, i) => ({ ...p, display_order: i }))
     setPhotos(reordered)
-
-    // Persist order
-    await Promise.all(
-      reordered.map((p) =>
-        supabase.from('photos').update({ display_order: p.display_order }).eq('id', p.id)
-      )
-    )
+    await Promise.all(reordered.map((p) => supabase.from('photos').update({ display_order: p.display_order }).eq('id', p.id)))
   }
 
   const toggleSelect = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+    setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
   }
-
   const selectAll = () => setSelected(new Set(photos.map((p) => p.id)))
   const clearSelection = () => setSelected(new Set())
 
   const deleteSelected = async () => {
     if (!confirm(`${selected.size} ${selected.size === 1 ? 'Foto' : 'Fotos'} wirklich löschen?`)) return
     const ids = Array.from(selected)
-
-    // Delete from storage + DB
     for (const id of ids) {
       const photo = photos.find((p) => p.id === id)
       if (photo) {
-        // Extract path from URL
-        const url = new URL(photo.storage_url)
-        const path = url.pathname.split('/photos/')[1]
-        if (path) await supabase.storage.from('photos').remove([path])
+        try { const url = new URL(photo.storage_url); const path = url.pathname.split('/photos/')[1]; if (path) await supabase.storage.from('photos').remove([path]) } catch {}
       }
       await supabase.from('photos').delete().eq('id', id)
     }
-
     setPhotos((prev) => prev.filter((p) => !ids.includes(p.id)))
     setSelected(new Set())
     toast.success(`${ids.length} ${ids.length === 1 ? 'Foto' : 'Fotos'} gelöscht`)
@@ -216,9 +223,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
     if (!confirm('Foto wirklich löschen?')) return
     const photo = photos.find((p) => p.id === id)
     if (photo) {
-      const url = new URL(photo.storage_url)
-      const path = url.pathname.split('/photos/')[1]
-      if (path) await supabase.storage.from('photos').remove([path])
+      try { const url = new URL(photo.storage_url); const path = url.pathname.split('/photos/')[1]; if (path) await supabase.storage.from('photos').remove([path]) } catch {}
     }
     await supabase.from('photos').delete().eq('id', id)
     setPhotos((prev) => prev.filter((p) => p.id !== id))
@@ -228,18 +233,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const createGallery = async () => {
     const { data, error } = await supabase
       .from('galleries')
-      .insert({
-        project_id: projectId,
-        title: 'Galerie',
-        status: 'active',
-        watermark: showWatermark,
-        download_enabled: true,
-        view_count: 0,
-        download_count: 0,
-      })
-      .select()
-      .single()
-
+      .insert({ project_id: projectId, title: 'Galerie', status: 'active', watermark: showWatermark, download_enabled: true, view_count: 0, download_count: 0 })
+      .select().single()
     if (error) { toast.error('Fehler beim Erstellen der Galerie'); return }
     setGallery(data)
     setShowUploader(true)
@@ -249,20 +244,18 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const saveSettings = async () => {
     if (!gallery) return
     setSavingSettings(true)
-
     const updates: Record<string, unknown> = {
       title: settingsTitle,
       description: settingsDesc || null,
       download_enabled: settingsDownload,
       comments_enabled: settingsComments,
       expires_at: settingsExpiry ? new Date(settingsExpiry).toISOString() : null,
+      design_theme: selectedTheme,
+      tags_enabled: enabledTags,
     }
     if (settingsPassword) updates.password = settingsPassword
-
     const { error } = await supabase.from('galleries').update(updates).eq('id', gallery.id)
-    if (error) {
-      toast.error('Fehler beim Speichern')
-    } else {
+    if (error) { toast.error('Fehler beim Speichern') } else {
       setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
       setShowSettings(false)
       toast.success('Einstellungen gespeichert')
@@ -284,27 +277,71 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
     if (ok) toast.success('Link kopiert!')
   }
 
-  // No gallery yet
+  // Section management
+  const addSection = async () => {
+    if (!gallery) return
+    const order = sections.length
+    const { data, error } = await supabase
+      .from('gallery_sections')
+      .insert({ gallery_id: gallery.id, title: `Set ${order + 1}`, display_order: order })
+      .select().single()
+    if (error) { toast.error('Fehler'); return }
+    setSections(prev => [...prev, data])
+    toast.success('Set erstellt')
+  }
+
+  const renameSection = async (id: string) => {
+    if (!editingSectionTitle.trim()) { setEditingSectionId(null); return }
+    const { error } = await supabase.from('gallery_sections').update({ title: editingSectionTitle.trim() }).eq('id', id)
+    if (error) { toast.error('Fehler'); return }
+    setSections(prev => prev.map(s => s.id === id ? { ...s, title: editingSectionTitle.trim() } : s))
+    setEditingSectionId(null)
+    toast.success('Set umbenannt')
+  }
+
+  const deleteSection = async (id: string) => {
+    if (!confirm('Set löschen? Fotos bleiben erhalten.')) return
+    await supabase.from('gallery_sections').delete().eq('id', id)
+    // Unassign photos from this section
+    await supabase.from('photos').update({ section_id: null }).eq('section_id', id)
+    setSections(prev => prev.filter(s => s.id !== id))
+    setPhotos(prev => prev.map(p => p.section_id === id ? { ...p, section_id: null } : p))
+    toast.success('Set gelöscht')
+  }
+
+  const assignPhotosToSection = async (sectionId: string | null) => {
+    if (selected.size === 0) return
+    const ids = Array.from(selected)
+    await Promise.all(ids.map(id => supabase.from('photos').update({ section_id: sectionId }).eq('id', id)))
+    setPhotos(prev => prev.map(p => ids.includes(p.id) ? { ...p, section_id: sectionId } : p))
+    setSelected(new Set())
+    toast.success(`${ids.length} Fotos zugewiesen`)
+  }
+
+  const toggleCollapseSection = (id: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   if (!gallery) {
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-          style={{ background: 'var(--bg-hover)' }}>
+        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--bg-hover)' }}>
           <Images className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
         </div>
         <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
-        <button
-          onClick={createGallery}
-          className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
-          style={{ background: 'var(--text-primary)' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
+        <button onClick={createGallery} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--text-primary)' }}>
           Galerie erstellen
         </button>
       </div>
     )
   }
+
+  const unsectionedPhotos = photos.filter(p => !p.section_id)
+  const currentTheme = getTheme(selectedTheme)
 
   return (
     <div className="space-y-4">
@@ -312,56 +349,28 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{gallery.title}</h3>
-
-          {/* Clickable status tag */}
           <button
             onClick={toggleGalleryStatus}
-            title={gallery.status === 'active' ? 'Klicken zum Deaktivieren' : 'Klicken zum Aktivieren'}
             className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer"
             style={{
               background: gallery.status === 'active' ? 'rgba(61,186,111,0.12)' : 'rgba(107,114,128,0.10)',
               color: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)',
               border: `1px solid ${gallery.status === 'active' ? 'rgba(61,186,111,0.25)' : 'var(--border-color)'}`,
             }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
-            <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block"
-              style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
+            <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block" style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
             {gallery.status === 'active' ? 'Aktiv' : 'Entwurf'}
           </button>
-
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{photos.length} Fotos · {gallery.view_count} Aufrufe</span>
         </div>
-
         <div className="flex items-center gap-2">
-          <button
-            onClick={shareGallery}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-            style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            Teilen
+          <button onClick={shareGallery} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <Share2 className="w-3.5 h-3.5" />Teilen
           </button>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-            style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Einstellungen
+          <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <Settings className="w-3.5 h-3.5" />Einstellungen
           </button>
-          <button
-            onClick={() => setShowUploader(!showUploader)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white"
-            style={{ background: 'var(--text-primary)' }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >
+          <button onClick={() => { setUploadSectionId(null); setShowUploader(!showUploader) }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white" style={{ background: 'var(--text-primary)' }} onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
             + Fotos hochladen
           </button>
         </div>
@@ -369,197 +378,307 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="rounded-xl border p-5 space-y-4"
-          style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
-          <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Galerie-Einstellungen</h4>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Titel</label>
-              <input
-                type="text"
-                value={settingsTitle}
-                onChange={(e) => setSettingsTitle(e.target.value)}
-                className="input-base"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Passwort (optional)</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                <input
-                  type="password"
-                  value={settingsPassword}
-                  onChange={(e) => setSettingsPassword(e.target.value)}
-                  placeholder={gallery.password ? '••••••••' : 'Kein Passwort'}
-                  className="input-base pl-9"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
-              <input
-                type="text"
-                value={settingsDesc}
-                onChange={(e) => setSettingsDesc(e.target.value)}
-                placeholder="Optional"
-                className="input-base"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Ablaufdatum (optional)</label>
-              <input
-                type="date"
-                value={settingsExpiry}
-                onChange={(e) => setSettingsExpiry(e.target.value)}
-                className="input-base"
-              />
-            </div>
+        <div className="rounded-xl border p-5 space-y-4" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
+          {/* Settings tabs */}
+          <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
+            {[
+              { key: 'general', label: 'Allgemein', icon: Settings },
+              { key: 'design', label: 'Design', icon: Palette },
+              { key: 'sections', label: 'Sets', icon: GripHorizontal },
+            ].map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveSettingsTab(key as 'general' | 'design' | 'sections')}
+                className="flex items-center gap-1.5 flex-1 justify-center px-3 py-1.5 text-[13px] font-medium rounded-md transition-all"
+                style={{
+                  background: activeSettingsTab === key ? 'var(--bg-surface)' : 'transparent',
+                  color: activeSettingsTab === key ? 'var(--text-primary)' : 'var(--text-muted)',
+                  boxShadow: activeSettingsTab === key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                }}
+              >
+                <Icon className="w-3.5 h-3.5" />{label}
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Download toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div
-                onClick={() => setSettingsDownload(!settingsDownload)}
-                className="relative cursor-pointer rounded-full transition-all"
-                style={{
-                  width: '36px',
-                  height: '20px',
-                  background: settingsDownload ? 'var(--accent)' : 'var(--border-strong)',
-                }}
-              >
-                <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
-                  style={{ left: settingsDownload ? '16px' : '2px' }} />
+          {/* General tab */}
+          {activeSettingsTab === 'general' && (
+            <div className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Titel</label>
+                  <input type="text" value={settingsTitle} onChange={(e) => setSettingsTitle(e.target.value)} className="input-base" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Passwort (optional)</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                    <input type="password" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} placeholder={gallery.password ? '••••••••' : 'Kein Passwort'} className="input-base pl-9" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
+                  <input type="text" value={settingsDesc} onChange={(e) => setSettingsDesc(e.target.value)} placeholder="Optional" className="input-base" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Ablaufdatum (optional)</label>
+                  <input type="date" value={settingsExpiry} onChange={(e) => setSettingsExpiry(e.target.value)} className="input-base" />
+                </div>
               </div>
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Download erlauben</span>
-            </label>
-
-            {/* Active toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div
-                onClick={toggleGalleryStatus}
-                className="relative cursor-pointer rounded-full transition-all"
-                style={{
-                  width: '36px',
-                  height: '20px',
-                  background: gallery.status === 'active' ? '#3DBA6F' : 'var(--border-strong)',
-                }}
-              >
-                <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
-                  style={{ left: gallery.status === 'active' ? '16px' : '2px' }} />
+              <div className="flex items-center gap-4 flex-wrap">
+                {[
+                  { label: 'Download erlauben', value: settingsDownload, onChange: () => setSettingsDownload(!settingsDownload), color: 'var(--accent)' },
+                  { label: 'Galerie aktiv', value: gallery.status === 'active', onChange: toggleGalleryStatus, color: '#3DBA6F' },
+                  { label: 'Kommentare erlauben', value: settingsComments, onChange: () => setSettingsComments(!settingsComments), color: 'var(--accent)' },
+                ].map(({ label, value, onChange, color }) => (
+                  <label key={label} className="flex items-center gap-2 cursor-pointer">
+                    <div onClick={onChange} className="relative cursor-pointer rounded-full transition-all" style={{ width: '36px', height: '20px', background: value ? color : 'var(--border-strong)' }}>
+                      <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: value ? '16px' : '2px' }} />
+                    </div>
+                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                  </label>
+                ))}
               </div>
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Galerie aktiv</span>
-            </label>
 
-            {/* Comments toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div
-                onClick={() => setSettingsComments(!settingsComments)}
-                className="relative cursor-pointer rounded-full transition-all"
-                style={{
-                  width: '36px',
-                  height: '20px',
-                  background: settingsComments ? 'var(--accent)' : 'var(--border-strong)',
-                }}
-              >
-                <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
-                  style={{ left: settingsComments ? '16px' : '2px' }} />
+              {/* Color tag toggles */}
+              <div className="pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <p className="text-xs font-medium mb-2.5" style={{ color: 'var(--text-muted)' }}>Farb-Tags für Kunden</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {[
+                    { key: 'green',  label: 'Auswahl',    color: '#22C55E' },
+                    { key: 'yellow', label: 'Vielleicht', color: '#EAB308' },
+                    { key: 'red',    label: 'Ablehnen',   color: '#EF4444' },
+                  ].map(({ key, label, color }) => {
+                    const isEnabled = enabledTags.includes(key)
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleTag(key)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                        style={{
+                          background: isEnabled ? `${color}22` : 'var(--bg-hover)',
+                          border: `1.5px solid ${isEnabled ? color : 'var(--border-color)'}`,
+                          color: isEnabled ? color : 'var(--text-muted)',
+                          opacity: isEnabled ? 1 : 0.6,
+                        }}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color, opacity: isEnabled ? 1 : 0.4 }} />
+                        {label}
+                        {isEnabled && <Check className="w-3 h-3 ml-0.5" />}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                  Aktivierte Tags können Kunden in der Galerie verwenden
+                </p>
               </div>
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Kommentare erlauben</span>
-            </label>
-          </div>
+            </div>
+          )}
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={saveSettings}
-              disabled={savingSettings}
-              className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-              style={{ background: 'var(--text-primary)' }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-            >
+          {/* Design tab — 10 themes */}
+          {activeSettingsTab === 'design' && (
+            <div className="space-y-3">
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Wähle ein Layout für die Kunden-Galerie</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {GALLERY_THEMES.map(theme => (
+                  <button
+                    key={theme.key}
+                    onClick={() => setSelectedTheme(theme.key)}
+                    className="relative rounded-xl overflow-hidden transition-all text-left"
+                    style={{
+                      border: selectedTheme === theme.key ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                      boxShadow: selectedTheme === theme.key ? '0 0 0 3px rgba(196,164,124,0.2)' : 'none',
+                    }}
+                  >
+                    {/* Theme preview */}
+                    <div className="h-16 flex flex-col justify-between p-2" style={{ background: theme.bg }}>
+                      <div className="flex gap-1">
+                        {[1,2,3].map(i => (
+                          <div key={i} className="flex-1 rounded" style={{ height: '20px', background: theme.surface, border: `1px solid ${theme.border}` }} />
+                        ))}
+                      </div>
+                      <div className="h-1.5 rounded-full w-2/3" style={{ background: theme.accent, opacity: 0.6 }} />
+                    </div>
+                    <div className="px-2 py-1.5" style={{ background: theme.bg, borderTop: `1px solid ${theme.border}` }}>
+                      <p className="text-[11px] font-semibold truncate" style={{ color: theme.text, fontFamily: theme.fontFamily }}>{theme.name}</p>
+                      <p className="text-[10px]" style={{ color: theme.textMuted }}>{theme.grid === '2col' ? '2 Spalten' : theme.grid === '3col' ? '3 Spalten' : theme.grid === '4col' ? '4 Spalten' : 'Masonry'}</p>
+                    </div>
+                    {selectedTheme === theme.key && (
+                      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                        <Check className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                Aktuell: <strong style={{ color: 'var(--text-primary)' }}>{currentTheme.name}</strong> · {currentTheme.grid === '2col' ? '2 Spalten' : currentTheme.grid === '3col' ? '3 Spalten' : currentTheme.grid === '4col' ? '4 Spalten' : 'Masonry'} · {currentTheme.fontFamily.split(',')[0].replace(/"/g, '')}
+              </div>
+            </div>
+          )}
+
+          {/* Sections tab */}
+          {activeSettingsTab === 'sections' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Teile deine Galerie in Sets auf (z.B. Getting Ready, Trauung)</p>
+                <button onClick={addSection} className="flex items-center gap-1 px-2.5 py-1 text-[12px] font-medium rounded-lg text-white" style={{ background: 'var(--accent)' }}>
+                  <Plus className="w-3 h-3" />Set
+                </button>
+              </div>
+              {sections.length === 0 ? (
+                <div className="text-center py-6 rounded-lg" style={{ border: '2px dashed var(--border-color)' }}>
+                  <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Sets. Erstelle Sets um Fotos zu gruppieren.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sections.map(section => (
+                    <div key={section.id} className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                      <GripHorizontal className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                      {editingSectionId === section.id ? (
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <input autoFocus value={editingSectionTitle} onChange={e => setEditingSectionTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameSection(section.id); if (e.key === 'Escape') setEditingSectionId(null) }} className="input-base py-1 text-[13px] flex-1" />
+                          <button onClick={() => renameSection(section.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--accent)', color: '#fff' }}><Check className="w-3 h-3" /></button>
+                          <button onClick={() => setEditingSectionId(null)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}><X className="w-3 h-3" /></button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{section.title}</span>
+                          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{photos.filter(p => p.section_id === section.id).length} Fotos</span>
+                          <button onClick={() => { setEditingSectionId(section.id); setEditingSectionTitle(section.title) }} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}><Pencil className="w-3 h-3" /></button>
+                          <button onClick={() => deleteSection(section.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', color: '#E84C1A' }}><Trash2 className="w-3 h-3" /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+            <button onClick={saveSettings} disabled={savingSettings} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50" style={{ background: 'var(--text-primary)' }}>
               {savingSettings ? 'Speichern...' : 'Speichern'}
             </button>
-            <button
-              onClick={() => setShowSettings(false)}
-              className="px-4 py-2 text-sm transition-colors"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              Abbrechen
-            </button>
+            <button onClick={() => setShowSettings(false)} className="px-4 py-2 text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>Abbrechen</button>
           </div>
         </div>
       )}
 
       {/* Uploader */}
       {showUploader && (
-        <PhotoUploader
-          galleryId={gallery.id}
-          photographerId={photographerId}
-          onUploadComplete={(newPhotos) => {
-            setPhotos((prev) => [...prev, ...newPhotos.map((p) => ({ ...p, is_favorite: false }))])
-            setShowUploader(false)
-          }}
-        />
+        <div className="space-y-2">
+          {sections.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Hochladen in:</span>
+              <select value={uploadSectionId || ''} onChange={e => setUploadSectionId(e.target.value || null)} className="input-base py-1 text-[13px]" style={{ width: 'auto' }}>
+                <option value="">Kein Set (allgemein)</option>
+                {sections.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+              </select>
+            </div>
+          )}
+          <PhotoUploader
+            galleryId={gallery.id}
+            photographerId={photographerId}
+            sectionId={uploadSectionId}
+            onUploadComplete={(newPhotos) => {
+              setPhotos((prev) => [...prev, ...newPhotos.map((p) => ({ ...p, is_favorite: false, section_id: uploadSectionId }))])
+              setShowUploader(false)
+            }}
+          />
+        </div>
       )}
 
       {/* Bulk actions */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg"
-          style={{ background: 'rgba(200,168,130,0.10)', border: '1px solid rgba(200,168,130,0.20)' }}>
+        <div className="flex items-center gap-3 p-3 rounded-lg flex-wrap" style={{ background: 'rgba(200,168,130,0.10)', border: '1px solid rgba(200,168,130,0.20)' }}>
           <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{selected.size} ausgewählt</span>
-          <button onClick={clearSelection} className="text-xs transition-colors"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-            Auswahl aufheben
-          </button>
-          <button onClick={selectAll} className="text-xs transition-colors"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-            Alle auswählen
-          </button>
-          <button
-            onClick={deleteSelected}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors"
-            style={{ background: '#E84C1A' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#D04418')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#E84C1A')}
-          >
-            <Trash2 className="w-3 h-3" />
-            Löschen
+          <button onClick={clearSelection} className="text-xs" style={{ color: 'var(--text-muted)' }}>Auswahl aufheben</button>
+          <button onClick={selectAll} className="text-xs" style={{ color: 'var(--text-muted)' }}>Alle auswählen</button>
+          {sections.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Zuweisen zu:</span>
+              <select onChange={e => assignPhotosToSection(e.target.value || null)} className="text-xs rounded px-2 py-1" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
+                <option value="">Kein Set</option>
+                {sections.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+              </select>
+            </div>
+          )}
+          <button onClick={deleteSelected} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg" style={{ background: '#E84C1A' }}>
+            <Trash2 className="w-3 h-3" />Löschen
           </button>
         </div>
       )}
 
-      {/* Photo grid */}
+      {/* Photo grid — grouped by sections */}
       {photos.length === 0 ? (
-        <div className="text-center py-12 rounded-xl"
-          style={{ border: '2px dashed var(--border-color)' }}>
+        <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
           <Images className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos. Lade deine ersten Fotos hoch.</p>
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {photos.map((photo) => (
-                <SortablePhoto
-                  key={photo.id}
-                  photo={photo}
-                  selected={selected.has(photo.id)}
-                  onSelect={toggleSelect}
-                  onDelete={deletePhoto}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      )}
+        <div className="space-y-6">
+          {/* Sections with photos */}
+          {sections.map(section => {
+            const sectionPhotos = photos.filter(p => p.section_id === section.id)
+            const isCollapsed = collapsedSections.has(section.id)
+            return (
+              <div key={section.id}>
+                <div className="flex items-center gap-2 mb-3">
+                  <button onClick={() => toggleCollapseSection(section.id)} className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {section.title}
+                  </button>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{sectionPhotos.length}</span>
+                  <button onClick={() => { setUploadSectionId(section.id); setShowUploader(true) }} className="ml-auto flex items-center gap-1 text-[11px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                    <Plus className="w-3 h-3" />Fotos
+                  </button>
+                </div>
+                {!isCollapsed && (
+                  sectionPhotos.length === 0 ? (
+                    <div className="text-center py-6 rounded-lg" style={{ border: '2px dashed var(--border-color)' }}>
+                      <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Keine Fotos in diesem Set</p>
+                    </div>
+                  ) : (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                          {sectionPhotos.map(photo => (
+                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={toggleSelect} onDelete={deletePhoto} />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  )
+                )}
+              </div>
+            )
+          })}
 
+          {/* Unsectioned photos */}
+          {(unsectionedPhotos.length > 0 || sections.length === 0) && (
+            <div>
+              {sections.length > 0 && (
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Ohne Set</span>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{unsectionedPhotos.length}</span>
+                </div>
+              )}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {unsectionedPhotos.map(photo => (
+                      <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={toggleSelect} onDelete={deletePhoto} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

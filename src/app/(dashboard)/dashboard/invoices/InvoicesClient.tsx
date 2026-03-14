@@ -84,7 +84,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.project_id || !form.amount) return
+    if (!form.project_id) { toast.error('Bitte ein Projekt auswählen'); return }
+    if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
     setSaving(true)
 
     const net = parseFloat(form.amount.replace(',', '.'))
@@ -329,10 +330,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 <select
                   value={form.project_id}
                   onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))}
-                  required
                   className="input-base"
+                  style={{ color: form.project_id ? 'var(--text-primary)' : 'var(--text-muted)' }}
                 >
-                  <option value="" disabled>Projekt auswählen...</option>
+                  <option value="">Projekt auswählen...</option>
                   {projects.map(p => {
                     const c = p.client
                     const clientName = Array.isArray(c) ? c[0]?.full_name : c?.full_name

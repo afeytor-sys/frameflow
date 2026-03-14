@@ -119,19 +119,11 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           {/* Contract card */}
           {latestContract && (
             <Link href={`/client/${token}/contract`}
-              className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-1"
+              className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-1 hover:-translate-y-0.5"
               style={{
                 background: 'var(--card-bg)',
                 border: '1px solid var(--card-border)',
                 boxShadow: 'var(--card-shadow)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow-hover)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow)'
               }}
             >
               {/* Top accent bar */}
@@ -206,19 +198,11 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           {/* Gallery card */}
           {gallery && (
             <Link href={`/client/${token}/gallery`}
-              className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2"
+              className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
               style={{
                 background: 'var(--card-bg)',
                 border: '1px solid var(--card-border)',
                 boxShadow: 'var(--card-shadow)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow-hover)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow)'
               }}
             >
               <div className="h-1 w-full" style={{
@@ -277,19 +261,11 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           {/* Timeline card */}
           {timelineEvents.length > 0 && (
             <Link href={`/client/${token}/timeline`}
-              className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-3"
+              className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-3 hover:-translate-y-0.5"
               style={{
                 background: 'var(--card-bg)',
                 border: '1px solid var(--card-border)',
                 boxShadow: 'var(--card-shadow)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow-hover)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow)'
               }}
             >
               <div className="h-1 w-full" style={{

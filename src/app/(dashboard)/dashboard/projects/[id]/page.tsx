@@ -7,7 +7,6 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import DeliveryChecklist from '@/components/dashboard/DeliveryChecklist'
-
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -53,9 +52,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   // Build client URL dynamically using current host
   const headersList = await headers()
-  const host = headersList.get('host') || 'localhost:3000'
+  // In production (Vercel/proxy), use x-forwarded-host; fallback to host
+  const forwardedHost = headersList.get('x-forwarded-host')
+  const host = forwardedHost || headersList.get('host') || 'localhost:3000'
   const protocol = host.includes('localhost') ? 'http' : 'https'
-  const clientUrl = `${protocol}://${host}/client/${project.client_token}`
+  const clientUrl = project.client_token
+    ? `${protocol}://${host}/client/${project.client_token}`
+    : null
 
   // First gallery for delivery checklist
   const firstGallery = galleries?.[0] ?? null
@@ -76,9 +79,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>{project.title}</h1>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
-              {statusLabels[project.status]}
-            </span>
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <Link href={`/dashboard/clients/${(project.client as { id: string }).id}`}
@@ -95,24 +95,33 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       {/* Client portal link + QR */}
       <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
-            <p className="text-sm font-mono truncate" style={{ color: 'var(--text-primary)' }}>{clientUrl}</p>
+        {clientUrl ? (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
+              <p className="text-sm font-mono truncate" style={{ color: 'var(--text-primary)' }}>{clientUrl}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <QRCodeModal clientUrl={clientUrl} projectTitle={project.title} />
+              <a
+                href={clientUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+                style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <QRCodeModal clientUrl={clientUrl} projectTitle={project.title} />
-            <a
-              href={clientUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-              style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Kein Token vorhanden — Projekt neu erstellen oder Token generieren</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Delivery Checklist */}
@@ -130,7 +139,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         project={project}
         contracts={contracts || []}
         galleries={galleries || []}
-        timeline={timeline}
         plan={photographer?.plan || 'free'}
       />
     </div>

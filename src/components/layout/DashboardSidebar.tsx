@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   Receipt,
   Globe,
+  CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -30,6 +31,7 @@ const navItems = [
   { key: 'dashboard', href: '/dashboard',           icon: LayoutDashboard, label: 'Übersicht' },
   { key: 'clients',   href: '/dashboard/clients',   icon: Users,           label: 'Kunden' },
   { key: 'projects',  href: '/dashboard/projects',  icon: FolderOpen,      label: 'Projekte' },
+  { key: 'bookings',  href: '/dashboard/bookings',  icon: CalendarDays,    label: 'Bookings' },
   { key: 'contracts', href: '/dashboard/contracts', icon: FileText,        label: 'Verträge' },
   { key: 'galleries', href: '/dashboard/galleries', icon: Images,          label: 'Galerien' },
   { key: 'invoices',  href: '/dashboard/invoices',  icon: Receipt,         label: 'Rechnungen' },

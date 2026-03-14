@@ -96,16 +96,8 @@ export default function ProjectsPage() {
             return (
               <div key={project.id} className="relative group">
                 <Link href={`/dashboard/projects/${project.id}`}
-                  className="rounded-xl p-5 transition-all block"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(196,164,124,0.3)'
-                    ;(e.currentTarget as HTMLElement).style.boxShadow = 'var(--card-shadow-hover)'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-color)'
-                    ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-                  }}>
+                  className="rounded-xl p-5 transition-all block hover:border-[rgba(196,164,124,0.3)] hover:shadow-[var(--card-shadow-hover)]"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
                   <div className="flex items-start justify-between mb-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
                       style={{ background: sc.bg, color: sc.color }}>
@@ -126,10 +118,8 @@ export default function ProjectsPage() {
                 {/* Delete button — absolute positioned over the card */}
                 <button
                   onClick={(e) => deleteProject(e, project.id, project.title)}
-                  className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                  className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 hover:bg-[rgba(196,59,44,0.20)]"
                   style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.20)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.10)')}
                   title="Projekt löschen"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
