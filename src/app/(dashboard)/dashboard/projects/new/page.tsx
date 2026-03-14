@@ -110,7 +110,7 @@ export default function NewProjectPage() {
         title: form.title.trim(),
         shoot_date: form.shoot_date || null,
         project_type: form.project_type || null,
-        status: 'inquiry',
+        status: 'booked',
         client_token: token,
         client_url: `${appUrl}/client/${token}`,
       })
