@@ -133,21 +133,68 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {kpis.map(({ label, value, icon: Icon, color, bg }) => (
+      {/* KPI Cards — 3+3 grid, same style as dashboard stats */}
+      <style>{`
+        @keyframes kpiFadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {kpis.map(({ label, value, icon: Icon, color }, i) => (
           <div
             key={label}
-            className="rounded-2xl p-4 flex flex-col gap-2"
-            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
+            className="relative rounded-2xl overflow-hidden transition-all duration-300 cursor-default"
+            style={{
+              background: `linear-gradient(135deg, ${color}12 0%, ${color}05 100%)`,
+              border: `1px solid ${color}25`,
+              boxShadow: `0 2px 12px ${color}10`,
+              animation: 'kpiFadeUp 0.45s ease forwards',
+              animationDelay: `${i * 60}ms`,
+              opacity: 0,
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget
+              el.style.transform = 'translateY(-4px)'
+              el.style.boxShadow = `0 12px 32px ${color}22`
+              el.style.borderColor = color + '40'
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget
+              el.style.transform = 'translateY(0)'
+              el.style.boxShadow = `0 2px 12px ${color}10`
+              el.style.borderColor = color + '25'
+            }}
           >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: bg }}>
-              <Icon className="w-4 h-4" style={{ color }} />
+            {/* Top accent bar */}
+            <div className="h-[3px] w-full" style={{ background: color, opacity: 0.7 }} />
+
+            <div className="p-6">
+              {/* Icon */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                style={{ background: color + '15', border: `1px solid ${color}25` }}
+              >
+                <Icon className="w-5 h-5" style={{ color }} />
+              </div>
+
+              {/* Big value */}
+              <p
+                className="font-black tabular-nums leading-none mb-1"
+                style={{
+                  fontSize: 'clamp(28px, 3.5vw, 44px)',
+                  letterSpacing: '-0.04em',
+                  color,
+                }}
+              >
+                {value}
+              </p>
+
+              {/* Label */}
+              <p className="text-[11px] font-bold uppercase tracking-[0.10em]" style={{ color: color + '99' }}>
+                {label}
+              </p>
             </div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>{label}</p>
-            <p className="font-black text-[18px] leading-none" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              {value}
-            </p>
           </div>
         ))}
       </div>
