@@ -38,9 +38,15 @@ const STATUS_OPTIONS = [
 ]
 
 export default function BookingDetailsTab({ projectId, initialData }: Props) {
+  const KNOWN_TYPES = PROJECT_TYPES.map(t => t.value)
+
+  const initType = initialData.project_type ?? ''
+  const isCustomInit = initType !== '' && !KNOWN_TYPES.includes(initType)
+
   const [shootDate, setShootDate] = useState(initialData.shoot_date?.slice(0, 10) ?? '')
   const [location, setLocation] = useState(initialData.location ?? '')
-  const [projectType, setProjectType] = useState(initialData.project_type ?? '')
+  const [projectType, setProjectType] = useState(isCustomInit ? 'other' : initType)
+  const [customType, setCustomType] = useState(isCustomInit ? initType : '')
   const [notes, setNotes] = useState(initialData.notes ?? '')
   const [status, setStatus] = useState(initialData.status ?? 'inquiry')
   const [saving, setSaving] = useState(false)
@@ -51,12 +57,17 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
   const handleSave = async () => {
     setSaving(true)
 
+    // If "other" is selected, save the custom text; otherwise save the selected type
+    const finalType = projectType === 'other'
+      ? (customType.trim() || 'other')
+      : (projectType || null)
+
     const { error } = await supabase
       .from('projects')
       .update({
         shoot_date: shootDate || null,
         location: location || null,
-        project_type: projectType || null,
+        project_type: finalType,
         notes: notes || null,
         status,
       })
@@ -139,6 +150,23 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             </button>
           ))}
         </div>
+
+        {/* Custom type input — shown when "Sonstiges" is selected */}
+        {projectType === 'other' && (
+          <div className="mt-3">
+            <input
+              type="text"
+              value={customType}
+              onChange={e => setCustomType(e.target.value)}
+              placeholder="z.B. Boudoir, Architektur, Sport..."
+              className="input-base w-full"
+              autoFocus
+            />
+            <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              Gib deinen eigenen Shooting-Typ ein
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Status */}
