@@ -550,29 +550,29 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
                     <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{label}</span>
                   </label>
                 ))}
-                {/* Color tag toggles — same style as other toggles */}
-                {[
-                  { key: 'green',  label: 'Tag: Auswahl',    color: '#22C55E' },
-                  { key: 'yellow', label: 'Tag: Vielleicht', color: '#EAB308' },
-                  { key: 'red',    label: 'Tag: Ablehnen',   color: '#EF4444' },
-                ].map(({ key, label, color }) => {
-                  const isEnabled = enabledTags.includes(key)
+                {/* Single tag toggle */}
+                {(() => {
+                  const tagsOn = enabledTags.length > 0
                   return (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <div
-                        onClick={() => toggleTag(key)}
+                        onClick={() => setEnabledTags(tagsOn ? [] : ['green', 'yellow', 'red'])}
                         className="relative cursor-pointer rounded-full transition-all"
-                        style={{ width: '36px', height: '20px', background: isEnabled ? color : 'var(--border-strong)' }}
+                        style={{ width: '36px', height: '20px', background: tagsOn ? '#22C55E' : 'var(--border-strong)' }}
                       >
-                        <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: isEnabled ? '16px' : '2px' }} />
+                        <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: tagsOn ? '16px' : '2px' }} />
                       </div>
                       <span className="text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: color }} />
-                        {label}
+                        <span className="flex gap-0.5">
+                          {['#22C55E','#EAB308','#EF4444'].map(c => (
+                            <span key={c} className="w-2 h-2 rounded-full inline-block" style={{ background: c, opacity: tagsOn ? 1 : 0.3 }} />
+                          ))}
+                        </span>
+                        Tag Auswahl
                       </span>
                     </label>
                   )
-                })}
+                })()}
               </div>
             </div>
           )}
