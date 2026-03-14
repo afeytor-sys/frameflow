@@ -11,7 +11,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, title, shoot_date, project_type, photographer_id, photographer:photographers(plan, studio_name, full_name, logo_url), client:clients(full_name)')
+    .select('id, title, photographer_id, photographer:photographers(studio_name, full_name, logo_url), client:clients(full_name)')
     .eq('client_token', token)
     .single()
 
@@ -20,13 +20,18 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { plan: string; studio_name: string | null; full_name: string; logo_url: string | null } | null
   const client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string } | null
 
-  const { data: gallery } = await supabase
+  // Use only columns that exist in the base schema
+  const { data: gallery, error: galleryError } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, comments_enabled, view_count, design_theme')
+    .select('id, title, description, status, download_enabled, watermark')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
+
+  if (galleryError) {
+    console.error('Gallery query error:', galleryError.message, galleryError.code)
+  }
 
   if (!gallery) {
     return (
@@ -57,26 +62,11 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
-  // Increment view count (fire and forget)
-  supabase
-    .from('galleries')
-    .update({ view_count: (gallery.view_count || 0) + 1 })
-    .eq('id', gallery.id)
-    .then(() => {})
-
   const sortedPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
   const gallerySections = sections || []
 
-  // Get theme
-  const theme = getTheme(gallery.design_theme || 'classic-white')
+  const theme = getTheme('classic-white')
 
-  // Format shoot date
-  const shootDate = project.shoot_date
-    ? new Date(project.shoot_date).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
-    : null
-
-  // Grid columns CSS
-  const gridCols = theme.grid === '2col' ? 'repeat(2, 1fr)' : theme.grid === '4col' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'
 
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
@@ -128,22 +118,8 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           </p>
 
           {/* Meta row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, fontSize: '0.875rem', color: theme.textMuted, justifyContent: theme.headerStyle === 'centered' ? 'center' : 'flex-start' }}>
-            {shootDate && <span>{shootDate}</span>}
-            {project.project_type && (
-              <>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: theme.border, display: 'inline-block' }} />
-                <span style={{ textTransform: 'capitalize' }}>{project.project_type}</span>
-              </>
-            )}
-            <span style={{ width: 4, height: 4, borderRadius: '50%', background: theme.border, display: 'inline-block' }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, fontSize: '0.875rem', color: theme.textMuted }}>
             <span>{sortedPhotos.length} Fotos</span>
-            {gallerySections.length > 0 && (
-              <>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: theme.border, display: 'inline-block' }} />
-                <span>{gallerySections.length} Sets</span>
-              </>
-            )}
           </div>
         </div>
       </div>
@@ -164,7 +140,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             clientName={client?.full_name || ''}
             initialPhotos={sortedPhotos}
             downloadEnabled={gallery.download_enabled}
-            commentsEnabled={gallery.comments_enabled ?? true}
+            commentsEnabled={true}
             showWatermark={false}
             token={token}
             theme={theme}
