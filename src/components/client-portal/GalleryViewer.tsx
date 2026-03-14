@@ -50,6 +50,67 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
   { key: 'columns',  icon: Columns2,      label: 'Spalten' },
 ]
 
+// ── Supabase Image Transform helper ─────────────────────────────────
+// Converts a Supabase storage URL to use the image transform API
+// which serves resized/compressed images via CDN
+function getOptimizedUrl(url: string, width: number, quality = 75): string {
+  if (!url) return url
+  // Already a transform URL or external URL — return as-is
+  if (url.includes('/render/image/') || !url.includes('/storage/v1/object/')) return url
+  // Convert: /storage/v1/object/public/bucket/path → /storage/v1/render/image/public/bucket/path
+  return url
+    .replace('/storage/v1/object/', '/storage/v1/render/image/')
+    + `?width=${width}&quality=${quality}&resize=contain`
+}
+
+// Thumbnail for grid view (small, fast)
+function getThumbnailUrl(photo: Photo): string {
+  // Use existing thumbnail if available, otherwise generate via transform
+  const base = photo.thumbnail_url || photo.storage_url
+  return getOptimizedUrl(base, 600, 75)
+}
+
+// Medium size for lightbox (good quality, not full res)
+function getLightboxUrl(photo: Photo): string {
+  return getOptimizedUrl(photo.storage_url, 1600, 85)
+}
+
+// ── Lazy image component with skeleton ──────────────────────────────
+function LazyImage({ src, alt, className, onLoad }: { src: string; alt: string; className?: string; onLoad?: () => void }) {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    // Reset state when src changes
+    setLoaded(false)
+    setError(false)
+  }, [src])
+
+  return (
+    <div className={cn('relative', className)}>
+      {/* Skeleton shimmer */}
+      {!loaded && !error && (
+        <div className="absolute inset-0 bg-white/5 animate-pulse rounded-sm" />
+      )}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className={cn(
+          'w-full h-full object-cover transition-opacity duration-300',
+          loaded ? 'opacity-100' : 'opacity-0',
+          className
+        )}
+        onLoad={() => { setLoaded(true); onLoad?.() }}
+        onError={() => { setError(true); setLoaded(true) }}
+      />
+    </div>
+  )
+}
+
 export default function GalleryViewer({
   galleryId,
   projectId,
@@ -215,6 +276,7 @@ export default function GalleryViewer({
   }
 
   // ── Download ─────────────────────────────────────────────────────
+  // Always download original (not optimized) for downloads
   const downloadPhoto = async (photo: Photo) => {
     try {
       const response = await fetch(photo.storage_url)
@@ -270,11 +332,10 @@ export default function GalleryViewer({
       className={cn('relative group cursor-pointer overflow-hidden rounded-sm', className)}
       onClick={() => openLightbox(index)}
     >
-      <img
-        src={photo.thumbnail_url || photo.storage_url}
+      <LazyImage
+        src={getThumbnailUrl(photo)}
         alt={photo.filename}
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-        loading="lazy"
+        className="w-full h-full"
       />
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-all duration-300" />
@@ -522,7 +583,14 @@ export default function GalleryViewer({
           </button>
           <div className="relative flex items-center justify-center w-full h-full px-16 py-16" onClick={(e) => e.stopPropagation()}>
             {!lightboxLoaded && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>}
-            <img key={currentPhoto.id} src={currentPhoto.storage_url} alt={currentPhoto.filename} className={cn('max-w-full max-h-full object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')} onLoad={() => setLightboxLoaded(true)} />
+            <img
+              key={currentPhoto.id}
+              src={getLightboxUrl(currentPhoto)}
+              alt={currentPhoto.filename}
+              className={cn('max-w-full max-h-full object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
+              onLoad={() => setLightboxLoaded(true)}
+              loading="eager"
+            />
           </div>
           <button onClick={(e) => { e.stopPropagation(); nextPhoto() }} className="absolute right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">
             <ChevronRight className="w-5 h-5" />
@@ -554,7 +622,13 @@ export default function GalleryViewer({
         <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
           <div className="absolute inset-0 flex items-center justify-center">
             {!presentLoaded && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-8 h-8 text-white/20 animate-spin" /></div>}
-            <img key={photos[presentIndex].id} src={photos[presentIndex].storage_url} alt={photos[presentIndex].filename} className={cn('max-w-full max-h-full object-contain transition-opacity duration-700', presentLoaded ? 'opacity-100' : 'opacity-0')} onLoad={() => setPresentLoaded(true)} />
+            <img
+              key={photos[presentIndex].id}
+              src={getLightboxUrl(photos[presentIndex])}
+              alt={photos[presentIndex].filename}
+              className={cn('max-w-full max-h-full object-contain transition-opacity duration-700', presentLoaded ? 'opacity-100' : 'opacity-0')}
+              onLoad={() => setPresentLoaded(true)}
+            />
           </div>
           {presentPlaying && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
@@ -582,7 +656,7 @@ export default function GalleryViewer({
                 const realIndex = Math.max(0, presentIndex - 2) + i
                 return (
                   <button key={p.id} onClick={() => { setPresentLoaded(false); setPresentIndex(realIndex) }} className={cn('flex-shrink-0 rounded overflow-hidden transition-all', realIndex === presentIndex ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70')} style={{ width: 40, height: 28 }}>
-                    <img src={p.thumbnail_url || p.storage_url} alt="" className="w-full h-full object-cover" />
+                    <img src={getThumbnailUrl(p)} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 )
               })}
