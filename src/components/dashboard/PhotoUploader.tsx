@@ -1,20 +1,11 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useContext } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn, formatFileSize } from '@/lib/utils'
 import toast from 'react-hot-toast'
-
-// Try to use UploadContext if available (graceful fallback if not inside provider)
-let useUploadSafe: (() => { startUpload: (g: string, l: string, t: number) => string; tickDone: (id: string) => void; tickFailed: (id: string) => void } | null) | null = null
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const ctx = require('@/contexts/UploadContext')
-  useUploadSafe = () => {
-    try { return ctx.useUpload() } catch { return null }
-  }
-} catch { useUploadSafe = () => null }
+import { UploadContext } from '@/contexts/UploadContext'
 
 interface UploadFile {
   id: string
@@ -38,7 +29,7 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const uploadCtx = useUploadSafe ? useUploadSafe() : null
+  const uploadCtx = useContext(UploadContext)
 
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
@@ -121,7 +112,6 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/'))
     if (imageFiles.length === 0) { toast.error('Nur Bilddateien erlaubt (JPG, PNG, WEBP)'); return }
-    // Auto-upload immediately
     uploadFiles(imageFiles)
   }, [uploadFiles])
 
@@ -171,7 +161,6 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
       {/* File list */}
       {files.length > 0 && (
         <div className="space-y-2">
-          {/* Overall progress */}
           {isUploading && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-[#6B6B6B]">
@@ -183,8 +172,6 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
               </div>
             </div>
           )}
-
-          {/* Individual files */}
           <div className="max-h-48 overflow-y-auto space-y-1.5">
             {files.map(f => (
               <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">

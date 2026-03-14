@@ -18,7 +18,7 @@ interface UploadContextValue {
   tickFailed: (jobId: string) => void
 }
 
-const UploadContext = createContext<UploadContextValue | null>(null)
+export const UploadContext = createContext<UploadContextValue | null>(null)
 
 export function useUpload() {
   const ctx = useContext(UploadContext)
