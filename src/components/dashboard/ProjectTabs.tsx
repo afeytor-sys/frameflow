@@ -33,19 +33,18 @@ export default function ProjectTabs({ project, contracts, gallery, timeline, pla
   const timelineEvents = (timeline?.events as { id: string; time: string; title: string; location?: string; duration_minutes?: number; phase: 'preparation' | 'shoot' | 'wrap' | 'other'; notes?: string; photographer_note?: string }[]) ?? []
 
   return (
-    <div className="bg-white rounded-xl border border-[#E8E8E4] overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
       {/* Tab bar */}
-      <div className="flex border-b border-[#E8E8E4]">
+      <div className="flex" style={{ borderBottom: '1px solid var(--border-color)' }}>
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={cn(
-              'flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-all border-b-2 -mb-px',
-              activeTab === key
-                ? 'border-[#C8A882] text-[#1A1A1A]'
-                : 'border-transparent text-[#6B6B6B] hover:text-[#1A1A1A]'
-            )}
+            className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-all border-b-2 -mb-px"
+            style={{
+              borderBottomColor: activeTab === key ? 'var(--accent)' : 'transparent',
+              color: activeTab === key ? 'var(--text-primary)' : 'var(--text-muted)',
+            }}
           >
             <Icon className="w-4 h-4" />
             {label}

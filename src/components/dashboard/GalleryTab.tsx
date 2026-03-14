@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Copy, Eye, EyeOff, Download, Lock } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock } from 'lucide-react'
 import { cn, copyToClipboard } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -288,13 +288,17 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   if (!gallery) {
     return (
       <div className="text-center py-12">
-        <div className="w-12 h-12 rounded-full bg-[#F0F0EC] flex items-center justify-center mx-auto mb-3">
-          <Images className="w-5 h-5 text-[#6B6B6B]" />
+        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+          style={{ background: 'var(--bg-hover)' }}>
+          <Images className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
         </div>
-        <p className="text-sm text-[#6B6B6B] mb-4">Noch keine Galerie für dieses Projekt</p>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
         <button
           onClick={createGallery}
-          className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
+          className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
+          style={{ background: 'var(--text-primary)' }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >
           Galerie erstellen
         </button>
@@ -307,34 +311,56 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <h3 className="font-display text-base font-semibold text-[#1A1A1A]">{gallery.title}</h3>
-          <span className={cn(
-            'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
-            gallery.status === 'active' ? 'bg-[#3DBA6F]/10 text-[#3DBA6F]' : 'bg-[#6B6B6B]/10 text-[#6B6B6B]'
-          )}>
+          <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{gallery.title}</h3>
+
+          {/* Clickable status tag */}
+          <button
+            onClick={toggleGalleryStatus}
+            title={gallery.status === 'active' ? 'Klicken zum Deaktivieren' : 'Klicken zum Aktivieren'}
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer"
+            style={{
+              background: gallery.status === 'active' ? 'rgba(61,186,111,0.12)' : 'rgba(107,114,128,0.10)',
+              color: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)',
+              border: `1px solid ${gallery.status === 'active' ? 'rgba(61,186,111,0.25)' : 'var(--border-color)'}`,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block"
+              style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
             {gallery.status === 'active' ? 'Aktiv' : 'Entwurf'}
-          </span>
-          <span className="text-xs text-[#6B6B6B]">{photos.length} Fotos · {gallery.view_count} Aufrufe</span>
+          </button>
+
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{photos.length} Fotos · {gallery.view_count} Aufrufe</span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={shareGallery}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[#E8E8E4] text-sm font-medium text-[#1A1A1A] rounded-lg hover:bg-[#F0F0EC] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Share2 className="w-3.5 h-3.5" />
             Teilen
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-[#E8E8E4] text-sm font-medium text-[#1A1A1A] rounded-lg hover:bg-[#F0F0EC] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <Settings className="w-3.5 h-3.5" />
             Einstellungen
           </button>
           <button
             onClick={() => setShowUploader(!showUploader)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white"
+            style={{ background: 'var(--text-primary)' }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
             + Fotos hochladen
           </button>
@@ -343,99 +369,103 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="bg-[#FAFAF8] rounded-xl border border-[#E8E8E4] p-5 space-y-4">
-          <h4 className="text-sm font-semibold text-[#1A1A1A]">Galerie-Einstellungen</h4>
+        <div className="rounded-xl border p-5 space-y-4"
+          style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
+          <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Galerie-Einstellungen</h4>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Titel</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Titel</label>
               <input
                 type="text"
                 value={settingsTitle}
                 onChange={(e) => setSettingsTitle(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+                className="input-base"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Passwort (optional)</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Passwort (optional)</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B6B6B]" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                 <input
                   type="password"
                   value={settingsPassword}
                   onChange={(e) => setSettingsPassword(e.target.value)}
                   placeholder={gallery.password ? '••••••••' : 'Kein Passwort'}
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+                  className="input-base pl-9"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Beschreibung</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
               <input
                 type="text"
                 value={settingsDesc}
                 onChange={(e) => setSettingsDesc(e.target.value)}
                 placeholder="Optional"
-                className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+                className="input-base"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Ablaufdatum (optional)</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Ablaufdatum (optional)</label>
               <input
                 type="date"
                 value={settingsExpiry}
                 onChange={(e) => setSettingsExpiry(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+                className="input-base"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Download toggle */}
             <label className="flex items-center gap-2 cursor-pointer">
               <div
                 onClick={() => setSettingsDownload(!settingsDownload)}
-                className={cn(
-                  'w-9 h-5 rounded-full transition-all relative cursor-pointer',
-                  settingsDownload ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]'
-                )}
+                className="relative cursor-pointer rounded-full transition-all"
+                style={{
+                  width: '36px',
+                  height: '20px',
+                  background: settingsDownload ? 'var(--accent)' : 'var(--border-strong)',
+                }}
               >
-                <div className={cn(
-                  'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all',
-                  settingsDownload ? 'left-4' : 'left-0.5'
-                )} />
+                <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
+                  style={{ left: settingsDownload ? '16px' : '2px' }} />
               </div>
-              <span className="text-sm text-[#1A1A1A]">Download erlauben</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Download erlauben</span>
             </label>
 
+            {/* Active toggle */}
             <label className="flex items-center gap-2 cursor-pointer">
               <div
                 onClick={toggleGalleryStatus}
-                className={cn(
-                  'w-9 h-5 rounded-full transition-all relative cursor-pointer',
-                  gallery.status === 'active' ? 'bg-[#3DBA6F]' : 'bg-[#E8E8E4]'
-                )}
+                className="relative cursor-pointer rounded-full transition-all"
+                style={{
+                  width: '36px',
+                  height: '20px',
+                  background: gallery.status === 'active' ? '#3DBA6F' : 'var(--border-strong)',
+                }}
               >
-                <div className={cn(
-                  'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all',
-                  gallery.status === 'active' ? 'left-4' : 'left-0.5'
-                )} />
+                <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
+                  style={{ left: gallery.status === 'active' ? '16px' : '2px' }} />
               </div>
-              <span className="text-sm text-[#1A1A1A]">Galerie aktiv</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Galerie aktiv</span>
             </label>
 
+            {/* Comments toggle */}
             <label className="flex items-center gap-2 cursor-pointer">
               <div
                 onClick={() => setSettingsComments(!settingsComments)}
-                className={cn(
-                  'w-9 h-5 rounded-full transition-all relative cursor-pointer',
-                  settingsComments ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]'
-                )}
+                className="relative cursor-pointer rounded-full transition-all"
+                style={{
+                  width: '36px',
+                  height: '20px',
+                  background: settingsComments ? 'var(--accent)' : 'var(--border-strong)',
+                }}
               >
-                <div className={cn(
-                  'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all',
-                  settingsComments ? 'left-4' : 'left-0.5'
-                )} />
+                <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
+                  style={{ left: settingsComments ? '16px' : '2px' }} />
               </div>
-              <span className="text-sm text-[#1A1A1A]">Kommentare erlauben</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Kommentare erlauben</span>
             </label>
           </div>
 
@@ -443,13 +473,19 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
             <button
               onClick={saveSettings}
               disabled={savingSettings}
-              className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              style={{ background: 'var(--text-primary)' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
             >
               {savingSettings ? 'Speichern...' : 'Speichern'}
             </button>
             <button
               onClick={() => setShowSettings(false)}
-              className="px-4 py-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+              className="px-4 py-2 text-sm transition-colors"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               Abbrechen
             </button>
@@ -471,13 +507,27 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
       {/* Bulk actions */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 p-3 bg-[#C8A882]/10 rounded-lg border border-[#C8A882]/20">
-          <span className="text-sm font-medium text-[#1A1A1A]">{selected.size} ausgewählt</span>
-          <button onClick={clearSelection} className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A]">Auswahl aufheben</button>
-          <button onClick={selectAll} className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A]">Alle auswählen</button>
+        <div className="flex items-center gap-3 p-3 rounded-lg"
+          style={{ background: 'rgba(200,168,130,0.10)', border: '1px solid rgba(200,168,130,0.20)' }}>
+          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{selected.size} ausgewählt</span>
+          <button onClick={clearSelection} className="text-xs transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
+            Auswahl aufheben
+          </button>
+          <button onClick={selectAll} className="text-xs transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
+            Alle auswählen
+          </button>
           <button
             onClick={deleteSelected}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-[#E84C1A] text-white text-xs font-medium rounded-lg hover:bg-[#D04418] transition-colors"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors"
+            style={{ background: '#E84C1A' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#D04418')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#E84C1A')}
           >
             <Trash2 className="w-3 h-3" />
             Löschen
@@ -487,9 +537,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
       {/* Photo grid */}
       {photos.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed border-[#E8E8E4] rounded-xl">
-          <Images className="w-8 h-8 text-[#E8E8E4] mx-auto mb-3" />
-          <p className="text-sm text-[#6B6B6B]">Noch keine Fotos. Lade deine ersten Fotos hoch.</p>
+        <div className="text-center py-12 rounded-xl"
+          style={{ border: '2px dashed var(--border-color)' }}>
+          <Images className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos. Lade deine ersten Fotos hoch.</p>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -509,14 +560,6 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
         </DndContext>
       )}
 
-      {/* Watermark notice */}
-      {showWatermark && (
-        <div className="flex items-center gap-2 p-3 bg-[#E8A21A]/10 rounded-lg border border-[#E8A21A]/20">
-          <span className="text-xs text-[#E8A21A]">
-            ⚠️ Fotos werden mit Studioflow-Wasserzeichen angezeigt (Free-Plan). Upgrade auf Starter oder höher, um das Wasserzeichen zu entfernen.
-          </span>
-        </div>
-      )}
     </div>
   )
 }

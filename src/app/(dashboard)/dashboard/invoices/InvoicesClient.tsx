@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, Eye, Download, X } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Invoice {
@@ -54,6 +54,8 @@ function getClientName(project?: Invoice['project']): string {
   return c.full_name || project.title
 }
 
+const MWST_RATE = 0.19
+
 export default function InvoicesClient({ invoices: initial, projects, photographerId }: Props) {
   const [invoices, setInvoices] = useState<Invoice[]>(initial)
   const [showNew, setShowNew] = useState(false)
@@ -63,8 +65,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const [form, setForm] = useState({
     project_id: '',
     amount: '',
+    notes: '',
     description: '',
     due_date: '',
+    include_mwst: false,
   })
 
   const supabase = createClient()
@@ -73,12 +77,26 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const totalPending = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0)
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.amount, 0)
 
+  // Calculate net/tax/gross for preview
+  const netAmount = parseFloat(form.amount.replace(',', '.')) || 0
+  const mwstAmount = form.include_mwst ? netAmount * MWST_RATE : 0
+  const grossAmount = netAmount + mwstAmount
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.project_id || !form.amount) return
     setSaving(true)
-    const amountCents = Math.round(parseFloat(form.amount.replace(',', '.')) * 100)
+
+    const net = parseFloat(form.amount.replace(',', '.'))
+    const gross = form.include_mwst ? net * (1 + MWST_RATE) : net
+    const amountCents = Math.round(gross * 100)
     const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`
+
+    // Build description: combine notes + mwst info
+    let descParts: string[] = []
+    if (form.description) descParts.push(form.description)
+    if (form.include_mwst) descParts.push(`inkl. 19% MwSt (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
+    const finalDescription = descParts.join(' · ') || null
 
     const { data, error } = await supabase
       .from('invoices')
@@ -88,7 +106,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         amount: amountCents,
         currency: 'eur',
         status: 'draft',
-        description: form.description || null,
+        description: finalDescription,
         due_date: form.due_date || null,
         invoice_number: invoiceNumber,
       })
@@ -97,7 +115,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
     if (error) { toast.error('Fehler beim Erstellen'); setSaving(false); return }
     setInvoices(prev => [data as Invoice, ...prev])
-    setForm({ project_id: '', amount: '', description: '', due_date: '' })
+    setForm({ project_id: '', amount: '', notes: '', description: '', due_date: '', include_mwst: false })
     setShowNew(false)
     setSaving(false)
     toast.success('Rechnung erstellt!')
@@ -291,7 +309,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4"
               style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em' }}>Neue Rechnung</h2>
+              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Rechnung</h2>
               <button onClick={() => setShowNew(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ color: 'var(--text-muted)' }}
@@ -314,7 +332,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   required
                   className="input-base"
                 >
-                  <option value="">Projekt auswählen...</option>
+                  <option value="" disabled>Projekt auswählen...</option>
                   {projects.map(p => {
                     const c = p.client
                     const clientName = Array.isArray(c) ? c[0]?.full_name : c?.full_name
@@ -347,6 +365,40 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 </div>
               </div>
 
+              {/* MwSt toggle */}
+              <div className="flex items-center justify-between p-3 rounded-xl"
+                style={{ background: form.include_mwst ? 'rgba(196,164,124,0.10)' : 'var(--bg-hover)', border: `1px solid ${form.include_mwst ? 'var(--accent)' : 'var(--border-color)'}` }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ background: form.include_mwst ? 'var(--accent-muted)' : 'var(--border-color)' }}>
+                    <Percent className="w-3.5 h-3.5" style={{ color: form.include_mwst ? 'var(--accent)' : 'var(--text-muted)' }} />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Mehrwertsteuer 19%</p>
+                    {form.include_mwst && netAmount > 0 && (
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        Netto {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(netAmount)} + MwSt {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(mwstAmount)} = <strong style={{ color: 'var(--accent)' }}>{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(grossAmount)}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, include_mwst: !f.include_mwst }))}
+                  className="relative w-10 h-5.5 rounded-full transition-all flex-shrink-0"
+                  style={{
+                    background: form.include_mwst ? 'var(--accent)' : 'var(--border-strong)',
+                    width: '40px',
+                    height: '22px',
+                  }}
+                >
+                  <span
+                    className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
+                    style={{ left: form.include_mwst ? '20px' : '2px' }}
+                  />
+                </button>
+              </div>
+
               {/* Description */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5"
@@ -359,6 +411,22 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="z.B. Hochzeitsfotografie — 12. April 2026"
                   className="input-base"
+                />
+              </div>
+
+              {/* Notes / Anmerkungen */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5"
+                  style={{ color: 'var(--text-primary)' }}>
+                  Anmerkungen
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Interne Notizen oder Hinweise für den Kunden..."
+                  rows={3}
+                  className="input-base resize-none"
+                  style={{ lineHeight: '1.5' }}
                 />
               </div>
 

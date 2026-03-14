@@ -94,11 +94,11 @@ function SortableEvent({
       </div>
 
       {/* Event card */}
-      <div className="flex-1 bg-white rounded-xl border border-[#E8E8E4] p-4">
+      <div className="flex-1 rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="font-mono text-sm font-medium text-[#1A1A1A]">{event.time}</span>
+              <span className="font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{event.time}</span>
               <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border', PHASE_COLORS[event.phase])}>
                 {PHASE_OPTIONS.find(p => p.value === event.phase)?.label}
               </span>
@@ -109,7 +109,7 @@ function SortableEvent({
                 </span>
               )}
             </div>
-            <p className="font-medium text-[#1A1A1A] text-sm">{event.title || '(Kein Titel)'}</p>
+            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{event.title || '(Kein Titel)'}</p>
             {event.location && (
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin className="w-3 h-3 text-[#6B6B6B]" />
@@ -157,7 +157,7 @@ function EventForm({
     setForm(prev => ({ ...prev, [key]: value }))
 
   return (
-    <div className="bg-[#FAFAF8] rounded-xl border border-[#E8E8E4] p-4 space-y-3">
+    <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Uhrzeit *</label>
@@ -245,7 +245,8 @@ function EventForm({
             if (!form.title.trim()) { toast.error('Titel ist erforderlich'); return }
             onSave(form)
           }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
+          style={{ background: 'var(--text-primary)' }}
         >
           <Check className="w-3.5 h-3.5" />
           Speichern
@@ -343,13 +344,14 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-display text-base font-semibold text-[#1A1A1A]">Zeitplan</h3>
-          <span className="text-xs text-[#6B6B6B]">{events.length} Ereignisse</span>
+          <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Zeitplan</h3>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{events.length} Ereignisse</span>
           {saving && <span className="text-xs text-[#C8A882]">Speichern...</span>}
         </div>
         <button
           onClick={() => { setAddingNew(true); setEditingId(null) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors"
+          style={{ background: 'var(--text-primary)' }}
         >
           <Plus className="w-3.5 h-3.5" />
           Ereignis hinzufügen

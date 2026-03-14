@@ -24,16 +24,16 @@ export default async function ClientPortalLayout({
     studio_name: string | null
     logo_url: string | null
     plan: string
-  }
+  } | null
 
   const studioName = photographer?.studio_name || photographer?.full_name || 'Studioflow'
-  const showBranding = !['pro', 'studio'].includes(photographer?.plan || '')
 
   return (
-    <div className="min-h-screen bg-[#F7F6F3]">
+    <div className="min-h-screen" style={{ background: 'var(--bg-page)' }}>
       {/* Portal header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-[#E2DED8]/60 sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-5 h-[52px] flex items-center justify-between">
+      <header className="backdrop-blur-md sticky top-0 z-20"
+        style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="max-w-2xl mx-auto px-5 h-[52px] flex items-center">
           <div className="flex items-center gap-2.5">
             {photographer?.logo_url ? (
               <img
@@ -50,21 +50,12 @@ export default async function ClientPortalLayout({
                     <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span className="font-display text-[#0D0D0C] font-semibold text-[15px] tracking-tight">
+                <span className="font-display font-semibold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>
                   {studioName}
                 </span>
               </div>
             )}
           </div>
-
-          {showBranding && (
-            <a
-              href="/"
-              className="text-[11px] text-[#A8A49E] hover:text-[#6E6A63] transition-colors font-medium"
-            >
-              Powered by Studioflow
-            </a>
-          )}
         </div>
       </header>
 

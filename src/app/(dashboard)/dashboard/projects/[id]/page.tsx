@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
@@ -50,45 +51,58 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const client = project.client as { full_name: string; email?: string }
 
+  // Build client URL dynamically using current host (fixes localhost vs production mismatch)
+  const headersList = await headers()
+  const host = headersList.get('host') || 'localhost:3000'
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  const clientUrl = `${protocol}://${host}/client/${project.client_token}`
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <Link href="/dashboard/projects" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors mt-0.5">
+        <Link href="/dashboard/projects"
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors mt-0.5"
+          style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+          onMouseEnter={undefined}
+        >
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">{project.title}</h1>
+            <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>{project.title}</h1>
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
               {statusLabels[project.status]}
             </span>
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <Link href={`/dashboard/clients/${(project.client as { id: string }).id}`} className="text-sm text-[#6B6B6B] hover:text-[#C8A882] transition-colors">
+            <Link href={`/dashboard/clients/${(project.client as { id: string }).id}`}
+              className="text-sm transition-colors"
+              style={{ color: 'var(--text-muted)' }}>
               {client.full_name}
             </Link>
             {project.shoot_date && (
-              <span className="text-sm text-[#6B6B6B]">· {formatDate(project.shoot_date, 'de')}</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>· {formatDate(project.shoot_date, 'de')}</span>
             )}
           </div>
         </div>
       </div>
 
       {/* Client portal link + QR */}
-      <div className="bg-white rounded-xl border border-[#E8E8E4] p-4">
+      <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-[#6B6B6B] mb-1">Kunden-Portal Link</p>
-            <p className="text-sm font-mono text-[#1A1A1A] truncate">{project.client_url}</p>
+            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
+            <p className="text-sm font-mono truncate" style={{ color: 'var(--text-primary)' }}>{clientUrl}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <QRCodeModal clientUrl={project.client_url} projectTitle={project.title} />
+            <QRCodeModal clientUrl={clientUrl} projectTitle={project.title} />
             <a
-              href={project.client_url}
+              href={clientUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-[#F0F0EC] transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+              style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
