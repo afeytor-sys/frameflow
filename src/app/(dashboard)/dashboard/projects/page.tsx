@@ -125,8 +125,8 @@ export default function ProjectsPage() {
                   href={`/dashboard/projects/${project.id}`}
                   className="block rounded-2xl overflow-hidden transition-all duration-300"
                   style={{
-                    background: 'var(--card-bg)',
-                    border: `1px solid ${sc.color}20`,
+                    background: `linear-gradient(135deg, ${sc.color}12 0%, ${sc.color}05 100%)`,
+                    border: `1px solid ${sc.color}25`,
                     boxShadow: `0 2px 12px ${sc.color}10`,
                   }}
                   onMouseEnter={e => {
@@ -148,11 +148,11 @@ export default function ProjectsPage() {
                     style={{ background: sc.color, opacity: 0.7 }}
                   />
 
-                  {/* Very subtle background tint */}
+                  {/* Subtle background tint — same as stat cards */}
                   <div
                     className="absolute inset-0"
                     style={{
-                      background: `linear-gradient(135deg, ${sc.color}08 0%, ${sc.color}03 100%)`,
+                      background: `linear-gradient(135deg, ${sc.color}18 0%, ${sc.color}06 100%)`,
                       pointerEvents: 'none',
                     }}
                   />
