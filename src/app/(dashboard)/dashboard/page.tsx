@@ -18,6 +18,7 @@ export default async function DashboardPage() {
     { count: activeClients },
     { count: pendingContracts },
     { count: activeGalleries },
+    { count: upcomingBookings },
     { data: upcomingProjects },
   ] = await Promise.all([
     supabase
@@ -35,6 +36,11 @@ export default async function DashboardPage() {
       .select('*, projects!inner(photographer_id)', { count: 'exact', head: true })
       .eq('projects.photographer_id', user!.id)
       .eq('status', 'active'),
+    supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('photographer_id', user!.id)
+      .gte('shoot_date', new Date().toISOString().split('T')[0]),
     supabase
       .from('projects')
       .select('*, client:clients(*)')
@@ -128,6 +134,7 @@ export default async function DashboardPage() {
             activeClients={activeClients ?? 0}
             pendingContracts={pendingContracts ?? 0}
             activeGalleries={activeGalleries ?? 0}
+            upcomingBookings={upcomingBookings ?? 0}
           />
         </div>
 

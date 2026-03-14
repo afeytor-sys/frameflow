@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Users, FileText, Images, ArrowUpRight } from 'lucide-react'
+import { Users, FileText, Images, ArrowUpRight, CalendarDays } from 'lucide-react'
 
 interface Stat {
   label: string
@@ -117,7 +117,7 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
               <span
                 className="font-black tabular-nums leading-none"
                 style={{
-                  fontSize: '52px',
+                  fontSize: '42px',
                   letterSpacing: '-0.05em',
                   color: stat.accentColor,
                 }}
@@ -130,7 +130,7 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: stat.accentColor + '99' }}>
               {stat.label}
             </p>
-            <p className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
               {stat.description}
             </p>
           </div>
@@ -144,9 +144,10 @@ interface Props {
   activeClients: number
   pendingContracts: number
   activeGalleries: number
+  upcomingBookings: number
 }
 
-export default function AnimatedStatsLight({ activeClients, pendingContracts, activeGalleries }: Props) {
+export default function AnimatedStatsLight({ activeClients, pendingContracts, activeGalleries, upcomingBookings }: Props) {
   const stats: Stat[] = [
     {
       label: 'Aktive Kunden',
@@ -180,6 +181,16 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       accentBg: 'rgba(16,185,129,0.08)',
       gradient: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
     },
+    {
+      label: 'Upcoming Shootings',
+      value: upcomingBookings,
+      icon: CalendarDays,
+      href: '/dashboard/bookings',
+      description: upcomingBookings === 0 ? 'Keine geplant' : `${upcomingBookings} bevorstehend`,
+      accentColor: '#EC4899',
+      accentBg: 'rgba(236,72,153,0.08)',
+      gradient: 'linear-gradient(135deg, rgba(236,72,153,0.08) 0%, rgba(236,72,153,0.03) 100%)',
+    },
   ]
 
   return (
@@ -190,7 +201,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
           <StatCard key={stat.label} stat={stat} index={i} />
         ))}
