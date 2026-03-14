@@ -30,11 +30,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const [
     { data: contracts },
-    { data: gallery },
+    { data: galleries },
     { data: timeline },
   ] = await Promise.all([
     supabase.from('contracts').select('*').eq('project_id', id).order('created_at'),
-    supabase.from('galleries').select('*, photos(*)').eq('project_id', id).single(),
+    supabase.from('galleries').select('*, photos(*)').eq('project_id', id).order('created_at'),
     supabase.from('timelines').select('*').eq('project_id', id).single(),
   ])
 
@@ -51,11 +51,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const client = project.client as { full_name: string; email?: string }
 
-  // Build client URL dynamically using current host (fixes localhost vs production mismatch)
+  // Build client URL dynamically using current host
   const headersList = await headers()
   const host = headersList.get('host') || 'localhost:3000'
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const clientUrl = `${protocol}://${host}/client/${project.client_token}`
+
+  // First gallery for delivery checklist
+  const firstGallery = galleries?.[0] ?? null
+  const hasPhotos = (firstGallery as { photos?: unknown[] } | null)?.photos
+    ? ((firstGallery as { photos: unknown[] }).photos.length > 0)
+    : false
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in">
@@ -64,7 +70,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <Link href="/dashboard/projects"
           className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors mt-0.5"
           style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
-          onMouseEnter={undefined}
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
@@ -114,7 +119,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <DeliveryChecklist
         hasContract={(contracts?.length ?? 0) > 0}
         contractSent={(contracts ?? []).some(c => c.status !== 'draft')}
-        hasPhotos={(gallery as { photos?: unknown[] } | null)?.photos ? ((gallery as { photos: unknown[] }).photos.length > 0) : false}
+        hasPhotos={hasPhotos}
         hasTimeline={(timeline?.events as unknown[])?.length > 0}
         hasShootDate={!!project.shoot_date}
         hasClientEmail={!!(client as { email?: string }).email}
@@ -124,7 +129,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <ProjectTabs
         project={project}
         contracts={contracts || []}
-        gallery={gallery}
+        galleries={galleries || []}
         timeline={timeline}
         plan={photographer?.plan || 'free'}
       />
