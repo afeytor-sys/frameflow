@@ -10,7 +10,7 @@ export function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not configured')
     }
     _stripe = new Stripe(key, {
-      apiVersion: '2026-02-25.clover',
+      apiVersion: '2026-02-25.clover' as Stripe.LatestApiVersion,
     })
   }
   return _stripe
@@ -40,7 +40,7 @@ export interface PlanLimits {
   maxContractsPerClient: number | null
   maxGalleries: number | null     // null = unlimited
   watermark: boolean
-  customBranding: boolean         // hide "Powered by Fotonizer"
+  customBranding: boolean         // hide "Powered by Studioflow"
   teamSeats: number
   customDomain: boolean
   analytics: boolean
@@ -60,9 +60,9 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     prioritySupport: false,
   },
   starter: {
-    maxClients: 15,
-    maxContractsPerClient: null,
-    maxGalleries: 15,
+    maxClients: 10,
+    maxContractsPerClient: 10,
+    maxGalleries: 10,
     watermark: false,
     customBranding: true,
     teamSeats: 1,
@@ -96,25 +96,25 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
 
 export const PLAN_DISPLAY = {
   free: { name: 'Free', price: 0, color: '#6B6B6B' },
-  starter: { name: 'Starter', price: 9, color: '#C8A882' },
-  pro: { name: 'Pro', price: 19, color: '#1A1A1A' },
-  studio: { name: 'Studio', price: 39, color: '#0F0F0F' },
+  starter: { name: 'Starter', price: 8, color: '#C8A882' },
+  pro: { name: 'Pro', price: 17, color: '#1A1A1A' },
+  studio: { name: 'Studio', price: 37, color: '#0F0F0F' },
 }
 
 // What each plan unlocks (for upgrade modal copy)
 export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
   free: [],
   starter: [
-    'Bis zu 15 aktive Kunden',
-    'Unbegrenzte Verträge',
-    'Bis zu 15 Galerien',
-    '"Fotonizer" Badge ausblenden',
+    'Bis zu 10 aktive Kunden',
+    'Bis zu 10 Verträge',
+    'Bis zu 10 Galerien',
+    '"Studioflow" Badge ausblenden',
     'E-Mail-Vorlagen',
   ],
   pro: [
     'Unbegrenzte Kunden',
     'Alles unbegrenzt',
-    '"Powered by Fotonizer" ausblenden',
+    '"Powered by Studioflow" ausblenden',
     'Analytics-Dashboard',
     'Prioritäts-Support',
   ],
