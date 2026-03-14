@@ -16,14 +16,14 @@ interface Project {
 }
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; dot: string; label: string }> = {
-  draft:     { bg: 'rgba(107,114,128,0.10)', color: '#6B7280', dot: '#9CA3AF', label: 'Entwurf' },
-  inquiry:   { bg: 'rgba(59,130,246,0.10)',  color: '#3B82F6', dot: '#3B82F6', label: 'Anfrage' },
-  active:    { bg: 'rgba(61,186,111,0.10)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Aktiv' },
-  shooting:  { bg: 'rgba(196,164,124,0.10)', color: '#C4A47C', dot: '#C4A47C', label: 'Shooting' },
-  editing:   { bg: 'rgba(139,92,246,0.10)',  color: '#8B5CF6', dot: '#8B5CF6', label: 'Bearbeitung' },
-  delivered: { bg: 'rgba(16,185,129,0.10)',  color: '#10B981', dot: '#10B981', label: 'Geliefert' },
-  completed: { bg: 'rgba(107,114,128,0.08)', color: '#6B7280', dot: '#9CA3AF', label: 'Abgeschlossen' },
-  cancelled: { bg: 'rgba(196,59,44,0.08)',   color: '#C43B2C', dot: '#C43B2C', label: 'Storniert' },
+  draft:     { bg: 'rgba(100,116,139,0.12)', color: '#64748B', dot: '#94A3B8', label: 'Entwurf' },
+  inquiry:   { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', dot: '#3B82F6', label: 'Anfrage' },
+  active:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Aktiv' },
+  shooting:  { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C', dot: '#C4A47C', label: 'Shooting' },
+  editing:   { bg: 'rgba(139,92,246,0.12)',  color: '#8B5CF6', dot: '#8B5CF6', label: 'Bearbeitung' },
+  delivered: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', dot: '#10B981', label: 'Geliefert' },
+  completed: { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Abgeschlossen' },
+  cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', dot: '#C43B2C', label: 'Storniert' },
 }
 
 export default function ProjectsPage() {
@@ -125,9 +125,9 @@ export default function ProjectsPage() {
                   href={`/dashboard/projects/${project.id}`}
                   className="block rounded-2xl overflow-hidden transition-all duration-300"
                   style={{
-                    background: `linear-gradient(135deg, ${sc.color}12 0%, ${sc.color}05 100%)`,
-                    border: `1px solid ${sc.color}25`,
-                    boxShadow: `0 2px 12px ${sc.color}10`,
+                    background: `linear-gradient(135deg, ${sc.color}20 0%, ${sc.color}08 100%)`,
+                    border: `1px solid ${sc.color}35`,
+                    boxShadow: `0 2px 16px ${sc.color}18`,
                   }}
                   onMouseEnter={e => {
                     const el = e.currentTarget
@@ -148,16 +148,7 @@ export default function ProjectsPage() {
                     style={{ background: sc.color, opacity: 0.7 }}
                   />
 
-                  {/* Subtle background tint — same as stat cards */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: `linear-gradient(135deg, ${sc.color}18 0%, ${sc.color}06 100%)`,
-                      pointerEvents: 'none',
-                    }}
-                  />
-
-                  <div className="relative p-5">
+                  <div className="p-5">
                     {/* Icon + Status row */}
                     <div className="flex items-start justify-between mb-4">
                       <div
