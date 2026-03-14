@@ -204,12 +204,14 @@ export default function ProjectsPage() {
                   </div>
                 </Link>
 
-                {/* Delete button */}
+                {/* Delete button — bottom right, inside card, on hover */}
                 <button
                   onClick={(e) => deleteProject(e, project.id, project.title)}
-                  className="absolute top-[calc(3px+12px)] right-3 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
-                  style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+                  className="absolute bottom-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                  style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}
                   title="Projekt löschen"
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.22)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.12)' }}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
