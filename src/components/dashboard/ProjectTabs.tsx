@@ -54,10 +54,52 @@ interface Props {
 }
 
 const TABS = [
-  { key: 'contract', label: 'Vertrag',        icon: FileText },
-  { key: 'gallery',  label: 'Galerie',         icon: Images },
-  { key: 'booking',  label: 'Booking Details', icon: CalendarDays },
-  { key: 'invoice',  label: 'Rechnung',        icon: Receipt },
+  {
+    key: 'contract',
+    label: 'Vertrag',
+    icon: FileText,
+    color: '#3B82F6',
+    bg: 'rgba(59,130,246,0.10)',
+    desc: (contracts: Contract[], _galleries: GalleryItem[], _project: Props['project']) =>
+      contracts.length > 0 ? `${contracts.length} Vertrag${contracts.length > 1 ? 'e' : ''}` : 'Kein Vertrag',
+  },
+  {
+    key: 'gallery',
+    label: 'Galerie',
+    icon: Images,
+    color: '#10B981',
+    bg: 'rgba(16,185,129,0.10)',
+    desc: (_c: Contract[], galleries: GalleryItem[], _project: Props['project']) => {
+      const total = galleries.reduce((s, g) => s + (g.photos?.length ?? 0), 0)
+      return galleries.length > 0
+        ? `${galleries.length} Galerie${galleries.length > 1 ? 'n' : ''}${total > 0 ? ` · ${total} Fotos` : ''}`
+        : 'Keine Galerie'
+    },
+  },
+  {
+    key: 'booking',
+    label: 'Booking Details',
+    icon: CalendarDays,
+    color: '#C4A47C',
+    bg: 'rgba(196,164,124,0.12)',
+    desc: (_c: Contract[], _g: GalleryItem[], project: Props['project']) => {
+      const parts: string[] = []
+      if (project.shoot_date) {
+        const d = new Date(project.shoot_date as string)
+        parts.push(d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }))
+      }
+      if (project.location) parts.push(project.location as string)
+      return parts.length > 0 ? parts.join(' · ') : 'Kein Datum'
+    },
+  },
+  {
+    key: 'invoice',
+    label: 'Rechnung',
+    icon: Receipt,
+    color: '#F97316',
+    bg: 'rgba(249,115,22,0.10)',
+    desc: () => 'Rechnung erstellen',
+  },
 ]
 
 const MWST_RATE = 0.19
@@ -536,33 +578,46 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         </div>
       )}
 
-      {/* ── Main card ───────────────────────────────────────────────────── */}
-      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-        {/* Tab bar */}
-        <div className="flex" style={{ borderBottom: '1px solid var(--border-color)' }}>
-          {TABS.map(({ key, label, icon: Icon }) => (
+      {/* ── 4 Navigation Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-3">
+        {TABS.map(({ key, label, icon: Icon, color, bg, desc }, idx) => {
+          const isActive = activeTab === key
+          const subtitle = desc(contracts, galleries, project)
+          return (
             <button
               key={key}
               onClick={() => { setActiveTab(key); if (key !== 'gallery') setSelectedGalleryId(null) }}
-              className="flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-all border-b-2 -mb-px"
+              className="rounded-2xl p-4 text-left transition-all duration-200 hover:-translate-y-0.5"
               style={{
-                borderBottomColor: activeTab === key ? 'var(--accent)' : 'transparent',
-                color: activeTab === key ? 'var(--text-primary)' : 'var(--text-muted)',
+                background: isActive ? bg : 'var(--bg-surface)',
+                border: isActive ? `1.5px solid ${color}40` : '1px solid var(--border-color)',
+                boxShadow: isActive ? `0 4px 20px ${color}18` : 'var(--card-shadow)',
+                animation: `fadeSlideUp 0.3s ease both`,
+                animationDelay: `${idx * 50}ms`,
               }}
             >
-              <Icon className="w-4 h-4" />
-              {label}
-              {key === 'gallery' && galleries.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
-                  style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                  {galleries.length}
-                </span>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-all"
+                style={{ background: isActive ? bg : 'var(--bg-hover)' }}
+              >
+                <Icon className="w-4.5 h-4.5" style={{ color: isActive ? color : 'var(--text-muted)', width: '18px', height: '18px' }} />
+              </div>
+              <p className="text-[13px] font-bold leading-tight mb-0.5" style={{ color: isActive ? color : 'var(--text-primary)' }}>
+                {label}
+              </p>
+              <p className="text-[11px] leading-snug truncate" style={{ color: 'var(--text-muted)' }}>
+                {subtitle}
+              </p>
+              {isActive && (
+                <div className="mt-2 h-0.5 rounded-full w-8" style={{ background: color }} />
               )}
             </button>
-          ))}
-        </div>
+          )
+        })}
+      </div>
 
-        {/* Tab content */}
+      {/* ── Tab content card ────────────────────────────────────────────── */}
+      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
         <div className="p-6">
           {activeTab === 'contract' && (
             <ContractTab
