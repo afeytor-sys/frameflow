@@ -41,6 +41,7 @@ export default function GalleriesPage() {
     theme: 'classic-white',
     project_id: '',
     download_enabled: true,
+    comments_enabled: true,
     tags_enabled: true,
   })
   const [sets, setSets] = useState<string[]>([])
@@ -88,7 +89,7 @@ export default function GalleriesPage() {
   }, [])
 
   const openModal = () => {
-    setForm({ title: '', password: '', theme: 'classic-white', project_id: projects[0]?.id || '', download_enabled: true, tags_enabled: true })
+    setForm({ title: '', password: '', theme: 'classic-white', project_id: projects[0]?.id || '', download_enabled: true, comments_enabled: true, tags_enabled: true })
     setSets([])
     setNewSetName('')
     setShowModal(true)
@@ -116,6 +117,7 @@ export default function GalleriesPage() {
         status: 'active',
         watermark: false,
         download_enabled: form.download_enabled,
+        comments_enabled: form.comments_enabled,
         view_count: 0,
         download_count: 0,
         design_theme: form.theme,
@@ -391,6 +393,7 @@ export default function GalleriesPage() {
               <div className="flex items-center gap-5 flex-wrap">
                 {[
                   { label: 'Download erlauben', key: 'download_enabled' as const, color: 'var(--accent)' },
+                  { label: 'Kommentare erlauben', key: 'comments_enabled' as const, color: 'var(--accent)' },
                   { label: 'Tag Auswahl', key: 'tags_enabled' as const, color: '#22C55E' },
                 ].map(({ label, key, color }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
