@@ -14,7 +14,7 @@ interface Props {
   hasContract: boolean
   contractSent: boolean
   hasPhotos: boolean
-  hasTimeline: boolean
+  hasTimeline?: boolean
   hasShootDate: boolean
   hasClientEmail: boolean
 }
@@ -23,7 +23,6 @@ export default function DeliveryChecklist({
   hasContract,
   contractSent,
   hasPhotos,
-  hasTimeline,
   hasShootDate,
   hasClientEmail,
 }: Props) {
@@ -35,7 +34,6 @@ export default function DeliveryChecklist({
     { key: 'contract', label: 'Vertrag erstellt',                done: hasContract,     hint: 'Vertrag-Tab → Neuen Vertrag erstellen' },
     { key: 'sent',     label: 'Vertrag an Kunden gesendet',      done: contractSent,    hint: 'Vertrag-Tab → An Kunden senden' },
     { key: 'photos',   label: 'Mindestens 1 Foto hochgeladen',   done: hasPhotos,       hint: 'Galerie-Tab → Fotos hochladen' },
-    { key: 'timeline', label: 'Zeitplan hat mindestens 1 Event', done: hasTimeline,     hint: 'Zeitplan-Tab → Event hinzufügen' },
   ]
 
   const doneCount = items.filter(i => i.done).length
