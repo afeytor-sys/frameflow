@@ -64,7 +64,7 @@ export default function BookingsPage() {
     shoot_date: '',
     location: '',
     client_id: '',
-    status: 'inquiry',
+    status: 'booked',
     notes: '',
   })
 
@@ -94,7 +94,7 @@ export default function BookingsPage() {
   }, [])
 
   const openModal = async () => {
-    setForm({ title: '', shoot_date: '', location: '', client_id: '', status: 'inquiry', notes: '' })
+    setForm({ title: '', shoot_date: '', location: '', client_id: '', status: 'booked', notes: '' })
     setShowModal(true)
     if (clients.length === 0 && photographerId) {
       const { data } = await supabase
@@ -556,9 +556,14 @@ export default function BookingsPage() {
                     onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
                     className="input-base w-full"
                   >
-                    {Object.entries(STATUS_COLORS).slice(0, 7).map(([key, val]) => (
-                      <option key={key} value={key}>{val.label}</option>
-                    ))}
+                    <option value="draft">Entwurf</option>
+                    <option value="booked">Gebucht</option>
+                    <option value="active">Aktiv</option>
+                    <option value="shooting">Shooting</option>
+                    <option value="editing">Bearbeitung</option>
+                    <option value="delivered">Geliefert</option>
+                    <option value="completed">Abgeschlossen</option>
+                    <option value="cancelled">Storniert</option>
                   </select>
                 </div>
               </div>
