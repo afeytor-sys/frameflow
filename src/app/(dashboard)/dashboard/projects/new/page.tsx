@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { cn, generateToken } from '@/lib/utils'
-import { ArrowLeft, Plus, X, UserPlus } from 'lucide-react'
+import { ArrowLeft, Plus, X, UserPlus, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { usePlanLimits } from '@/hooks/usePlanLimits'
 
 const PROJECT_TYPES = [
   { value: 'wedding', label: 'Hochzeit' },
@@ -36,6 +37,7 @@ export default function NewProjectPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedClient = searchParams.get('client')
+  const { canCreateProject, projectCount, limits, plan, loading: limitsLoading } = usePlanLimits()
 
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<{ id: string; full_name: string }[]>([])
@@ -146,6 +148,44 @@ export default function NewProjectPage() {
     'border-[#E4E1DC] focus:border-[#111110] focus:ring-2 focus:ring-[#111110]/10',
     'outline-none transition-all bg-white text-[#111110] placeholder-[#B0ACA6]'
   )
+
+  // ── Plan limit block ──
+  if (!limitsLoading && !canCreateProject) {
+    return (
+      <div className="space-y-6 animate-in">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/projects" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E4E1DC] text-[#7A7670] hover:bg-[#F2F0EC] transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <h1 className="font-semibold text-[#111110]" style={{ fontSize: '24px', letterSpacing: '-0.03em' }}>
+            Neues Projekt
+          </h1>
+        </div>
+        <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(196,164,124,0.12)' }}>
+            <Lock className="w-6 h-6" style={{ color: 'var(--accent)' }} />
+          </div>
+          <h2 className="font-black text-[18px] mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            Projektlimit erreicht
+          </h2>
+          <p className="text-[13.5px] mb-1" style={{ color: 'var(--text-muted)' }}>
+            Du hast <strong>{projectCount}</strong> von <strong>{limits.maxGalleries}</strong> Projekten im <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong>-Plan verwendet.
+          </p>
+          <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
+            Upgrade auf Starter oder Pro für mehr Projekte.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link href="/dashboard/projects" className="px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
+              Zurück
+            </Link>
+            <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
+              Jetzt upgraden →
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-in">

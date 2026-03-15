@@ -50,8 +50,8 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   free: {
     maxClients: 3,
-    maxContractsPerClient: 3,
-    maxGalleries: 3,
+    maxContractsPerClient: 1,
+    maxGalleries: 2,
     watermark: false,
     customBranding: false,
     teamSeats: 1,
@@ -60,9 +60,9 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     prioritySupport: false,
   },
   starter: {
-    maxClients: 10,
+    maxClients: 15,
     maxContractsPerClient: 10,
-    maxGalleries: 10,
+    maxGalleries: 15,
     watermark: false,
     customBranding: true,
     teamSeats: 1,

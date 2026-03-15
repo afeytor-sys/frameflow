@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { usePlanLimits } from '@/hooks/usePlanLimits'
 
 const PROJECT_TYPES = [
   { value: 'wedding', label: 'Hochzeit' },
@@ -29,6 +30,7 @@ const STATUS_OPTIONS = [
 
 export default function NewClientPage() {
   const router = useRouter()
+  const { canCreateClient, clientCount, limits, plan, loading: limitsLoading } = usePlanLimits()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     full_name: '',
@@ -87,6 +89,42 @@ export default function NewClientPage() {
     'border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20',
     'outline-none transition-all bg-white text-[#1A1A1A] placeholder-[#6B6B6B]'
   )
+
+  // ── Plan limit block ──
+  if (!limitsLoading && !canCreateClient) {
+    return (
+      <div className="space-y-6 animate-in">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/clients" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-[#F0F0EC] transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">Neuer Kunde</h1>
+        </div>
+        <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(196,164,124,0.12)' }}>
+            <Lock className="w-6 h-6" style={{ color: 'var(--accent)' }} />
+          </div>
+          <h2 className="font-black text-[18px] mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            Kundenlimit erreicht
+          </h2>
+          <p className="text-[13.5px] mb-1" style={{ color: 'var(--text-muted)' }}>
+            Du hast <strong>{clientCount}</strong> von <strong>{limits.maxClients}</strong> Kunden im <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong>-Plan verwendet.
+          </p>
+          <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
+            Upgrade auf Starter oder Pro für mehr Kunden.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link href="/dashboard/clients" className="px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
+              Zurück
+            </Link>
+            <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
+              Jetzt upgraden →
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-in">
