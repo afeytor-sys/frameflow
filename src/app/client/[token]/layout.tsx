@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 
 export default async function ClientPortalLayout({
@@ -9,7 +9,7 @@ export default async function ClientPortalLayout({
   params: Promise<{ token: string }>
 }) {
   const { token } = await params
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Support both client_token (UUID) and custom_slug
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)

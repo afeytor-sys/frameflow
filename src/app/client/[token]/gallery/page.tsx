@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Images, Download, Heart, Share2 } from 'lucide-react'
@@ -7,7 +7,7 @@ import { getTheme } from '@/lib/galleryThemes'
 
 export default async function ClientGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
   let { data: project } = await supabase

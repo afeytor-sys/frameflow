@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock, MapPin, Timer } from 'lucide-react'
@@ -36,7 +36,7 @@ const PHASE_DOT: Record<string, string> = {
 
 export default async function ClientTimelinePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
   let { data: project } = await supabase
