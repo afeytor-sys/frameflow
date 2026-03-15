@@ -281,7 +281,7 @@ export default function BookingsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-6 animate-in p-6">
+      <div className="space-y-6 animate-in">
         <div className="h-8 w-36 rounded-lg shimmer" />
         <div className="space-y-3">
           {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl shimmer" />)}
@@ -291,7 +291,7 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in p-6">
+    <div className="space-y-6 animate-in">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>

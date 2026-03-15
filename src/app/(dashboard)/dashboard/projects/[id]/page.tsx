@@ -75,7 +75,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     : false
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in">
+    <div className="space-y-6 animate-in">
       {/* Header */}
       <div className="flex items-start gap-3">
         <Link href="/dashboard/projects"

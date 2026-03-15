@@ -38,7 +38,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const sc = statusColors[client.status] || statusColors.lead
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in">
+    <div className="space-y-6 animate-in">
       <div className="flex items-center gap-3">
         <Link href="/dashboard/clients"
           className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"

@@ -89,7 +89,7 @@ export default function NewClientPage() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in">
+    <div className="space-y-6 animate-in">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link

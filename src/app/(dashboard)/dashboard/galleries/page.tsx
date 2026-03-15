@@ -157,7 +157,7 @@ export default function GalleriesPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6 animate-in p-6">
+      <div className="space-y-6 animate-in">
         <div className="h-8 w-36 rounded-lg shimmer mb-2" />
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1,2,3].map(i => <div key={i} className="h-56 rounded-2xl shimmer" />)}
@@ -167,7 +167,7 @@ export default function GalleriesPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in p-6">
+    <div className="space-y-6 animate-in">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-black" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>

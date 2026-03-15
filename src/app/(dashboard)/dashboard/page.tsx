@@ -64,7 +64,7 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-full relative z-10">
+    <div className="relative z-10">
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(18px); }
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
         .anim-3 { animation: fadeUp 0.5s ease 0.3s forwards; opacity: 0; }
       `}</style>
 
-      <div className="max-w-[1100px] mx-auto px-6 py-10 space-y-8">
+      <div className="space-y-8">
 
         {/* ── Header ── */}
         <div className="anim-0 flex items-start justify-between gap-4">

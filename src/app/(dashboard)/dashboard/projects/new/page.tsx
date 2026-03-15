@@ -134,7 +134,7 @@ export default function NewProjectPage() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in">
+    <div className="space-y-6 animate-in">
       <div className="flex items-center gap-3">
         <Link href="/dashboard/projects" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E4E1DC] text-[#7A7670] hover:bg-[#F2F0EC] transition-colors">
           <ArrowLeft className="w-4 h-4" />

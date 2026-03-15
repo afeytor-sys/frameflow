@@ -38,7 +38,7 @@ export default async function ContractsPage() {
   }))
 
   return (
-    <div className="p-6">
+    <div>
       <ContractsClient
         contracts={contracts ?? []}
         projects={normalizedProjects}

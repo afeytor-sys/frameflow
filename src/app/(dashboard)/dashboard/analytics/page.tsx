@@ -54,7 +54,7 @@ export default async function AnalyticsPage() {
   ])
 
   return (
-    <div className="p-6">
+    <div>
       <AnalyticsClient
         invoices={invoices ?? []}
         clients={clients ?? []}

@@ -74,7 +74,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in">
+    <div className="space-y-8 animate-in">
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
