@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen,
@@ -93,8 +94,9 @@ export default function QuestionnairesPage() {
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
   const [deletingRow, setDeletingRow] = useState<string | null>(null)
   const supabase = createClient()
+  const router = useRouter()
 
-  // ── Inline builder modal ──
+  // ── Builder modal (for blank creation) ──
   const [builderOpen, setBuilderOpen] = useState(false)
   const [builderTitle, setBuilderTitle] = useState('')
   const [builderQuestions, setBuilderQuestions] = useState<Question[]>([])
@@ -129,8 +131,8 @@ export default function QuestionnairesPage() {
     load()
   }, [])
 
-  // Open builder modal with template pre-loaded
-  const openBuilderFromTemplate = (key: string, customTpl?: CustomTemplate) => {
+  // Verwenden: create questionnaire from template and navigate to its page
+  const openBuilderFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
     let title = 'Neuer Fragebogen'
     let questions: Question[] = []
 
@@ -145,9 +147,18 @@ export default function QuestionnairesPage() {
       }
     }
 
-    setBuilderTitle(title)
-    setBuilderQuestions(questions)
-    setBuilderOpen(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('questionnaires')
+      .insert({ photographer_id: user.id, title, questions })
+      .select('id')
+      .single()
+
+    if (error) { toast.error('Fehler beim Erstellen'); return }
+
+    router.push(`/dashboard/questionnaires/${data.id}`)
   }
 
   const builderAddQuestion = () => {
