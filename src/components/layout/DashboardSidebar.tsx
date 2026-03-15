@@ -17,7 +17,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
-  Globe,
   CalendarDays,
   BarChart2,
 } from 'lucide-react'
@@ -68,9 +67,6 @@ const bottomItems = [
   { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard, label: 'Abonnement' },
 ]
 
-const externalItems = [
-  { key: 'website', href: '/', icon: Globe, label: 'Website ansehen' },
-]
 
 const planLabel: Record<string, string> = {
   free: 'Free', starter: 'Starter', pro: 'Pro', studio: 'Studio',
@@ -241,23 +237,6 @@ export default function DashboardSidebar({ photographer }: Props) {
             </Link>
           )
         })}
-
-        {externalItems.map(({ key, href, icon: Icon, label }) => (
-          <a
-            key={key}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={collapsed ? label : undefined}
-            className={cn(
-              'sidebar-nav-item sidebar-nav-inactive flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150',
-              collapsed ? 'justify-center p-3' : 'px-3 py-2.5',
-            )}
-          >
-            <Icon className={cn('flex-shrink-0', collapsed ? 'w-[18px] h-[18px]' : 'w-[16px] h-[16px]')} />
-            {!collapsed && <span className="truncate">{label}</span>}
-          </a>
-        ))}
 
         {/* Collapse toggle */}
         <button
