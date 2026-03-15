@@ -98,7 +98,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
         style={{
           position: 'relative',
           width: '100%',
-          height: 'clamp(320px, 45vw, 480px)',
+          height: 'clamp(480px, 60vw, 650px)',
           overflow: 'hidden',
           background: '#1A1A18',
         }}
@@ -186,11 +186,12 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             </p>
           )}
 
-          {/* Client name — big */}
+          {/* Client name — big, font from gallery theme */}
           <h1 style={{
             color: '#FFFFFF',
+            fontFamily: theme.fontFamily,
             fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-            fontWeight: 300,
+            fontWeight: theme.headerStyle === 'bold' ? 700 : 300,
             letterSpacing: '-0.03em',
             lineHeight: 1.05,
             marginBottom: gallerySubtitle ? 6 : 12,
