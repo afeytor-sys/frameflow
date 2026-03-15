@@ -550,7 +550,7 @@ export default function ContractTab({
         />
 
         {/* ── Photographer signature block ── */}
-        {activeContract.status === 'signed' && (
+        {['sent', 'viewed', 'signed'].includes(activeContract.status) && (
           <PhotographerSignatureSection
             contractId={activeContract.id}
             existingSignature={(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data ?? null}
