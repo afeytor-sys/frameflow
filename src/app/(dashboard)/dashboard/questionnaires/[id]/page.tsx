@@ -149,7 +149,11 @@ export default function QuestionnaireDetailPage() {
     if (error) {
       toast.error('Fehler beim Speichern als Vorlage')
     } else {
-      toast.success(`"${questionnaire.title}" als Vorlage gespeichert! ✨`)
+      toast.success(`"${questionnaire.title}" als Vorlage gespeichert! ✨`, {
+        duration: 4000,
+      })
+      // Navigate to questionnaires list so user sees the new template card
+      setTimeout(() => router.push('/dashboard/questionnaires'), 1200)
     }
     setSavingTemplate(false)
   }

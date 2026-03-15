@@ -321,96 +321,107 @@ export default function QuestionnairesPage() {
       </div>
 
       {/* ── Meine Vorlagen (custom) ── */}
-      {customTemplates.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <BookmarkCheck className="w-4 h-4" style={{ color: CUSTOM_ACCENT.color }} />
-            <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-              Meine Vorlagen
-            </h2>
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <BookmarkCheck className="w-4 h-4" style={{ color: CUSTOM_ACCENT.color }} />
+          <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+            Meine Vorlagen
+          </h2>
+          {customTemplates.length > 0 && (
             <span
               className="px-2 py-0.5 rounded-full text-[10px] font-black"
               style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
             >
               {customTemplates.length}
             </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {customTemplates.map((tpl) => {
-              const isCreating = creating === `custom_${tpl.id}`
-              const isDeleting = deletingTemplate === tpl.id
-              return (
-                <div
-                  key={tpl.id}
-                  className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
-                  style={{
-                    background: `linear-gradient(135deg, ${CUSTOM_ACCENT.color}10 0%, ${CUSTOM_ACCENT.color}04 100%)`,
-                    border: `1px solid ${CUSTOM_ACCENT.color}28`,
-                    boxShadow: `0 2px 12px ${CUSTOM_ACCENT.color}08`,
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.boxShadow = `0 8px 24px ${CUSTOM_ACCENT.color}18`
-                    e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '45'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.boxShadow = `0 2px 12px ${CUSTOM_ACCENT.color}08`
-                    e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '28'
-                  }}
-                >
-                  {/* Top color bar */}
-                  <div className="h-[3px] w-full" style={{ background: CUSTOM_ACCENT.color, opacity: 0.7 }} />
-                  <div className="p-4 flex flex-col gap-3 flex-1">
-                    {/* Icon */}
-                    <div className="flex items-start justify-between">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-                        style={{ background: CUSTOM_ACCENT.bg, border: `1px solid ${CUSTOM_ACCENT.border}` }}
-                      >
-                        <BookmarkCheck className="w-5 h-5" style={{ color: CUSTOM_ACCENT.color }} />
-                      </div>
-                      {/* Delete button */}
-                      <button
-                        onClick={() => deleteCustomTemplate(tpl.id, tpl.title)}
-                        disabled={isDeleting}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                        style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                        title="Vorlage löschen"
-                      >
-                        {isDeleting
-                          ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          : <Trash2 className="w-3.5 h-3.5" />
-                        }
-                      </button>
-                    </div>
-                    {/* Title + meta */}
-                    <div className="flex-1">
-                      <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                        {tpl.title}
-                      </p>
-                      <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                        {tpl.questions.length} {tpl.questions.length === 1 ? 'Frage' : 'Fragen'} · Gespeichert {new Date(tpl.created_at).toLocaleDateString('de-DE')}
-                      </p>
-                    </div>
-                    {/* Use button */}
-                    <button
-                      onClick={() => createFromTemplate('', tpl)}
-                      disabled={isCreating}
-                      className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-50"
-                      style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {customTemplates.length === 0 ? (
+            <div
+              className="col-span-full flex flex-col items-center justify-center py-10 rounded-2xl text-center"
+              style={{ border: '2px dashed var(--border-color)', background: 'var(--bg-surface)' }}
+            >
+              <BookmarkCheck className="w-8 h-8 mb-3 opacity-30" style={{ color: CUSTOM_ACCENT.color }} />
+              <p className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>Noch keine eigenen Vorlagen</p>
+              <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                Öffne einen Fragebogen und klicke auf &quot;Als Vorlage&quot; um ihn hier zu speichern
+              </p>
+            </div>
+          ) : customTemplates.map((tpl) => {
+            const isCreating = creating === `custom_${tpl.id}`
+            const isDeleting = deletingTemplate === tpl.id
+            return (
+              <div
+                key={tpl.id}
+                className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${CUSTOM_ACCENT.color}10 0%, ${CUSTOM_ACCENT.color}04 100%)`,
+                  border: `1px solid ${CUSTOM_ACCENT.color}28`,
+                  boxShadow: `0 2px 12px ${CUSTOM_ACCENT.color}08`,
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${CUSTOM_ACCENT.color}18`
+                  e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '45'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = `0 2px 12px ${CUSTOM_ACCENT.color}08`
+                  e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '28'
+                }}
+              >
+                {/* Top color bar */}
+                <div className="h-[3px] w-full" style={{ background: CUSTOM_ACCENT.color, opacity: 0.7 }} />
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  {/* Icon */}
+                  <div className="flex items-start justify-between">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                      style={{ background: CUSTOM_ACCENT.bg, border: `1px solid ${CUSTOM_ACCENT.border}` }}
                     >
-                      {isCreating ? (
-                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>Verwenden <ChevronRight className="w-3 h-3" /></>
-                      )}
+                      <BookmarkCheck className="w-5 h-5" style={{ color: CUSTOM_ACCENT.color }} />
+                    </div>
+                    {/* Delete button */}
+                    <button
+                      onClick={() => deleteCustomTemplate(tpl.id, tpl.title)}
+                      disabled={isDeleting}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                      style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+                      title="Vorlage löschen"
+                    >
+                      {isDeleting
+                        ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />
+                      }
                     </button>
                   </div>
+                  {/* Title + meta */}
+                  <div className="flex-1">
+                    <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {tpl.title}
+                    </p>
+                    <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                      {tpl.questions.length} {tpl.questions.length === 1 ? 'Frage' : 'Fragen'} · Gespeichert {new Date(tpl.created_at).toLocaleDateString('de-DE')}
+                    </p>
+                  </div>
+                  {/* Use button */}
+                  <button
+                    onClick={() => createFromTemplate('', tpl)}
+                    disabled={isCreating}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-50"
+                    style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
+                  >
+                    {isCreating ? (
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>Verwenden <ChevronRight className="w-3 h-3" /></>
+                    )}
+                  </button>
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })}
         </div>
-      )}
+      </div>
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 flex-wrap">
