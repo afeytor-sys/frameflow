@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { Camera, Check, ArrowRight, ArrowLeft, Upload } from 'lucide-react'
+import { Camera, Check, ArrowRight, ArrowLeft, Upload, Gift } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const PHOTOGRAPHY_TYPES = [
@@ -36,6 +36,9 @@ export default function OnboardingPage() {
   const [photographyTypes, setPhotographyTypes] = useState<string[]>([])
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteApplied, setInviteApplied] = useState(false)
 
   const toggleType = (key: string) => {
     setPhotographyTypes((prev) =>
@@ -315,6 +318,59 @@ export default function OnboardingPage() {
                       {label}
                     </button>
                   ))}
+                </div>
+
+                {/* Invite code field */}
+                <div className="pt-2 border-t border-[#E8E8E4]">
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5 flex items-center gap-1.5">
+                    <Gift className="w-4 h-4 text-[#C8A882]" />
+                    Einladungscode <span className="text-[#6B6B6B] font-normal">(optional)</span>
+                  </label>
+                  {inviteApplied ? (
+                    <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-[#3DBA6F] bg-[#3DBA6F]/10 text-sm text-[#3DBA6F] font-medium">
+                      <Check className="w-4 h-4" />
+                      Code aktiviert — 6 Monate Pro gratis! 🎉
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                        placeholder="FOTO-BETA-XXXX"
+                        className="flex-1 px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={!inviteCode.trim() || inviteLoading}
+                        onClick={async () => {
+                          if (!inviteCode.trim()) return
+                          setInviteLoading(true)
+                          try {
+                            const res = await fetch('/api/invite/redeem', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ code: inviteCode }),
+                            })
+                            const data = await res.json()
+                            if (!res.ok) {
+                              toast.error(data.error || 'Ungültiger Code')
+                            } else {
+                              setInviteApplied(true)
+                              toast.success('🎉 6 Monate Pro aktiviert!')
+                            }
+                          } catch {
+                            toast.error('Fehler beim Einlösen')
+                          } finally {
+                            setInviteLoading(false)
+                          }
+                        }}
+                        className="px-4 py-2.5 bg-[#C8A882] text-white rounded-lg text-sm font-medium hover:bg-[#B8956E] transition-colors disabled:opacity-40"
+                      >
+                        {inviteLoading ? '...' : 'Einlösen'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3">

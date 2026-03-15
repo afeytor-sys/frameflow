@@ -30,13 +30,18 @@ export function usePlanLimits(): PlanLimitsState {
       if (!user) { setLoading(false); return }
 
       const [{ data: photographer }, { count }] = await Promise.all([
-        supabase.from('photographers').select('plan').eq('id', user.id).single(),
+        supabase.from('photographers').select('plan, trial_ends_at').eq('id', user.id).single(),
         supabase.from('clients').select('*', { count: 'exact', head: true })
           .eq('photographer_id', user.id)
           .in('status', ['lead', 'active']),
       ])
 
-      if (photographer) setPlan((photographer.plan as PlanKey) || 'free')
+      if (photographer) {
+        // If trial is active, treat as the trial plan (pro)
+        const trialActive = photographer.trial_ends_at && new Date(photographer.trial_ends_at) > new Date()
+        const effectivePlan = trialActive ? (photographer.plan as PlanKey) : ((photographer.plan as PlanKey) || 'free')
+        setPlan(effectivePlan)
+      }
       setClientCount(count || 0)
       setLoading(false)
     }
