@@ -50,7 +50,7 @@ const PLANS = [
     features: [
       'Unbegrenzte Kunden',
       'Alles unbegrenzt',
-      '"Powered by Fotonizer" ausblenden',
+      '"Fotonizer" Logo ausblenden',
       'Analytics-Dashboard',
       'Prioritäts-Support',
     ],
