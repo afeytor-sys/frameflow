@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -56,6 +56,19 @@ export default function ProjectsPage() {
     }
     return 'grid'
   })
+
+  // Status dropdown
+  const [openStatusMenu, setOpenStatusMenu] = useState<string | null>(null)
+
+  const updateStatus = async (e: React.MouseEvent, projectId: string, newStatus: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const { error } = await supabase.from('projects').update({ status: newStatus }).eq('id', projectId)
+    if (error) { toast.error('Fehler beim Aktualisieren'); return }
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p))
+    setOpenStatusMenu(null)
+    toast.success(`Status: ${STATUS_CONFIG[newStatus]?.label || newStatus}`)
+  }
 
   // Drag & drop state
   const dragIndex = useRef<number | null>(null)
@@ -340,18 +353,45 @@ export default function ProjectsPage() {
                           {project.title}
                         </h3>
 
-                        {/* Status badge */}
-                        <span
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '6px',
-                            padding: '4px 10px', borderRadius: '999px',
-                            fontSize: '11px', fontWeight: 700, marginBottom: '12px',
-                            background: sc.bg, color: sc.color,
-                          }}
-                        >
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: sc.dot, flexShrink: 0 }} />
-                          {sc.label}
-                        </span>
+                        {/* Status badge — clickable dropdown */}
+                        <div className="relative inline-block mb-3" style={{ zIndex: 30 }}>
+                          <button
+                            onClick={e => { e.preventDefault(); e.stopPropagation(); setOpenStatusMenu(openStatusMenu === project.id ? null : project.id) }}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '5px',
+                              padding: '4px 8px 4px 10px', borderRadius: '999px',
+                              fontSize: '11px', fontWeight: 700,
+                              background: sc.bg, color: sc.color,
+                              border: 'none', cursor: 'pointer',
+                            }}
+                          >
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: sc.dot, flexShrink: 0 }} />
+                            {sc.label}
+                            <ChevronDown style={{ width: '10px', height: '10px', opacity: 0.7 }} />
+                          </button>
+                          {openStatusMenu === project.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setOpenStatusMenu(null) }} />
+                              <div className="absolute left-0 top-full mt-1 rounded-xl overflow-hidden z-50 min-w-[160px]"
+                                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+                                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                                  <button
+                                    key={key}
+                                    onClick={e => updateStatus(e, project.id, key)}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-colors text-left"
+                                    style={{ color: key === project.status ? cfg.color : 'var(--text-primary)', background: key === project.status ? cfg.bg : 'transparent' }}
+                                    onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                    onMouseLeave={e => { if (key !== project.status) e.currentTarget.style.background = 'transparent' }}
+                                  >
+                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                                    {cfg.label}
+                                    {key === project.status && <span className="ml-auto text-[10px]">✓</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
 
                         {/* Meta */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -448,13 +488,39 @@ export default function ProjectsPage() {
                       </span>
                     )}
 
-                    {/* Status */}
-                    <span
-                      className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full"
-                      style={{ background: sc.bg, color: sc.color }}
-                    >
-                      {sc.label}
-                    </span>
+                    {/* Status — clickable dropdown */}
+                    <div className="relative flex-shrink-0" style={{ zIndex: 20 }}>
+                      <button
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpenStatusMenu(openStatusMenu === project.id ? null : project.id) }}
+                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
+                        style={{ background: sc.bg, color: sc.color, border: 'none', cursor: 'pointer' }}
+                      >
+                        {sc.label}
+                        <ChevronDown className="w-2.5 h-2.5 opacity-70" />
+                      </button>
+                      {openStatusMenu === project.id && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setOpenStatusMenu(null) }} />
+                          <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-50 min-w-[160px]"
+                            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+                            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                              <button
+                                key={key}
+                                onClick={e => updateStatus(e, project.id, key)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-colors text-left"
+                                style={{ color: key === project.status ? cfg.color : 'var(--text-primary)', background: key === project.status ? cfg.bg : 'transparent' }}
+                                onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                onMouseLeave={e => { if (key !== project.status) e.currentTarget.style.background = 'transparent' }}
+                              >
+                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                                {cfg.label}
+                                {key === project.status && <span className="ml-auto text-[10px]">✓</span>}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
 
                     {/* Client */}
                     {clientName && (
