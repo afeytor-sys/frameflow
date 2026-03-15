@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, ChevronRight } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Invoice {
@@ -36,10 +36,23 @@ interface Client {
   email: string | null
 }
 
+interface Photographer {
+  id: string
+  plan: string | null
+  full_name: string | null
+  studio_name: string | null
+  email: string | null
+  bank_account_holder: string | null
+  bank_name: string | null
+  bank_iban: string | null
+  bank_bic: string | null
+}
+
 interface Props {
   invoices: Invoice[]
   projects: Project[]
   photographerId: string
+  photographer: Photographer | null
 }
 
 const STATUS_CONFIG = {
@@ -71,13 +84,252 @@ function getClientEmail(project?: Invoice['project']): string | null {
 
 const MWST_RATE = 0.19
 
-export default function InvoicesClient({ invoices: initial, projects, photographerId }: Props) {
+// ── Invoice Preview Modal ──────────────────────────────────────────────────
+function InvoicePreviewModal({
+  invoice,
+  photographer,
+  onClose,
+  autoPrint,
+}: {
+  invoice: Invoice
+  photographer: Photographer | null
+  onClose: () => void
+  autoPrint: boolean
+}) {
+  const cfg = STATUS_CONFIG[invoice.status]
+  const clientName = getClientName(invoice.project)
+  const clientEmail = getClientEmail(invoice.project)
+  const hasBankDetails = photographer?.bank_iban || photographer?.bank_account_holder
+
+  // Auto-trigger print after mount
+  if (typeof window !== 'undefined' && autoPrint) {
+    setTimeout(() => window.print(), 400)
+  }
+
+  return (
+    <>
+      {/* Print styles */}
+      <style>{`
+        @media print {
+          body > *:not(#invoice-print-root) { display: none !important; }
+          #invoice-print-root { display: block !important; position: fixed; inset: 0; z-index: 9999; background: white; }
+          .no-print { display: none !important; }
+          .invoice-print-content { box-shadow: none !important; border: none !important; max-height: none !important; overflow: visible !important; }
+        }
+      `}</style>
+
+      <div
+        id="invoice-print-root"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print-backdrop"
+        style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+        onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      >
+        <div
+          className="invoice-print-content w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in"
+          style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92vh', overflowY: 'auto' }}
+        >
+          {/* Modal header (no-print) */}
+          <div className="no-print flex items-center justify-between px-6 py-4 border-b border-[#E8E8E4]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.10)' }}>
+                <FileText className="w-4 h-4" style={{ color: '#F97316' }} />
+              </div>
+              <span className="font-bold text-[15px] text-[#1A1A1A]">Rechnungsvorschau</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white transition-all hover:opacity-88"
+                style={{ background: '#1A1A1A' }}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Drucken / PDF
+              </button>
+              <button
+                onClick={onClose}
+                className="no-print w-8 h-8 rounded-lg flex items-center justify-center text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── Invoice document ── */}
+          <div className="p-8 bg-white" style={{ fontFamily: 'DM Sans, system-ui, sans-serif' }}>
+
+            {/* Top: Photographer info + Invoice number */}
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <p className="font-black text-[20px] text-[#1A1A1A]" style={{ letterSpacing: '-0.03em' }}>
+                  {photographer?.studio_name || photographer?.full_name || 'Fotograf'}
+                </p>
+                {photographer?.studio_name && photographer?.full_name && (
+                  <p className="text-[13px] text-[#6B6B6B] mt-0.5">{photographer.full_name}</p>
+                )}
+                {photographer?.email && (
+                  <p className="text-[12px] text-[#6B6B6B] mt-0.5">{photographer.email}</p>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-1">Rechnung</p>
+                <p className="font-mono font-bold text-[15px] text-[#1A1A1A]">{invoice.invoice_number || '—'}</p>
+                <p className="text-[12px] text-[#6B6B6B] mt-1">
+                  {new Date(invoice.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-[#E8E8E4] mb-6" />
+
+            {/* Bill to */}
+            <div className="mb-6">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-2">Rechnungsempfänger</p>
+              <p className="font-bold text-[15px] text-[#1A1A1A]">{clientName}</p>
+              {clientEmail && <p className="text-[13px] text-[#6B6B6B] mt-0.5">{clientEmail}</p>}
+              {invoice.project?.title && (
+                <p className="text-[12px] text-[#6B6B6B] mt-0.5">Projekt: {invoice.project.title}</p>
+              )}
+            </div>
+
+            {/* Invoice table */}
+            <div className="rounded-xl overflow-hidden border border-[#E8E8E4] mb-6">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ background: '#F8F8F6' }}>
+                    <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Beschreibung</th>
+                    <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Betrag</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t border-[#E8E8E4]">
+                    <td className="px-4 py-4 text-[14px] text-[#1A1A1A]">
+                      {invoice.description || invoice.project?.title || 'Fotografieleistungen'}
+                    </td>
+                    <td className="px-4 py-4 text-right font-bold text-[14px] text-[#1A1A1A]">
+                      {formatEur(invoice.amount)}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: '#F8F8F6', borderTop: '2px solid #E8E8E4' }}>
+                    <td className="px-4 py-3 font-black text-[14px] text-[#1A1A1A]">Gesamt</td>
+                    <td className="px-4 py-3 text-right font-black text-[18px]" style={{ color: '#F97316' }}>
+                      {formatEur(invoice.amount)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Status + Due date row */}
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Status:</span>
+                <span
+                  className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: cfg.bg, color: cfg.color }}
+                >
+                  {cfg.label}
+                </span>
+              </div>
+              {invoice.due_date && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Fällig am:</span>
+                  <span className="text-[12px] font-bold text-[#1A1A1A]">
+                    {new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Bank details */}
+            {hasBankDetails && (
+              <>
+                <div className="h-px bg-[#E8E8E4] mb-5" />
+                <div className="rounded-xl p-5" style={{ background: '#F8F8F6', border: '1px solid #E8E8E4' }}>
+                  <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-3">
+                    Bankverbindung — Bitte überweisen Sie den Betrag auf folgendes Konto:
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                    {photographer?.bank_account_holder && (
+                      <div>
+                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">Kontoinhaber</p>
+                        <p className="text-[13px] font-bold text-[#1A1A1A]">{photographer.bank_account_holder}</p>
+                      </div>
+                    )}
+                    {photographer?.bank_name && (
+                      <div>
+                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">Bank</p>
+                        <p className="text-[13px] font-bold text-[#1A1A1A]">{photographer.bank_name}</p>
+                      </div>
+                    )}
+                    {photographer?.bank_iban && (
+                      <div>
+                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">IBAN</p>
+                        <p className="text-[13px] font-bold text-[#1A1A1A] font-mono">{photographer.bank_iban}</p>
+                      </div>
+                    )}
+                    {photographer?.bank_bic && (
+                      <div>
+                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">BIC / SWIFT</p>
+                        <p className="text-[13px] font-bold text-[#1A1A1A] font-mono">{photographer.bank_bic}</p>
+                      </div>
+                    )}
+                  </div>
+                  {invoice.invoice_number && (
+                    <p className="text-[11px] text-[#6B6B6B] mt-3">
+                      Verwendungszweck: <strong className="text-[#1A1A1A]">{invoice.invoice_number}</strong>
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Footer */}
+            <div className="mt-6 pt-4 border-t border-[#E8E8E4] text-center">
+              <p className="text-[11px] text-[#6B6B6B]">
+                Vielen Dank für Ihr Vertrauen! · {photographer?.studio_name || photographer?.full_name || 'Fotonizer'}
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom print button (no-print) */}
+          <div className="no-print px-8 pb-6 flex gap-3">
+            <button
+              onClick={() => window.print()}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-88"
+              style={{ background: '#1A1A1A' }}
+            >
+              <Printer className="w-4 h-4" />
+              Drucken / Als PDF speichern
+            </button>
+            <button
+              onClick={onClose}
+              className="px-5 py-3 rounded-xl text-[13px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+              style={{ background: '#F0F0EC' }}
+            >
+              Schließen
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────
+export default function InvoicesClient({ invoices: initial, projects, photographerId, photographer }: Props) {
   const [invoices, setInvoices] = useState<Invoice[]>(initial)
   const [projectList, setProjectList] = useState<Project[]>(projects)
   const [showNew, setShowNew] = useState(false)
   const [saving, setSaving] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [sendingId, setSendingId] = useState<string | null>(null)
+
+  // Preview modal
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null)
+  const [autoPrint, setAutoPrint] = useState(false)
 
   // After-create modal
   const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null)
@@ -214,7 +466,6 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setForm({ project_id: '', amount: '', notes: '', description: '', due_date: '', include_mwst: false })
     setShowNew(false)
     setSaving(false)
-    // Show send modal
     setCreatedInvoice(newInvoice)
   }
 
@@ -371,7 +622,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             const clientEmail = getClientEmail(inv.project)
             const isSending = sendingId === inv.id
             return (
-              <div key={inv.id} className="glass-card p-4 flex items-center gap-4">
+              <div key={inv.id} className="glass-card p-4 flex items-center gap-3">
                 {/* Status icon */}
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: cfg.bg }}>
@@ -414,7 +665,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   </span>
                 </div>
 
-                {/* Send button (visible for sent/draft with email) */}
+                {/* Send button */}
                 {(inv.status === 'sent' || inv.status === 'draft') && clientEmail && (
                   <button
                     onClick={() => handleSendInvoice(inv.id)}
@@ -430,6 +681,30 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     {isSending ? '...' : 'Senden'}
                   </button>
                 )}
+
+                {/* ── View button ── */}
+                <button
+                  onClick={() => { setAutoPrint(false); setPreviewInvoice(inv) }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="Rechnung ansehen"
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+
+                {/* ── Print/Download button ── */}
+                <button
+                  onClick={() => { setAutoPrint(true); setPreviewInvoice(inv) }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="Rechnung drucken / als PDF speichern"
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                >
+                  <Printer className="w-4 h-4" />
+                </button>
 
                 {/* Actions menu */}
                 <div className="relative flex-shrink-0">
@@ -494,6 +769,16 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
           })
         )}
       </div>
+
+      {/* ── Invoice Preview Modal ── */}
+      {previewInvoice && (
+        <InvoicePreviewModal
+          invoice={previewInvoice}
+          photographer={photographer}
+          onClose={() => { setPreviewInvoice(null); setAutoPrint(false) }}
+          autoPrint={autoPrint}
+        />
+      )}
 
       {/* ── New invoice modal ── */}
       {showNew && (
@@ -719,7 +1004,6 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
           <div className="w-full max-w-sm rounded-2xl overflow-hidden animate-scale-in"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
 
-            {/* Header */}
             <div className="px-6 pt-6 pb-4 text-center">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
                 style={{ background: 'rgba(249,115,22,0.10)' }}>
@@ -733,7 +1017,6 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               </p>
             </div>
 
-            {/* Invoice preview */}
             <div className="mx-6 mb-4 p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-mono font-bold" style={{ color: 'var(--text-muted)' }}>
@@ -766,7 +1049,6 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               )}
             </div>
 
-            {/* Actions */}
             <div className="px-6 pb-6 flex flex-col gap-2">
               {getClientEmail(createdInvoice.project) ? (
                 <button
@@ -787,15 +1069,23 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   ⚠️ Kein Kunde oder keine E-Mail-Adresse für dieses Projekt hinterlegt.
                 </div>
               )}
-              <button
-                onClick={() => setCreatedInvoice(null)}
-                className="w-full py-2.5 rounded-xl text-[13px] font-medium transition-colors"
-                style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-              >
-                Später senden
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setAutoPrint(false); setPreviewInvoice(createdInvoice); setCreatedInvoice(null) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                  style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Vorschau
+                </button>
+                <button
+                  onClick={() => setCreatedInvoice(null)}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                  style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+                >
+                  Später
+                </button>
+              </div>
             </div>
           </div>
         </div>

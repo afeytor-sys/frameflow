@@ -192,6 +192,8 @@
   /* Inputs */
   input, textarea, select {
     font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
+    background-color: var(--input-bg);
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User, Building2, Palette, Bell } from 'lucide-react'
+import { User, Building2, Palette, Bell, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -15,6 +15,10 @@ interface Photographer {
   logo_url: string | null
   plan: string | null
   language: string | null
+  bank_account_holder: string | null
+  bank_name: string | null
+  bank_iban: string | null
+  bank_bic: string | null
 }
 
 interface Props {
@@ -29,6 +33,7 @@ const PHOTO_TYPES = [
 const TABS = [
   { id: 'profile', label: 'Profil', icon: User },
   { id: 'studio', label: 'Studio', icon: Building2 },
+  { id: 'bank', label: 'Bankdaten', icon: CreditCard },
   { id: 'branding', label: 'Branding', icon: Palette },
   { id: 'notifications', label: 'Benachrichtigungen', icon: Bell },
 ]
@@ -45,6 +50,12 @@ export default function SettingsClient({ photographer, userId }: Props) {
   // Studio form
   const [studioName, setStudioName] = useState(photographer?.studio_name || '')
   const [logoUrl, setLogoUrl] = useState(photographer?.logo_url || '')
+
+  // Bank details form
+  const [bankAccountHolder, setBankAccountHolder] = useState(photographer?.bank_account_holder || '')
+  const [bankName, setBankName] = useState(photographer?.bank_name || '')
+  const [bankIban, setBankIban] = useState(photographer?.bank_iban || '')
+  const [bankBic, setBankBic] = useState(photographer?.bank_bic || '')
 
   const supabase = createClient()
   const plan = photographer?.plan || 'free'
@@ -78,6 +89,22 @@ export default function SettingsClient({ photographer, userId }: Props) {
     else toast.success('Studio-Einstellungen gespeichert')
   }
 
+  const saveBankDetails = async () => {
+    setSaving(true)
+    const { error } = await supabase
+      .from('photographers')
+      .update({
+        bank_account_holder: bankAccountHolder.trim() || null,
+        bank_name: bankName.trim() || null,
+        bank_iban: bankIban.trim().replace(/\s/g, '') || null,
+        bank_bic: bankBic.trim() || null,
+      })
+      .eq('id', userId)
+    setSaving(false)
+    if (error) toast.error('Fehler beim Speichern')
+    else toast.success('Bankdaten gespeichert ✓')
+  }
+
   const uploadLogo = async (file: File) => {
     const ext = file.name.split('.').pop()
     const path = `logos/${userId}/logo.${ext}`
@@ -96,7 +123,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#F0F0EC] rounded-xl p-1">
+      <div className="flex gap-1 bg-[#F0F0EC] rounded-xl p-1 flex-wrap">
         {TABS.map(tab => {
           const Icon = tab.icon
           return (
@@ -104,7 +131,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all',
+                'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all',
                 activeTab === tab.id
                   ? 'bg-white text-[#1A1A1A] shadow-sm'
                   : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
@@ -128,7 +155,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
               type="text"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#C8A882] outline-none bg-white"
             />
           </div>
 
@@ -205,7 +232,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
               value={studioName}
               onChange={e => setStudioName(e.target.value)}
               placeholder="z.B. Lichtblick Photography"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#C8A882] outline-none bg-white"
             />
           </div>
 
@@ -228,6 +255,94 @@ export default function SettingsClient({ photographer, userId }: Props) {
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
             {saving ? 'Speichern...' : 'Studio speichern'}
+          </button>
+        </div>
+      )}
+
+      {/* Bank details tab */}
+      {activeTab === 'bank' && (
+        <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-[#1A1A1A]">Bankverbindung</h2>
+            <p className="text-xs text-[#6B6B6B] mt-1">
+              Diese Daten erscheinen auf deinen Rechnungen, damit Kunden die Zahlung überweisen können.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg bg-[#F0F0EC] border border-[#E8E8E4] flex items-start gap-2">
+            <CreditCard className="w-4 h-4 text-[#C8A882] flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-[#6B6B6B]">
+              Deine Bankdaten werden <strong className="text-[#1A1A1A]">nur auf deinen Rechnungen</strong> angezeigt und niemals öffentlich geteilt.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+              Kontoinhaber <span className="text-[#E84C1A]">*</span>
+            </label>
+            <input
+              type="text"
+              value={bankAccountHolder}
+              onChange={e => setBankAccountHolder(e.target.value)}
+              placeholder="Max Mustermann"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#C8A882] outline-none bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Bank</label>
+            <input
+              type="text"
+              value={bankName}
+              onChange={e => setBankName(e.target.value)}
+              placeholder="z.B. Sparkasse Berlin"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#C8A882] outline-none bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+              IBAN <span className="text-[#E84C1A]">*</span>
+            </label>
+            <input
+              type="text"
+              value={bankIban}
+              onChange={e => setBankIban(e.target.value.toUpperCase())}
+              placeholder="DE89 3704 0044 0532 0130 00"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#C8A882] outline-none bg-white font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">BIC / SWIFT</label>
+            <input
+              type="text"
+              value={bankBic}
+              onChange={e => setBankBic(e.target.value.toUpperCase())}
+              placeholder="z.B. COBADEFFXXX"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#C8A882] outline-none bg-white font-mono"
+            />
+          </div>
+
+          {/* Preview */}
+          {(bankAccountHolder || bankIban) && (
+            <div className="p-4 rounded-lg border border-[#E8E8E4] bg-[#FAFAF8]">
+              <p className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Vorschau auf Rechnung</p>
+              <div className="space-y-1 text-sm">
+                {bankAccountHolder && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Kontoinhaber:</span> {bankAccountHolder}</p>}
+                {bankName && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Bank:</span> {bankName}</p>}
+                {bankIban && <p className="text-[#1A1A1A] font-mono"><span className="text-[#6B6B6B] font-sans">IBAN:</span> {bankIban}</p>}
+                {bankBic && <p className="text-[#1A1A1A] font-mono"><span className="text-[#6B6B6B] font-sans">BIC:</span> {bankBic}</p>}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={saveBankDetails}
+            disabled={saving}
+            className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Speichern...' : 'Bankdaten speichern'}
           </button>
         </div>
       )}

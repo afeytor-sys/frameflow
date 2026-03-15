@@ -182,7 +182,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
             value={signerName}
             onChange={(e) => setSignerName(e.target.value)}
             placeholder="Dein vollständiger Name"
-            className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm"
+            className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm text-[#1A1A1A] bg-white"
           />
         </div>
 

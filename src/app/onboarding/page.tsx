@@ -193,9 +193,9 @@ export default function OnboardingPage() {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Max Mustermann"
                     className={cn(
-                      'w-full px-3.5 py-2.5 rounded-lg border text-sm',
+                      'w-full px-3.5 py-2.5 rounded-lg border text-sm text-[#1A1A1A]',
                       'border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20',
-                      'outline-none transition-all'
+                      'outline-none transition-all bg-white'
                     )}
                   />
                 </div>
@@ -262,9 +262,9 @@ export default function OnboardingPage() {
                     onChange={(e) => setStudioName(e.target.value)}
                     placeholder="Muster Fotografie"
                     className={cn(
-                      'w-full px-3.5 py-2.5 rounded-lg border text-sm',
+                      'w-full px-3.5 py-2.5 rounded-lg border text-sm text-[#1A1A1A]',
                       'border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20',
-                      'outline-none transition-all'
+                      'outline-none transition-all bg-white'
                     )}
                   />
                   <p className="text-xs text-[#6B6B6B] mt-1.5">
@@ -347,7 +347,7 @@ export default function OnboardingPage() {
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                         placeholder="FOTO-BETA-XXXX"
-                        className="flex-1 px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm font-mono"
+                        className="flex-1 px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm font-mono text-[#1A1A1A] bg-white"
                       />
                       <button
                         type="button"

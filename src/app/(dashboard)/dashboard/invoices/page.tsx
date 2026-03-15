@@ -11,7 +11,7 @@ export default async function InvoicesPage() {
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('id, plan')
+    .select('id, plan, full_name, studio_name, email, bank_account_holder, bank_name, bank_iban, bank_bic')
     .eq('id', user.id)
     .single()
 
@@ -33,6 +33,7 @@ export default async function InvoicesPage() {
       invoices={invoices || []}
       projects={projects || []}
       photographerId={user.id}
+      photographer={photographer}
     />
   )
 }

@@ -20,6 +20,18 @@ const PROJECT_TYPES = [
   { value: 'other', label: 'Sonstiges' },
 ]
 
+const SHOOTING_TYPES = [
+  { value: 'Hochzeit',   label: '💍 Hochzeit',   color: '#E879A0' },
+  { value: 'Portrait',   label: '🧑 Portrait',   color: '#8B5CF6' },
+  { value: 'Event',      label: '🎉 Event',      color: '#F59E0B' },
+  { value: 'Commercial', label: '💼 Commercial', color: '#3B82F6' },
+  { value: 'Immobilien', label: '🏠 Immobilien', color: '#10B981' },
+  { value: 'Fine Art',   label: '🎨 Fine Art',   color: '#C4A47C' },
+  { value: 'Sport',      label: '⚽ Sport',      color: '#EF4444' },
+  { value: 'Newborn',    label: '👶 Newborn',    color: '#F97316' },
+  { value: 'Familie',    label: '👨‍👩‍👧 Familie',   color: '#06B6D4' },
+]
+
 export default function NewProjectPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -36,6 +48,7 @@ export default function NewProjectPage() {
     client_id: preselectedClient || '',
     shoot_date: '',
     project_type: '',
+    shooting_type: '',
   })
 
   const fetchClients = async () => {
@@ -110,6 +123,7 @@ export default function NewProjectPage() {
         title: form.title.trim(),
         shoot_date: form.shoot_date || null,
         project_type: form.project_type || null,
+        shooting_type: form.shooting_type || null,
         status: 'booked',
         client_token: token,
         client_url: `${appUrl}/client/${token}`,
@@ -271,6 +285,33 @@ export default function NewProjectPage() {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Shooting type — Art des Shootings */}
+        <div>
+          <label className="block text-[12px] font-semibold text-[#111110] mb-2 uppercase tracking-wide">
+            Art des Shootings
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {SHOOTING_TYPES.map(({ value, label, color }) => {
+              const selected = form.shooting_type === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, shooting_type: selected ? '' : value }))}
+                  className="px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all"
+                  style={{
+                    background: selected ? color + '18' : 'transparent',
+                    borderColor: selected ? color : '#E4E1DC',
+                    color: selected ? color : '#7A7670',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
         </div>
 
