@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
+import PortalSettingsTab from './PortalSettingsTab'
 import type { Contract, Plan } from '@/types/database'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
@@ -39,12 +40,16 @@ interface Props {
     id: string
     title: string
     client_url: string
+    client_token?: string | null
     photographer_id: string
     shoot_date?: string | null
     location?: string | null
+    meeting_point?: string | null
     project_type?: string | null
     notes?: string | null
     status?: string
+    portal_sections?: Record<string, boolean> | null
+    portal_message?: string | null
     [key: string]: unknown
   }
   contracts: Contract[]
@@ -99,6 +104,14 @@ const TABS = [
     color: '#F97316',
     bg: 'rgba(249,115,22,0.10)',
     desc: () => 'Rechnung erstellen',
+  },
+  {
+    key: 'portal',
+    label: 'Portal',
+    icon: Eye,
+    color: '#8B5CF6',
+    bg: 'rgba(139,92,246,0.10)',
+    desc: () => 'Sichtbarkeit & Nachricht',
   },
 ]
 
@@ -578,8 +591,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         </div>
       )}
 
-      {/* ── 4 Navigation Cards ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* ── 5 Navigation Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-5 gap-3">
         {TABS.map(({ key, label, icon: Icon, color, bg, desc }, idx) => {
           const isActive = activeTab === key
           const subtitle = desc(contracts, galleries, project)
@@ -676,6 +689,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               initialData={{
                 shoot_date: (project.shoot_date as string | null) ?? null,
                 location: (project.location as string | null) ?? null,
+                meeting_point: (project.meeting_point as string | null) ?? null,
                 project_type: (project.project_type as string | null) ?? null,
                 notes: (project.notes as string | null) ?? null,
                 status: (project.status as string) ?? 'booked',
@@ -695,6 +709,16 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               setSaving={setSavingInvoice}
               created={invoiceCreated}
               setCreated={setInvoiceCreated}
+            />
+          )}
+
+          {activeTab === 'portal' && (
+            <PortalSettingsTab
+              projectId={project.id}
+              clientToken={(project.client_token as string | null) ?? null}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              initialSections={(project.portal_sections as any) ?? null}
+              initialMessage={(project.portal_message as string | null) ?? null}
             />
           )}
         </div>

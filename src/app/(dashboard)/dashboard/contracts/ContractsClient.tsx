@@ -7,7 +7,7 @@ import { CONTRACT_TEMPLATES } from '@/lib/contractTemplates'
 import { formatRelative } from '@/lib/utils'
 import {
   FileText, Plus, X, ChevronRight, Check, Sparkles,
-  BookOpen, Send, Eye, BookMarked, Trash2, PenLine,
+  BookOpen, Send, Eye, BookMarked, Trash2, PenLine, Download,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -17,6 +17,15 @@ interface Contract {
   title: string
   status: string
   created_at: string
+  content?: string | null
+  // Client signature
+  signed_by_name?: string | null
+  signed_at?: string | null
+  signature_data?: string | null
+  // Photographer signature
+  photographer_signed_by_name?: string | null
+  photographer_signed_at?: string | null
+  photographer_signature_data?: string | null
 }
 
 interface Project {
@@ -172,6 +181,139 @@ export default function ContractsClient({
     setNewTplName(''); setNewTplDesc(''); setNewTplContent('')
     setSavingTemplate(false)
     toast.success('Vorlage gespeichert!')
+  }
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const handleDownloadPDF = async (e: React.MouseEvent, contract: Contract) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDownloadingId(contract.id)
+    try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
+
+      const stripHtml = (html: string) =>
+        html
+          .replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<\/li>/gi, '\n')
+          .replace(/<\/h[1-6]>/gi, '\n\n').replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"')
+          .replace(/\n{3,}/g, '\n\n').trim()
+
+      const fmtDate = (iso: string | null | undefined) =>
+        iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+
+      const pdfDoc = await PDFDocument.create()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+      const pageWidth = 595; const pageHeight = 842; const margin = 56
+      const contentWidth = pageWidth - margin * 2
+      let page = pdfDoc.addPage([pageWidth, pageHeight])
+      let y = pageHeight - margin
+
+      const colorPrimary = rgb(0.08, 0.08, 0.10)
+      const colorMuted = rgb(0.45, 0.45, 0.50)
+      const colorAccent = rgb(0.77, 0.64, 0.49)
+      const colorLine = rgb(0.88, 0.88, 0.90)
+
+      const drawText = (text: string, opts: { size?: number; bold?: boolean; color?: ReturnType<typeof rgb>; indent?: number; lineHeight?: number } = {}) => {
+        const { size = 10, bold = false, color = colorPrimary, indent = 0, lineHeight } = opts
+        const lh = lineHeight ?? size * 1.55
+        const usedFont = bold ? fontBold : font
+        const maxWidth = contentWidth - indent
+        for (const para of text.split('\n')) {
+          if (para.trim() === '') { y -= lh * 0.6; continue }
+          let line = ''
+          for (const word of para.split(' ')) {
+            const test = line ? `${line} ${word}` : word
+            if (usedFont.widthOfTextAtSize(test, size) > maxWidth && line) {
+              if (y < margin + lh) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+              page.drawText(line, { x: margin + indent, y, size, font: usedFont, color }); y -= lh; line = word
+            } else { line = test }
+          }
+          if (line) {
+            if (y < margin + lh) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+            page.drawText(line, { x: margin + indent, y, size, font: usedFont, color }); y -= lh
+          }
+        }
+      }
+
+      const drawLine = () => {
+        if (y < margin + 20) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+        page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: colorLine })
+        y -= 12
+      }
+
+      page.drawRectangle({ x: 0, y: pageHeight - 6, width: pageWidth, height: 6, color: colorAccent })
+      y -= 8
+      drawText(contract.title, { size: 22, bold: true })
+      y -= 4
+      drawText(`Erstellt am: ${fmtDate(contract.created_at)}`, { size: 9, color: colorMuted })
+      y -= 8; drawLine(); y -= 4
+
+      const plainText = stripHtml(contract.content || '')
+      if (plainText) { drawText(plainText, { size: 10, lineHeight: 16 }); y -= 16 }
+
+      if (y < margin + 200) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+      drawLine(); y -= 4
+      drawText('Unterschriften', { size: 13, bold: true }); y -= 12
+
+      const sigBoxWidth = (contentWidth - 24) / 2
+      const sigBoxHeight = 110
+      const sigBoxY = y - sigBoxHeight
+
+      page.drawRectangle({ x: margin, y: sigBoxY, width: sigBoxWidth, height: sigBoxHeight, borderColor: colorLine, borderWidth: 1, color: rgb(0.98, 0.98, 0.99) })
+      page.drawRectangle({ x: margin + sigBoxWidth + 24, y: sigBoxY, width: sigBoxWidth, height: sigBoxHeight, borderColor: colorLine, borderWidth: 1, color: rgb(0.98, 0.98, 0.99) })
+
+      const labelY = sigBoxY + sigBoxHeight - 16
+      page.drawText('Fotograf', { x: margin + 10, y: labelY, size: 8, font: fontBold, color: colorMuted })
+      page.drawText('Kunde', { x: margin + sigBoxWidth + 34, y: labelY, size: 8, font: fontBold, color: colorMuted })
+
+      if (contract.photographer_signature_data) {
+        try {
+          const base64 = contract.photographer_signature_data.split(',')[1]
+          const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+          const img = await pdfDoc.embedPng(imgBytes)
+          const d = img.scaleToFit(sigBoxWidth - 20, 60)
+          page.drawImage(img, { x: margin + 10, y: sigBoxY + 30, width: d.width, height: d.height })
+        } catch { /* skip */ }
+      }
+      if (contract.signature_data) {
+        try {
+          const base64 = contract.signature_data.split(',')[1]
+          const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+          const img = await pdfDoc.embedPng(imgBytes)
+          const d = img.scaleToFit(sigBoxWidth - 20, 60)
+          page.drawImage(img, { x: margin + sigBoxWidth + 34, y: sigBoxY + 30, width: d.width, height: d.height })
+        } catch { /* skip */ }
+      }
+
+      const nameY = sigBoxY - 14
+      if (contract.photographer_signed_by_name) page.drawText(contract.photographer_signed_by_name, { x: margin + 10, y: nameY, size: 9, font: fontBold, color: colorPrimary })
+      if (contract.photographer_signed_at) page.drawText(fmtDate(contract.photographer_signed_at), { x: margin + 10, y: nameY - 13, size: 8, font, color: colorMuted })
+      if (contract.signed_by_name) page.drawText(contract.signed_by_name, { x: margin + sigBoxWidth + 34, y: nameY, size: 9, font: fontBold, color: colorPrimary })
+      if (contract.signed_at) page.drawText(fmtDate(contract.signed_at), { x: margin + sigBoxWidth + 34, y: nameY - 13, size: 8, font, color: colorMuted })
+
+      pdfDoc.getPages().forEach((p, idx) => {
+        p.drawText(`Seite ${idx + 1} von ${pdfDoc.getPageCount()}`, { x: margin, y: 24, size: 8, font, color: colorMuted })
+        p.drawText('Erstellt mit Frameflow', { x: pageWidth - margin - 100, y: 24, size: 8, font, color: colorMuted })
+      })
+
+      const pdfBytes = await pdfDoc.save()
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${contract.title.replace(/[^a-zA-Z0-9äöüÄÖÜß\s]/g, '').trim()}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('PDF heruntergeladen!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Fehler beim Erstellen des PDFs')
+    } finally {
+      setDownloadingId(null)
+    }
   }
 
   const previewTpl = previewKey ? getTemplate(previewKey) : null
@@ -508,22 +650,24 @@ export default function ContractsClient({
         {contracts.length > 0 ? (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
             {/* Header row */}
-            <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_120px_auto] px-5 py-3"
+            <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] px-5 py-3"
               style={{ borderBottom: '1px solid var(--border-color)' }}>
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Vertrag</span>
               <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Kunde</span>
               <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Status</span>
               <span className="text-xs font-medium uppercase tracking-wide hidden lg:block" style={{ color: 'var(--text-muted)' }}>Erstellt</span>
+              <span className="hidden lg:block" />
               <span />
             </div>
             {contracts.map((contract, i) => {
               const sc = STATUS_COLORS[contract.status] || STATUS_COLORS.draft
               const project = projectMap[contract.project_id]
+              const fullySignedByBoth = !!(contract.signature_data && contract.photographer_signature_data)
               return (
                 <a
                   key={contract.id}
                   href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
-                  className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_120px_auto] items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
+                  className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
                   style={{
                     borderBottom: '1px solid var(--border-color)',
                     animation: 'fadeSlideUp 0.35s ease forwards',
@@ -549,6 +693,24 @@ export default function ContractsClient({
                   </span>
                   {/* Date */}
                   <span className="text-xs hidden lg:block" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, 'de')}</span>
+                  {/* Download button — only when both parties have signed */}
+                  <div className="hidden lg:flex items-center">
+                    {fullySignedByBoth && (
+                      <button
+                        onClick={(e) => handleDownloadPDF(e, contract)}
+                        disabled={downloadingId === contract.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:opacity-88"
+                        style={{ background: 'rgba(61,186,111,0.12)', color: '#3DBA6F', border: '1px solid rgba(61,186,111,0.25)' }}
+                        title="Vertrag als PDF herunterladen"
+                      >
+                        {downloadingId === contract.id
+                          ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                          : <Download className="w-3 h-3" />
+                        }
+                        PDF
+                      </button>
+                    )}
+                  </div>
                   {/* Arrow */}
                   <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                 </a>

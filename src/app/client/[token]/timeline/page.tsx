@@ -38,11 +38,21 @@ export default async function ClientTimelinePage({ params }: { params: Promise<{
   const { token } = await params
   const supabase = await createClient()
 
-  const { data: project } = await supabase
+  // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
+  let { data: project } = await supabase
     .from('projects')
     .select('id, title, shoot_date, client:clients(full_name)')
-    .eq('client_token', token)
+    .eq('custom_slug', token)
     .single()
+
+  if (!project) {
+    const { data: byToken } = await supabase
+      .from('projects')
+      .select('id, title, shoot_date, client:clients(full_name)')
+      .eq('client_token', token)
+      .single()
+    project = byToken
+  }
 
   if (!project) notFound()
 

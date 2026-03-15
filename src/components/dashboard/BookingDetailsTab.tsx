@@ -10,6 +10,7 @@ interface Props {
   initialData: {
     shoot_date: string | null
     location: string | null
+    meeting_point: string | null
     project_type: string | null
     notes: string | null
     status: string
@@ -56,6 +57,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
 
   const [shootDate, setShootDate] = useState(initialData.shoot_date?.slice(0, 10) ?? '')
   const [location, setLocation] = useState(initialData.location ?? '')
+  const [meetingPoint, setMeetingPoint] = useState(initialData.meeting_point ?? '')
   const [projectType, setProjectType] = useState(isCustomInit ? 'other' : initType)
   const [customType, setCustomType] = useState(isCustomInit ? initType : '')
   const [notes, setNotes] = useState(initialData.notes ?? '')
@@ -76,7 +78,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
 
     const { error } = await supabase
       .from('projects')
-      .update({ shoot_date: shootDate || null, location: location || null, project_type: finalType, notes: notes || null, status })
+      .update({ shoot_date: shootDate || null, location: location || null, meeting_point: meetingPoint || null, project_type: finalType, notes: notes || null, status })
       .eq('id', projectId)
 
     setSaving(false)
@@ -180,6 +182,59 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             className="input-base w-full text-[13px]"
           />
         </div>
+      </div>
+
+      {/* ── Treffpunkt card ── */}
+      <div
+        className="rounded-2xl p-5 transition-all duration-300"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          boxShadow: 'var(--card-shadow)',
+          animation: 'fadeSlideUp 0.35s ease both',
+          animationDelay: '90ms',
+        }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(236,72,153,0.10)' }}>
+            <MapPin className="w-4 h-4" style={{ color: '#EC4899' }} />
+          </div>
+          <div className="flex-1">
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
+              Treffpunkt (präzise)
+            </span>
+          </div>
+          {meetingPoint && (
+            <a
+              href={meetingPoint.startsWith('http') ? meetingPoint : `https://maps.google.com/?q=${encodeURIComponent(meetingPoint)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all hover:opacity-80"
+              style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
+            >
+              <MapPin className="w-3 h-3" />
+              Maps öffnen
+            </a>
+          )}
+        </div>
+
+        <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+          Füge einen Google Maps Link oder Koordinaten ein — wird dem Kunden als interaktive Karte angezeigt.
+        </p>
+
+        <input
+          type="text"
+          value={meetingPoint}
+          onChange={e => setMeetingPoint(e.target.value)}
+          placeholder="z.B. https://maps.google.com/?q=48.1351,11.5820 oder 48.1351, 11.5820"
+          className="input-base w-full text-[13px]"
+        />
+        {meetingPoint && (
+          <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#EC4899' }}>
+            <Check className="w-3 h-3" />Wird als Mini-Karte im Kundenportal angezeigt
+          </p>
+        )}
       </div>
 
       {/* ── Row 2: Type + Status ── */}

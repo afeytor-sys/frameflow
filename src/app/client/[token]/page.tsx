@@ -14,11 +14,21 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const { token } = await params
   const supabase = await createClient()
 
-  const { data: project } = await supabase
+  // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
+  let { data: project } = await supabase
     .from('projects')
     .select('*, client:clients(full_name, email), photographer:photographers(studio_name, full_name, logo_url, plan)')
-    .eq('client_token', token)
+    .eq('custom_slug', token)
     .single()
+
+  if (!project) {
+    const { data: byToken } = await supabase
+      .from('projects')
+      .select('*, client:clients(full_name, email), photographer:photographers(studio_name, full_name, logo_url, plan)')
+      .eq('client_token', token)
+      .single()
+    project = byToken
+  }
 
   if (!project) notFound()
 
@@ -44,6 +54,33 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   }
 
   const days = project.shoot_date ? daysUntil(project.shoot_date) : null
+  const meetingPoint: string | null = (project as { meeting_point?: string | null }).meeting_point ?? null
+
+  // Portal visibility settings (default all true if not set)
+  const rawSections = (project as { portal_sections?: Record<string, boolean> | null }).portal_sections
+  const show = {
+    contract:   rawSections?.contract   !== false,
+    gallery:    rawSections?.gallery    !== false,
+    timeline:   rawSections?.timeline   !== false,
+    treffpunkt: rawSections?.treffpunkt !== false,
+    moodboard:  rawSections?.moodboard  !== false,
+    tips:       rawSections?.tips       !== false,
+    weather:    rawSections?.weather    !== false,
+  }
+  const customMessage: string | null = (project as { portal_message?: string | null }).portal_message ?? null
+
+  // Build Google Maps URL from meeting_point (link, coordinates, or address)
+  function getMapsUrl(mp: string): string {
+    if (mp.startsWith('http')) return mp
+    return `https://maps.google.com/?q=${encodeURIComponent(mp)}`
+  }
+  // Build embed URL for iframe preview
+  function getEmbedUrl(mp: string): string {
+    const q = mp.startsWith('http')
+      ? (() => { try { const u = new URL(mp); return u.searchParams.get('q') || mp } catch { return mp } })()
+      : mp
+    return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&output=embed&z=16`
+  }
   const isDelivered = project.status === 'delivered' || project.status === 'completed'
   const isPostShooting = project.status === 'editing' || isDelivered
   const firstName = client.full_name.split(' ')[0]
@@ -200,7 +237,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </p>
 
           {/* Weather */}
-          {project.shoot_date && !isDelivered && days !== null && days >= 0 && days <= 30 && (
+          {show.weather && project.shoot_date && !isDelivered && days !== null && days >= 0 && days <= 30 && (
             <div className="mt-4">
               <WeatherWidget date={project.shoot_date} location={project.location || 'Deutschland'} />
             </div>
@@ -313,17 +350,17 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 </p>
               </div>
               <p className="font-bold text-[17px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                {photographerMessage.title}
+                {customMessage ? `Nachricht von ${studioName}` : photographerMessage.title}
               </p>
               <p className="text-[19px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                {photographerMessage.text}
+                {customMessage ?? photographerMessage.text}
               </p>
             </div>
           </div>
         </div>
 
         {/* ── CONTRACT CARD ── */}
-        {latestContract && (
+        {show.contract && latestContract && (
           <Link href={`/client/${token}/contract`}
             className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-1 hover:-translate-y-0.5"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
@@ -392,7 +429,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
         )}
 
         {/* ── GALLERY CARD ── */}
-        {gallery && (
+        {show.gallery && gallery && (
           <Link href={`/client/${token}/gallery`}
             className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
@@ -440,8 +477,65 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </Link>
         )}
 
+        {/* ── TREFFPUNKT MAP CARD ── */}
+        {show.treffpunkt && meetingPoint && (
+          <div className="rounded-2xl overflow-hidden animate-in-delay-2"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #EC4899, #F472B6)' }} />
+            <div className="p-5 pb-3">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(236,72,153,0.10)' }}>
+                    <MapPin className="w-4.5 h-4.5" style={{ color: '#EC4899', width: '18px', height: '18px' }} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Treffpunkt</p>
+                    <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Euer genauer Treffpunkt</p>
+                  </div>
+                </div>
+                <a
+                  href={getMapsUrl(meetingPoint)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-bold flex-shrink-0 transition-all hover:opacity-80"
+                  style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  In Maps öffnen
+                </a>
+              </div>
+            </div>
+            {/* Map embed */}
+            <div className="relative overflow-hidden" style={{ height: '200px' }}>
+              <iframe
+                src={getEmbedUrl(meetingPoint)}
+                width="100%"
+                height="200"
+                style={{ border: 0, display: 'block' }}
+                allowFullScreen={false}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Treffpunkt Karte"
+              />
+            </div>
+            <div className="px-5 py-3">
+              <a
+                href={getMapsUrl(meetingPoint)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-[14px] font-bold transition-all hover:opacity-80"
+                style={{ color: '#EC4899' }}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                Route in Google Maps anzeigen →
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* ── TIMELINE CARD ── */}
-        {timelineEvents.length > 0 && (
+        {show.timeline && timelineEvents.length > 0 && (
           <Link href={`/client/${token}/timeline`}
             className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-3 hover:-translate-y-0.5"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
@@ -500,21 +594,23 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
         </div>
 
         {/* ── MOODBOARD ── */}
-        <div className="animate-in-delay-3">
-          <div className="mb-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Heart className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Moodboard</h2>
+        {show.moodboard && (
+          <div className="animate-in-delay-3">
+            <div className="mb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Heart className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Moodboard</h2>
+              </div>
+              <p className="text-[19px]" style={{ color: 'var(--text-secondary)' }}>
+                Teile Inspirationen, Referenzbilder oder Links mit deinem Fotografen — zeige deinen Stil und deine Wünsche.
+              </p>
             </div>
-            <p className="text-[19px]" style={{ color: 'var(--text-secondary)' }}>
-              Teile Inspirationen, Referenzbilder oder Links mit deinem Fotografen — zeige deinen Stil und deine Wünsche.
-            </p>
+            <MoodBoard projectId={project.id} token={token} />
           </div>
-          <MoodBoard projectId={project.id} token={token} />
-        </div>
+        )}
 
         {/* ── TIPPS FÜR EUER SHOOTING ── */}
-        {!isPostShooting && (
+        {show.tips && !isPostShooting && (
           <div className="animate-in-delay-3">
             <div className="flex items-center gap-2 mb-3">
               <Camera className="w-4 h-4" style={{ color: 'var(--accent)' }} />

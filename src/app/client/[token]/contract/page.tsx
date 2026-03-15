@@ -6,11 +6,21 @@ export default async function ClientContractPage({ params }: { params: Promise<{
   const { token } = await params
   const supabase = await createClient()
 
-  const { data: project } = await supabase
+  // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
+  let { data: project } = await supabase
     .from('projects')
     .select('*, client:clients(full_name, email)')
-    .eq('client_token', token)
+    .eq('custom_slug', token)
     .single()
+
+  if (!project) {
+    const { data: byToken } = await supabase
+      .from('projects')
+      .select('*, client:clients(full_name, email)')
+      .eq('client_token', token)
+      .single()
+    project = byToken
+  }
 
   if (!project) notFound()
 

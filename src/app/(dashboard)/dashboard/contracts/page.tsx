@@ -26,7 +26,11 @@ export default async function ContractsPage() {
   const { data: contracts } = projectIds.length > 0
     ? await supabase
         .from('contracts')
-        .select('id, project_id, title, status, created_at')
+        .select(`
+          id, project_id, title, status, created_at, content,
+          signed_by_name, signed_at, signature_data,
+          photographer_signed_by_name, photographer_signed_at, photographer_signature_data
+        `)
         .in('project_id', projectIds)
         .order('created_at', { ascending: false })
     : { data: [] }
