@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatDateTime } from '@/lib/utils'
 import { CONTRACT_TEMPLATES } from '@/lib/contractTemplates'
 import ContractEditor from './ContractEditor'
+import ContractPDFDownload from './ContractPDFDownload'
 import SignatureCanvas from 'react-signature-canvas'
 import {
   FileText, Plus, Send, Download, Check, Trash2,
@@ -514,7 +515,21 @@ export default function ContractTab({
                 Erneut senden
               </button>
             )}
-            {activeContract.status === 'signed' && activeContract.pdf_url && (
+            {/* PDF download — available whenever photographer has signed */}
+            {(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data && (
+              <ContractPDFDownload
+                title={title || activeContract.title}
+                content={content || activeContract.content || ''}
+                createdAt={activeContract.created_at}
+                photographerName={(activeContract as Contract & { photographer_signed_by_name?: string }).photographer_signed_by_name ?? null}
+                photographerSignedAt={(activeContract as Contract & { photographer_signed_at?: string }).photographer_signed_at ?? null}
+                photographerSignatureData={(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data ?? null}
+                clientName={activeContract.signed_by_name ?? null}
+                clientSignedAt={activeContract.signed_at ?? null}
+                clientSignatureData={(activeContract as Contract & { signature_data?: string }).signature_data ?? null}
+              />
+            )}
+            {activeContract.status === 'signed' && activeContract.pdf_url && !(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data && (
               <a
                 href={activeContract.pdf_url}
                 target="_blank"
