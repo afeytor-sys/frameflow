@@ -184,7 +184,12 @@ export default function ContractsClient({
         .select().single()
       if (error) {
         console.error('Template save error:', error)
-        toast.error(`Fehler: ${error.message}`)
+        // Table doesn't exist yet — migration pending
+        if (error.code === '42P01') {
+          toast.error('Vorlagen-Funktion noch nicht verfügbar. Bitte Migration ausführen.')
+        } else {
+          toast.error(`Fehler: ${error.message}`)
+        }
         setSavingTemplate(false)
         return
       }

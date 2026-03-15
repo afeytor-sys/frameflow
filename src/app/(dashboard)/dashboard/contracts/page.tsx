@@ -7,7 +7,7 @@ export default async function ContractsPage() {
 
   const [
     { data: projects },
-    { data: userTemplates },
+    { data: userTemplatesRaw, error: tplError },
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -20,6 +20,9 @@ export default async function ContractsPage() {
       .eq('photographer_id', user!.id)
       .order('created_at', { ascending: false }),
   ])
+
+  // If contract_templates table doesn't exist yet (migration pending), use empty array
+  const userTemplates = tplError ? [] : userTemplatesRaw
 
   const projectIds = projects?.map((p) => p.id) ?? []
 
