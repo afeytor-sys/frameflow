@@ -258,23 +258,163 @@ export async function POST(request: NextRequest) {
 
     // ─── Notify photographer via email ───────────────────────────────
     if (photographer?.email) {
+      const dateStr = signedAt.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
+      const timeStr = signedAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+
       await resend.emails.send({
         from: 'Fotonizer <noreply@fotonizer.com>',
         to: photographer.email,
-        subject: `✅ ${project.client.full_name} hat den Vertrag unterschrieben`,
-        html: `
-<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px;">
-  <h2 style="color:#1A1A1A;margin:0 0 16px;">Vertrag unterschrieben ✅</h2>
-  <p style="color:#6B6B6B;margin:0 0 8px;">
-    <strong style="color:#1A1A1A;">${project.client.full_name}</strong> hat den Vertrag 
-    für <strong style="color:#1A1A1A;">${project.title}</strong> unterschrieben.
-  </p>
-  <p style="color:#6B6B6B;margin:0 0 24px;">
-    Datum: ${signedAt.toLocaleDateString('de-DE')} ${signedAt.toLocaleTimeString('de-DE')}
-  </p>
-  ${pdfUrl ? `<a href="${pdfUrl}" style="display:inline-block;background:#1A1A1A;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;">PDF herunterladen</a>` : ''}
-</div>
-        `,
+        subject: `${project.client.full_name} hat den Vertrag unterschrieben`,
+        html: `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vertrag unterschrieben</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F4F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F4F0;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+          <!-- Logo / Header -->
+          <tr>
+            <td align="center" style="padding-bottom:28px;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:#1A1A1A;border-radius:14px;padding:10px 20px;">
+                    <span style="font-size:20px;font-weight:800;letter-spacing:-0.04em;color:#C4A47C;">Fotonizer</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main card -->
+          <tr>
+            <td style="background:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+              <!-- Green top bar -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#2ECC71,#27AE60);padding:28px 32px;text-align:center;">
+                    <div style="width:56px;height:56px;background:rgba(255,255,255,0.2);border-radius:50%;margin:0 auto 12px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;line-height:56px;">✍️</div>
+                    <h1 style="margin:0;font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Vertrag unterschrieben!</h1>
+                    <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">Dein Kunde hat den Vertrag digital unterzeichnet</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Body -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:32px;">
+
+                    <!-- Details card -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8F7F4;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+                      <tr>
+                        <td style="padding:20px 24px;">
+
+                          <!-- Row: Kunde -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+                            <tr>
+                              <td style="width:20px;vertical-align:top;padding-top:2px;">
+                                <span style="font-size:14px;">👤</span>
+                              </td>
+                              <td style="padding-left:10px;">
+                                <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9CA3AF;">Kunde</p>
+                                <p style="margin:2px 0 0;font-size:15px;font-weight:700;color:#1A1A1A;">${project.client.full_name}</p>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Row: Projekt -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+                            <tr>
+                              <td style="width:20px;vertical-align:top;padding-top:2px;">
+                                <span style="font-size:14px;">📁</span>
+                              </td>
+                              <td style="padding-left:10px;">
+                                <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9CA3AF;">Projekt</p>
+                                <p style="margin:2px 0 0;font-size:15px;font-weight:700;color:#1A1A1A;">${project.title}</p>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Row: Datum -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+                            <tr>
+                              <td style="width:20px;vertical-align:top;padding-top:2px;">
+                                <span style="font-size:14px;">📅</span>
+                              </td>
+                              <td style="padding-left:10px;">
+                                <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9CA3AF;">Datum &amp; Uhrzeit</p>
+                                <p style="margin:2px 0 0;font-size:15px;font-weight:700;color:#1A1A1A;">${dateStr} um ${timeStr} Uhr</p>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Row: Vertrag -->
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="width:20px;vertical-align:top;padding-top:2px;">
+                                <span style="font-size:14px;">📄</span>
+                              </td>
+                              <td style="padding-left:10px;">
+                                <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9CA3AF;">Vertrag</p>
+                                <p style="margin:2px 0 0;font-size:15px;font-weight:700;color:#1A1A1A;">${contract.title}</p>
+                              </td>
+                            </tr>
+                          </table>
+
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA buttons -->
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        ${pdfUrl ? `
+                        <td style="padding-right:8px;">
+                          <a href="${pdfUrl}" style="display:block;background:#1A1A1A;color:#FFFFFF;text-align:center;padding:14px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:700;">
+                            ⬇️ PDF herunterladen
+                          </a>
+                        </td>
+                        ` : ''}
+                        <td>
+                          <a href="https://fotonizer.com/dashboard/contracts" style="display:block;background:#F5F4F0;color:#1A1A1A;text-align:center;padding:14px 20px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:700;border:1px solid #E8E8E4;">
+                            📋 Zum Dashboard
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 0 0;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9CA3AF;">
+                Diese E-Mail wurde automatisch von <strong style="color:#C4A47C;">Fotonizer</strong> gesendet.
+              </p>
+              <p style="margin:4px 0 0;font-size:11px;color:#B0B0B0;">
+                Die digitale Unterschrift ist rechtsgültig gemäß eIDAS-Verordnung (EU) Nr. 910/2014.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
       }).catch(console.error)
     }
 
