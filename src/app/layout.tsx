@@ -23,12 +23,12 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Fotonizer — Elegante Kunden-Portale für Fotografen',
+    default: 'Fotonizer — Studio-Management für Fotografen',
     template: '%s | Fotonizer',
   },
   description:
-    'Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne. Für Hochzeiten, Portraits, Events und alles dazwischen.',
-  keywords: ['Fotografie', 'Kundenportal', 'Vertrag', 'Galerie', 'Hochzeitsfotograf'],
+    'Buchungen, Verträge, Galerien und Kundenportale — alles in einer Plattform für professionelle Fotografen.',
+  keywords: ['Fotografie', 'Studio-Management', 'Kundenportal', 'Vertrag', 'Galerie', 'Hochzeitsfotograf'],
   authors: [{ name: 'Fotonizer' }],
   creator: 'Fotonizer',
   openGraph: {
@@ -37,15 +37,15 @@ export const metadata: Metadata = {
     alternateLocale: 'en_US',
     url: process.env.NEXT_PUBLIC_APP_URL,
     siteName: 'Fotonizer',
-    title: 'Fotonizer — Elegante Kunden-Portale für Fotografen',
+    title: 'Fotonizer — Studio-Management für Fotografen',
     description:
-      'Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
+      'Buchungen, Verträge, Galerien und Kundenportale — alles in einer Plattform für professionelle Fotografen.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Fotonizer — Elegante Kunden-Portale für Fotografen',
+    title: 'Fotonizer — Studio-Management für Fotografen',
     description:
-      'Fotonizer gibt jedem Projekt ein elegantes Kundenportal — Verträge, Galerien, Zeitpläne.',
+      'Buchungen, Verträge, Galerien und Kundenportale — alles in einer Plattform für professionelle Fotografen.',
   },
   robots: { index: true, follow: true },
 }
