@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Check, Zap, Sparkles } from 'lucide-react'
+import { X, Check, Zap, Sparkles, Gift, ArrowRight } from 'lucide-react'
 import { PLAN_DISPLAY, PLAN_UNLOCK_COPY, type PlanKey } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
 
@@ -19,8 +19,35 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual')
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteStatus, setInviteStatus] = useState<{ ok: boolean; msg: string } | null>(null)
 
   if (!isOpen) return null
+
+  const handleRedeemInvite = async () => {
+    if (!inviteCode.trim()) return
+    setInviteLoading(true)
+    setInviteStatus(null)
+    try {
+      const res = await fetch('/api/invite/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: inviteCode.trim().toUpperCase() }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setInviteStatus({ ok: true, msg: data.message || '🎉 Code eingelöst! Dein Plan wurde aktualisiert.' })
+        setTimeout(() => window.location.reload(), 1500)
+      } else {
+        setInviteStatus({ ok: false, msg: data.error || 'Ungültiger oder bereits verwendeter Code.' })
+      }
+    } catch {
+      setInviteStatus({ ok: false, msg: 'Verbindungsfehler. Bitte versuche es erneut.' })
+    } finally {
+      setInviteLoading(false)
+    }
+  }
 
   const handleUpgrade = async (plan: PlanKey) => {
     setLoading(plan)
@@ -113,6 +140,48 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
             🎉 <span style={{ color: '#F59E0B' }}>Launch-Angebot:</span> Die ersten <strong>2 Monate 50% günstiger</strong> — automatisch!
           </p>
+        </div>
+
+        {/* Einladungscode banner */}
+        <div className="mx-6 mt-4 rounded-xl overflow-hidden" style={{ border: '2px solid #C8A882' }}>
+          <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: 'linear-gradient(135deg, #C8A88220 0%, #F0E8D820 100%)' }}>
+            <Gift className="w-4 h-4 flex-shrink-0" style={{ color: '#C8A882' }} />
+            <span className="text-sm font-bold" style={{ color: '#1A1A1A' }}>Einladungscode einlösen</span>
+            <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#C8A88225', color: '#A8845C' }}>Beta-Zugang</span>
+          </div>
+          <div className="px-4 py-3" style={{ background: '#FDFCFA' }}>
+            <p className="text-xs text-[#6B6B6B] mb-3">Hast du einen Einladungscode erhalten? Löse ihn hier ein und erhalte kostenlosen Zugang.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && handleRedeemInvite()}
+                placeholder="FOTO-BETA-XXXX"
+                maxLength={20}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-mono font-semibold tracking-widest border-2 outline-none transition-all"
+                style={{
+                  border: inviteStatus?.ok ? '2px solid #3DBA6F' : inviteStatus?.ok === false ? '2px solid #EF4444' : '2px solid #E8E8E4',
+                  background: '#FFFFFF',
+                  color: '#1A1A1A',
+                  letterSpacing: '0.1em',
+                }}
+              />
+              <button
+                onClick={handleRedeemInvite}
+                disabled={inviteLoading || !inviteCode.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: '#C8A882', color: '#FFFFFF' }}
+              >
+                {inviteLoading ? '...' : <><span>Einlösen</span><ArrowRight className="w-3.5 h-3.5" /></>}
+              </button>
+            </div>
+            {inviteStatus && (
+              <p className={`text-xs mt-2 font-medium ${inviteStatus.ok ? 'text-[#3DBA6F]' : 'text-red-500'}`}>
+                {inviteStatus.msg}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Plans */}
