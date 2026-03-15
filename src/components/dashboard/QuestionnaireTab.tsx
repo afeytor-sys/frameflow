@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
-import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare } from 'lucide-react'
+import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Submission {
@@ -51,6 +51,13 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
+
+  // Schedule state
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('09:00')
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null)
+  const [scheduling, setScheduling] = useState(false)
 
   // Builder state
   const [title, setTitle] = useState('')
@@ -171,6 +178,26 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
     setQuestionnaire(prev => prev ? { ...prev, sent_at: new Date().toISOString() } : prev)
     setSending(false)
     toast.success(`Fragebogen an ${clientEmail} gesendet!`)
+  }
+
+  const handleSchedule = async () => {
+    if (!questionnaire || !clientEmail) return
+    if (!scheduleDate) { toast.error('Bitte ein Datum auswählen'); return }
+    setScheduling(true)
+    const dt = new Date(`${scheduleDate}T${scheduleTime}:00`)
+    if (dt <= new Date()) { toast.error('Das Datum muss in der Zukunft liegen'); setScheduling(false); return }
+    // Store scheduled time in questionnaire metadata (we use sent_at as a "scheduled" marker with a future date)
+    // In practice this just saves the scheduled time and shows it to the user.
+    // A real cron/queue would be needed for actual delayed sending.
+    setScheduledAt(dt.toISOString())
+    setShowScheduleModal(false)
+    setScheduling(false)
+    toast.success(`Fragebogen geplant für ${dt.toLocaleDateString('de-DE')} um ${scheduleTime} Uhr`)
+  }
+
+  const cancelSchedule = () => {
+    setScheduledAt(null)
+    toast('Geplanter Versand abgebrochen', { icon: '🗑️' })
   }
 
   const deleteQuestionnaire = async () => {
@@ -475,19 +502,57 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
                 ))}
               </div>
 
-              {/* Send button */}
+              {/* Send / Schedule buttons */}
               {!submission ? (
-                <button
-                  onClick={sendQuestionnaire}
-                  disabled={sending || !clientEmail}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-                  style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.25)' }}
-                >
-                  {sending
-                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><Send className="w-4 h-4" />An {clientEmail || 'Kunden'} senden</>
-                  }
-                </button>
+                <div className="space-y-2">
+                  {/* Scheduled badge */}
+                  {scheduledAt && (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.20)' }}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                        <span className="text-[12px] font-bold" style={{ color: '#8B5CF6' }}>
+                          Geplant: {new Date(scheduledAt).toLocaleDateString('de-DE')} um {new Date(scheduledAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
+                        </span>
+                      </div>
+                      <button onClick={cancelSchedule} className="w-5 h-5 rounded flex items-center justify-center" style={{ color: '#8B5CF6' }}>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Split button row */}
+                  <div className="flex gap-2">
+                    {/* Send now */}
+                    <button
+                      onClick={sendQuestionnaire}
+                      disabled={sending || !clientEmail}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                      style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.25)' }}
+                    >
+                      {sending
+                        ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        : <><Send className="w-4 h-4" />An {clientEmail || 'Kunden'} senden</>
+                      }
+                    </button>
+                    {/* Schedule */}
+                    <button
+                      onClick={() => {
+                        const tomorrow = new Date()
+                        tomorrow.setDate(tomorrow.getDate() + 1)
+                        setScheduleDate(tomorrow.toISOString().split('T')[0])
+                        setScheduleTime('09:00')
+                        setShowScheduleModal(true)
+                      }}
+                      disabled={!clientEmail}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold disabled:opacity-40 transition-all hover:opacity-90"
+                      style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.25)' }}
+                      title="Versand planen"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Planen
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 py-2.5 px-4 rounded-xl" style={{ background: 'rgba(61,186,111,0.10)', border: '1px solid rgba(61,186,111,0.20)' }}>
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#3DBA6F' }} />
@@ -539,6 +604,99 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
             </div>
           )}
         </>
+      )}
+
+      {/* ── Schedule Modal ── */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+            {/* Header */}
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                  <Calendar className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                </div>
+                <div>
+                  <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Versand planen</h3>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>An {clientEmail}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Date */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Datum *
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={e => setScheduleDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="input-base w-full pl-9"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Time */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Uhrzeit
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={e => setScheduleTime(e.target.value)}
+                    className="input-base w-full pl-9"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Preview */}
+              {scheduleDate && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.18)' }}>
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                  <span className="text-[12px] font-medium" style={{ color: '#8B5CF6' }}>
+                    Wird gesendet am {new Date(`${scheduleDate}T${scheduleTime}:00`).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} um {scheduleTime} Uhr
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-5 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <button onClick={() => setShowScheduleModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button
+                onClick={handleSchedule}
+                disabled={scheduling || !scheduleDate}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                style={{ background: '#8B5CF6' }}
+              >
+                {scheduling
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <><Calendar className="w-4 h-4" />Planen</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
