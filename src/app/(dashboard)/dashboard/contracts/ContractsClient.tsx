@@ -203,11 +203,15 @@ export default function ContractsClient({
       </div>
 
       <style>{`
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
         .contract-card {
           transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease !important;
         }
         .contract-card:hover {
-          transform: translateY(-4px) !important;
+          transform: translateY(-2px) !important;
         }
       `}</style>
 
@@ -231,23 +235,23 @@ export default function ContractsClient({
                     background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
                     border: `1px solid ${accent.color}28`,
                     boxShadow: `0 2px 12px ${accent.color}10`,
-                    animation: 'contractFadeUp 0.4s ease forwards',
-                    animationDelay: `${i * 60}ms`,
-                    opacity: 0,
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.boxShadow = `0 10px 28px ${accent.color}22`
-                    e.currentTarget.style.borderColor = accent.color + '45'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
-                    e.currentTarget.style.borderColor = accent.color + '28'
-                  }}
-                >
-                  {/* Top color bar */}
-                  <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
-                  <div className="p-4 flex flex-col gap-3 flex-1">
-                    <div className="flex items-start justify-between">
+                  animation: 'fadeSlideUp 0.4s ease forwards',
+                  animationDelay: `${i * 60}ms`,
+                  opacity: 0,
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
+                  e.currentTarget.style.borderColor = accent.color + '45'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
+                  e.currentTarget.style.borderColor = accent.color + '28'
+                }}
+              >
+                {/* Top color bar */}
+                <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  <div className="flex items-start justify-between">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
                         style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
@@ -342,12 +346,12 @@ export default function ContractsClient({
                   background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
                   border: `1px solid ${accent.color}28`,
                   boxShadow: `0 2px 12px ${accent.color}10`,
-                  animation: 'contractFadeUp 0.4s ease forwards',
+                  animation: 'fadeSlideUp 0.4s ease forwards',
                   animationDelay: `${(i + 1) * 60}ms`,
                   opacity: 0,
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.boxShadow = `0 10px 28px ${accent.color}22`
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
                   e.currentTarget.style.borderColor = accent.color + '45'
                 }}
                 onMouseLeave={e => {
@@ -522,7 +526,7 @@ export default function ContractsClient({
                   className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_120px_auto] items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
                   style={{
                     borderBottom: '1px solid var(--border-color)',
-                    animation: 'contractFadeUp 0.35s ease forwards',
+                    animation: 'fadeSlideUp 0.35s ease forwards',
                     animationDelay: `${i * 50}ms`,
                     opacity: 0,
                   }}

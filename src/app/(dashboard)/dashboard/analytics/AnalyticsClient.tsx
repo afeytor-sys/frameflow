@@ -135,7 +135,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
 
       {/* KPI Cards — 3+3 grid, same style as dashboard stats */}
       <style>{`
-        @keyframes kpiFadeUp {
+        @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
         }
@@ -144,19 +144,19 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         {kpis.map(({ label, value, icon: Icon, color }, i) => (
           <div
             key={label}
-            className="relative rounded-2xl overflow-hidden transition-all duration-300 cursor-default"
+            className="relative rounded-2xl overflow-hidden transition-all duration-250 cursor-default"
             style={{
               background: `linear-gradient(135deg, ${color}12 0%, ${color}05 100%)`,
               border: `1px solid ${color}25`,
               boxShadow: `0 2px 12px ${color}10`,
-              animation: 'kpiFadeUp 0.45s ease forwards',
+              animation: 'fadeSlideUp 0.45s ease forwards',
               animationDelay: `${i * 60}ms`,
               opacity: 0,
             }}
             onMouseEnter={e => {
               const el = e.currentTarget
-              el.style.transform = 'translateY(-4px)'
-              el.style.boxShadow = `0 12px 32px ${color}22`
+              el.style.transform = 'translateY(-2px)'
+              el.style.boxShadow = `0 8px 24px ${color}22`
               el.style.borderColor = color + '40'
             }}
             onMouseLeave={e => {

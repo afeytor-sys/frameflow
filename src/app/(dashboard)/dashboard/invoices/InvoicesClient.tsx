@@ -156,6 +156,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
   const totalPending = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0)
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.amount, 0)
+  const totalMwst = Math.round(totalPaid * MWST_RATE)
 
   // Calculate net/tax/gross for preview
   const netAmount = parseFloat(form.amount.replace(',', '.')) || 0
@@ -252,15 +253,16 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
           box-shadow: var(--card-shadow-hover) !important;
         }
       `}</style>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {([
-          { label: 'Bezahlt',    value: formatEur(totalPaid),    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)',  iconBg: 'rgba(42,155,104,0.12)',  Icon: CheckCircle2, delay: 0 },
-          { label: 'Ausstehend', value: formatEur(totalPending), color: 'var(--accent)', bg: 'var(--accent-muted)', iconBg: 'var(--accent-muted)', Icon: Clock,         delay: 80 },
-          { label: 'Überfällig', value: formatEur(totalOverdue), color: '#C43B2C', bg: 'rgba(196,59,44,0.08)',  iconBg: 'rgba(196,59,44,0.10)',  Icon: AlertCircle,  delay: 160 },
-        ] as const).map(({ label, value, color, bg, iconBg, Icon, delay }) => (
+          { label: 'Bezahlt',       value: formatEur(totalPaid),    color: '#2A9B68', iconBg: 'rgba(42,155,104,0.12)',  Icon: CheckCircle2, delay: 0 },
+          { label: 'Ausstehend',    value: formatEur(totalPending), color: 'var(--accent)', iconBg: 'var(--accent-muted)', Icon: Clock,    delay: 60 },
+          { label: 'Überfällig',    value: formatEur(totalOverdue), color: '#C43B2C', iconBg: 'rgba(196,59,44,0.10)',  Icon: AlertCircle,  delay: 120 },
+          { label: 'MwSt. bezahlt', value: formatEur(totalMwst),   color: '#8B5CF6', iconBg: 'rgba(139,92,246,0.10)', Icon: Percent,      delay: 180 },
+        ] as const).map(({ label, value, color, iconBg, Icon, delay }) => (
           <div
             key={label}
-            className="invoice-stat-card rounded-2xl p-5 flex items-center gap-4"
+            className="invoice-stat-card rounded-2xl p-5 flex items-center gap-3"
             style={{
               background: 'var(--card-bg)',
               border: '1px solid var(--card-border)',
@@ -270,13 +272,13 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               opacity: 0,
             }}
           >
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: iconBg }}>
-              <Icon className="w-5 h-5" style={{ color }} />
+              <Icon className="w-4.5 h-4.5" style={{ color }} />
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
-              <p className="font-black text-[22px] leading-none" style={{ color, letterSpacing: '-0.03em' }}>{value}</p>
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] mb-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{label}</p>
+              <p className="font-black text-[18px] leading-none truncate" style={{ color, letterSpacing: '-0.03em' }}>{value}</p>
             </div>
           </div>
         ))}
