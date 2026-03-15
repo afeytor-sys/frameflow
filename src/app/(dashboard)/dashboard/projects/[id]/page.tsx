@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Pencil } from 'lucide-react'
 import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import DeliveryChecklist from '@/components/dashboard/DeliveryChecklist'
@@ -96,28 +96,37 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
 
         {/* Client info card — top right */}
-        <Link
-          href={`/dashboard/clients/${(project.client as { id: string }).id}`}
-          className="flex-shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:opacity-80"
-          style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
-        >
+        <div className="flex-shrink-0 flex items-center gap-1.5">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0"
-            style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+            style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
           >
-            {client.full_name.charAt(0).toUpperCase()}
-          </div>
-          <div className="text-right">
-            <p className="text-[12.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
-              {client.full_name}
-            </p>
-            {client.email && (
-              <p className="text-[11px] leading-tight" style={{ color: 'var(--text-muted)' }}>
-                {client.email}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0"
+              style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}
+            >
+              {client.full_name.charAt(0).toUpperCase()}
+            </div>
+            <div className="text-right">
+              <p className="text-[12.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                {client.full_name}
               </p>
-            )}
+              {client.email && (
+                <p className="text-[11px] leading-tight" style={{ color: 'var(--text-muted)' }}>
+                  {client.email}
+                </p>
+              )}
+            </div>
           </div>
-        </Link>
+          <Link
+            href={`/dashboard/clients/${(project.client as { id: string }).id}`}
+            title="Kunde bearbeiten"
+            className="w-8 h-8 flex items-center justify-center rounded-xl transition-all hover:opacity-80"
+            style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
       {/* Client portal link + QR */}
