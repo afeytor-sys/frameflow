@@ -62,8 +62,18 @@ export default function ProjectsPage() {
   const [filterType, setFilterType] = useState<string | null>(null)
   const [showSortMenu, setShowSortMenu] = useState(false)
 
-  // Status dropdown
+  // Status dropdown — fixed position to escape overflow:hidden
   const [openStatusMenu, setOpenStatusMenu] = useState<string | null>(null)
+  const [statusMenuPos, setStatusMenuPos] = useState<{ top: number; left: number } | null>(null)
+
+  const openStatusDropdown = (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (openStatusMenu === projectId) { setOpenStatusMenu(null); setStatusMenuPos(null); return }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setStatusMenuPos({ top: rect.bottom + 6, left: rect.left })
+    setOpenStatusMenu(projectId)
+  }
 
   const updateStatus = async (e: React.MouseEvent, projectId: string, newStatus: string) => {
     e.preventDefault()
@@ -479,10 +489,10 @@ export default function ProjectsPage() {
                           {project.title}
                         </h3>
 
-                        {/* Status badge — clickable dropdown */}
-                        <div className="relative inline-block mb-3" style={{ zIndex: 30 }}>
+                        {/* Status badge — clickable dropdown (fixed position) */}
+                        <div className="inline-block mb-3">
                           <button
-                            onClick={e => { e.preventDefault(); e.stopPropagation(); setOpenStatusMenu(openStatusMenu === project.id ? null : project.id) }}
+                            onClick={e => openStatusDropdown(e, project.id)}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: '5px',
                               padding: '4px 8px 4px 10px', borderRadius: '999px',
@@ -495,39 +505,6 @@ export default function ProjectsPage() {
                             {sc.label}
                             <ChevronDown style={{ width: '10px', height: '10px', opacity: 0.7 }} />
                           </button>
-                          {openStatusMenu === project.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setOpenStatusMenu(null) }} />
-                              <div className="absolute left-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[170px]"
-                                style={{
-                                  background: 'rgba(20,20,28,0.72)',
-                                  backdropFilter: 'blur(20px) saturate(180%)',
-                                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                                  border: '1px solid rgba(255,255,255,0.10)',
-                                  boxShadow: '0 8px 32px rgba(0,0,0,0.40), 0 1px 0 rgba(255,255,255,0.06) inset',
-                                }}>
-                                <div className="py-1">
-                                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                                  <button
-                                    key={key}
-                                    onClick={e => updateStatus(e, project.id, key)}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
-                                    style={{
-                                      color: key === project.status ? cfg.color : 'rgba(255,255,255,0.85)',
-                                      background: key === project.status ? cfg.bg : 'transparent',
-                                    }}
-                                    onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                                    onMouseLeave={e => { if (key !== project.status) e.currentTarget.style.background = 'transparent' }}
-                                  >
-                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
-                                    {cfg.label}
-                                    {key === project.status && <span className="ml-auto text-[10px]">✓</span>}
-                                  </button>
-                                ))}
-                                </div>
-                              </div>
-                            </>
-                          )}
                         </div>
 
                         {/* Meta */}
@@ -625,49 +602,16 @@ export default function ProjectsPage() {
                       </span>
                     )}
 
-                    {/* Status — clickable dropdown */}
-                    <div className="relative flex-shrink-0" style={{ zIndex: 20 }}>
+                    {/* Status — clickable dropdown (fixed position) */}
+                    <div className="flex-shrink-0">
                       <button
-                        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpenStatusMenu(openStatusMenu === project.id ? null : project.id) }}
+                        onClick={e => openStatusDropdown(e, project.id)}
                         className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
                         style={{ background: sc.bg, color: sc.color, border: 'none', cursor: 'pointer' }}
                       >
                         {sc.label}
                         <ChevronDown className="w-2.5 h-2.5 opacity-70" />
                       </button>
-                      {openStatusMenu === project.id && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setOpenStatusMenu(null) }} />
-                          <div className="absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[170px]"
-                            style={{
-                              background: 'rgba(20,20,28,0.72)',
-                              backdropFilter: 'blur(20px) saturate(180%)',
-                              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                              border: '1px solid rgba(255,255,255,0.10)',
-                              boxShadow: '0 8px 32px rgba(0,0,0,0.40), 0 1px 0 rgba(255,255,255,0.06) inset',
-                            }}>
-                            <div className="py-1">
-                            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                              <button
-                                key={key}
-                                onClick={e => updateStatus(e, project.id, key)}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
-                                style={{
-                                  color: key === project.status ? cfg.color : 'rgba(255,255,255,0.85)',
-                                  background: key === project.status ? cfg.bg : 'transparent',
-                                }}
-                                onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                                onMouseLeave={e => { if (key !== project.status) e.currentTarget.style.background = 'transparent' }}
-                              >
-                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
-                                {cfg.label}
-                                {key === project.status && <span className="ml-auto text-[10px]">✓</span>}
-                              </button>
-                            ))}
-                            </div>
-                          </div>
-                        </>
-                      )}
                     </div>
 
                     {/* Client */}
@@ -742,6 +686,50 @@ export default function ProjectsPage() {
             Erstes Projekt erstellen
           </Link>
         </div>
+      )}
+
+      {/* ── Status dropdown portal (fixed, escapes overflow:hidden) ── */}
+      {openStatusMenu && statusMenuPos && (
+        <>
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={() => { setOpenStatusMenu(null); setStatusMenuPos(null) }}
+          />
+          <div
+            className="fixed z-[9999] rounded-2xl overflow-hidden min-w-[170px]"
+            style={{
+              top: statusMenuPos.top,
+              left: statusMenuPos.left,
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            }}
+          >
+            <div className="py-1">
+              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                const currentProject = projects.find(p => p.id === openStatusMenu)
+                const isActive = currentProject?.status === key
+                return (
+                  <button
+                    key={key}
+                    onClick={e => updateStatus(e, openStatusMenu, key)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                    style={{
+                      color: isActive ? cfg.color : 'var(--text-primary)',
+                      background: isActive ? cfg.bg : 'transparent',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                    {cfg.label}
+                    {isActive && <span className="ml-auto text-[10px]">✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
