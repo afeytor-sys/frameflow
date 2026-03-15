@@ -8,6 +8,7 @@ import { formatRelative } from '@/lib/utils'
 import {
   FileText, Plus, X, ChevronRight, Check, Sparkles,
   BookOpen, Send, Eye, BookMarked, Trash2, PenLine, Download,
+  Bold, Italic, Underline, List, AlignLeft, Heading2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -109,6 +110,11 @@ export default function ContractsClient({
   const [newTplDesc, setNewTplDesc] = useState('')
   const [newTplContent, setNewTplContent] = useState('')
   const [savingTemplate, setSavingTemplate] = useState(false)
+  const editorRef = useState<HTMLDivElement | null>(null)
+
+  const execCmd = (cmd: string, value?: string) => {
+    document.execCommand(cmd, false, value)
+  }
 
   const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]))
 
@@ -168,19 +174,30 @@ export default function ContractsClient({
   const handleCreateTemplate = async () => {
     if (!newTplName.trim()) { toast.error('Bitte einen Namen eingeben'); return }
     setSavingTemplate(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSavingTemplate(false); return }
-    const { data, error } = await supabase
-      .from('contract_templates')
-      .insert({ photographer_id: user.id, name: newTplName.trim(), description: newTplDesc.trim() || null, content: newTplContent })
-      .select().single()
-    if (error) { toast.error('Fehler beim Speichern'); setSavingTemplate(false); return }
-    setUserTemplates(prev => [...prev, data])
-    setShowNewTemplateModal(false)
-    setNewTplName(''); setNewTplDesc(''); setNewTplContent('')
-    setSavingTemplate(false)
-    toast.success('Vorlage gespeichert!')
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setSavingTemplate(false); return }
+      const { data, error } = await supabase
+        .from('contract_templates')
+        .insert({ photographer_id: user.id, name: newTplName.trim(), description: newTplDesc.trim() || null, content: newTplContent })
+        .select().single()
+      if (error) {
+        console.error('Template save error:', error)
+        toast.error(`Fehler: ${error.message}`)
+        setSavingTemplate(false)
+        return
+      }
+      setUserTemplates(prev => [...prev, data as UserTemplate])
+      setShowNewTemplateModal(false)
+      setNewTplName(''); setNewTplDesc(''); setNewTplContent('')
+      toast.success('Vorlage gespeichert!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Unbekannter Fehler beim Speichern')
+    } finally {
+      setSavingTemplate(false)
+    }
   }
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -541,7 +558,7 @@ export default function ContractsClient({
       {/* ── New Template Modal ── */}
       {showNewTemplateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+          <div className="w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col" style={{ height: 'min(92vh, 860px)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
@@ -555,58 +572,49 @@ export default function ContractsClient({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Name *</label>
-                <input
-                  type="text"
-                  value={newTplName}
-                  onChange={e => setNewTplName(e.target.value)}
-                  placeholder="z.B. Mein Hochzeitsvertrag"
-                  className="input-base w-full"
-                  autoFocus
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Beschreibung (optional)</label>
-                <input
-                  type="text"
-                  value={newTplDesc}
-                  onChange={e => setNewTplDesc(e.target.value)}
-                  placeholder="Kurze Beschreibung der Vorlage"
-                  className="input-base w-full"
-                />
-              </div>
-
-              {/* Content */}
-              <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Vertragsinhalt</label>
-                <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Du kannst den Inhalt auch leer lassen und später im Editor bearbeiten.
-                </p>
-                <textarea
-                  value={newTplContent}
-                  onChange={e => setNewTplContent(e.target.value)}
-                  placeholder="Vertragstext hier eingeben... (HTML oder Plaintext)"
-                  rows={10}
-                  className="input-base w-full resize-y font-mono text-[12px]"
-                  style={{ minHeight: '200px' }}
-                />
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+              {/* Name + Desc row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Name *</label>
+                  <input
+                    type="text"
+                    value={newTplName}
+                    onChange={e => setNewTplName(e.target.value)}
+                    placeholder="z.B. Mein Hochzeitsvertrag"
+                    className="input-base w-full"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Beschreibung (optional)</label>
+                  <input
+                    type="text"
+                    value={newTplDesc}
+                    onChange={e => setNewTplDesc(e.target.value)}
+                    placeholder="Kurze Beschreibung der Vorlage"
+                    className="input-base w-full"
+                  />
+                </div>
               </div>
 
               {/* Quick-fill from builtin */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Oder von Standard-Vorlage starten</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Von Standard-Vorlage starten</label>
                 <div className="flex flex-wrap gap-2">
                   {CONTRACT_TEMPLATES.map((tpl, i) => {
                     const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
                     return (
                       <button
                         key={tpl.id}
-                        onClick={() => { setNewTplName(tpl.name); setNewTplDesc(tpl.description); setNewTplContent(tpl.content) }}
+                        onClick={() => {
+                          setNewTplName(tpl.name)
+                          setNewTplDesc(tpl.description)
+                          setNewTplContent(tpl.content)
+                          // Update editor
+                          const el = document.getElementById('tpl-editor')
+                          if (el) el.innerHTML = tpl.content
+                        }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                         style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                       >
@@ -616,6 +624,101 @@ export default function ContractsClient({
                     )
                   })}
                 </div>
+              </div>
+
+              {/* Rich text editor */}
+              <div className="flex flex-col flex-1" style={{ minHeight: '320px' }}>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Vertragsinhalt</label>
+
+                {/* Toolbar */}
+                <div
+                  className="flex items-center gap-1 px-2 py-1.5 flex-wrap flex-shrink-0"
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRadius: '10px 10px 0 0' }}
+                >
+                  {[
+                    { cmd: 'bold',          icon: <Bold className="w-3.5 h-3.5" />,        title: 'Fett (Ctrl+B)' },
+                    { cmd: 'italic',        icon: <Italic className="w-3.5 h-3.5" />,      title: 'Kursiv (Ctrl+I)' },
+                    { cmd: 'underline',     icon: <Underline className="w-3.5 h-3.5" />,   title: 'Unterstrichen (Ctrl+U)' },
+                  ].map(btn => (
+                    <button
+                      key={btn.cmd}
+                      onMouseDown={e => { e.preventDefault(); execCmd(btn.cmd) }}
+                      title={btn.title}
+                      className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
+                      style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                    >
+                      {btn.icon}
+                    </button>
+                  ))}
+
+                  <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
+
+                  <button
+                    onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'h2') }}
+                    title="Überschrift"
+                    className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                  >
+                    <Heading2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'p') }}
+                    title="Absatz"
+                    className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                  >
+                    <AlignLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onMouseDown={e => { e.preventDefault(); execCmd('insertUnorderedList') }}
+                    title="Liste"
+                    className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
+
+                  <button
+                    onMouseDown={e => { e.preventDefault(); execCmd('removeFormat') }}
+                    title="Formatierung entfernen"
+                    className="px-2 h-7 rounded-md flex items-center justify-center text-[10px] font-bold transition-all hover:opacity-80"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                  >
+                    Tx
+                  </button>
+                </div>
+
+                {/* Editable area */}
+                <div
+                  id="tpl-editor"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={e => setNewTplContent((e.currentTarget as HTMLDivElement).innerHTML)}
+                  dangerouslySetInnerHTML={{ __html: newTplContent }}
+                  className="flex-1 overflow-y-auto outline-none text-[13.5px] leading-relaxed"
+                  style={{
+                    minHeight: '280px',
+                    padding: '16px',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '0 0 10px 10px',
+                    color: 'var(--text-primary)',
+                  }}
+                  data-placeholder="Vertragstext hier eingeben..."
+                />
+                <style>{`
+                  #tpl-editor:empty:before {
+                    content: attr(data-placeholder);
+                    color: var(--text-muted);
+                    pointer-events: none;
+                  }
+                  #tpl-editor h2 { font-size: 1.1em; font-weight: 700; margin: 0.8em 0 0.3em; }
+                  #tpl-editor p  { margin: 0.4em 0; }
+                  #tpl-editor ul { padding-left: 1.4em; list-style: disc; }
+                  #tpl-editor li { margin: 0.2em 0; }
+                `}</style>
               </div>
             </div>
 
