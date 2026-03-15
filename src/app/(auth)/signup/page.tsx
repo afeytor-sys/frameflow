@@ -34,6 +34,13 @@ export default function SignupPage() {
       return
     }
 
+    // Supabase returns success even for existing emails, but identities will be empty
+    if (data?.user && data.user.identities && data.user.identities.length === 0) {
+      setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an oder setze dein Passwort zurück.')
+      setLoading(false)
+      return
+    }
+
     // If invite code provided, try to redeem it after signup
     // (will be redeemed after email confirmation via onboarding)
     if (inviteCode.trim()) {
