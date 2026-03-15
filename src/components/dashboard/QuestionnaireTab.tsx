@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
-import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List } from 'lucide-react'
+import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Submission {
@@ -32,13 +32,15 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   text:     <AlignLeft className="w-3.5 h-3.5" />,
   textarea: <AlignLeft className="w-3.5 h-3.5" />,
   choice:   <List className="w-3.5 h-3.5" />,
+  checkbox: <CheckSquare className="w-3.5 h-3.5" />,
   yesno:    <ToggleLeft className="w-3.5 h-3.5" />,
 }
 
 const TYPE_LABELS: Record<string, string> = {
   text:     'Kurztext',
   textarea: 'Langtext',
-  choice:   'Auswahl',
+  choice:   'Auswahl (eine)',
+  checkbox: 'Checkboxen (mehrere)',
   yesno:    'Ja / Nein',
 }
 
@@ -180,6 +182,15 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
     toast.success('Fragebogen gelöscht')
   }
 
+  // Format checkbox answers for display
+  const formatAnswer = (answer: string) => {
+    if (!answer) return null
+    if (answer.includes('|||')) {
+      return answer.split('|||').filter(Boolean).join(', ')
+    }
+    return answer
+  }
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -313,10 +324,12 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
                 </label>
               </div>
 
-              {/* Options for choice type */}
-              {q.type === 'choice' && (
+              {/* Options for choice or checkbox type */}
+              {(q.type === 'choice' || q.type === 'checkbox') && (
                 <div className="space-y-1.5">
-                  <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Optionen (kommagetrennt)</p>
+                  <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                    Optionen (kommagetrennt)
+                  </p>
                   <input
                     type="text"
                     value={(q.options || []).join(', ')}
@@ -455,7 +468,7 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
                       <p className="text-[12.5px] font-medium" style={{ color: 'var(--text-primary)' }}>{q.label}</p>
                       <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         {TYPE_LABELS[q.type]}{q.required ? ' · Pflichtfeld' : ''}
-                        {q.type === 'choice' && q.options?.length ? ` · ${q.options.join(', ')}` : ''}
+                        {(q.type === 'choice' || q.type === 'checkbox') && q.options?.length ? ` · ${q.options.join(', ')}` : ''}
                       </p>
                     </div>
                   </div>
@@ -499,13 +512,25 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
                 </div>
                 <div className="space-y-4">
                   {questionnaire.questions.map(q => {
-                    const answer = submission.answers[q.id]
+                    const rawAnswer = submission.answers[q.id]
+                    const answer = formatAnswer(rawAnswer)
                     return (
                       <div key={q.id}>
                         <p className="text-[11.5px] font-bold mb-1" style={{ color: 'var(--text-muted)' }}>{q.label}</p>
-                        <p className="text-[13.5px]" style={{ color: answer ? 'var(--text-primary)' : 'var(--text-muted)', fontStyle: answer ? 'normal' : 'italic' }}>
-                          {answer || '—'}
-                        </p>
+                        {q.type === 'checkbox' && rawAnswer?.includes('|||') ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {rawAnswer.split('|||').filter(Boolean).map(opt => (
+                              <span key={opt} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold"
+                                style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.20)' }}>
+                                ✓ {opt}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[13.5px]" style={{ color: answer ? 'var(--text-primary)' : 'var(--text-muted)', fontStyle: answer ? 'normal' : 'italic' }}>
+                            {answer || '—'}
+                          </p>
+                        )}
                       </div>
                     )
                   })}

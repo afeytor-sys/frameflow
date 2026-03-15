@@ -29,6 +29,23 @@ export default function QuestionnaireClientPage({ questionnaire, projectId, stud
     if (errors[id]) setErrors(prev => ({ ...prev, [id]: false }))
   }
 
+  // Toggle a checkbox option on/off
+  const toggleCheckbox = (id: string, option: string) => {
+    const current = answers[id] ? answers[id].split('|||').filter(Boolean) : []
+    const idx = current.indexOf(option)
+    if (idx >= 0) {
+      current.splice(idx, 1)
+    } else {
+      current.push(option)
+    }
+    setAnswer(id, current.join('|||'))
+    if (errors[id]) setErrors(prev => ({ ...prev, [id]: false }))
+  }
+
+  const isChecked = (id: string, option: string) => {
+    return (answers[id] || '').split('|||').includes(option)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -194,6 +211,42 @@ export default function QuestionnaireClientPage({ questionnaire, projectId, stud
                         {opt}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {q.type === 'checkbox' && q.options && (
+                  <div className="space-y-2 mt-1">
+                    {q.options.map(opt => {
+                      const checked = isChecked(q.id, opt)
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleCheckbox(q.id, opt)}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium text-left transition-all"
+                          style={{
+                            background: checked ? 'rgba(139,92,246,0.10)' : 'var(--bg-hover)',
+                            border: `1.5px solid ${checked ? '#8B5CF6' : 'var(--border-color)'}`,
+                            color: checked ? '#8B5CF6' : 'var(--text-primary)',
+                          }}
+                        >
+                          <div
+                            className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-all"
+                            style={{
+                              background: checked ? '#8B5CF6' : 'transparent',
+                              border: `2px solid ${checked ? '#8B5CF6' : 'var(--border-strong)'}`,
+                            }}
+                          >
+                            {checked && (
+                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </div>
+                          {opt}
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
 

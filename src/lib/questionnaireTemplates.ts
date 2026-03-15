@@ -1,8 +1,8 @@
 export interface Question {
   id: string
-  type: 'text' | 'textarea' | 'choice' | 'yesno'
+  type: 'text' | 'textarea' | 'choice' | 'yesno' | 'checkbox'
   label: string
-  options?: string[] // for 'choice' type
+  options?: string[] // for 'choice' and 'checkbox' types
   required?: boolean
 }
 

@@ -62,17 +62,13 @@ export default function ProjectsPage() {
   const [filterType, setFilterType] = useState<string | null>(null)
   const [showSortMenu, setShowSortMenu] = useState(false)
 
-  // Status dropdown — fixed position to escape overflow:hidden
+  // Status dropdown
   const [openStatusMenu, setOpenStatusMenu] = useState<string | null>(null)
-  const [statusMenuPos, setStatusMenuPos] = useState<{ top: number; left: number } | null>(null)
 
   const openStatusDropdown = (e: React.MouseEvent, projectId: string) => {
     e.preventDefault()
     e.stopPropagation()
-    if (openStatusMenu === projectId) { setOpenStatusMenu(null); setStatusMenuPos(null); return }
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setStatusMenuPos({ top: rect.bottom + 6, left: rect.left })
-    setOpenStatusMenu(projectId)
+    setOpenStatusMenu(prev => prev === projectId ? null : projectId)
   }
 
   const updateStatus = async (e: React.MouseEvent, projectId: string, newStatus: string) => {
@@ -415,7 +411,7 @@ export default function ProjectsPage() {
 
                     <Link
                       href={`/dashboard/projects/${project.id}`}
-                      className="block rounded-2xl overflow-hidden transition-all duration-300"
+                      className="block rounded-2xl transition-all duration-300"
                       style={{
                         background: 'var(--card-bg)',
                         border: `1px solid ${sc.color}20`,
@@ -489,8 +485,8 @@ export default function ProjectsPage() {
                           {project.title}
                         </h3>
 
-                        {/* Status badge — clickable dropdown (fixed position) */}
-                        <div className="inline-block mb-3">
+                        {/* Status badge — inline dropdown */}
+                        <div className="relative inline-block mb-3">
                           <button
                             onClick={e => openStatusDropdown(e, project.id)}
                             style={{
@@ -505,6 +501,39 @@ export default function ProjectsPage() {
                             {sc.label}
                             <ChevronDown style={{ width: '10px', height: '10px', opacity: 0.7 }} />
                           </button>
+                          {openStatusMenu === project.id && (
+                            <div
+                              className="absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
+                              style={{
+                                background: 'var(--card-bg)',
+                                border: '1px solid var(--border-color)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                              }}
+                            >
+                              <div className="py-1">
+                                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                                  const isActive = project.status === key
+                                  return (
+                                    <button
+                                      key={key}
+                                      onClick={e => updateStatus(e, project.id, key)}
+                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                                      style={{
+                                        color: isActive ? cfg.color : 'var(--text-primary)',
+                                        background: isActive ? cfg.bg : 'transparent',
+                                      }}
+                                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                                    >
+                                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                                      {cfg.label}
+                                      {isActive && <span className="ml-auto text-[10px]">✓</span>}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Meta */}
@@ -602,8 +631,8 @@ export default function ProjectsPage() {
                       </span>
                     )}
 
-                    {/* Status — clickable dropdown (fixed position) */}
-                    <div className="flex-shrink-0">
+                    {/* Status — inline dropdown */}
+                    <div className="relative flex-shrink-0">
                       <button
                         onClick={e => openStatusDropdown(e, project.id)}
                         className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
@@ -612,6 +641,39 @@ export default function ProjectsPage() {
                         {sc.label}
                         <ChevronDown className="w-2.5 h-2.5 opacity-70" />
                       </button>
+                      {openStatusMenu === project.id && (
+                        <div
+                          className="absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
+                          style={{
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                          }}
+                        >
+                          <div className="py-1">
+                            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                              const isActive = project.status === key
+                              return (
+                                <button
+                                  key={key}
+                                  onClick={e => updateStatus(e, project.id, key)}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                                  style={{
+                                    color: isActive ? cfg.color : 'var(--text-primary)',
+                                    background: isActive ? cfg.bg : 'transparent',
+                                  }}
+                                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                                >
+                                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                                  {cfg.label}
+                                  {isActive && <span className="ml-auto text-[10px]">✓</span>}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Client */}
@@ -688,48 +750,9 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {/* ── Status dropdown portal (fixed, escapes overflow:hidden) ── */}
-      {openStatusMenu && statusMenuPos && (
-        <>
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={() => { setOpenStatusMenu(null); setStatusMenuPos(null) }}
-          />
-          <div
-            className="fixed z-[9999] rounded-2xl overflow-hidden min-w-[170px]"
-            style={{
-              top: statusMenuPos.top,
-              left: statusMenuPos.left,
-              background: 'var(--card-bg)',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            }}
-          >
-            <div className="py-1">
-              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                const currentProject = projects.find(p => p.id === openStatusMenu)
-                const isActive = currentProject?.status === key
-                return (
-                  <button
-                    key={key}
-                    onClick={e => updateStatus(e, openStatusMenu, key)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
-                    style={{
-                      color: isActive ? cfg.color : 'var(--text-primary)',
-                      background: isActive ? cfg.bg : 'transparent',
-                    }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-                  >
-                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
-                    {cfg.label}
-                    {isActive && <span className="ml-auto text-[10px]">✓</span>}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </>
+      {/* Close status menu on outside click */}
+      {openStatusMenu && (
+        <div className="fixed inset-0 z-[9998]" onClick={() => setOpenStatusMenu(null)} />
       )}
     </div>
   )

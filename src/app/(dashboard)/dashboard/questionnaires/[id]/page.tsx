@@ -7,6 +7,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, ClipboardList, Pencil, Trash2, Send, CheckCircle2,
   Plus, X, ChevronDown, AlignLeft, List, ToggleLeft, Clock, FolderOpen,
+  BookmarkPlus, CheckSquare,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
@@ -14,7 +15,8 @@ import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTempl
 const TYPE_LABELS: Record<string, string> = {
   text:     'Kurztext',
   textarea: 'Langtext',
-  choice:   'Auswahl',
+  choice:   'Auswahl (eine)',
+  checkbox: 'Checkboxen (mehrere)',
   yesno:    'Ja / Nein',
 }
 
@@ -22,6 +24,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   text:     <AlignLeft className="w-3.5 h-3.5" />,
   textarea: <AlignLeft className="w-3.5 h-3.5" />,
   choice:   <List className="w-3.5 h-3.5" />,
+  checkbox: <CheckSquare className="w-3.5 h-3.5" />,
   yesno:    <ToggleLeft className="w-3.5 h-3.5" />,
 }
 
@@ -52,6 +55,7 @@ export default function QuestionnaireDetailPage() {
   const [editing, setEditing] = useState(false)
   const [sending, setSending] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savingTemplate, setSavingTemplate] = useState(false)
 
   // Edit state
   const [editTitle, setEditTitle] = useState('')
@@ -128,6 +132,28 @@ export default function QuestionnaireDetailPage() {
     toast.success('Fragebogen gespeichert!')
   }
 
+  const saveAsTemplate = async () => {
+    if (!questionnaire) return
+    setSavingTemplate(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSavingTemplate(false); return }
+
+    const { error } = await supabase
+      .from('questionnaire_templates')
+      .insert({
+        photographer_id: user.id,
+        title: questionnaire.title,
+        questions: questionnaire.questions,
+      })
+
+    if (error) {
+      toast.error('Fehler beim Speichern als Vorlage')
+    } else {
+      toast.success(`"${questionnaire.title}" als Vorlage gespeichert! ✨`)
+    }
+    setSavingTemplate(false)
+  }
+
   const deleteQuestionnaire = async () => {
     if (!confirm('Fragebogen wirklich löschen?')) return
     await supabase.from('questionnaires').delete().eq('id', id)
@@ -164,6 +190,13 @@ export default function QuestionnaireDetailPage() {
     setQuestionnaire(prev => prev ? { ...prev, sent_at: new Date().toISOString() } : prev)
     setSending(false)
     toast.success(`Fragebogen an ${client.email} gesendet!`)
+  }
+
+  // Format checkbox answers for display
+  const formatAnswer = (answer: string) => {
+    if (!answer) return null
+    if (answer.includes('|||')) return answer.split('|||').filter(Boolean).join(', ')
+    return answer
   }
 
   if (loading) {
@@ -306,7 +339,7 @@ export default function QuestionnaireDetailPage() {
                 </label>
               </div>
 
-              {q.type === 'choice' && (
+              {(q.type === 'choice' || q.type === 'checkbox') && (
                 <div className="space-y-1.5">
                   <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Optionen (kommagetrennt)</p>
                   <input
@@ -386,7 +419,7 @@ export default function QuestionnaireDetailPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
           {!submission && (
             <button
               onClick={sendQuestionnaire}
@@ -401,6 +434,21 @@ export default function QuestionnaireDetailPage() {
               }
             </button>
           )}
+
+          {/* Save as Vorlage */}
+          <button
+            onClick={saveAsTemplate}
+            disabled={savingTemplate}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-90 disabled:opacity-40"
+            style={{ background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }}
+            title="Als Vorlage speichern"
+          >
+            {savingTemplate
+              ? <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              : <><BookmarkPlus className="w-3.5 h-3.5" />Als Vorlage</>
+            }
+          </button>
+
           <button
             onClick={openEdit}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all"
@@ -455,7 +503,8 @@ export default function QuestionnaireDetailPage() {
             </div>
           ) : (
             questionnaire.questions.map((q, i) => {
-              const answer = submission?.answers[q.id]
+              const rawAnswer = submission?.answers[q.id]
+              const answer = rawAnswer ? formatAnswer(rawAnswer) : null
               return (
                 <div key={q.id} className="p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
                   <div className="flex items-start gap-3">
@@ -467,14 +516,27 @@ export default function QuestionnaireDetailPage() {
                       <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{q.label}</p>
                       <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         {TYPE_LABELS[q.type]}{q.required ? ' · Pflichtfeld' : ''}
-                        {q.type === 'choice' && q.options?.length ? ` · ${q.options.join(', ')}` : ''}
+                        {(q.type === 'choice' || q.type === 'checkbox') && q.options?.length ? ` · ${q.options.join(', ')}` : ''}
                       </p>
                       {/* Answer if submitted */}
                       {submission && (
-                        <div className="mt-2 px-3 py-2 rounded-lg" style={{ background: answer ? 'rgba(16,185,129,0.08)' : 'transparent', border: answer ? '1px solid rgba(16,185,129,0.15)' : 'none' }}>
-                          <p className="text-[13px]" style={{ color: answer ? 'var(--text-primary)' : 'var(--text-muted)', fontStyle: answer ? 'normal' : 'italic' }}>
-                            {answer || '— keine Antwort —'}
-                          </p>
+                        <div className="mt-2">
+                          {q.type === 'checkbox' && rawAnswer?.includes('|||') ? (
+                            <div className="flex flex-wrap gap-1.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                              {rawAnswer.split('|||').filter(Boolean).map(opt => (
+                                <span key={opt} className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11.5px] font-bold"
+                                  style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.20)' }}>
+                                  ✓ {opt}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="px-3 py-2 rounded-lg" style={{ background: answer ? 'rgba(16,185,129,0.08)' : 'transparent', border: answer ? '1px solid rgba(16,185,129,0.15)' : 'none' }}>
+                              <p className="text-[13px]" style={{ color: answer ? 'var(--text-primary)' : 'var(--text-muted)', fontStyle: answer ? 'normal' : 'italic' }}>
+                                {answer || '— keine Antwort —'}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

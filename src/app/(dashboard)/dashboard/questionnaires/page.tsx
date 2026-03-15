@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen, Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine } from 'lucide-react'
+import {
+  ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen,
+  Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine, BookmarkCheck, Trash2,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
-import { QUESTIONNAIRE_TEMPLATES } from '@/lib/questionnaireTemplates'
+import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
 
 interface QuestionnaireRow {
   id: string
@@ -14,6 +17,13 @@ interface QuestionnaireRow {
   created_at: string
   project: { id: string; title: string } | null
   submission: { submitted_at: string } | null
+}
+
+interface CustomTemplate {
+  id: string
+  title: string
+  questions: Question[]
+  created_at: string
 }
 
 function getStatus(q: QuestionnaireRow): 'draft' | 'sent' | 'completed' {
@@ -33,6 +43,8 @@ const TEMPLATE_ACCENTS = [
   { color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.25)' },
   { color: '#3B82F6', bg: 'rgba(59,130,246,0.10)',  border: 'rgba(59,130,246,0.25)' },
 ]
+
+const CUSTOM_ACCENT = { color: '#10B981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)' }
 
 const TEMPLATE_CARDS = [
   {
@@ -57,9 +69,11 @@ const TEMPLATE_CARDS = [
 
 export default function QuestionnairesPage() {
   const [rows, setRows] = useState<QuestionnaireRow[]>([])
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'draft' | 'sent' | 'completed'>('all')
   const [creating, setCreating] = useState<string | null>(null)
+  const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -67,24 +81,33 @@ export default function QuestionnairesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data } = await supabase
-        .from('questionnaires')
-        .select(`
-          id, title, sent_at, created_at,
-          project:projects(id, title),
-          submission:questionnaire_submissions(submitted_at)
-        `)
-        .eq('photographer_id', user.id)
-        .order('created_at', { ascending: false })
+      const [{ data: questionnaires }, { data: templates }] = await Promise.all([
+        supabase
+          .from('questionnaires')
+          .select(`
+            id, title, sent_at, created_at,
+            project:projects(id, title),
+            submission:questionnaire_submissions(submitted_at)
+          `)
+          .eq('photographer_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('questionnaire_templates')
+          .select('id, title, questions, created_at')
+          .eq('photographer_id', user.id)
+          .order('created_at', { ascending: false }),
+      ])
 
-      setRows((data as unknown as QuestionnaireRow[]) || [])
+      setRows((questionnaires as unknown as QuestionnaireRow[]) || [])
+      setCustomTemplates((templates as CustomTemplate[]) || [])
       setLoading(false)
     }
     load()
   }, [])
 
-  const createFromTemplate = async (key: string) => {
-    setCreating(key)
+  const createFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
+    const creatingKey = customTpl ? `custom_${customTpl.id}` : key
+    setCreating(creatingKey)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -92,7 +115,10 @@ export default function QuestionnairesPage() {
       let title = 'Neuer Fragebogen'
       let questions: object[] = []
 
-      if (key === 'blank') {
+      if (customTpl) {
+        title = customTpl.title
+        questions = customTpl.questions
+      } else if (key === 'blank') {
         title = 'Neuer Fragebogen'
         questions = []
       } else {
@@ -112,7 +138,6 @@ export default function QuestionnairesPage() {
       if (error) { toast.error('Fehler beim Erstellen'); return }
 
       toast.success(`"${title}" erstellt!`)
-      // Add to list
       setRows(prev => [{
         id: data.id,
         title,
@@ -124,6 +149,19 @@ export default function QuestionnairesPage() {
     } finally {
       setCreating(null)
     }
+  }
+
+  const deleteCustomTemplate = async (tplId: string, tplTitle: string) => {
+    if (!confirm(`Vorlage "${tplTitle}" wirklich löschen?`)) return
+    setDeletingTemplate(tplId)
+    const { error } = await supabase.from('questionnaire_templates').delete().eq('id', tplId)
+    if (error) {
+      toast.error('Fehler beim Löschen')
+    } else {
+      setCustomTemplates(prev => prev.filter(t => t.id !== tplId))
+      toast.success('Vorlage gelöscht')
+    }
+    setDeletingTemplate(null)
   }
 
   const filtered = filter === 'all' ? rows : rows.filter(r => getStatus(r) === filter)
@@ -164,7 +202,7 @@ export default function QuestionnairesPage() {
         </p>
       </div>
 
-      {/* ── Vorlagen ── */}
+      {/* ── Standard-Vorlagen ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
@@ -215,6 +253,7 @@ export default function QuestionnairesPage() {
           {/* ── Built-in template cards ── */}
           {TEMPLATE_CARDS.map((tpl) => {
             const accent = TEMPLATE_ACCENTS[tpl.accentIdx]
+            const isCreating = creating === tpl.key
             return (
               <div
                 key={tpl.key}
@@ -263,11 +302,11 @@ export default function QuestionnairesPage() {
                     </button>
                     <button
                       onClick={() => createFromTemplate(tpl.key)}
-                      disabled={creating === tpl.key}
+                      disabled={isCreating}
                       className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90 disabled:opacity-50"
                       style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                     >
-                      {creating === tpl.key ? (
+                      {isCreating ? (
                         <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <>Verwenden <ChevronRight className="w-3 h-3" /></>
@@ -280,6 +319,98 @@ export default function QuestionnairesPage() {
           })}
         </div>
       </div>
+
+      {/* ── Meine Vorlagen (custom) ── */}
+      {customTemplates.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <BookmarkCheck className="w-4 h-4" style={{ color: CUSTOM_ACCENT.color }} />
+            <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Meine Vorlagen
+            </h2>
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-black"
+              style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
+            >
+              {customTemplates.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {customTemplates.map((tpl) => {
+              const isCreating = creating === `custom_${tpl.id}`
+              const isDeleting = deletingTemplate === tpl.id
+              return (
+                <div
+                  key={tpl.id}
+                  className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
+                  style={{
+                    background: `linear-gradient(135deg, ${CUSTOM_ACCENT.color}10 0%, ${CUSTOM_ACCENT.color}04 100%)`,
+                    border: `1px solid ${CUSTOM_ACCENT.color}28`,
+                    boxShadow: `0 2px 12px ${CUSTOM_ACCENT.color}08`,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.boxShadow = `0 8px 24px ${CUSTOM_ACCENT.color}18`
+                    e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '45'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.boxShadow = `0 2px 12px ${CUSTOM_ACCENT.color}08`
+                    e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '28'
+                  }}
+                >
+                  {/* Top color bar */}
+                  <div className="h-[3px] w-full" style={{ background: CUSTOM_ACCENT.color, opacity: 0.7 }} />
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    {/* Icon */}
+                    <div className="flex items-start justify-between">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                        style={{ background: CUSTOM_ACCENT.bg, border: `1px solid ${CUSTOM_ACCENT.border}` }}
+                      >
+                        <BookmarkCheck className="w-5 h-5" style={{ color: CUSTOM_ACCENT.color }} />
+                      </div>
+                      {/* Delete button */}
+                      <button
+                        onClick={() => deleteCustomTemplate(tpl.id, tpl.title)}
+                        disabled={isDeleting}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                        style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+                        title="Vorlage löschen"
+                      >
+                        {isDeleting
+                          ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          : <Trash2 className="w-3.5 h-3.5" />
+                        }
+                      </button>
+                    </div>
+                    {/* Title + meta */}
+                    <div className="flex-1">
+                      <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                        {tpl.title}
+                      </p>
+                      <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                        {tpl.questions.length} {tpl.questions.length === 1 ? 'Frage' : 'Fragen'} · Gespeichert {new Date(tpl.created_at).toLocaleDateString('de-DE')}
+                      </p>
+                    </div>
+                    {/* Use button */}
+                    <button
+                      onClick={() => createFromTemplate('', tpl)}
+                      disabled={isCreating}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
+                    >
+                      {isCreating ? (
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>Verwenden <ChevronRight className="w-3 h-3" /></>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 flex-wrap">
