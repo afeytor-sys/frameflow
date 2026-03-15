@@ -79,26 +79,45 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       {/* Header */}
       <div className="flex items-start gap-3">
         <Link href="/dashboard/projects"
-          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors mt-0.5"
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors mt-0.5 flex-shrink-0"
           style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>{project.title}</h1>
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <Link href={`/dashboard/clients/${(project.client as { id: string }).id}`}
-              className="text-sm transition-colors"
-              style={{ color: 'var(--text-muted)' }}>
-              {client.full_name}
-            </Link>
             {project.shoot_date && (
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>· {formatDate(project.shoot_date, 'de')}</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{formatDate(project.shoot_date, 'de')}</span>
             )}
           </div>
         </div>
+
+        {/* Client info card — top right */}
+        <Link
+          href={`/dashboard/clients/${(project.client as { id: string }).id}`}
+          className="flex-shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:opacity-80"
+          style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+        >
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-black flex-shrink-0"
+            style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}
+          >
+            {client.full_name.charAt(0).toUpperCase()}
+          </div>
+          <div className="text-right">
+            <p className="text-[12.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+              {client.full_name}
+            </p>
+            {client.email && (
+              <p className="text-[11px] leading-tight" style={{ color: 'var(--text-muted)' }}>
+                {client.email}
+              </p>
+            )}
+          </div>
+        </Link>
       </div>
 
       {/* Client portal link + QR */}
