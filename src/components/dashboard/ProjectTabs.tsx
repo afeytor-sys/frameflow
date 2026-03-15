@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
@@ -105,7 +105,7 @@ const TABS = [
     icon: Receipt,
     color: '#F97316',
     bg: 'rgba(249,115,22,0.10)',
-    desc: () => 'Rechnung erstellen',
+    desc: () => 'Rechnungen verwalten',
   },
   {
     key: 'portal',
@@ -150,7 +150,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
 
-  // Invoice form state
+  // Invoice state
   const [invoiceForm, setInvoiceForm] = useState({
     amount: '',
     description: '',
@@ -159,6 +159,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   })
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [invoiceCreated, setInvoiceCreated] = useState(false)
+  const [projectInvoices, setProjectInvoices] = useState<ProjectInvoice[]>([])
+  const [invoicesLoaded, setInvoicesLoaded] = useState(false)
 
   const supabase = createClient()
   const client = project.client as { full_name?: string; email?: string } | null
@@ -714,12 +716,17 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               photographerId={project.photographer_id}
               projectTitle={project.title}
               clientName={client?.full_name}
+              clientEmail={client?.email}
               form={invoiceForm}
               setForm={setInvoiceForm}
               saving={savingInvoice}
               setSaving={setSavingInvoice}
               created={invoiceCreated}
               setCreated={setInvoiceCreated}
+              invoices={projectInvoices}
+              setInvoices={setProjectInvoices}
+              invoicesLoaded={invoicesLoaded}
+              setInvoicesLoaded={setInvoicesLoaded}
             />
           )}
 
@@ -748,26 +755,82 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   )
 }
 
-// ── Invoice Tab Component ──────────────────────────────────────────────────
+// ── Invoice types & component ──────────────────────────────────────────────
+interface ProjectInvoice {
+  id: string
+  invoice_number: string
+  amount: number
+  currency: string
+  status: string
+  description: string | null
+  due_date: string | null
+  created_at: string
+}
+
 interface InvoiceTabProps {
   projectId: string
   photographerId: string
   projectTitle: string
   clientName?: string
+  clientEmail?: string
   form: { amount: string; description: string; due_date: string; include_mwst: boolean }
   setForm: React.Dispatch<React.SetStateAction<{ amount: string; description: string; due_date: string; include_mwst: boolean }>>
   saving: boolean
   setSaving: (v: boolean) => void
   created: boolean
   setCreated: (v: boolean) => void
+  invoices: ProjectInvoice[]
+  setInvoices: React.Dispatch<React.SetStateAction<ProjectInvoice[]>>
+  invoicesLoaded: boolean
+  setInvoicesLoaded: (v: boolean) => void
 }
 
-function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form, setForm, saving, setSaving, created, setCreated }: InvoiceTabProps) {
+function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clientEmail, form, setForm, saving, setSaving, created, setCreated, invoices, setInvoices, invoicesLoaded, setInvoicesLoaded }: InvoiceTabProps) {
   const supabase = createClient()
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+
+  // Load invoices on first render
+  useEffect(() => {
+    if (invoicesLoaded) return
+    supabase
+      .from('invoices')
+      .select('id, invoice_number, amount, currency, status, description, due_date, created_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setInvoices(data as ProjectInvoice[])
+        setInvoicesLoaded(true)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const net = parseFloat(form.amount.replace(',', '.')) || 0
   const mwst = form.include_mwst ? net * MWST_RATE : 0
   const gross = net + mwst
+
+  const fmt = (cents: number) =>
+    new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+
+  const statusLabel = (s: string) => {
+    if (s === 'paid') return { label: 'Bezahlt', color: '#3DBA6F', bg: 'rgba(61,186,111,0.10)' }
+    if (s === 'sent') return { label: 'Gesendet', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' }
+    return { label: 'Entwurf', color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' }
+  }
+
+  const handleSend = async (inv: ProjectInvoice) => {
+    if (!clientEmail) { toast.error('Kein Client-E-Mail gefunden'); return }
+    setSendingId(inv.id)
+    const res = await fetch('/api/invoices/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invoiceId: inv.id, clientEmail, clientName }),
+    })
+    if (!res.ok) { toast.error('Fehler beim Senden'); setSendingId(null); return }
+    setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'sent' } : i))
+    setSendingId(null)
+    toast.success(`Rechnung an ${clientEmail} gesendet!`)
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -781,7 +844,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
     if (form.include_mwst) descParts.push(`inkl. 19% MwSt (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
     const finalDescription = descParts.join(' · ') || null
 
-    const { error } = await supabase.from('invoices').insert({
+    const { data, error } = await supabase.from('invoices').insert({
       project_id: projectId,
       photographer_id: photographerId,
       amount: amountCents,
@@ -790,113 +853,206 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, form,
       description: finalDescription,
       due_date: form.due_date || null,
       invoice_number: invoiceNumber,
-    })
+    }).select('id, invoice_number, amount, currency, status, description, due_date, created_at').single()
 
     if (error) { console.error('Invoice error:', error); toast.error(`Fehler: ${error.message}`); setSaving(false); return }
+
+    // Add to list immediately
+    if (data) setInvoices(prev => [data as ProjectInvoice, ...prev])
     setSaving(false)
     setCreated(true)
+    setShowForm(false)
+    setForm({ amount: '', description: '', due_date: '', include_mwst: false })
     toast.success('Rechnung erstellt!')
   }
 
-  if (created) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(61,186,111,0.12)' }}>
-          <Check className="w-7 h-7" style={{ color: '#3DBA6F' }} />
-        </div>
-        <h3 className="font-black text-[17px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Rechnung erstellt!</h3>
-        <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Die Rechnung wurde als Entwurf gespeichert.</p>
-        <div className="flex gap-3">
-          <a href="/dashboard/invoices" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90" style={{ background: '#F97316' }}>
-            <Receipt className="w-4 h-4" />Alle Rechnungen
-          </a>
-          <button onClick={() => { setCreated(false); setForm({ amount: '', description: '', due_date: '', include_mwst: false }) }}
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
-            Neue Rechnung
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="max-w-md">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,115,22,0.10)' }}>
-          <Receipt className="w-5 h-5" style={{ color: '#F97316' }} />
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,115,22,0.10)' }}>
+            <Receipt className="w-5 h-5" style={{ color: '#F97316' }} />
+          </div>
+          <div>
+            <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Rechnungen</h3>
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{projectTitle}{clientName ? ` · ${clientName}` : ''}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Rechnung erstellen</h3>
-          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{projectTitle}{clientName ? ` · ${clientName}` : ''}</p>
-        </div>
+        <button
+          onClick={() => { setShowForm(f => !f); setCreated(false) }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90"
+          style={{ background: '#F97316' }}
+        >
+          <Plus className="w-4 h-4" />
+          Neue Rechnung
+        </button>
       </div>
 
-      <form onSubmit={handleCreate} className="space-y-4">
-        <div>
-          <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betrag (€) *</label>
-          <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
-            <span className="flex-shrink-0 px-3 text-[14px] font-bold select-none" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
-            <input type="text" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required placeholder="0,00"
-              className="flex-1 px-3 py-2.5 bg-transparent text-[14px] outline-none" style={{ color: 'var(--text-primary)' }} autoFocus />
-          </div>
-        </div>
+      {/* Create form (collapsible) */}
+      {showForm && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(249,115,22,0.25)', background: 'var(--bg-surface)' }}>
+          <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #F97316, #FB923C)' }} />
+          <div className="p-5">
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betrag (€) *</label>
+                <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
+                  <span className="flex-shrink-0 px-3 text-[14px] font-bold select-none" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
+                  <input type="text" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required placeholder="0,00"
+                    className="flex-1 px-3 py-2.5 bg-transparent text-[14px] outline-none" style={{ color: 'var(--text-primary)' }} autoFocus />
+                </div>
+              </div>
 
-        <div className="flex items-center justify-between p-3 rounded-xl transition-all"
-          style={{ background: form.include_mwst ? 'rgba(196,164,124,0.10)' : 'var(--bg-hover)', border: `1px solid ${form.include_mwst ? 'var(--accent)' : 'var(--border-color)'}` }}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: form.include_mwst ? 'var(--accent-muted)' : 'var(--border-color)' }}>
-              <Percent className="w-3.5 h-3.5" style={{ color: form.include_mwst ? 'var(--accent)' : 'var(--text-muted)' }} />
-            </div>
-            <div>
-              <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>MwSt 19%</p>
-              {form.include_mwst && net > 0 && (
-                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)} + {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(mwst)} = <strong style={{ color: 'var(--accent)' }}>{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(gross)}</strong>
-                </p>
+              <div className="flex items-center justify-between p-3 rounded-xl transition-all"
+                style={{ background: form.include_mwst ? 'rgba(196,164,124,0.10)' : 'var(--bg-hover)', border: `1px solid ${form.include_mwst ? 'var(--accent)' : 'var(--border-color)'}` }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: form.include_mwst ? 'var(--accent-muted)' : 'var(--border-color)' }}>
+                    <Percent className="w-3.5 h-3.5" style={{ color: form.include_mwst ? 'var(--accent)' : 'var(--text-muted)' }} />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>MwSt 19%</p>
+                    {form.include_mwst && net > 0 && (
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)} + {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(mwst)} = <strong style={{ color: 'var(--accent)' }}>{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(gross)}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button type="button" onClick={() => setForm(f => ({ ...f, include_mwst: !f.include_mwst }))}
+                  style={{ background: form.include_mwst ? 'var(--accent)' : 'var(--border-strong)', width: '40px', height: '22px', borderRadius: '999px', position: 'relative', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', top: '3px', width: '16px', height: '16px', background: '#fff', borderRadius: '50%', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s', left: form.include_mwst ? '21px' : '3px' }} />
+                </button>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
+                  <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="z.B. Hochzeitsfotografie" className="input-base w-full" />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <Clock className="w-3 h-3 inline mr-1" />Fälligkeitsdatum
+                  </label>
+                  <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="input-base w-full" />
+                </div>
+              </div>
+
+              {net > 0 && (
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)' }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#F97316' }}>Vorschau</p>
+                  <p className="text-[22px] font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+                    {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(gross)}
+                  </p>
+                  {form.include_mwst && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>inkl. 19% MwSt</p>}
+                </div>
               )}
-            </div>
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Abbrechen</button>
+                <button type="submit" disabled={saving || !form.amount}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                  style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.25)' }}>
+                  {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Plus className="w-4 h-4" />Rechnung erstellen</>}
+                </button>
+              </div>
+            </form>
           </div>
-          <button type="button" onClick={() => setForm(f => ({ ...f, include_mwst: !f.include_mwst }))}
-            style={{ background: form.include_mwst ? 'var(--accent)' : 'var(--border-strong)', width: '40px', height: '22px', borderRadius: '999px', position: 'relative', flexShrink: 0 }}>
-            <span style={{ position: 'absolute', top: '3px', width: '16px', height: '16px', background: '#fff', borderRadius: '50%', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s', left: form.include_mwst ? '21px' : '3px' }} />
+        </div>
+      )}
+
+      {/* Invoice list */}
+      {!invoicesLoaded ? (
+        <div className="space-y-2">
+          <div className="h-16 rounded-xl shimmer" />
+          <div className="h-16 rounded-xl shimmer" />
+        </div>
+      ) : invoices.length === 0 && !showForm ? (
+        <div className="text-center py-14 rounded-2xl" style={{ border: '2px dashed var(--border-color)' }}>
+          <Receipt className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
+          <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Rechnung</p>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Erstelle die erste Rechnung für dieses Projekt</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white mx-auto transition-all hover:opacity-90"
+            style={{ background: '#F97316' }}
+          >
+            <Plus className="w-4 h-4" />
+            Rechnung erstellen
           </button>
         </div>
-
-        <div>
-          <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
-          <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="z.B. Hochzeitsfotografie — 12. April 2026" className="input-base w-full" />
+      ) : (
+        <div className="space-y-2">
+          {invoices.map(inv => {
+            const st = statusLabel(inv.status)
+            const isSending = sendingId === inv.id
+            return (
+              <div key={inv.id} className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all"
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                {/* Icon */}
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,115,22,0.10)' }}>
+                  <Receipt className="w-4.5 h-4.5" style={{ color: '#F97316', width: '18px', height: '18px' }} />
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-[13.5px]" style={{ color: 'var(--text-primary)' }}>
+                      {projectTitle}
+                    </span>
+                    <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{inv.invoice_number}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {inv.description && (
+                      <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{inv.description}</span>
+                    )}
+                    {inv.due_date && (
+                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        · Fällig: {new Date(inv.due_date).toLocaleDateString('de-DE')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Amount + status */}
+                <div className="text-right flex-shrink-0">
+                  <p className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                    {fmt(inv.amount)}
+                  </p>
+                  <span className="inline-block px-2 py-0.5 rounded-full text-[10.5px] font-bold mt-0.5"
+                    style={{ background: st.bg, color: st.color }}>
+                    {st.label}
+                  </span>
+                </div>
+                {/* Actions */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {inv.status === 'draft' && clientEmail && (
+                    <button
+                      onClick={() => handleSend(inv)}
+                      disabled={isSending}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white disabled:opacity-50 transition-all hover:opacity-90"
+                      style={{ background: '#F97316' }}
+                      title="Senden"
+                    >
+                      {isSending
+                        ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        : <><Send className="w-3.5 h-3.5" />Senden</>
+                      }
+                    </button>
+                  )}
+                  <a
+                    href="/dashboard/invoices"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                    title="Alle Rechnungen"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            )
+          })}
         </div>
-
-        <div>
-          <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            <Clock className="w-3 h-3 inline mr-1" />Fälligkeitsdatum
-          </label>
-          <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="input-base w-full" />
-        </div>
-
-        {net > 0 && (
-          <div className="p-3 rounded-xl" style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)' }}>
-            <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#F97316' }}>Vorschau</p>
-            <p className="text-[22px] font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-              {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(gross)}
-            </p>
-            {form.include_mwst && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>inkl. 19% MwSt</p>}
-          </div>
-        )}
-
-        <div className="flex gap-3 pt-1">
-          <button type="submit" disabled={saving || !form.amount}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-            style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.25)' }}>
-            {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Plus className="w-4 h-4" />Rechnung erstellen</>}
-          </button>
-          <a href="/dashboard/invoices" className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-colors flex items-center"
-            style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
-            Alle Rechnungen
-          </a>
-        </div>
-      </form>
+      )}
     </div>
   )
 }
