@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen,
   Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine, BookmarkCheck, Trash2,
-  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown,
+  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
@@ -17,6 +17,7 @@ interface QuestionnaireRow {
   title: string
   sent_at: string | null
   created_at: string
+  scheduled_at?: string | null
   project: { id: string; title: string } | null
   submission: { submitted_at: string } | null
 }
@@ -28,16 +29,16 @@ interface CustomTemplate {
   created_at: string
 }
 
-function getStatus(q: QuestionnaireRow): 'draft' | 'sent' | 'completed' {
+function getStatus(q: QuestionnaireRow): 'not_sent' | 'scheduled' | 'completed' {
   if (q.submission) return 'completed'
-  if (q.sent_at) return 'sent'
-  return 'draft'
+  if (q.scheduled_at) return 'scheduled'
+  return 'not_sent'
 }
 
 const STATUS_CONFIG = {
-  draft:     { label: 'Entwurf',    color: '#64748B', bg: 'rgba(100,116,139,0.12)', icon: Clock },
-  sent:      { label: 'Gesendet',   color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
-  completed: { label: 'Ausgefüllt', color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
+  not_sent:  { label: 'Nicht versendet', color: '#64748B', bg: 'rgba(100,116,139,0.12)', icon: Clock },
+  scheduled: { label: 'Geplant',         color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
+  completed: { label: 'Complete',        color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
 
 const TEMPLATE_ACCENTS = [
@@ -89,7 +90,7 @@ export default function QuestionnairesPage() {
   const [rows, setRows] = useState<QuestionnaireRow[]>([])
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'draft' | 'sent' | 'completed'>('all')
+  const [filter, setFilter] = useState<'all' | 'not_sent' | 'scheduled' | 'completed'>('all')
   const [creating, setCreating] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
   const [deletingRow, setDeletingRow] = useState<string | null>(null)
@@ -264,8 +265,8 @@ export default function QuestionnairesPage() {
 
   const counts = {
     all: rows.length,
-    draft: rows.filter(r => getStatus(r) === 'draft').length,
-    sent: rows.filter(r => getStatus(r) === 'sent').length,
+    not_sent:  rows.filter(r => getStatus(r) === 'not_sent').length,
+    scheduled: rows.filter(r => getStatus(r) === 'scheduled').length,
     completed: rows.filter(r => getStatus(r) === 'completed').length,
   }
 
@@ -511,7 +512,7 @@ export default function QuestionnairesPage() {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 flex-wrap">
-        {(['all', 'draft', 'sent', 'completed'] as const).map(f => {
+        {(['all', 'not_sent', 'scheduled', 'completed'] as const).map(f => {
           const isActive = filter === f
           const cfg = f === 'all' ? null : STATUS_CONFIG[f]
           return (
@@ -592,8 +593,8 @@ export default function QuestionnairesPage() {
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {status === 'completed' && q.submission
                       ? `Ausgefüllt ${new Date(Array.isArray(q.submission) ? q.submission[0]?.submitted_at : q.submission.submitted_at).toLocaleDateString('de')}`
-                      : status === 'sent' && q.sent_at
-                      ? `Gesendet ${new Date(q.sent_at).toLocaleDateString('de')}`
+                      : status === 'scheduled' && q.scheduled_at
+                      ? `Geplant ${new Date(q.scheduled_at).toLocaleDateString('de')}`
                       : `Erstellt ${new Date(q.created_at).toLocaleDateString('de')}`
                     }
                   </p>
@@ -645,7 +646,7 @@ export default function QuestionnairesPage() {
             <ClipboardList className="w-6 h-6" style={{ color: '#6366F1' }} />
           </div>
           <h3 className="font-black mb-2" style={{ fontSize: '1.1rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-            {filter === 'all' ? 'Noch keine Fragebögen' : `Keine ${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}-Fragebögen`}
+            {filter === 'all' ? 'Noch keine Fragebögen' : `Keine "${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}"-Fragebögen`}
           </h3>
           <p className="text-[13px] max-w-xs" style={{ color: 'var(--text-muted)' }}>
             Wähle eine Vorlage oben aus oder erstelle Fragebögen direkt in einem Projekt
