@@ -96,9 +96,9 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
 
 export const PLAN_DISPLAY = {
   free: { name: 'Free', price: 0, color: '#6B6B6B' },
-  starter: { name: 'Starter', price: 8, color: '#C8A882' },
-  pro: { name: 'Pro', price: 17, color: '#1A1A1A' },
-  studio: { name: 'Studio', price: 37, color: '#0F0F0F' },
+  starter: { name: 'Starter', price: 11, color: '#C8A882' },
+  pro: { name: 'Pro', price: 18, color: '#1A1A1A' },
+  studio: { name: 'Studio', price: 39, color: '#0F0F0F' },
 }
 
 // What each plan unlocks (for upgrade modal copy)

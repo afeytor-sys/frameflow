@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check } from 'lucide-react'
+import { Check, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const PLANS = [
@@ -26,8 +26,8 @@ const PLANS = [
   {
     key: 'starter',
     name: 'Starter',
-    monthly: 8,
-    annual: 80,
+    monthly: 11,
+    annual: 119, // 11 × 12 × 0.9 = 118.8 → 119
     description: 'Für wachsende Studios',
     features: [
       'Bis zu 10 aktive Kunden',
@@ -43,8 +43,8 @@ const PLANS = [
   {
     key: 'pro',
     name: 'Pro',
-    monthly: 17,
-    annual: 170,
+    monthly: 18,
+    annual: 194, // 18 × 12 × 0.9 = 194.4 → 194
     description: 'Für professionelle Fotografen',
     badge: 'Beliebteste Wahl',
     features: [
@@ -61,8 +61,8 @@ const PLANS = [
   {
     key: 'studio',
     name: 'Studio',
-    monthly: 37,
-    annual: 370,
+    monthly: 39,
+    annual: 421, // 39 × 12 × 0.9 = 421.2 → 421
     description: 'Für Teams & Agenturen',
     comingSoon: true,
     features: [
@@ -83,6 +83,15 @@ export default function PricingSection() {
 
   return (
     <div>
+      {/* Promo banner */}
+      <div className="flex items-center justify-center gap-2.5 mb-8 px-4 py-3 rounded-2xl max-w-xl mx-auto"
+        style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
+        <Zap className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
+        <p className="text-sm font-semibold text-center" style={{ color: '#1A1A1A' }}>
+          🎉 <span style={{ color: '#F59E0B' }}>Lançamento:</span> Primeiros <strong>2 meses com 50% de desconto</strong> em todos os planos pagos — automaticamente!
+        </p>
+      </div>
+
       {/* Billing toggle */}
       <div className="flex items-center justify-center gap-3 mb-10">
         <button
@@ -106,7 +115,7 @@ export default function PricingSection() {
             'text-xs px-1.5 py-0.5 rounded-full font-medium',
             billing === 'annual' ? 'bg-[#3DBA6F] text-white' : 'bg-[#3DBA6F]/10 text-[#3DBA6F]'
           )}>
-            2 Monate gratis
+            10% Rabatt
           </span>
         </button>
       </div>
@@ -116,6 +125,7 @@ export default function PricingSection() {
         {PLANS.map((plan) => {
           const price = billing === 'annual' ? Math.round(plan.annual / 12) : plan.monthly
           const annualTotal = plan.annual
+          const promoPrice = price > 0 ? Math.round(price * 0.5) : 0
 
           return (
             <div
@@ -151,21 +161,35 @@ export default function PricingSection() {
                 <p className={cn('text-xs mb-3', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>
                   {plan.description}
                 </p>
-                <div className="flex items-baseline gap-1 flex-wrap">
-                  <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
-                    {price === 0 ? 'Gratis' : `€${price}`}
-                  </span>
-                  {price > 0 && (
-                    <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
-                  )}
-                  {price > 0 && (
-                    <span className={cn('text-[10px] font-medium', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>zzgl. MwSt.</span>
-                  )}
-                </div>
-                {billing === 'annual' && annualTotal > 0 && (
-                  <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/50' : 'text-[#6B6B6B]')}>
-                    €{annualTotal}/Jahr
-                  </p>
+
+                {price > 0 ? (
+                  <>
+                    {/* Promo: show original crossed out + promo price for first 2 months */}
+                    <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
+                      <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
+                        €{promoPrice}
+                      </span>
+                      <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
+                      <span className={cn('text-sm line-through', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>€{price}</span>
+                    </div>
+                    <p className={cn('text-[10px] font-semibold mb-1', plan.highlight ? 'text-[#F59E0B]' : 'text-[#F59E0B]')}>
+                      🎉 50% off — erste 2 Monate
+                    </p>
+                    <p className={cn('text-[10px]', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
+                      danach €{price}/Monat zzgl. MwSt.
+                    </p>
+                    {billing === 'annual' && annualTotal > 0 && (
+                      <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/50' : 'text-[#6B6B6B]')}>
+                        €{annualTotal}/Jahr
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-baseline gap-1 flex-wrap">
+                    <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
+                      Gratis
+                    </span>
+                  </div>
                 )}
               </div>
 

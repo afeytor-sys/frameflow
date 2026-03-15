@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Check, Zap } from 'lucide-react'
+import { X, Check, Zap, Sparkles } from 'lucide-react'
 import { PLAN_DISPLAY, PLAN_UNLOCK_COPY, type PlanKey } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
 
@@ -44,7 +44,8 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
     }
   }
 
-  const annualDiscount = (monthly: number) => Math.round(monthly * 10) // 2 months free = 10 months price
+  // Annual = 10% off (monthly × 12 × 0.9)
+  const annualTotal = (monthly: number) => Math.round(monthly * 12 * 0.9)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -99,10 +100,19 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                 'text-xs px-1.5 py-0.5 rounded-full font-medium',
                 billing === 'annual' ? 'bg-[#3DBA6F] text-white' : 'bg-[#3DBA6F]/10 text-[#3DBA6F]'
               )}>
-                2 Monate gratis
+                10% Rabatt
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Promo banner */}
+        <div className="mx-6 mt-5 flex items-center gap-2 px-3 py-2.5 rounded-xl"
+          style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
+          <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
+          <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
+            🎉 <span style={{ color: '#F59E0B' }}>Lançamento:</span> Primeiros <strong>2 meses 50% günstiger</strong> — automatisch!
+          </p>
         </div>
 
         {/* Plans */}
@@ -114,7 +124,9 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
             const isPro = plan === 'pro'
             const isComingSoon = COMING_SOON.includes(plan)
             const monthlyPrice = display.price
-            const annualPrice = annualDiscount(monthlyPrice)
+            const annualPrice = annualTotal(monthlyPrice)
+            const displayPrice = billing === 'annual' ? Math.round(annualPrice / 12) : monthlyPrice
+            const promoPrice = Math.round(displayPrice * 0.5)
 
             return (
               <div
@@ -144,11 +156,13 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                   <p className="font-semibold text-[#1A1A1A] text-sm">{display.name}</p>
                   <div className="flex items-baseline gap-1 mt-1 flex-wrap">
                     <span className="font-display text-2xl font-bold text-[#1A1A1A]">
-                      €{billing === 'annual' ? Math.round(annualPrice / 12) : monthlyPrice}
+                      €{promoPrice}
                     </span>
                     <span className="text-xs text-[#6B6B6B]">/Monat</span>
-                    <span className="text-[10px] text-[#9CA3AF] font-medium">zzgl. MwSt.</span>
+                    <span className="text-sm line-through text-[#9CA3AF]">€{displayPrice}</span>
                   </div>
+                  <p className="text-[10px] font-semibold text-[#F59E0B] mt-0.5">🎉 50% off — erste 2 Monate</p>
+                  <p className="text-[10px] text-[#9CA3AF]">danach €{displayPrice}/Monat zzgl. MwSt.</p>
                   {billing === 'annual' && (
                     <p className="text-xs text-[#6B6B6B] mt-0.5">€{annualPrice}/Jahr</p>
                   )}
