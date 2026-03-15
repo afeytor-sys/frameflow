@@ -22,6 +22,7 @@ interface ClientData {
   status: string
   project_type: string | null
   shoot_date: string | null
+  photographer_id?: string
 }
 
 interface Project {
@@ -116,6 +117,8 @@ export default function ClientDetailPage() {
   const saveEdit = async () => {
     if (!form.full_name.trim()) { toast.error('Name ist erforderlich'); return }
     setSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { toast.error('Nicht angemeldet'); setSaving(false); return }
     const { error } = await supabase
       .from('clients')
       .update({
@@ -127,6 +130,7 @@ export default function ClientDetailPage() {
         notes: form.notes.trim() || null,
       })
       .eq('id', id)
+      .eq('photographer_id', user.id)
 
     if (error) {
       toast.error('Fehler beim Speichern')
@@ -142,6 +146,7 @@ export default function ClientDetailPage() {
       address: form.address.trim() || null,
       location: form.location.trim() || null,
       notes: form.notes.trim() || null,
+      photographer_id: prev.photographer_id,
     } : prev)
 
     setSaving(false)
@@ -252,7 +257,8 @@ export default function ClientDetailPage() {
                       type="email"
                       value={form.email}
                       onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                      className="input-base w-full pl-8 text-[13px]"
+                      className="input-base w-full text-[13px]"
+                      style={{ paddingLeft: '2rem' }}
                       placeholder="email@beispiel.de"
                     />
                   </div>
@@ -265,7 +271,8 @@ export default function ClientDetailPage() {
                       type="tel"
                       value={form.phone}
                       onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                      className="input-base w-full pl-8 text-[13px]"
+                      className="input-base w-full text-[13px]"
+                      style={{ paddingLeft: '2rem' }}
                       placeholder="+49 123 456789"
                     />
                   </div>
@@ -277,7 +284,8 @@ export default function ClientDetailPage() {
                     <textarea
                       value={form.address}
                       onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                      className="input-base w-full pl-8 text-[13px] resize-none"
+                      className="input-base w-full text-[13px] resize-none"
+                      style={{ paddingLeft: '2rem' }}
                       rows={2}
                       placeholder="Straße, PLZ Stadt"
                     />
@@ -291,7 +299,8 @@ export default function ClientDetailPage() {
                       type="text"
                       value={form.location}
                       onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                      className="input-base w-full pl-8 text-[13px]"
+                      className="input-base w-full text-[13px]"
+                      style={{ paddingLeft: '2rem' }}
                       placeholder="z.B. Berlin"
                     />
                   </div>
