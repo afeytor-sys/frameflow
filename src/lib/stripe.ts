@@ -40,7 +40,7 @@ export interface PlanLimits {
   maxContractsPerClient: number | null
   maxGalleries: number | null     // null = unlimited
   watermark: boolean
-  customBranding: boolean         // hide "Powered by Studioflow"
+  customBranding: boolean         // hide "Powered by Fotonizer"
   teamSeats: number
   customDomain: boolean
   analytics: boolean
