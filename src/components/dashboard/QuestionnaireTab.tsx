@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
-import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock } from 'lucide-react'
+import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Submission {
@@ -58,6 +58,12 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
   const [scheduleTime, setScheduleTime] = useState('09:00')
   const [scheduledAt, setScheduledAt] = useState<string | null>(null)
   const [scheduling, setScheduling] = useState(false)
+
+  // Email compose modal state
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailMode, setEmailMode] = useState<'send' | 'schedule'>('send')
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
 
   // Builder state
   const [title, setTitle] = useState('')
@@ -154,6 +160,37 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
     toast.success('Fragebogen gespeichert!')
   }
 
+  // Build default email message
+  const buildDefaultMessage = (qTitle: string, studioName?: string) => {
+    const firstName = clientName?.split(' ')[0] || 'Hallo'
+    const studio = studioName || 'Dein Fotograf'
+    return `Hallo ${firstName}! 👋
+
+Vielen Dank für dein Interesse! Ich freue mich sehr auf unser gemeinsames Shooting.
+
+Ich habe einen Fragebogen für dich vorbereitet: "${qTitle}"
+
+Bitte nimm dir kurz Zeit, die Fragen zu beantworten — das hilft mir, alles perfekt für euch vorzubereiten.
+
+Liebe Grüße,
+${studio}`
+  }
+
+  const openEmailModal = (mode: 'send' | 'schedule') => {
+    if (!questionnaire) return
+    if (!clientEmail) { toast.error('Kein Client-E-Mail gefunden'); return }
+    if (mode === 'schedule') {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      setScheduleDate(tomorrow.toISOString().split('T')[0])
+      setScheduleTime('09:00')
+    }
+    setEmailMode(mode)
+    setEmailSubject(`📋 ${questionnaire.title}`)
+    setEmailMessage(buildDefaultMessage(questionnaire.title))
+    setShowEmailModal(true)
+  }
+
   const sendQuestionnaire = async () => {
     if (!questionnaire) return
     if (!clientEmail) { toast.error('Kein Client-E-Mail gefunden'); return }
@@ -168,6 +205,8 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
         clientEmail,
         clientName,
         clientToken,
+        customSubject: emailSubject,
+        customMessage: emailMessage,
       }),
     })
 
@@ -177,6 +216,7 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
     await supabase.from('questionnaires').update({ sent_at: new Date().toISOString() }).eq('id', questionnaire.id)
     setQuestionnaire(prev => prev ? { ...prev, sent_at: new Date().toISOString() } : prev)
     setSending(false)
+    setShowEmailModal(false)
     toast.success(`Fragebogen an ${clientEmail} gesendet!`)
   }
 
@@ -186,10 +226,8 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
     setScheduling(true)
     const dt = new Date(`${scheduleDate}T${scheduleTime}:00`)
     if (dt <= new Date()) { toast.error('Das Datum muss in der Zukunft liegen'); setScheduling(false); return }
-    // Store scheduled time in questionnaire metadata (we use sent_at as a "scheduled" marker with a future date)
-    // In practice this just saves the scheduled time and shows it to the user.
-    // A real cron/queue would be needed for actual delayed sending.
     setScheduledAt(dt.toISOString())
+    setShowEmailModal(false)
     setShowScheduleModal(false)
     setScheduling(false)
     toast.success(`Fragebogen geplant für ${dt.toLocaleDateString('de-DE')} um ${scheduleTime} Uhr`)
@@ -522,27 +560,19 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
 
                   {/* Split button row */}
                   <div className="flex gap-2">
-                    {/* Send now */}
+                    {/* Send now → opens email compose modal */}
                     <button
-                      onClick={sendQuestionnaire}
+                      onClick={() => openEmailModal('send')}
                       disabled={sending || !clientEmail}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
                       style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.25)' }}
                     >
-                      {sending
-                        ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        : <><Send className="w-4 h-4" />An {clientEmail || 'Kunden'} senden</>
-                      }
+                      <Send className="w-4 h-4" />
+                      An {clientEmail || 'Kunden'} senden
                     </button>
-                    {/* Schedule */}
+                    {/* Schedule → opens email compose modal in schedule mode */}
                     <button
-                      onClick={() => {
-                        const tomorrow = new Date()
-                        tomorrow.setDate(tomorrow.getDate() + 1)
-                        setScheduleDate(tomorrow.toISOString().split('T')[0])
-                        setScheduleTime('09:00')
-                        setShowScheduleModal(true)
-                      }}
+                      onClick={() => openEmailModal('schedule')}
                       disabled={!clientEmail}
                       className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold disabled:opacity-40 transition-all hover:opacity-90"
                       style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.25)' }}
@@ -606,7 +636,131 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
         </>
       )}
 
-      {/* ── Schedule Modal ── */}
+      {/* ── Email Compose Modal ── */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '92vh' }}>
+            {/* Header */}
+            <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                  <Mail className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                </div>
+                <div>
+                  <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                    {emailMode === 'send' ? 'E-Mail verfassen' : 'E-Mail planen'}
+                  </h3>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>An {clientEmail}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Subject */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Betreff
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  className="input-base w-full"
+                  placeholder="E-Mail Betreff..."
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Nachricht
+                </label>
+                <textarea
+                  value={emailMessage}
+                  onChange={e => setEmailMessage(e.target.value)}
+                  rows={10}
+                  className="input-base w-full resize-none"
+                  style={{ fontFamily: 'inherit', lineHeight: '1.6' }}
+                  placeholder="Deine Nachricht an den Kunden..."
+                />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Der Button zum Fragebogen wird automatisch im Email hinzugefügt.
+                </p>
+              </div>
+
+              {/* Schedule date/time — only in schedule mode */}
+              {emailMode === 'schedule' && (
+                <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.18)' }}>
+                  <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: '#8B5CF6' }}>Versandzeitpunkt</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Datum *</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                        <input
+                          type="date"
+                          value={scheduleDate}
+                          onChange={e => setScheduleDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="input-base w-full pl-9"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Uhrzeit</label>
+                      <div className="relative">
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                        <input
+                          type="time"
+                          value={scheduleTime}
+                          onChange={e => setScheduleTime(e.target.value)}
+                          className="input-base w-full pl-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {scheduleDate && (
+                    <p className="text-[12px] font-medium" style={{ color: '#8B5CF6' }}>
+                      📅 Wird gesendet am {new Date(`${scheduleDate}T${scheduleTime}:00`).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} um {scheduleTime} Uhr
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <button onClick={() => setShowEmailModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button
+                onClick={emailMode === 'send' ? sendQuestionnaire : handleSchedule}
+                disabled={emailMode === 'send' ? (sending || !emailMessage.trim()) : (scheduling || !scheduleDate)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.25)' }}
+              >
+                {(sending || scheduling)
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : emailMode === 'send'
+                    ? <><Send className="w-4 h-4" />Jetzt senden</>
+                    : <><Calendar className="w-4 h-4" />Planen</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Schedule Modal (legacy, kept for safety) ── */}
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
           <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>

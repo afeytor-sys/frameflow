@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: NextRequest) {
   try {
-    const { questionnaireId, projectId, clientEmail, clientName, clientToken } = await req.json()
+    const { questionnaireId, projectId, clientEmail, clientName, clientToken, customSubject, customMessage } = await req.json()
 
     if (!questionnaireId || !clientEmail) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -45,7 +45,20 @@ export async function POST(req: NextRequest) {
       || (photographer as { studio_name?: string; full_name?: string } | null)?.full_name
       || 'Dein Fotograf'
 
-    const firstName = clientName?.split(' ')[0] || 'Hallo'
+    // Convert plain text message to HTML paragraphs
+    const messageHtml = customMessage
+      ? customMessage
+          .split('\n')
+          .map((line: string) => line.trim() === '' ? '<br>' : `<p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.7;">${line}</p>`)
+          .join('')
+      : `<p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.7;">
+          ${studioName} hat einen Fragebogen für dich vorbereitet: <strong style="color:#1A1A1A;">${q.title}</strong>
+        </p>
+        <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.7;">
+          Bitte nimm dir kurz Zeit, die Fragen zu beantworten — das hilft uns, dein Shooting perfekt vorzubereiten.
+        </p>`
+
+    const emailSubject = customSubject || `📋 ${q.title} — von ${studioName}`
 
     const html = `
 <!DOCTYPE html>
@@ -78,15 +91,10 @@ export async function POST(req: NextRequest) {
           <span style="font-size:24px;">📋</span>
         </div>
 
-        <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#1A1A1A;letter-spacing:-0.03em;">
-          Hallo ${firstName}! 👋
-        </h1>
-        <p style="margin:0 0 24px;font-size:15px;color:#6B7280;line-height:1.6;">
-          ${studioName} hat einen Fragebogen für dich vorbereitet: <strong style="color:#1A1A1A;">${q.title}</strong>
-        </p>
-        <p style="margin:0 0 28px;font-size:14px;color:#6B7280;line-height:1.6;">
-          Bitte nimm dir kurz Zeit, die Fragen zu beantworten — das hilft uns, dein Shooting perfekt vorzubereiten.
-        </p>
+        <!-- Custom message -->
+        <div style="margin-bottom:28px;">
+          ${messageHtml}
+        </div>
 
         ${portalUrl ? `
         <!-- CTA Button -->
@@ -120,7 +128,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'noreply@fotonizer.com',
       to: clientEmail,
-      subject: `📋 ${q.title} — von ${studioName}`,
+      subject: emailSubject,
       html,
     })
 
