@@ -38,4 +38,18 @@ export const QUESTIONNAIRE_TEMPLATES: QuestionnaireTemplate[] = [
       { id: 'q6', type: 'textarea', label: 'Besondere Wünsche oder Anmerkungen?' },
     ],
   },
+  {
+    key: 'event',
+    title: 'Event — Fragebogen',
+    questions: [
+      { id: 'q1', type: 'text',     label: 'Name und Art des Events', required: true },
+      { id: 'q2', type: 'text',     label: 'Datum und Uhrzeit des Events', required: true },
+      { id: 'q3', type: 'text',     label: 'Adresse / Location des Events', required: true },
+      { id: 'q4', type: 'text',     label: 'Wie viele Personen werden erwartet?' },
+      { id: 'q5', type: 'textarea', label: 'Was sind die wichtigsten Momente, die fotografiert werden sollen?' },
+      { id: 'q6', type: 'textarea', label: 'Gibt es einen Ablaufplan oder Programmpunkte?' },
+      { id: 'q7', type: 'textarea', label: 'Gibt es besondere Personen oder Gruppen, die unbedingt fotografiert werden sollen?' },
+      { id: 'q8', type: 'textarea', label: 'Besondere Wünsche oder Anmerkungen?' },
+    ],
+  },
 ]

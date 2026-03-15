@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Project {
@@ -57,6 +57,11 @@ export default function ProjectsPage() {
     return 'grid'
   })
 
+  // Sort & filter
+  const [sortBy, setSortBy] = useState<'manual' | 'date' | 'alpha' | 'type'>('manual')
+  const [filterType, setFilterType] = useState<string | null>(null)
+  const [showSortMenu, setShowSortMenu] = useState(false)
+
   // Status dropdown
   const [openStatusMenu, setOpenStatusMenu] = useState<string | null>(null)
 
@@ -92,6 +97,31 @@ export default function ProjectsPage() {
     }
     load()
   }, [])
+
+  // Derived: sorted + filtered projects
+  const displayedProjects = (() => {
+    let list = [...projects]
+    // Filter by shooting type
+    if (filterType) list = list.filter(p => p.shooting_type === filterType)
+    // Sort
+    if (sortBy === 'date') {
+      list.sort((a, b) => {
+        if (!a.shoot_date && !b.shoot_date) return 0
+        if (!a.shoot_date) return 1
+        if (!b.shoot_date) return -1
+        return new Date(a.shoot_date).getTime() - new Date(b.shoot_date).getTime()
+      })
+    } else if (sortBy === 'alpha') {
+      list.sort((a, b) => a.title.localeCompare(b.title, 'de'))
+    } else if (sortBy === 'type') {
+      list.sort((a, b) => (a.shooting_type || '').localeCompare(b.shooting_type || '', 'de'))
+    }
+    // 'manual' keeps original sort_order
+    return list
+  })()
+
+  // Available shooting types from loaded projects
+  const availableTypes = Array.from(new Set(projects.map(p => p.shooting_type).filter(Boolean))) as string[]
 
   const setView = (mode: 'grid' | 'list') => {
     setViewMode(mode)
@@ -200,7 +230,103 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+          {/* Sort/Filter dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all"
+              style={{
+                background: (sortBy !== 'manual' || filterType) ? 'rgba(99,102,241,0.12)' : 'var(--bg-hover)',
+                color: (sortBy !== 'manual' || filterType) ? '#6366F1' : 'var(--text-muted)',
+                border: `1px solid ${(sortBy !== 'manual' || filterType) ? 'rgba(99,102,241,0.30)' : 'var(--border-color)'}`,
+              }}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              {sortBy === 'date' ? 'Nächste Termine' : sortBy === 'alpha' ? 'A → Z' : sortBy === 'type' ? 'Shooting-Typ' : filterType ? filterType : 'Sortieren'}
+              <ChevronDown className="w-3 h-3 opacity-60" />
+            </button>
+            {showSortMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
+                <div className="absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[200px]"
+                  style={{
+                    background: 'rgba(20,20,28,0.80)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.40)',
+                  }}>
+                  <div className="px-3 pt-2.5 pb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>Sortierung</p>
+                  </div>
+                  {[
+                    { key: 'manual', label: '⠿  Manuell (Standard)' },
+                    { key: 'date',   label: '🗓  Nächste Termine' },
+                    { key: 'alpha',  label: '🔤  A → Z' },
+                    { key: 'type',   label: '📷  Shooting-Typ' },
+                  ].map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => { setSortBy(opt.key as typeof sortBy); setFilterType(null); setShowSortMenu(false) }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                      style={{
+                        color: sortBy === opt.key && !filterType ? '#6366F1' : 'rgba(255,255,255,0.85)',
+                        background: sortBy === opt.key && !filterType ? 'rgba(99,102,241,0.15)' : 'transparent',
+                      }}
+                      onMouseEnter={e => { if (!(sortBy === opt.key && !filterType)) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                      onMouseLeave={e => { if (!(sortBy === opt.key && !filterType)) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      {opt.label}
+                      {sortBy === opt.key && !filterType && <span className="ml-auto text-[10px]">✓</span>}
+                    </button>
+                  ))}
+                  {availableTypes.length > 0 && (
+                    <>
+                      <div className="px-3 pt-2.5 pb-1 mt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>Filter nach Typ</p>
+                      </div>
+                      {availableTypes.map(type => {
+                        const stc = SHOOTING_TYPE_CONFIG[type]
+                        const isActive = filterType === type
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => { setFilterType(isActive ? null : type); setSortBy('manual'); setShowSortMenu(false) }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                            style={{
+                              color: isActive ? (stc?.color || '#fff') : 'rgba(255,255,255,0.85)',
+                              background: isActive ? (stc ? stc.bg : 'rgba(255,255,255,0.08)') : 'transparent',
+                            }}
+                            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                            onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: stc?.color || '#888', flexShrink: 0 }} />
+                            {type}
+                            {isActive && <span className="ml-auto text-[10px]">✓</span>}
+                          </button>
+                        )
+                      })}
+                    </>
+                  )}
+                  {(sortBy !== 'manual' || filterType) && (
+                    <div className="p-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <button
+                        onClick={() => { setSortBy('manual'); setFilterType(null); setShowSortMenu(false) }}
+                        className="w-full px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
+                        style={{ background: 'rgba(196,59,44,0.15)', color: '#C43B2C' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.25)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.15)' }}
+                      >
+                        Filter zurücksetzen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* View toggle */}
           <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
             <button

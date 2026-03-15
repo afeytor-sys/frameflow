@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen } from 'lucide-react'
+import { ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen, Plus, Sparkles } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { QUESTIONNAIRE_TEMPLATES } from '@/lib/questionnaireTemplates'
 
 interface QuestionnaireRow {
   id: string
@@ -26,10 +28,50 @@ const STATUS_CONFIG = {
   completed: { label: 'Ausgefüllt', color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
 
+const TEMPLATE_CARDS = [
+  {
+    key: 'hochzeit',
+    emoji: '💍',
+    label: 'Hochzeit',
+    desc: 'Trauung, Feier, Gäste & Wünsche',
+    color: '#E879A0',
+    bg: 'rgba(232,121,160,0.10)',
+    border: 'rgba(232,121,160,0.25)',
+  },
+  {
+    key: 'portrait',
+    emoji: '📸',
+    label: 'Portrait',
+    desc: 'Stil, Look, Referenzen & Wünsche',
+    color: '#8B5CF6',
+    bg: 'rgba(139,92,246,0.10)',
+    border: 'rgba(139,92,246,0.25)',
+  },
+  {
+    key: 'event',
+    emoji: '🎉',
+    label: 'Event',
+    desc: 'Ablauf, Personen & Programm',
+    color: '#F59E0B',
+    bg: 'rgba(245,158,11,0.10)',
+    border: 'rgba(245,158,11,0.25)',
+  },
+  {
+    key: 'blank',
+    emoji: '✏️',
+    label: 'Neu / Leer',
+    desc: 'Leerer Fragebogen zum Selbstgestalten',
+    color: '#6366F1',
+    bg: 'rgba(99,102,241,0.10)',
+    border: 'rgba(99,102,241,0.25)',
+  },
+]
+
 export default function QuestionnairesPage() {
   const [rows, setRows] = useState<QuestionnaireRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'draft' | 'sent' | 'completed'>('all')
+  const [creating, setCreating] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -53,6 +95,49 @@ export default function QuestionnairesPage() {
     load()
   }, [])
 
+  const createFromTemplate = async (key: string) => {
+    setCreating(key)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      let title = 'Neuer Fragebogen'
+      let questions: object[] = []
+
+      if (key === 'blank') {
+        title = 'Neuer Fragebogen'
+        questions = []
+      } else {
+        const tpl = QUESTIONNAIRE_TEMPLATES.find(t => t.key === key)
+        if (tpl) {
+          title = tpl.title
+          questions = tpl.questions
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('questionnaires')
+        .insert({ photographer_id: user.id, title, questions })
+        .select('id')
+        .single()
+
+      if (error) { toast.error('Fehler beim Erstellen'); return }
+
+      toast.success(`"${title}" erstellt!`)
+      // Add to list
+      setRows(prev => [{
+        id: data.id,
+        title,
+        sent_at: null,
+        created_at: new Date().toISOString(),
+        project: null,
+        submission: null,
+      }, ...prev])
+    } finally {
+      setCreating(null)
+    }
+  }
+
   const filtered = filter === 'all' ? rows : rows.filter(r => getStatus(r) === filter)
 
   const counts = {
@@ -66,8 +151,11 @@ export default function QuestionnairesPage() {
     return (
       <div className="space-y-6 animate-in">
         <div className="h-8 w-48 rounded-lg shimmer" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl shimmer" />)}
+        </div>
         <div className="space-y-2">
-          {[1,2,3,4].map(i => <div key={i} className="h-16 rounded-xl shimmer" />)}
+          {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl shimmer" />)}
         </div>
       </div>
     )
@@ -86,6 +174,70 @@ export default function QuestionnairesPage() {
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
           {rows.length} {rows.length === 1 ? 'Fragebogen' : 'Fragebögen'} · Alle Kundenfragebögen im Überblick
         </p>
+      </div>
+
+      {/* ── Vorlagen ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-3.5 h-3.5" style={{ color: '#6366F1' }} />
+          <p className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+            Vorlagen
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {TEMPLATE_CARDS.map(tpl => (
+            <button
+              key={tpl.key}
+              onClick={() => createFromTemplate(tpl.key)}
+              disabled={creating === tpl.key}
+              className="group relative flex flex-col items-start gap-2 p-4 rounded-2xl text-left transition-all duration-200 disabled:opacity-60"
+              style={{
+                background: tpl.bg,
+                border: `1px solid ${tpl.border}`,
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.boxShadow = `0 8px 24px ${tpl.color}22`
+                e.currentTarget.style.borderColor = tpl.color + '50'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.borderColor = tpl.border
+              }}
+            >
+              {/* Emoji icon */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                style={{ background: tpl.color + '18', border: `1px solid ${tpl.color}25` }}
+              >
+                {creating === tpl.key ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: tpl.color }} />
+                ) : (
+                  tpl.emoji
+                )}
+              </div>
+
+              {/* Label + desc */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-black leading-tight" style={{ color: tpl.color }}>
+                  {tpl.label}
+                </p>
+                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  {tpl.desc}
+                </p>
+              </div>
+
+              {/* Plus icon top-right */}
+              <div
+                className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: tpl.color + '20', color: tpl.color }}
+              >
+                <Plus className="w-3 h-3" />
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -217,7 +369,7 @@ export default function QuestionnairesPage() {
             {filter === 'all' ? 'Noch keine Fragebögen' : `Keine ${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}-Fragebögen`}
           </h3>
           <p className="text-[13px] max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Erstelle Fragebögen direkt in einem Projekt unter der Aba &quot;Fragebogen&quot;
+            Wähle eine Vorlage oben aus oder erstelle Fragebögen direkt in einem Projekt
           </p>
         </div>
       )}
