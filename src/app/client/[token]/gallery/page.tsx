@@ -30,16 +30,37 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { plan: string; studio_name: string | null; full_name: string; logo_url: string | null } | null
   const client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string } | null
 
-  const { data: gallery, error: galleryError } = await supabase
+  // Fetch all galleries for this project, prefer active ones with photos
+  const { data: allGalleries, error: galleryError } = await supabase
     .from('galleries')
     .select('id, title, description, status, download_enabled, watermark')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
 
   if (galleryError) {
     console.error('Gallery query error:', galleryError.message, galleryError.code)
+  }
+
+  // Pick the best gallery: first active, then any with photos, then most recent
+  let gallery = null
+  if (allGalleries && allGalleries.length > 0) {
+    // Check each gallery for photos, starting with active ones
+    const sorted = [
+      ...allGalleries.filter(g => g.status === 'active'),
+      ...allGalleries.filter(g => g.status !== 'active'),
+    ]
+    for (const g of sorted) {
+      const { count } = await supabase
+        .from('photos')
+        .select('id', { count: 'exact', head: true })
+        .eq('gallery_id', g.id)
+      if ((count ?? 0) > 0) {
+        gallery = g
+        break
+      }
+    }
+    // Fallback: just use the most recent gallery even if empty
+    if (!gallery) gallery = allGalleries[0]
   }
 
   if (!gallery) {
