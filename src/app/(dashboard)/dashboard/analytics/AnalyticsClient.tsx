@@ -133,65 +133,54 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </p>
       </div>
 
-      {/* KPI Cards — 3+3 grid, same style as dashboard stats */}
+      {/* KPI Cards — same layout as dashboard stats */}
       <style>{`
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(14px); }
+        @keyframes statFadeUp {
+          from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {kpis.map(({ label, value, icon: Icon, color }, i) => (
           <div
             key={label}
-            className="relative rounded-2xl overflow-hidden transition-all duration-250 cursor-default"
+            className="relative group rounded-2xl overflow-hidden cursor-default transition-all duration-300"
             style={{
-              background: `linear-gradient(135deg, ${color}12 0%, ${color}05 100%)`,
-              border: `1px solid ${color}25`,
-              boxShadow: `0 2px 12px ${color}10`,
-              animation: 'fadeSlideUp 0.45s ease forwards',
-              animationDelay: `${i * 60}ms`,
+              background: 'var(--card-bg)',
+              border: `1px solid ${color}20`,
+              boxShadow: `0 2px 12px ${color}12`,
+              animation: 'statFadeUp 0.5s ease forwards',
+              animationDelay: `${i * 90}ms`,
               opacity: 0,
             }}
             onMouseEnter={e => {
-              const el = e.currentTarget
-              el.style.transform = 'translateY(-2px)'
-              el.style.boxShadow = `0 8px 24px ${color}22`
-              el.style.borderColor = color + '40'
+              e.currentTarget.style.transform = 'translateY(-4px)'
+              e.currentTarget.style.boxShadow = `0 12px 32px ${color}22`
+              e.currentTarget.style.borderColor = color + '40'
             }}
             onMouseLeave={e => {
-              const el = e.currentTarget
-              el.style.transform = 'translateY(0)'
-              el.style.boxShadow = `0 2px 12px ${color}10`
-              el.style.borderColor = color + '25'
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = `0 2px 12px ${color}12`
+              e.currentTarget.style.borderColor = color + '20'
             }}
           >
             {/* Top accent bar */}
-            <div className="h-[3px] w-full" style={{ background: color, opacity: 0.7 }} />
-
-            <div className="p-6">
-              {/* Icon */}
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: color + '15', border: `1px solid ${color}25` }}
-              >
-                <Icon className="w-5 h-5" style={{ color }} />
+            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: color, opacity: 0.7 }} />
+            {/* Subtle gradient tint */}
+            <div className="absolute inset-0 rounded-2xl" style={{ background: `linear-gradient(135deg, ${color}12 0%, ${color}03 100%)`, opacity: 0.5 }} />
+            <div className="relative z-10 p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+                  style={{ background: color + '15', border: `1px solid ${color}25` }}
+                >
+                  <Icon className="w-5 h-5" style={{ color }} />
+                </div>
               </div>
-
-              {/* Big value */}
-              <p
-                className="font-black tabular-nums leading-none mb-1"
-                style={{
-                  fontSize: 'clamp(28px, 3.5vw, 44px)',
-                  letterSpacing: '-0.04em',
-                  color,
-                }}
-              >
+              <p className="font-black tabular-nums leading-none mb-1" style={{ fontSize: '42px', letterSpacing: '-0.05em', color }}>
                 {value}
               </p>
-
-              {/* Label */}
-              <p className="text-[11px] font-bold uppercase tracking-[0.10em]" style={{ color: color + '99' }}>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: color + '99' }}>
                 {label}
               </p>
             </div>

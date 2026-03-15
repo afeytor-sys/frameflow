@@ -245,40 +245,54 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
       {/* Stats */}
       <style>{`
-        .invoice-stat-card {
-          transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease !important;
-        }
-        .invoice-stat-card:hover {
-          transform: translateY(-4px) !important;
-          box-shadow: var(--card-shadow-hover) !important;
+        @keyframes statFadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {([
-          { label: 'Bezahlt',       value: formatEur(totalPaid),    color: '#2A9B68', iconBg: 'rgba(42,155,104,0.12)',  Icon: CheckCircle2, delay: 0 },
-          { label: 'Ausstehend',    value: formatEur(totalPending), color: 'var(--accent)', iconBg: 'var(--accent-muted)', Icon: Clock,    delay: 60 },
-          { label: 'Überfällig',    value: formatEur(totalOverdue), color: '#C43B2C', iconBg: 'rgba(196,59,44,0.10)',  Icon: AlertCircle,  delay: 120 },
-          { label: 'MwSt. bezahlt', value: formatEur(totalMwst),   color: '#8B5CF6', iconBg: 'rgba(139,92,246,0.10)', Icon: Percent,      delay: 180 },
-        ] as const).map(({ label, value, color, iconBg, Icon, delay }) => (
+          { label: 'Bezahlt',       value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? 'Erfolgreich eingegangen' : 'Noch keine Zahlungen',   Icon: CheckCircle2, delay: 0 },
+          { label: 'Ausstehend',    value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? 'Warten auf Zahlung' : 'Keine offenen Rechnungen', Icon: Clock,        delay: 90 },
+          { label: 'Überfällig',    value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? 'Sofort nachfassen!' : 'Alles im grünen Bereich',  Icon: AlertCircle,  delay: 180 },
+          { label: 'MwSt. bezahlt', value: formatEur(totalMwst),   color: '#8B5CF6', desc: 'Geschätzte 19% MwSt.',                                               Icon: Percent,      delay: 270 },
+        ] as const).map(({ label, value, color, desc, Icon, delay }, i) => (
           <div
             key={label}
-            className="invoice-stat-card rounded-2xl p-5 flex items-center gap-3"
+            className="relative group rounded-2xl overflow-hidden cursor-default transition-all duration-300"
             style={{
               background: 'var(--card-bg)',
-              border: '1px solid var(--card-border)',
-              boxShadow: 'var(--card-shadow)',
-              animation: 'fadeSlideIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards',
+              border: `1px solid ${color}20`,
+              boxShadow: `0 2px 12px ${color}12`,
+              animation: 'statFadeUp 0.5s ease forwards',
               animationDelay: `${delay}ms`,
               opacity: 0,
             }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-4px)'
+              e.currentTarget.style.boxShadow = `0 12px 32px ${color}22`
+              e.currentTarget.style.borderColor = color + '40'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = `0 2px 12px ${color}12`
+              e.currentTarget.style.borderColor = color + '20'
+            }}
           >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: iconBg }}>
-              <Icon className="w-4.5 h-4.5" style={{ color }} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.08em] mb-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{label}</p>
-              <p className="font-black text-[18px] leading-none truncate" style={{ color, letterSpacing: '-0.03em' }}>{value}</p>
+            {/* Top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: color, opacity: 0.7 }} />
+            {/* Subtle gradient tint */}
+            <div className="absolute inset-0 rounded-2xl" style={{ background: `linear-gradient(135deg, ${color}12 0%, ${color}03 100%)`, opacity: 0.5 }} />
+            <div className="relative z-10 p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+                  style={{ background: color + '15', border: `1px solid ${color}25` }}>
+                  <Icon className="w-5 h-5" style={{ color }} />
+                </div>
+              </div>
+              <p className="font-black tabular-nums leading-none mb-1" style={{ fontSize: '32px', letterSpacing: '-0.04em', color }}>{value}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: color + '99' }}>{label}</p>
+              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{desc}</p>
             </div>
           </div>
         ))}
