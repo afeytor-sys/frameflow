@@ -51,7 +51,10 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-[#4B5563] hover:bg-[#F1F1EF] hover:text-[#111827] transition-all text-[13px] font-medium"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+        style={{ border: '1px solid var(--border-color)', color: 'var(--text-secondary)', background: 'transparent' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' }}
       >
         <QrCode className="w-3.5 h-3.5" />
         QR Code
@@ -60,27 +63,33 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in">
+          <div
+            className="relative rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+          >
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="font-semibold text-[#111827] text-[15px]">QR Code</h3>
-                <p className="text-[12px] text-[#9CA3AF] mt-0.5">{projectTitle}</p>
+                <h3 className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>QR Code</h3>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{projectTitle}</p>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F1F1EF] text-[#9CA3AF] hover:text-[#111827] transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* QR Code */}
-            <div ref={svgRef} className="flex items-center justify-center p-6 bg-[#F7F7F5] rounded-xl mb-5">
+            {/* QR Code — always white background for readability */}
+            <div ref={svgRef} className="flex items-center justify-center p-6 rounded-xl mb-5" style={{ background: '#FFFFFF' }}>
               <QRCodeSVG
                 value={fullUrl}
                 size={180}
-                bgColor="#F7F7F5"
+                bgColor="#FFFFFF"
                 fgColor="#111827"
                 level="M"
                 includeMargin={false}
@@ -88,13 +97,16 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
             </div>
 
             {/* URL */}
-            <div className="flex items-center gap-2 p-3 bg-[#F7F7F5] rounded-xl mb-4">
-              <p className="flex-1 text-[11px] font-mono text-[#4B5563] truncate">{fullUrl}</p>
+            <div className="flex items-center gap-2 p-3 rounded-xl mb-4" style={{ background: 'var(--bg-hover)' }}>
+              <p className="flex-1 text-[11px] font-mono truncate" style={{ color: 'var(--text-secondary)' }}>{fullUrl}</p>
               <button
                 onClick={copyLink}
-                className="flex items-center gap-1 text-[11px] font-medium text-[#4B5563] hover:text-[#111827] transition-colors flex-shrink-0"
+                className="flex items-center gap-1 text-[11px] font-medium transition-colors flex-shrink-0"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-[#2A9B68]" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5" style={{ color: '#2A9B68' }} /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? 'Kopiert!' : 'Kopieren'}
               </button>
             </div>
@@ -103,7 +115,8 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={downloadQR}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#111827] text-white rounded-xl text-[13px] font-semibold hover:opacity-85 transition-opacity"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white hover:opacity-85 transition-opacity"
+                style={{ background: 'var(--text-primary)' }}
               >
                 <Download className="w-3.5 h-3.5" />
                 PNG laden
@@ -112,7 +125,10 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#E5E7EB] text-[#111827] rounded-xl text-[13px] font-semibold hover:bg-[#F1F1EF] transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <span className="text-[15px]">💬</span>
                 WhatsApp

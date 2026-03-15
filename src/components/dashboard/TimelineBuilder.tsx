@@ -20,7 +20,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, GripVertical, Trash2, Clock, MapPin, Timer, Edit2, Check, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 interface TimelineEvent {
@@ -41,18 +40,11 @@ const PHASE_OPTIONS = [
   { value: 'other', label: 'Sonstiges' },
 ] as const
 
-const PHASE_COLORS: Record<string, string> = {
-  preparation: 'bg-[#C8A882]/10 text-[#C8A882] border-[#C8A882]/20',
-  shoot: 'bg-[#1A1A1A]/10 text-[#1A1A1A] border-[#1A1A1A]/20',
-  wrap: 'bg-[#3DBA6F]/10 text-[#3DBA6F] border-[#3DBA6F]/20',
-  other: 'bg-[#6B6B6B]/10 text-[#6B6B6B] border-[#6B6B6B]/20',
-}
-
-const PHASE_DOT: Record<string, string> = {
-  preparation: 'bg-[#C8A882]',
-  shoot: 'bg-[#1A1A1A]',
-  wrap: 'bg-[#3DBA6F]',
-  other: 'bg-[#6B6B6B]',
+const PHASE_STYLE: Record<string, { bg: string; color: string; border: string }> = {
+  preparation: { bg: 'rgba(196,164,124,0.12)', color: '#C8A882', border: 'rgba(196,164,124,0.25)' },
+  shoot:       { bg: 'rgba(139,92,246,0.10)',  color: '#8B5CF6', border: 'rgba(139,92,246,0.25)' },
+  wrap:        { bg: 'rgba(61,186,111,0.10)',  color: '#3DBA6F', border: 'rgba(61,186,111,0.25)' },
+  other:       { bg: 'rgba(107,114,128,0.10)', color: '#9CA3AF', border: 'rgba(107,114,128,0.25)' },
 }
 
 function newEvent(): TimelineEvent {
@@ -88,7 +80,8 @@ function SortableEvent({
       <div
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 w-6 flex items-center justify-center cursor-grab text-[#C0C0C0] hover:text-[#6B6B6B] transition-colors mt-1"
+        className="flex-shrink-0 w-6 flex items-center justify-center cursor-grab transition-colors mt-1"
+        style={{ color: 'var(--border-strong)' }}
       >
         <GripVertical className="w-4 h-4" />
       </div>
@@ -99,11 +92,19 @@ function SortableEvent({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{event.time}</span>
-              <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border', PHASE_COLORS[event.phase])}>
-                {PHASE_OPTIONS.find(p => p.value === event.phase)?.label}
-              </span>
+              {(() => {
+                const ps = PHASE_STYLE[event.phase] ?? PHASE_STYLE.other
+                return (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{ background: ps.bg, color: ps.color, border: `1px solid ${ps.border}` }}
+                  >
+                    {PHASE_OPTIONS.find(p => p.value === event.phase)?.label}
+                  </span>
+                )
+              })()}
               {event.duration_minutes && (
-                <span className="flex items-center gap-1 text-xs text-[#6B6B6B]">
+                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                   <Timer className="w-3 h-3" />
                   {event.duration_minutes} Min.
                 </span>
@@ -112,25 +113,31 @@ function SortableEvent({
             <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{event.title || '(Kein Titel)'}</p>
             {event.location && (
               <div className="flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3 h-3 text-[#6B6B6B]" />
-                <p className="text-xs text-[#6B6B6B]">{event.location}</p>
+                <MapPin className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{event.location}</p>
               </div>
             )}
-            {event.notes && <p className="text-xs text-[#6B6B6B] mt-1">{event.notes}</p>}
+            {event.notes && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{event.notes}</p>}
             {event.photographer_note && (
-              <p className="text-xs text-[#C8A882] mt-1 italic">📷 {event.photographer_note}</p>
+              <p className="text-xs mt-1 italic" style={{ color: 'var(--accent)' }}>📷 {event.photographer_note}</p>
             )}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => onEdit(event)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6B6B6B] hover:bg-[#F0F0EC] hover:text-[#1A1A1A] transition-all"
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onDelete(event.id)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6B6B6B] hover:bg-[#E84C1A]/10 hover:text-[#E84C1A] transition-all"
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,76,26,0.10)'; e.currentTarget.style.color = '#E84C1A' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -160,20 +167,20 @@ function EventForm({
     <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Uhrzeit *</label>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Uhrzeit *</label>
           <input
             type="time"
             value={form.time}
             onChange={e => set('time', e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+            className="input-base w-full text-sm"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Phase *</label>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Phase *</label>
           <select
             value={form.phase}
             onChange={e => set('phase', e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none bg-white"
+            className="input-base w-full text-sm"
           >
             {PHASE_OPTIONS.map(p => (
               <option key={p.value} value={p.value}>{p.label}</option>
@@ -183,59 +190,59 @@ function EventForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Titel *</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Titel *</label>
         <input
           type="text"
           value={form.title}
           onChange={e => set('title', e.target.value)}
           placeholder="z.B. Brautpaar-Shooting"
-          className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+          className="input-base w-full text-sm"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Ort</label>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Ort</label>
           <input
             type="text"
             value={form.location || ''}
             onChange={e => set('location', e.target.value)}
             placeholder="z.B. Schlosspark"
-            className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+            className="input-base w-full text-sm"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Dauer (Min.)</label>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Dauer (Min.)</label>
           <input
             type="number"
             value={form.duration_minutes || ''}
             onChange={e => set('duration_minutes', parseInt(e.target.value) || 0)}
             placeholder="60"
             min={0}
-            className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+            className="input-base w-full text-sm"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Notiz für Kunden</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Notiz für Kunden</label>
         <input
           type="text"
           value={form.notes || ''}
           onChange={e => set('notes', e.target.value)}
           placeholder="Sichtbar für den Kunden"
-          className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+          className="input-base w-full text-sm"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-[#6B6B6B] mb-1">📷 Fotografen-Notiz (privat)</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>📷 Fotografen-Notiz (privat)</label>
         <input
           type="text"
           value={form.photographer_note || ''}
           onChange={e => set('photographer_note', e.target.value)}
           placeholder="Nur für dich sichtbar"
-          className="w-full px-3 py-2 rounded-lg border border-[#E8E8E4] text-sm focus:border-[#C8A882] outline-none"
+          className="input-base w-full text-sm"
         />
       </div>
 
@@ -246,14 +253,17 @@ function EventForm({
             onSave(form)
           }}
           className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
-          style={{ background: 'var(--text-primary)' }}
+          style={{ background: 'var(--accent)' }}
         >
           <Check className="w-3.5 h-3.5" />
           Speichern
         </button>
         <button
           onClick={onCancel}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
           <X className="w-3.5 h-3.5" />
           Abbrechen
@@ -346,7 +356,7 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
         <div className="flex items-center gap-2">
           <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Zeitplan</h3>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{events.length} Ereignisse</span>
-          {saving && <span className="text-xs text-[#C8A882]">Speichern...</span>}
+          {saving && <span className="text-xs" style={{ color: 'var(--accent)' }}>Speichern...</span>}
         </div>
         <button
           onClick={() => { setAddingNew(true); setEditingId(null) }}
@@ -369,12 +379,13 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
 
       {/* Events list */}
       {events.length === 0 && !addingNew ? (
-        <div className="text-center py-12 border-2 border-dashed border-[#E8E8E4] rounded-xl">
-          <Clock className="w-8 h-8 text-[#E8E8E4] mx-auto mb-3" />
-          <p className="text-sm text-[#6B6B6B] mb-3">Noch keine Ereignisse im Zeitplan.</p>
+        <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
+          <Clock className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
+          <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>Noch keine Ereignisse im Zeitplan.</p>
           <button
             onClick={() => setAddingNew(true)}
-            className="text-sm text-[#C8A882] hover:underline"
+            className="text-sm hover:underline"
+            style={{ color: 'var(--accent)' }}
           >
             Erstes Ereignis hinzufügen
           </button>

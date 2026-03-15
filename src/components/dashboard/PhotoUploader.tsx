@@ -140,7 +140,7 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
           'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
           isDragging
             ? 'border-[#C8A882] bg-[#C8A882]/5'
-            : 'border-[#E8E8E4] hover:border-[#C8A882]/50 hover:bg-[#FAFAF8]'
+            : 'border-[#E8E8E4] dark:border-[#333] hover:border-[#C8A882]/50'
         )}
       >
         <input
