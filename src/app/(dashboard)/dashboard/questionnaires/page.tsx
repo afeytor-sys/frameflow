@@ -91,6 +91,7 @@ export default function QuestionnairesPage() {
   const [filter, setFilter] = useState<'all' | 'draft' | 'sent' | 'completed'>('all')
   const [creating, setCreating] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
+  const [deletingRow, setDeletingRow] = useState<string | null>(null)
   const supabase = createClient()
 
   // ── Inline builder modal ──
@@ -218,6 +219,21 @@ export default function QuestionnairesPage() {
     } finally {
       setCreating(null)
     }
+  }
+
+  const deleteRow = async (rowId: string, rowTitle: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm(`Fragebogen "${rowTitle}" wirklich löschen?`)) return
+    setDeletingRow(rowId)
+    const { error } = await supabase.from('questionnaires').delete().eq('id', rowId)
+    if (error) {
+      toast.error('Fehler beim Löschen')
+    } else {
+      setRows(prev => prev.filter(r => r.id !== rowId))
+      toast.success('Fragebogen gelöscht')
+    }
+    setDeletingRow(null)
   }
 
   const deleteCustomTemplate = async (tplId: string, tplTitle: string) => {
@@ -580,6 +596,20 @@ export default function QuestionnairesPage() {
                   <StatusIcon className="w-3 h-3" />
                   {sc.label}
                 </div>
+
+                {/* Delete button */}
+                <button
+                  onClick={e => deleteRow(q.id, q.title, e)}
+                  disabled={deletingRow === q.id}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                  style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+                  title="Fragebogen löschen"
+                >
+                  {deletingRow === q.id
+                    ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    : <Trash2 className="w-3.5 h-3.5" />
+                  }
+                </button>
 
                 {/* Open arrow */}
                 <div
