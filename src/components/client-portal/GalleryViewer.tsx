@@ -36,6 +36,7 @@ interface Props {
   showWatermark: boolean
   token: string
   theme?: GalleryTheme
+  photoCount?: number
 }
 
 const TAG_CONFIG = {
@@ -121,6 +122,7 @@ export default function GalleryViewer({
   commentsEnabled,
   token,
   theme,
+  photoCount,
 }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -330,19 +332,19 @@ export default function GalleryViewer({
   // ── Photo card (shared between layouts) ─────────────────────────
   const PhotoCard = ({ photo, index, className }: { photo: Photo; index: number; className?: string }) => (
     <div
-      className={cn('relative group cursor-pointer overflow-hidden rounded-sm', className)}
+      className={cn('relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover', className)}
       onClick={() => openLightbox(index)}
     >
       <LazyImage
         src={getThumbnailUrl(photo)}
         alt={photo.filename}
-        className="w-full h-full"
+        className="w-full h-full photo-img-hover"
       />
       {/* Hover overlay */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-all duration-300" />
-      {/* Zoom */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
+      {/* Zoom icon */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
           <ZoomIn className="w-4 h-4 text-white" />
         </div>
       </div>
@@ -394,32 +396,67 @@ export default function GalleryViewer({
   )
 
   // Theme-aware colors for toolbar
-  const isDark = theme ? (theme.bg < '#888888') : true
-  const tbBg = theme ? `${theme.surface}CC` : 'rgba(255,255,255,0.08)'
-  const tbText = theme ? theme.textMuted : 'rgba(255,255,255,0.5)'
-  const tbTextHover = theme ? theme.text : '#ffffff'
-  const tbActiveBg = theme ? theme.accent : '#EF4444'
-  const tbBorder = theme ? theme.border : 'rgba(255,255,255,0.1)'
-  const tbDownloadBg = theme ? theme.text : '#ffffff'
-  const tbDownloadText = theme ? theme.bg : '#0C0C0B'
+  const tbBg = theme ? `${theme.surface}E0` : 'rgba(248,247,244,0.9)'
+  const tbText = theme ? theme.textMuted : '#7A7670'
+  const tbTextHover = theme ? theme.text : '#111110'
+  const tbBorder = theme ? theme.border : '#E8E4DC'
+
+  // Wire up hero buttons (rendered server-side) to client actions
+  useEffect(() => {
+    const dlBtn = document.getElementById('hero-download-btn')
+    const favBtn = document.getElementById('hero-favorites-btn')
+    if (dlBtn) {
+      const handler = () => downloadAll()
+      dlBtn.addEventListener('click', handler)
+      return () => dlBtn.removeEventListener('click', handler)
+    }
+    if (favBtn) {
+      const handler = () => setFilterTag(f => f === 'favorite' ? null : 'favorite')
+      favBtn.addEventListener('click', handler)
+      return () => favBtn.removeEventListener('click', handler)
+    }
+  }, [photos.length, downloadEnabled])
+
+  const totalCount = photoCount ?? photos.length
+  const photoCountLabel = filterTag
+    ? `${filteredPhotos.length} von ${totalCount} Bildern`
+    : `${totalCount} Bilder aus eurem Shooting`
 
   return (
     <>
       {/* ── Toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        {/* Left: filters */}
-        <div className="flex items-center gap-2 flex-wrap">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-3 rounded-2xl sticky top-4 z-20"
+        style={{
+          background: tbBg,
+          border: `1px solid ${tbBorder}`,
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+        }}
+      >
+        {/* Left: photo count + filters */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Photo count — natural language */}
+          <span
+            className="text-[13px] font-semibold hidden sm:block"
+            style={{ color: tbTextHover, letterSpacing: '-0.01em' }}
+          >
+            {photoCountLabel}
+          </span>
+
+          <div className="hidden sm:block w-px h-4" style={{ background: tbBorder }} />
+
           {/* Favorites filter */}
           <button
             onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
             style={{
-              background: filterTag === 'favorite' ? '#EF4444' : tbBg,
-              color: filterTag === 'favorite' ? '#fff' : tbText,
-              border: `1px solid ${tbBorder}`,
+              background: filterTag === 'favorite' ? '#EF444415' : 'transparent',
+              color: filterTag === 'favorite' ? '#EF4444' : tbText,
+              border: `1px solid ${filterTag === 'favorite' ? '#EF444430' : tbBorder}`,
             }}
           >
-            <Heart className={cn('w-3 h-3', filterTag === 'favorite' && 'fill-white')} />
+            <Heart className={cn('w-3 h-3', filterTag === 'favorite' && 'fill-current')} />
             {favoriteCount > 0 ? `${favoriteCount} Favoriten` : 'Favoriten'}
           </button>
 
@@ -429,12 +466,11 @@ export default function GalleryViewer({
               onClick={() => setShowTagFilters(!showTagFilters)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
               style={{
-                background: showTagFilters || (filterTag && filterTag !== 'favorite') ? (theme ? theme.accent + '33' : 'rgba(255,255,255,0.2)') : tbBg,
-                color: showTagFilters || (filterTag && filterTag !== 'favorite') ? tbTextHover : tbText,
-                border: `1px solid ${tbBorder}`,
+                background: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C15' : 'transparent',
+                color: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C' : tbText,
+                border: `1px solid ${showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C30' : tbBorder}`,
               }}
             >
-              {/* Show active tag dot if one is selected */}
               {filterTag && filterTag !== 'favorite' ? (
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: TAG_CONFIG[filterTag as keyof typeof TAG_CONFIG].bg }} />
               ) : (
@@ -447,8 +483,8 @@ export default function GalleryViewer({
             {showTagFilters && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowTagFilters(false)} />
-                <div className="absolute left-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden min-w-[140px]"
-                  style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+                <div className="absolute left-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden min-w-[150px]"
+                  style={{ background: '#FFFFFF', border: '1px solid #E8E4DC', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
                   {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => {
                     const count = tagCounts[tag]
                     return (
@@ -457,20 +493,22 @@ export default function GalleryViewer({
                         onClick={() => { setFilterTag(filterTag === tag ? null : tag); setShowTagFilters(false) }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors"
                         style={{
-                          color: filterTag === tag ? '#fff' : 'rgba(255,255,255,0.6)',
-                          background: filterTag === tag ? `${cfg.bg}22` : 'transparent',
+                          color: filterTag === tag ? '#111110' : '#7A7670',
+                          background: filterTag === tag ? `${cfg.bg}15` : 'transparent',
                         }}
                       >
                         <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
-                        <span className="flex-1 text-left">{count}</span>
-                        {filterTag === tag && <span className="text-white/40 text-[10px]">✓</span>}
+                        <span className="flex-1 text-left">{cfg.label}</span>
+                        <span className="text-[11px]" style={{ color: '#B0ACA6' }}>{count}</span>
+                        {filterTag === tag && <span style={{ color: cfg.bg }} className="text-[10px]">✓</span>}
                       </button>
                     )
                   })}
                   {filterTag && filterTag !== 'favorite' && (
                     <button
                       onClick={() => { setFilterTag(null); setShowTagFilters(false) }}
-                      className="w-full px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5 text-left"
+                      className="w-full px-3 py-2 text-[11px] transition-colors border-t text-left"
+                      style={{ color: '#B0ACA6', borderColor: '#E8E4DC' }}
                     >
                       Filter entfernen
                     </button>
@@ -490,7 +528,7 @@ export default function GalleryViewer({
         {/* Right: layout + controls + actions */}
         <div className="flex items-center gap-2">
           {/* Layout toggle */}
-          <div className="flex items-center gap-0.5 rounded-xl p-1" style={{ background: tbBg, border: `1px solid ${tbBorder}` }}>
+          <div className="flex items-center gap-0.5 rounded-xl p-1" style={{ background: 'rgba(0,0,0,0.04)', border: `1px solid ${tbBorder}` }}>
             {LAYOUT_OPTIONS.map(({ key, icon: Icon, label }) => (
               <button
                 key={key}
@@ -498,8 +536,9 @@ export default function GalleryViewer({
                 title={label}
                 className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
                 style={{
-                  background: layout === key ? (theme ? theme.accent + '33' : 'rgba(255,255,255,0.2)') : 'transparent',
-                  color: layout === key ? tbTextHover : tbText,
+                  background: layout === key ? '#FFFFFF' : 'transparent',
+                  color: layout === key ? '#111110' : tbText,
+                  boxShadow: layout === key ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                 }}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -513,9 +552,9 @@ export default function GalleryViewer({
               onClick={() => setShowControls(!showControls)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
               style={{
-                background: showControls ? (theme ? theme.accent + '22' : 'rgba(255,255,255,0.2)') : tbBg,
-                color: showControls ? tbTextHover : tbText,
-                border: `1px solid ${tbBorder}`,
+                background: showControls ? '#C4A47C15' : 'transparent',
+                color: showControls ? '#C4A47C' : tbText,
+                border: `1px solid ${showControls ? '#C4A47C30' : tbBorder}`,
               }}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -523,10 +562,11 @@ export default function GalleryViewer({
             {showControls && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowControls(false)} />
-                <div className="absolute right-0 top-full mt-2 z-20 rounded-2xl p-4 min-w-[200px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-3">Bildgröße</p>
+                <div className="absolute right-0 top-full mt-2 z-20 rounded-2xl p-4 min-w-[200px]"
+                  style={{ background: '#FFFFFF', border: '1px solid #E8E4DC', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: '#B0ACA6' }}>Bildgröße</p>
                   <div className="flex items-center gap-3">
-                    <span className="text-white/30 text-[10px]">S</span>
+                    <span className="text-[10px]" style={{ color: '#B0ACA6' }}>S</span>
                     <input
                       type="range"
                       min={1}
@@ -535,15 +575,20 @@ export default function GalleryViewer({
                       onChange={(e) => setSizePersist(Number(e.target.value))}
                       className="flex-1 accent-[#C4A47C]"
                     />
-                    <span className="text-white/30 text-[10px]">XL</span>
+                    <span className="text-[10px]" style={{ color: '#B0ACA6' }}>XL</span>
                   </div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/40 mt-4 mb-3">Layout</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mt-4 mb-3" style={{ color: '#B0ACA6' }}>Layout</p>
                   <div className="grid grid-cols-3 gap-1.5">
                     {LAYOUT_OPTIONS.map(({ key, icon: Icon, label }) => (
                       <button
                         key={key}
                         onClick={() => setLayoutPersist(key)}
-                        className={cn('flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all text-[11px] font-medium', layout === key ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70 hover:bg-white/8')}
+                        className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all text-[11px] font-medium"
+                        style={{
+                          background: layout === key ? '#F8F7F4' : 'transparent',
+                          color: layout === key ? '#111110' : '#B0ACA6',
+                          border: `1px solid ${layout === key ? '#E8E4DC' : 'transparent'}`,
+                        }}
                       >
                         <Icon className="w-4 h-4" />
                         {label}
@@ -556,15 +601,29 @@ export default function GalleryViewer({
           </div>
 
           {/* Presentation */}
-          <button onClick={startPresent} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/8 text-white/60 hover:text-white hover:bg-white/14 text-[12px] font-semibold transition-all">
+          <button
+            onClick={startPresent}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+            style={{ background: 'transparent', color: tbText, border: `1px solid ${tbBorder}` }}
+            onMouseEnter={e => { e.currentTarget.style.color = tbTextHover; e.currentTarget.style.borderColor = '#C4A47C50' }}
+            onMouseLeave={e => { e.currentTarget.style.color = tbText; e.currentTarget.style.borderColor = tbBorder }}
+          >
             <Maximize2 className="w-3.5 h-3.5" />
-            Präsentation
+            <span className="hidden sm:inline">Präsentation</span>
           </button>
 
           {/* Download all */}
           {downloadEnabled && photos.length > 0 && (
-            <button onClick={downloadAll} disabled={downloadingAll} className="flex items-center gap-2 px-4 py-2 bg-white text-[#0C0C0B] text-[12px] font-semibold rounded-full hover:bg-white/90 disabled:opacity-60 transition-all">
-              {downloadingAll ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</> : <><Download className="w-3.5 h-3.5" />Alle ({photos.length})</>}
+            <button
+              onClick={downloadAll}
+              disabled={downloadingAll}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
+              style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
+            >
+              {downloadingAll
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</>
+                : <><Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Alle ({photos.length})</span><span className="sm:hidden"><Download className="w-3.5 h-3.5" /></span></>
+              }
             </button>
           )}
         </div>
@@ -572,8 +631,8 @@ export default function GalleryViewer({
 
       {/* Download progress */}
       {downloadingAll && downloadProgress > 0 && (
-        <div className="w-full bg-white/10 rounded-full h-0.5 overflow-hidden mb-5">
-          <div className="h-full bg-white rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }} />
+        <div className="w-full rounded-full h-1 overflow-hidden mb-5" style={{ background: '#E8E4DC' }}>
+          <div className="h-full rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%`, background: '#C4A47C' }} />
         </div>
       )}
 

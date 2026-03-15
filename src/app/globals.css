@@ -593,11 +593,32 @@
 /* Exclude transitions that shouldn't animate */
 .no-transition,
 .no-transition *,
-img,
 video,
 canvas,
 svg {
   transition: none !important;
+}
+
+img:not(.photo-img-hover) {
+  transition: none !important;
+}
+
+/* ── Gallery photo hover effects ── */
+.photo-card-hover {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.photo-card-hover:hover {
+  transform: scale(1.025);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  z-index: 1;
+  position: relative;
+}
+.photo-img-hover {
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.photo-card-hover:hover .photo-img-hover {
+  transform: scale(1.04);
 }
 
 /* ── Print ── */
