@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
 import PortalSettingsTab from './PortalSettingsTab'
+import QuestionnaireTab from './QuestionnaireTab'
 import type { Contract, Plan } from '@/types/database'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
@@ -112,6 +113,14 @@ const TABS = [
     color: '#8B5CF6',
     bg: 'rgba(139,92,246,0.10)',
     desc: () => 'Sichtbarkeit & Nachricht',
+  },
+  {
+    key: 'questionnaire',
+    label: 'Fragebogen',
+    icon: ClipboardList,
+    color: '#8B5CF6',
+    bg: 'rgba(139,92,246,0.10)',
+    desc: () => 'Fragen an Kunden senden',
   },
 ]
 
@@ -591,8 +600,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         </div>
       )}
 
-      {/* ── 5 Navigation Cards ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-5 gap-3">
+      {/* ── 6 Navigation Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {TABS.map(({ key, label, icon: Icon, color, bg, desc }, idx) => {
           const isActive = activeTab === key
           const subtitle = desc(contracts, galleries, project)
@@ -719,6 +728,16 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               initialSections={(project.portal_sections as any) ?? null}
               initialMessage={(project.portal_message as string | null) ?? null}
+            />
+          )}
+
+          {activeTab === 'questionnaire' && (
+            <QuestionnaireTab
+              projectId={project.id}
+              photographerId={project.photographer_id}
+              clientEmail={(project.client as { email?: string } | null)?.email}
+              clientName={(project.client as { full_name?: string } | null)?.full_name}
+              clientToken={(project.client_token as string | null) ?? null}
             />
           )}
         </div>
