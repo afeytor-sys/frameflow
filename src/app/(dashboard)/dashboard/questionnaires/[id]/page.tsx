@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, ClipboardList, Pencil, Trash2, Send, CheckCircle2,
   Plus, X, ChevronDown, AlignLeft, List, ToggleLeft, Clock, FolderOpen,
-  BookmarkPlus, CheckSquare,
+  BookmarkPlus, CheckSquare, Search, User, Folder, Calendar, ChevronRight,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
@@ -44,6 +44,14 @@ interface Submission {
   submitted_at: string
 }
 
+interface ProjectOption {
+  id: string
+  title: string
+  client_token: string
+  custom_slug: string | null
+  client: { full_name: string; email: string } | null
+}
+
 export default function QuestionnaireDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -53,17 +61,23 @@ export default function QuestionnaireDetailPage() {
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
-  const [sending, setSending] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingTemplate, setSavingTemplate] = useState(false)
+
+  // Send modal state
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [projects, setProjects] = useState<ProjectOption[]>([])
+  const [projectSearch, setProjectSearch] = useState('')
+  const [selectedProject, setSelectedProject] = useState<ProjectOption | null>(null)
+  const [scheduleMode, setScheduleMode] = useState(false)
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [sending, setSending] = useState(false)
 
   // Edit state
   const [editTitle, setEditTitle] = useState('')
   const [editQuestions, setEditQuestions] = useState<Question[]>([])
 
-  useEffect(() => {
-    load()
-  }, [id])
+  useEffect(() => { load() }, [id])
 
   const load = async () => {
     setLoading(true)
@@ -88,6 +102,101 @@ export default function QuestionnaireDetailPage() {
       .single()
     if (sub) setSubmission(sub as Submission)
     setLoading(false)
+  }
+
+  const openSendModal = async () => {
+    setShowSendModal(true)
+    setProjectSearch('')
+    setScheduleMode(false)
+    setScheduledAt('')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data } = await supabase
+      .from('projects')
+      .select('id, title, client_token, custom_slug, client:clients(full_name, email)')
+      .eq('photographer_id', user.id)
+      .order('created_at', { ascending: false })
+
+    const list = (data || []).map((p: unknown) => {
+      const proj = p as { id: string; title: string; client_token: string; custom_slug: string | null; client: unknown }
+      const clientRaw = Array.isArray(proj.client) ? proj.client[0] : proj.client
+      return {
+        id: proj.id,
+        title: proj.title,
+        client_token: proj.client_token,
+        custom_slug: proj.custom_slug,
+        client: clientRaw as { full_name: string; email: string } | null,
+      }
+    })
+    setProjects(list)
+
+    // Pre-select current project if linked
+    if (questionnaire?.project_id) {
+      const current = list.find(p => p.id === questionnaire.project_id)
+      if (current) setSelectedProject(current)
+    }
+  }
+
+  const filteredProjects = projects.filter(p =>
+    p.title.toLowerCase().includes(projectSearch.toLowerCase()) ||
+    (p.client?.full_name || '').toLowerCase().includes(projectSearch.toLowerCase())
+  )
+
+  const handleSend = async () => {
+    if (!selectedProject) { toast.error('Bitte ein Projekt auswählen'); return }
+    if (!selectedProject.client?.email) { toast.error('Kein Kunde mit E-Mail in diesem Projekt'); return }
+
+    setSending(true)
+    try {
+      // 1. Link project to questionnaire if not already linked
+      if (questionnaire?.project_id !== selectedProject.id) {
+        await supabase
+          .from('questionnaires')
+          .update({ project_id: selectedProject.id })
+          .eq('id', id)
+        setQuestionnaire(prev => prev ? { ...prev, project_id: selectedProject.id } : prev)
+      }
+
+      if (scheduleMode && scheduledAt) {
+        // Save scheduled_at (visual only)
+        await supabase
+          .from('questionnaires')
+          .update({ sent_at: null })
+          .eq('id', id)
+        toast.success(`Versand geplant für ${new Date(scheduledAt).toLocaleString('de-DE')} ✅`)
+        setShowSendModal(false)
+        setSending(false)
+        return
+      }
+
+      // 2. Send email
+      const token = selectedProject.custom_slug || selectedProject.client_token
+      const res = await fetch('/api/questionnaires/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionnaireId: id,
+          projectId: selectedProject.id,
+          clientEmail: selectedProject.client.email,
+          clientName: selectedProject.client.full_name,
+          clientToken: token,
+        }),
+      })
+
+      if (!res.ok) { toast.error('Fehler beim Senden'); return }
+
+      // 3. Update sent_at
+      const now = new Date().toISOString()
+      await supabase.from('questionnaires').update({ sent_at: now }).eq('id', id)
+      setQuestionnaire(prev => prev ? { ...prev, sent_at: now } : prev)
+
+      toast.success(`Fragebogen an ${selectedProject.client.email} gesendet! 📧`)
+      setShowSendModal(false)
+    } finally {
+      setSending(false)
+    }
   }
 
   const openEdit = () => {
@@ -149,10 +258,7 @@ export default function QuestionnaireDetailPage() {
     if (error) {
       toast.error('Fehler beim Speichern als Vorlage')
     } else {
-      toast.success(`"${questionnaire.title}" als Vorlage gespeichert! ✨`, {
-        duration: 4000,
-      })
-      // Navigate to questionnaires list so user sees the new template card
+      toast.success(`"${questionnaire.title}" als Vorlage gespeichert! ✨`, { duration: 4000 })
       setTimeout(() => router.push('/dashboard/questionnaires'), 1200)
     }
     setSavingTemplate(false)
@@ -165,38 +271,6 @@ export default function QuestionnaireDetailPage() {
     router.push('/dashboard/questionnaires')
   }
 
-  const sendQuestionnaire = async () => {
-    if (!questionnaire?.project_id) { toast.error('Kein Projekt verknüpft'); return }
-    setSending(true)
-    // Get client email from project
-    const { data: proj } = await supabase
-      .from('projects')
-      .select('client:clients(email, full_name), client_token')
-      .eq('id', questionnaire.project_id)
-      .single()
-
-    const client = Array.isArray(proj?.client) ? proj.client[0] : proj?.client
-    if (!client?.email) { toast.error('Keine Kunden-E-Mail gefunden'); setSending(false); return }
-
-    const res = await fetch('/api/questionnaires/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionnaireId: id,
-        projectId: questionnaire.project_id,
-        clientEmail: client.email,
-        clientName: client.full_name,
-        clientToken: (proj as { client_token?: string })?.client_token,
-      }),
-    })
-    if (!res.ok) { toast.error('Fehler beim Senden'); setSending(false); return }
-    await supabase.from('questionnaires').update({ sent_at: new Date().toISOString() }).eq('id', id)
-    setQuestionnaire(prev => prev ? { ...prev, sent_at: new Date().toISOString() } : prev)
-    setSending(false)
-    toast.success(`Fragebogen an ${client.email} gesendet!`)
-  }
-
-  // Format checkbox answers for display
   const formatAnswer = (answer: string) => {
     if (!answer) return null
     if (answer.includes('|||')) return answer.split('|||').filter(Boolean).join(', ')
@@ -223,7 +297,6 @@ export default function QuestionnaireDetailPage() {
   if (editing) {
     return (
       <div className="max-w-3xl mx-auto space-y-6 animate-in">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -233,15 +306,12 @@ export default function QuestionnaireDetailPage() {
             >
               <X className="w-4 h-4" />
             </button>
-            <div>
-              <h1 className="font-black text-[1.4rem]" style={{ letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
-                Fragebogen bearbeiten
-              </h1>
-            </div>
+            <h1 className="font-black text-[1.4rem]" style={{ letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+              Fragebogen bearbeiten
+            </h1>
           </div>
         </div>
 
-        {/* Template picker */}
         <div className="p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
           <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Vorlage laden</p>
           <div className="flex gap-2 flex-wrap">
@@ -258,7 +328,6 @@ export default function QuestionnaireDetailPage() {
           </div>
         </div>
 
-        {/* Title */}
         <div>
           <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Titel *</label>
           <input
@@ -270,7 +339,6 @@ export default function QuestionnaireDetailPage() {
           />
         </div>
 
-        {/* Questions */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
@@ -359,7 +427,6 @@ export default function QuestionnaireDetailPage() {
           ))}
         </div>
 
-        {/* Footer */}
         <div className="flex gap-3 pt-2">
           <button onClick={() => setEditing(false)} className="btn-secondary flex-1">Abbrechen</button>
           <button
@@ -380,177 +447,373 @@ export default function QuestionnaireDetailPage() {
 
   // ── View mode ──────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in">
-      {/* Back + Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/questionnaires"
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all flex-shrink-0"
-            style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1
-              className="font-black"
-              style={{ fontSize: 'clamp(1.3rem, 2.5vw, 1.7rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+    <>
+      <div className="max-w-3xl mx-auto space-y-6 animate-in">
+        {/* Back + Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/questionnaires"
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all flex-shrink-0"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
             >
-              {questionnaire.title}
-            </h1>
-            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                {questionnaire.questions.length} {questionnaire.questions.length === 1 ? 'Frage' : 'Fragen'}
-              </span>
-              {project && (
-                <Link
-                  href={`/dashboard/projects/${project.id}?tab=questionnaire`}
-                  className="flex items-center gap-1 text-[12px] font-bold transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  <FolderOpen className="w-3 h-3" />
-                  {project.title}
-                </Link>
-              )}
-              {questionnaire.sent_at && (
-                <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  <Send className="w-3 h-3" />
-                  Gesendet {new Date(questionnaire.sent_at).toLocaleDateString('de-DE')}
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <h1
+                className="font-black"
+                style={{ fontSize: 'clamp(1.3rem, 2.5vw, 1.7rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+              >
+                {questionnaire.title}
+              </h1>
+              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                  {questionnaire.questions.length} {questionnaire.questions.length === 1 ? 'Frage' : 'Fragen'}
                 </span>
-              )}
+                {project && (
+                  <Link
+                    href={`/dashboard/projects/${project.id}?tab=questionnaire`}
+                    className="flex items-center gap-1 text-[12px] font-bold transition-opacity hover:opacity-70"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                    {project.title}
+                  </Link>
+                )}
+                {questionnaire.sent_at && (
+                  <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <Send className="w-3 h-3" />
+                    Gesendet {new Date(questionnaire.sent_at).toLocaleDateString('de-DE')}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-          {!submission && (
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {!submission && (
+              <button
+                onClick={openSendModal}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold text-white transition-all hover:opacity-90"
+                style={{ background: '#8B5CF6' }}
+              >
+                <Send className="w-3.5 h-3.5" />
+                Senden
+              </button>
+            )}
+
             <button
-              onClick={sendQuestionnaire}
-              disabled={sending || !questionnaire.project_id}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-              style={{ background: '#8B5CF6' }}
-              title={!questionnaire.project_id ? 'Kein Projekt verknüpft' : 'Senden'}
+              onClick={saveAsTemplate}
+              disabled={savingTemplate}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-90 disabled:opacity-40"
+              style={{ background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }}
             >
-              {sending
-                ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Send className="w-3.5 h-3.5" />Senden</>
+              {savingTemplate
+                ? <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                : <><BookmarkPlus className="w-3.5 h-3.5" />Als Vorlage</>
               }
             </button>
-          )}
 
-          {/* Save as Vorlage */}
-          <button
-            onClick={saveAsTemplate}
-            disabled={savingTemplate}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-90 disabled:opacity-40"
-            style={{ background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }}
-            title="Als Vorlage speichern"
-          >
-            {savingTemplate
-              ? <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-              : <><BookmarkPlus className="w-3.5 h-3.5" />Als Vorlage</>
-            }
-          </button>
-
-          <button
-            onClick={openEdit}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all"
-            style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Bearbeiten
-          </button>
-          <button
-            onClick={deleteQuestionnaire}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-            style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-            title="Löschen"
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.20)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.10)' }}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Status banner */}
-      {submission ? (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}>
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#10B981' }} />
-          <span className="text-[13px] font-bold" style={{ color: '#10B981' }}>
-            Ausgefüllt von {clientName || 'Kunde'} am {new Date(submission.submitted_at).toLocaleDateString('de-DE')}
-          </span>
-        </div>
-      ) : questionnaire.sent_at ? (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.20)' }}>
-          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
-          <span className="text-[13px] font-bold" style={{ color: '#F59E0B' }}>
-            Gesendet — warte auf Antwort von {clientName || 'Kunde'}
-          </span>
-        </div>
-      ) : null}
-
-      {/* Questions list */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
-        <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
-        <div className="p-5 space-y-3">
-          <div className="flex items-center gap-2 mb-4">
-            <ClipboardList className="w-4 h-4" style={{ color: '#8B5CF6' }} />
-            <h2 className="font-black text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Fragen
-            </h2>
+            <button
+              onClick={openEdit}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Bearbeiten
+            </button>
+            <button
+              onClick={deleteQuestionnaire}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+              style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.20)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.10)' }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-          {questionnaire.questions.length === 0 ? (
-            <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
-              <p className="text-[13px]">Noch keine Fragen — klicke auf &quot;Bearbeiten&quot; um Fragen hinzuzufügen</p>
+        </div>
+
+        {/* Status banner */}
+        {submission ? (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}>
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#10B981' }} />
+            <span className="text-[13px] font-bold" style={{ color: '#10B981' }}>
+              Ausgefüllt von {clientName || 'Kunde'} am {new Date(submission.submitted_at).toLocaleDateString('de-DE')}
+            </span>
+          </div>
+        ) : questionnaire.sent_at ? (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.20)' }}>
+            <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
+            <span className="text-[13px] font-bold" style={{ color: '#F59E0B' }}>
+              Gesendet — warte auf Antwort von {clientName || 'Kunde'}
+            </span>
+          </div>
+        ) : null}
+
+        {/* Questions list */}
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
+          <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+          <div className="p-5 space-y-3">
+            <div className="flex items-center gap-2 mb-4">
+              <ClipboardList className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+              <h2 className="font-black text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Fragen
+              </h2>
             </div>
-          ) : (
-            questionnaire.questions.map((q, i) => {
-              const rawAnswer = submission?.answers[q.id]
-              const answer = rawAnswer ? formatAnswer(rawAnswer) : null
-              return (
-                <div key={q.id} className="p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-start gap-3">
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                      style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{q.label}</p>
-                      <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {TYPE_LABELS[q.type]}{q.required ? ' · Pflichtfeld' : ''}
-                        {(q.type === 'choice' || q.type === 'checkbox') && q.options?.length ? ` · ${q.options.join(', ')}` : ''}
-                      </p>
-                      {/* Answer if submitted */}
-                      {submission && (
-                        <div className="mt-2">
-                          {q.type === 'checkbox' && rawAnswer?.includes('|||') ? (
-                            <div className="flex flex-wrap gap-1.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
-                              {rawAnswer.split('|||').filter(Boolean).map(opt => (
-                                <span key={opt} className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11.5px] font-bold"
-                                  style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.20)' }}>
-                                  ✓ {opt}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="px-3 py-2 rounded-lg" style={{ background: answer ? 'rgba(16,185,129,0.08)' : 'transparent', border: answer ? '1px solid rgba(16,185,129,0.15)' : 'none' }}>
-                              <p className="text-[13px]" style={{ color: answer ? 'var(--text-primary)' : 'var(--text-muted)', fontStyle: answer ? 'normal' : 'italic' }}>
-                                {answer || '— keine Antwort —'}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+            {questionnaire.questions.length === 0 ? (
+              <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[13px]">Noch keine Fragen — klicke auf &quot;Bearbeiten&quot; um Fragen hinzuzufügen</p>
+              </div>
+            ) : (
+              questionnaire.questions.map((q, i) => {
+                const rawAnswer = submission?.answers[q.id]
+                const answer = rawAnswer ? formatAnswer(rawAnswer) : null
+                return (
+                  <div key={q.id} className="p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
+                        style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{q.label}</p>
+                        <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {TYPE_LABELS[q.type]}{q.required ? ' · Pflichtfeld' : ''}
+                          {(q.type === 'choice' || q.type === 'checkbox') && q.options?.length ? ` · ${q.options.join(', ')}` : ''}
+                        </p>
+                        {submission && (
+                          <div className="mt-2">
+                            {q.type === 'checkbox' && rawAnswer?.includes('|||') ? (
+                              <div className="flex flex-wrap gap-1.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                {rawAnswer.split('|||').filter(Boolean).map(opt => (
+                                  <span key={opt} className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11.5px] font-bold"
+                                    style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.20)' }}>
+                                    ✓ {opt}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="px-3 py-2 rounded-lg" style={{ background: answer ? 'rgba(16,185,129,0.08)' : 'transparent', border: answer ? '1px solid rgba(16,185,129,0.15)' : 'none' }}>
+                                <p className="text-[13px]" style={{ color: answer ? 'var(--text-primary)' : 'var(--text-muted)', fontStyle: answer ? 'normal' : 'italic' }}>
+                                  {answer || '— keine Antwort —'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })
-          )}
+                )
+              })
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* ── Send Modal ── */}
+      {showSendModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowSendModal(false) }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl overflow-hidden animate-in"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.20)' }}
+          >
+            {/* Modal header */}
+            <div className="h-[3px] w-full" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.10)' }}>
+                  <Send className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                </div>
+                <div>
+                  <h2 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+                    Fragebogen senden
+                  </h2>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{questionnaire.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSendModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+              {/* Project search */}
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>
+                  <Folder className="w-3.5 h-3.5" />
+                  Projekt auswählen
+                </label>
+
+                {/* Search input */}
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    value={projectSearch}
+                    onChange={e => setProjectSearch(e.target.value)}
+                    placeholder="Projekt oder Kunde suchen..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl text-[13px] outline-none"
+                    style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Project list */}
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {filteredProjects.length === 0 ? (
+                    <div className="text-center py-6" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-[12px]">Keine Projekte gefunden</p>
+                    </div>
+                  ) : filteredProjects.map(p => {
+                    const isSelected = selectedProject?.id === p.id
+                    const hasEmail = !!p.client?.email
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedProject(p)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all"
+                        style={{
+                          background: isSelected ? 'rgba(139,92,246,0.10)' : 'var(--bg-hover)',
+                          border: `1px solid ${isSelected ? 'rgba(139,92,246,0.35)' : 'var(--border-color)'}`,
+                        }}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: isSelected ? 'rgba(139,92,246,0.15)' : 'var(--bg-surface)' }}
+                        >
+                          <Folder className="w-4 h-4" style={{ color: isSelected ? '#8B5CF6' : 'var(--text-muted)' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{p.title}</p>
+                          {p.client ? (
+                            <p className="text-[11px] truncate" style={{ color: hasEmail ? 'var(--text-muted)' : '#F59E0B' }}>
+                              <User className="w-2.5 h-2.5 inline mr-1" />
+                              {p.client.full_name}
+                              {hasEmail ? ` · ${p.client.email}` : ' · Keine E-Mail'}
+                            </p>
+                          ) : (
+                            <p className="text-[11px]" style={{ color: '#F59E0B' }}>Kein Kunde verknüpft</p>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Selected project summary */}
+              {selectedProject && (
+                <div
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.20)' }}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                    <User className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {selectedProject.client?.full_name || 'Kein Kunde'}
+                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {selectedProject.client?.email || '—'} · {selectedProject.title}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                </div>
+              )}
+
+              {/* Schedule toggle */}
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>
+                  <Calendar className="w-3.5 h-3.5" />
+                  Versand
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setScheduleMode(false)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all"
+                    style={{
+                      background: !scheduleMode ? 'rgba(139,92,246,0.10)' : 'var(--bg-hover)',
+                      border: `1px solid ${!scheduleMode ? 'rgba(139,92,246,0.35)' : 'var(--border-color)'}`,
+                      color: !scheduleMode ? '#8B5CF6' : 'var(--text-muted)',
+                    }}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Jetzt senden
+                  </button>
+                  <button
+                    onClick={() => setScheduleMode(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold transition-all"
+                    style={{
+                      background: scheduleMode ? 'rgba(245,158,11,0.10)' : 'var(--bg-hover)',
+                      border: `1px solid ${scheduleMode ? 'rgba(245,158,11,0.35)' : 'var(--border-color)'}`,
+                      color: scheduleMode ? '#F59E0B' : 'var(--text-muted)',
+                    }}
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    Planen
+                  </button>
+                </div>
+
+                {scheduleMode && (
+                  <div className="mt-2">
+                    <input
+                      type="datetime-local"
+                      value={scheduledAt}
+                      onChange={e => setScheduledAt(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl text-[13px] outline-none"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                    <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                      ℹ️ Der Versand wird als geplant markiert. Du kannst ihn später manuell auslösen.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex gap-3 px-5 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <button
+                onClick={() => setShowSendModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={sending || !selectedProject || !selectedProject.client?.email || (scheduleMode && !scheduledAt)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white disabled:opacity-40 transition-all"
+                style={{ background: scheduleMode ? '#F59E0B' : '#8B5CF6' }}
+              >
+                {sending ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : scheduleMode ? (
+                  <><Calendar className="w-4 h-4" />Versand planen</>
+                ) : (
+                  <><Send className="w-4 h-4" />Jetzt senden</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
