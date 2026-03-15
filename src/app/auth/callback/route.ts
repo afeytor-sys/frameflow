@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
       if (type === 'recovery') {
         return NextResponse.redirect(`${origin}/update-password`)
       }
+      // Email confirmation (signup) → show welcome page
+      if (type === 'signup' || next === '/dashboard') {
+        return NextResponse.redirect(`${origin}/confirmed`)
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
