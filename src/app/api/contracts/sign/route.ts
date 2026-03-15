@@ -52,7 +52,7 @@ function wrapText(text: string, maxCharsPerLine: number): string[] {
 
 export async function POST(request: NextRequest) {
   try {
-    const { contractId, signedByName, signatureData, token } = await request.json()
+    const { contractId, signedByName, signatureData, token, clientFields } = await request.json()
 
     if (!contractId || !signedByName || !signatureData || !token) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -166,8 +166,21 @@ export async function POST(request: NextRequest) {
     drawText(contract.title, { bold: true, size: 14 })
     y -= 8
 
+    // Apply client fields to contract content before converting to text
+    let contractContent = contract.content || ''
+    if (clientFields && typeof clientFields === 'object') {
+      for (const [key, value] of Object.entries(clientFields)) {
+        const val = String(value || '')
+        contractContent = contractContent.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), val)
+        contractContent = contractContent.replace(
+          new RegExp(`<span[^>]*class="contract-variable"[^>]*>\\{\\{${key}\\}\\}</span>`, 'g'),
+          val
+        )
+      }
+    }
+
     // Contract content
-    const plainText = htmlToText(contract.content || '')
+    const plainText = htmlToText(contractContent)
     const lines = wrapText(plainText, maxCharsPerLine)
     for (const line of lines) {
       if (y < margin + 80) {
@@ -253,6 +266,7 @@ export async function POST(request: NextRequest) {
         signature_data: signatureData,
         ip_address: ipAddress,
         pdf_url: pdfUrl,
+        ...(clientFields && Object.keys(clientFields).length > 0 ? { client_fields: clientFields } : {}),
       })
       .eq('id', contractId)
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
-import { Check, RotateCcw, Download, ArrowLeft } from 'lucide-react'
+import { Check, RotateCcw, Download, ArrowLeft, Braces, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -14,6 +14,44 @@ interface Props {
   token: string
 }
 
+// Extract all {{variable}} keys from HTML content
+function extractVariables(html: string): string[] {
+  const matches = html.match(/\{\{([^}]+)\}\}/g) || []
+  const keys = matches.map(m => m.replace(/\{\{|\}\}/g, '').trim())
+  return [...new Set(keys)] // deduplicate
+}
+
+// Replace {{variable}} in HTML with the filled values (highlighted span)
+function applyVariables(html: string, fields: Record<string, string>): string {
+  let result = html
+  for (const [key, value] of Object.entries(fields)) {
+    const filled = value.trim()
+      ? `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${value}</span>`
+      : `<span style="background:rgba(239,68,68,0.10);color:#EF4444;border-radius:3px;padding:0 3px;font-style:italic;">[${key}]</span>`
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), filled)
+    // Also handle the span wrapper from the editor
+    result = result.replace(
+      new RegExp(`<span[^>]*class="contract-variable"[^>]*>\\{\\{${key}\\}\\}</span>`, 'g'),
+      filled
+    )
+  }
+  return result
+}
+
+// Label map for known variable keys
+const VARIABLE_LABELS: Record<string, string> = {
+  'endereço':        'Adresse',
+  'CPF':             'CPF / Ausweis-Nr.',
+  'data_nascimento': 'Geburtsdatum',
+  'telefone':        'Telefon',
+  'cidade':          'Stadt',
+  'campo_livre':     'Freies Feld',
+}
+
+function getLabel(key: string): string {
+  return VARIABLE_LABELS[key] || key.replace(/_/g, ' ')
+}
+
 export default function ContractSigningClient({ contract, clientName, token }: Props) {
   const sigCanvasRef = useRef<SignatureCanvas>(null)
   const [agreed, setAgreed] = useState(false)
@@ -23,6 +61,15 @@ export default function ContractSigningClient({ contract, clientName, token }: P
   const [pdfUrl, setPdfUrl] = useState(contract.pdf_url || null)
   const [scrollProgress, setScrollProgress] = useState(0)
 
+  // Client fields (variables)
+  const variables = extractVariables(contract.content || '')
+  const [clientFields, setClientFields] = useState<Record<string, string>>(
+    Object.fromEntries(variables.map(k => [k, '']))
+  )
+  const [fieldsStep, setFieldsStep] = useState<'fields' | 'sign'>(
+    variables.length > 0 ? 'fields' : 'sign'
+  )
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget
     const progress = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100
@@ -31,6 +78,16 @@ export default function ContractSigningClient({ contract, clientName, token }: P
 
   const clearSignature = () => {
     sigCanvasRef.current?.clear()
+  }
+
+  const proceedToSign = () => {
+    // Validate required fields (all fields are required)
+    const missing = variables.filter(k => !clientFields[k]?.trim())
+    if (missing.length > 0) {
+      toast.error(`Bitte fülle alle Felder aus: ${missing.map(getLabel).join(', ')}`)
+      return
+    }
+    setFieldsStep('sign')
   }
 
   const handleSign = async () => {
@@ -59,6 +116,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
         signedByName: signerName.trim(),
         signatureData,
         token,
+        clientFields,
       }),
     })
 
@@ -110,18 +168,82 @@ export default function ContractSigningClient({ contract, clientName, token }: P
           )}
         </div>
 
-        {/* Show contract content read-only */}
+        {/* Show contract content read-only with filled values */}
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6">
           <h3 className="font-display text-lg font-semibold text-[#1A1A1A] mb-4">{contract.title}</h3>
           <div
             className="prose prose-sm max-w-none text-[#1A1A1A]"
-            dangerouslySetInnerHTML={{ __html: contract.content || '' }}
+            dangerouslySetInnerHTML={{ __html: applyVariables(contract.content || '', clientFields) }}
           />
         </div>
       </div>
     )
   }
 
+  // ── Step 1: Fill client fields ─────────────────────────────────────────
+  if (fieldsStep === 'fields' && variables.length > 0) {
+    return (
+      <div className="space-y-6 animate-in">
+        <div className="flex items-center gap-3">
+          <Link href={`/client/${token}`} className="inline-flex items-center gap-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Zurück
+          </Link>
+          <h1 className="font-display text-xl font-semibold text-[#1A1A1A]">{contract.title}</h1>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold bg-[#1A1A1A] text-white">1</div>
+            <span className="text-sm font-semibold text-[#1A1A1A]">Deine Angaben</span>
+          </div>
+          <div className="flex-1 h-px bg-[#E8E8E4]" />
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold bg-[#E8E8E4] text-[#6B6B6B]">2</div>
+            <span className="text-sm text-[#6B6B6B]">Unterschreiben</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Braces className="w-4 h-4 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-[#1A1A1A] text-[15px]">Bitte fülle deine Angaben aus</h3>
+              <p className="text-[12px] text-[#6B6B6B]">Diese Informationen werden in den Vertrag eingetragen</p>
+            </div>
+          </div>
+
+          {variables.map(key => (
+            <div key={key}>
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">
+                {getLabel(key)} <span className="text-[#E84C1A]">*</span>
+              </label>
+              <input
+                type="text"
+                value={clientFields[key] || ''}
+                onChange={e => setClientFields(prev => ({ ...prev, [key]: e.target.value }))}
+                placeholder={`${getLabel(key)} eingeben...`}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm text-[#1A1A1A] bg-white"
+              />
+            </div>
+          ))}
+
+          <button
+            onClick={proceedToSign}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors"
+          >
+            Weiter zum Vertrag
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 2: Read & Sign ────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in">
       <div className="flex items-center gap-3">
@@ -132,6 +254,21 @@ export default function ContractSigningClient({ contract, clientName, token }: P
         <h1 className="font-display text-xl font-semibold text-[#1A1A1A]">{contract.title}</h1>
       </div>
 
+      {/* Step indicator (only shown if there were fields) */}
+      {variables.length > 0 && (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold bg-[#3DBA6F] text-white">✓</div>
+            <span className="text-sm text-[#6B6B6B]">Deine Angaben</span>
+          </div>
+          <div className="flex-1 h-px bg-[#E8E8E4]" />
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold bg-[#1A1A1A] text-white">2</div>
+            <span className="text-sm font-semibold text-[#1A1A1A]">Unterschreiben</span>
+          </div>
+        </div>
+      )}
+
       {/* Scroll progress */}
       <div className="bg-[#E8E8E4] rounded-full h-1.5 overflow-hidden">
         <div
@@ -141,14 +278,14 @@ export default function ContractSigningClient({ contract, clientName, token }: P
       </div>
       <p className="text-xs text-[#6B6B6B] text-right -mt-4">{scrollProgress}% gelesen</p>
 
-      {/* Contract content */}
+      {/* Contract content with filled variables */}
       <div
         className="bg-white rounded-xl border border-[#E8E8E4] p-6 max-h-[60vh] overflow-y-auto"
         onScroll={handleScroll}
       >
         <div
           className="prose prose-sm max-w-none text-[#1A1A1A]"
-          dangerouslySetInnerHTML={{ __html: contract.content || '' }}
+          dangerouslySetInnerHTML={{ __html: applyVariables(contract.content || '', clientFields) }}
         />
       </div>
 
