@@ -19,6 +19,7 @@ import {
   Receipt,
   CalendarDays,
   BarChart2,
+  ClipboardList,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -55,6 +56,10 @@ const navItems = [
   {
     key: 'invoices', href: '/dashboard/invoices', icon: Receipt, label: 'Rechnungen', plans: null,
     activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)',
+  },
+  {
+    key: 'questionnaires', href: '/dashboard/questionnaires', icon: ClipboardList, label: 'Fragebögen', plans: null,
+    activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)',
   },
   {
     key: 'analytics', href: '/dashboard/analytics', icon: BarChart2, label: 'Analytics', plans: ['pro', 'studio'],
