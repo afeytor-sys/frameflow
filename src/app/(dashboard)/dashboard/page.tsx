@@ -310,45 +310,47 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {/* Plan card */}
-            <div
-              className="rounded-2xl p-5 relative overflow-hidden"
-              style={{
-                background: 'linear-gradient(135deg, rgba(196,164,124,0.15) 0%, rgba(196,164,124,0.05) 100%)',
-                border: '1px solid rgba(196,164,124,0.25)',
-                boxShadow: '0 8px 32px rgba(196,164,124,0.08)',
-              }}
-            >
-              {/* Shimmer top */}
+            {/* Plan card — only show for free/starter */}
+            {plan !== 'pro' && plan !== 'studio' && (
               <div
-                className="absolute top-0 left-0 right-0 h-px"
-                style={{ background: 'linear-gradient(90deg, transparent, rgba(196,164,124,0.5), transparent)' }}
-              />
+                className="rounded-2xl p-5 relative overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(196,164,124,0.15) 0%, rgba(196,164,124,0.05) 100%)',
+                  border: '1px solid rgba(196,164,124,0.25)',
+                  boxShadow: '0 8px 32px rgba(196,164,124,0.08)',
+                }}
+              >
+                {/* Shimmer top */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-px"
+                  style={{ background: 'linear-gradient(90deg, transparent, rgba(196,164,124,0.5), transparent)' }}
+                />
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-3.5 h-3.5" style={{ color: '#C4A47C' }} />
-                  <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: '#C4A47C' }}>
-                    {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
-                  </span>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: '#C4A47C' }} />
+                    <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: '#C4A47C' }}>
+                      {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
+                    </span>
+                  </div>
+                  <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+                    Upgrade für unbegrenzte Kunden, Galerien ohne Limit und mehr.
+                  </p>
+                  <Link
+                    href="/dashboard/billing"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-xl transition-all hover:opacity-88 active:scale-[0.98]"
+                    style={{
+                      background: 'var(--text-primary)',
+                      color: 'var(--bg-page)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                    }}
+                  >
+                    Upgrade ansehen
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-                <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  Upgrade für unbegrenzte Kunden, Galerien ohne Limit und mehr.
-                </p>
-                <Link
-                  href="/dashboard/billing"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-xl transition-all hover:opacity-88 active:scale-[0.98]"
-                  style={{
-                    background: 'var(--text-primary)',
-                    color: 'var(--bg-page)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-                  }}
-                >
-                  Upgrade ansehen
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
