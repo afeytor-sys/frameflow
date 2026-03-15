@@ -84,6 +84,128 @@ function getClientEmail(project?: Invoice['project']): string | null {
 
 const MWST_RATE = 0.19
 
+// ── Print invoice in a new window ─────────────────────────────────────────
+function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null) {
+  const clientName = getClientName(invoice.project)
+  const clientEmail = getClientEmail(invoice.project)
+  const cfg = STATUS_CONFIG[invoice.status]
+  const hasBankDetails = photographer?.bank_iban || photographer?.bank_account_holder
+
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rechnung ${invoice.invoice_number || ''}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; color: #1A1A1A; background: #fff; padding: 48px; max-width: 800px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+    .studio-name { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; }
+    .meta { font-size: 12px; color: #6B6B6B; margin-top: 4px; }
+    .invoice-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6B6B6B; margin-bottom: 4px; text-align: right; }
+    .invoice-number { font-family: monospace; font-size: 16px; font-weight: 700; text-align: right; }
+    .invoice-date { font-size: 12px; color: #6B6B6B; text-align: right; margin-top: 4px; }
+    .divider { height: 1px; background: #E8E8E4; margin: 24px 0; }
+    .section-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6B6B6B; margin-bottom: 8px; }
+    .client-name { font-size: 16px; font-weight: 700; }
+    .client-meta { font-size: 13px; color: #6B6B6B; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid #E8E8E4; border-radius: 8px; overflow: hidden; margin: 24px 0; }
+    thead tr { background: #F8F8F6; }
+    th { padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; color: #6B6B6B; text-align: left; }
+    th:last-child { text-align: right; }
+    td { padding: 16px; font-size: 14px; border-top: 1px solid #E8E8E4; }
+    td:last-child { text-align: right; font-weight: 700; }
+    tfoot tr { background: #F8F8F6; border-top: 2px solid #E8E8E4; }
+    tfoot td { font-size: 14px; font-weight: 900; }
+    tfoot td:last-child { font-size: 18px; color: #F97316; }
+    .status-row { display: flex; gap: 24px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${cfg.bg}; color: ${cfg.color}; }
+    .bank-box { background: #F8F8F6; border: 1px solid #E8E8E4; border-radius: 12px; padding: 20px; margin-top: 24px; }
+    .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; margin-top: 12px; }
+    .bank-label { font-size: 10px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; }
+    .bank-value { font-size: 13px; font-weight: 700; margin-top: 2px; }
+    .bank-mono { font-family: monospace; }
+    .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E8E4; text-align: center; font-size: 11px; color: #6B6B6B; }
+    .ref { font-size: 11px; color: #6B6B6B; margin-top: 12px; }
+    @media print { body { padding: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="studio-name">${photographer?.studio_name || photographer?.full_name || 'Fotograf'}</div>
+      ${photographer?.studio_name && photographer?.full_name ? `<div class="meta">${photographer.full_name}</div>` : ''}
+      ${photographer?.email ? `<div class="meta">${photographer.email}</div>` : ''}
+    </div>
+    <div>
+      <div class="invoice-label">Rechnung</div>
+      <div class="invoice-number">${invoice.invoice_number || '—'}</div>
+      <div class="invoice-date">${new Date(invoice.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div style="margin-bottom:24px">
+    <div class="section-label">Rechnungsempfänger</div>
+    <div class="client-name">${clientName}</div>
+    ${clientEmail ? `<div class="client-meta">${clientEmail}</div>` : ''}
+    ${invoice.project?.title ? `<div class="client-meta">Projekt: ${invoice.project.title}</div>` : ''}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Beschreibung</th>
+        <th>Betrag</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${invoice.description || invoice.project?.title || 'Fotografieleistungen'}</td>
+        <td>${formatEur(invoice.amount)}</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Gesamt</td>
+        <td>${formatEur(invoice.amount)}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="status-row">
+    <div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Status: </span><span class="status-badge">${cfg.label}</span></div>
+    ${invoice.due_date ? `<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Fällig am: </span><span style="font-size:12px;font-weight:700;">${new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</span></div>` : ''}
+  </div>
+
+  ${hasBankDetails ? `
+  <div class="divider"></div>
+  <div class="bank-box">
+    <div class="section-label">Bankverbindung — Bitte überweisen Sie den Betrag auf folgendes Konto:</div>
+    <div class="bank-grid">
+      ${photographer?.bank_account_holder ? `<div><div class="bank-label">Kontoinhaber</div><div class="bank-value">${photographer.bank_account_holder}</div></div>` : ''}
+      ${photographer?.bank_name ? `<div><div class="bank-label">Bank</div><div class="bank-value">${photographer.bank_name}</div></div>` : ''}
+      ${photographer?.bank_iban ? `<div><div class="bank-label">IBAN</div><div class="bank-value bank-mono">${photographer.bank_iban}</div></div>` : ''}
+      ${photographer?.bank_bic ? `<div><div class="bank-label">BIC / SWIFT</div><div class="bank-value bank-mono">${photographer.bank_bic}</div></div>` : ''}
+    </div>
+    ${invoice.invoice_number ? `<div class="ref">Verwendungszweck: <strong>${invoice.invoice_number}</strong></div>` : ''}
+  </div>
+  ` : ''}
+
+  <div class="footer">Vielen Dank für Ihr Vertrauen! · ${photographer?.studio_name || photographer?.full_name || 'Fotonizer'}</div>
+
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`
+
+  const win = window.open('', '_blank', 'width=900,height=700')
+  if (win) {
+    win.document.write(html)
+    win.document.close()
+  }
+}
+
 // ── Invoice Preview Modal ──────────────────────────────────────────────────
 function InvoicePreviewModal({
   invoice,
@@ -101,35 +223,23 @@ function InvoicePreviewModal({
   const clientEmail = getClientEmail(invoice.project)
   const hasBankDetails = photographer?.bank_iban || photographer?.bank_account_holder
 
-  // Auto-trigger print after mount
+  // Auto-trigger print in new window after mount
   if (typeof window !== 'undefined' && autoPrint) {
-    setTimeout(() => window.print(), 400)
+    setTimeout(() => printInvoiceWindow(invoice, photographer), 200)
   }
 
   return (
-    <>
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body > *:not(#invoice-print-root) { display: none !important; }
-          #invoice-print-root { display: block !important; position: fixed; inset: 0; z-index: 9999; background: white; }
-          .no-print { display: none !important; }
-          .invoice-print-content { box-shadow: none !important; border: none !important; max-height: none !important; overflow: visible !important; }
-        }
-      `}</style>
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
       <div
-        id="invoice-print-root"
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print-backdrop"
-        style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
-        onClick={e => { if (e.target === e.currentTarget) onClose() }}
+        className="w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in"
+        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92vh', overflowY: 'auto' }}
       >
-        <div
-          className="invoice-print-content w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in"
-          style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92vh', overflowY: 'auto' }}
-        >
-          {/* Modal header (no-print) */}
-          <div className="no-print flex items-center justify-between px-6 py-4 border-b border-[#E8E8E4]">
+          {/* Modal header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E8E4]">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.10)' }}>
                 <FileText className="w-4 h-4" style={{ color: '#F97316' }} />
@@ -138,8 +248,8 @@ function InvoicePreviewModal({
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => window.print()}
-                className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white transition-all hover:opacity-88"
+                onClick={() => printInvoiceWindow(invoice, photographer)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white transition-all hover:opacity-88"
                 style={{ background: '#1A1A1A' }}
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -147,7 +257,7 @@ function InvoicePreviewModal({
               </button>
               <button
                 onClick={onClose}
-                className="no-print w-8 h-8 rounded-lg flex items-center justify-center text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -294,10 +404,10 @@ function InvoicePreviewModal({
             </div>
           </div>
 
-          {/* Bottom print button (no-print) */}
-          <div className="no-print px-8 pb-6 flex gap-3">
+          {/* Bottom print button */}
+          <div className="px-8 pb-6 flex gap-3">
             <button
-              onClick={() => window.print()}
+              onClick={() => printInvoiceWindow(invoice, photographer)}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-88"
               style={{ background: '#1A1A1A' }}
             >
@@ -314,7 +424,6 @@ function InvoicePreviewModal({
           </div>
         </div>
       </div>
-    </>
   )
 }
 
