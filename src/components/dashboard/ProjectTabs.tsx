@@ -156,6 +156,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     description: '',
     due_date: '',
     include_mwst: false,
+    notes: '',
   })
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [invoiceCreated, setInvoiceCreated] = useState(false)
@@ -781,8 +782,8 @@ interface InvoiceTabProps {
   projectTitle: string
   clientName?: string
   clientEmail?: string
-  form: { amount: string; description: string; due_date: string; include_mwst: boolean }
-  setForm: React.Dispatch<React.SetStateAction<{ amount: string; description: string; due_date: string; include_mwst: boolean }>>
+  form: { amount: string; description: string; due_date: string; include_mwst: boolean; notes: string }
+  setForm: React.Dispatch<React.SetStateAction<{ amount: string; description: string; due_date: string; include_mwst: boolean; notes: string }>>
   saving: boolean
   setSaving: (v: boolean) => void
   created: boolean
@@ -861,6 +862,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
       description: finalDescription,
       due_date: form.due_date || null,
       invoice_number: invoiceNumber,
+      notes: form.notes.trim() || null,
     }).select('id, invoice_number, amount, currency, status, description, due_date, created_at').single()
 
     if (error) { console.error('Invoice error:', error); toast.error(`Fehler: ${error.message}`); setSaving(false); return }
@@ -870,7 +872,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
     setSaving(false)
     setCreated(true)
     setShowForm(false)
-    setForm({ amount: '', description: '', due_date: '', include_mwst: false })
+    setForm({ amount: '', description: '', due_date: '', include_mwst: false, notes: '' })
     toast.success('Rechnung erstellt!')
   }
 
@@ -945,6 +947,23 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                   </label>
                   <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="input-base w-full" />
                 </div>
+              </div>
+
+              {/* Notes / Anmerkungen */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Anmerkungen (intern)
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="z.B. Bankverbindung, Zahlungshinweise, interne Notizen..."
+                  rows={3}
+                  className="input-base w-full resize-none text-[13px]"
+                />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Nur für dich sichtbar — erscheint nicht auf der Rechnung
+                </p>
               </div>
 
               {net > 0 && (
