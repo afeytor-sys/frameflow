@@ -372,15 +372,25 @@ export default function ProjectsPage() {
                           {openStatusMenu === project.id && (
                             <>
                               <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setOpenStatusMenu(null) }} />
-                              <div className="absolute left-0 top-full mt-1 rounded-xl overflow-hidden z-50 min-w-[160px]"
-                                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+                              <div className="absolute left-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[170px]"
+                                style={{
+                                  background: 'rgba(20,20,28,0.72)',
+                                  backdropFilter: 'blur(20px) saturate(180%)',
+                                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                                  border: '1px solid rgba(255,255,255,0.10)',
+                                  boxShadow: '0 8px 32px rgba(0,0,0,0.40), 0 1px 0 rgba(255,255,255,0.06) inset',
+                                }}>
+                                <div className="py-1">
                                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                                   <button
                                     key={key}
                                     onClick={e => updateStatus(e, project.id, key)}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-colors text-left"
-                                    style={{ color: key === project.status ? cfg.color : 'var(--text-primary)', background: key === project.status ? cfg.bg : 'transparent' }}
-                                    onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                                    style={{
+                                      color: key === project.status ? cfg.color : 'rgba(255,255,255,0.85)',
+                                      background: key === project.status ? cfg.bg : 'transparent',
+                                    }}
+                                    onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
                                     onMouseLeave={e => { if (key !== project.status) e.currentTarget.style.background = 'transparent' }}
                                   >
                                     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
@@ -388,6 +398,7 @@ export default function ProjectsPage() {
                                     {key === project.status && <span className="ml-auto text-[10px]">✓</span>}
                                   </button>
                                 ))}
+                                </div>
                               </div>
                             </>
                           )}
@@ -501,15 +512,25 @@ export default function ProjectsPage() {
                       {openStatusMenu === project.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={e => { e.stopPropagation(); setOpenStatusMenu(null) }} />
-                          <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-50 min-w-[160px]"
-                            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+                          <div className="absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[170px]"
+                            style={{
+                              background: 'rgba(20,20,28,0.72)',
+                              backdropFilter: 'blur(20px) saturate(180%)',
+                              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                              border: '1px solid rgba(255,255,255,0.10)',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.40), 0 1px 0 rgba(255,255,255,0.06) inset',
+                            }}>
+                            <div className="py-1">
                             {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                               <button
                                 key={key}
                                 onClick={e => updateStatus(e, project.id, key)}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-colors text-left"
-                                style={{ color: key === project.status ? cfg.color : 'var(--text-primary)', background: key === project.status ? cfg.bg : 'transparent' }}
-                                onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                                style={{
+                                  color: key === project.status ? cfg.color : 'rgba(255,255,255,0.85)',
+                                  background: key === project.status ? cfg.bg : 'transparent',
+                                }}
+                                onMouseEnter={e => { if (key !== project.status) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
                                 onMouseLeave={e => { if (key !== project.status) e.currentTarget.style.background = 'transparent' }}
                               >
                                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
@@ -517,6 +538,7 @@ export default function ProjectsPage() {
                                 {key === project.status && <span className="ml-auto text-[10px]">✓</span>}
                               </button>
                             ))}
+                            </div>
                           </div>
                         </>
                       )}
