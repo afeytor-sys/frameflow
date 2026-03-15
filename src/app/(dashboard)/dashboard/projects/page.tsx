@@ -66,7 +66,7 @@ export default function ProjectsPage() {
             <div className="h-4 w-48 rounded shimmer" />
           </div>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[1,2,3].map(i => <div key={i} className="h-48 rounded-2xl shimmer" />)}
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function ProjectsPage() {
             to   { opacity: 1; transform: translateY(0); }
           }
         `}</style>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {projects.map((project, index) => {
             const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
             const client = project.client
@@ -148,52 +148,64 @@ export default function ProjectsPage() {
                   {/* Subtle gradient tint */}
                   <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ background: `linear-gradient(135deg, ${sc.color}12 0%, ${sc.color}03 100%)`, opacity: 0.5 }} />
 
-                  <div className="relative z-10 p-6">
+                  <div className="relative z-10" style={{ padding: '24px' }}>
                     {/* Icon + Arrow row */}
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-                        style={{ background: sc.color + '15', border: `1px solid ${sc.color}25` }}
+                        style={{
+                          width: '40px', height: '40px', borderRadius: '12px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: sc.color + '15', border: `1px solid ${sc.color}25`,
+                          flexShrink: 0, transition: 'transform 0.2s',
+                        }}
+                        className="group-hover:scale-110"
                       >
-                        <FolderOpen className="w-5 h-5" style={{ color: sc.color }} />
+                        <FolderOpen style={{ width: '20px', height: '20px', color: sc.color }} />
                       </div>
                       <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
-                        style={{ background: sc.color + '12' }}
+                        style={{
+                          width: '28px', height: '28px', borderRadius: '8px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: sc.color + '12', opacity: 0, transition: 'opacity 0.2s',
+                        }}
+                        className="group-hover:opacity-100"
                       >
-                        <ArrowUpRight className="w-3.5 h-3.5" style={{ color: sc.color }} />
+                        <ArrowUpRight style={{ width: '14px', height: '14px', color: sc.color }} />
                       </div>
                     </div>
 
                     {/* Title */}
                     <h3
-                      className="font-black leading-tight mb-2"
-                      style={{ fontSize: '22px', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
+                      style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '8px' }}
                     >
                       {project.title}
                     </h3>
 
                     {/* Status badge */}
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold mb-3"
-                      style={{ background: sc.bg, color: sc.color }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '4px 10px', borderRadius: '999px',
+                        fontSize: '11px', fontWeight: 700, marginBottom: '12px',
+                        background: sc.bg, color: sc.color,
+                      }}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: sc.dot, flexShrink: 0 }} />
                       {sc.label}
                     </span>
 
                     {/* Meta */}
-                    <div className="space-y-1.5 mt-1">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {clientName && (
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                          <span className="text-[12.5px] truncate" style={{ color: 'var(--text-muted)' }}>{clientName}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <User style={{ width: '14px', height: '14px', flexShrink: 0, color: 'var(--text-muted)' }} />
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{clientName}</span>
                         </div>
                       )}
                       {project.shoot_date && (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                          <span className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>{formatDate(project.shoot_date, 'de')}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Calendar style={{ width: '14px', height: '14px', flexShrink: 0, color: 'var(--text-muted)' }} />
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{formatDate(project.shoot_date, 'de')}</span>
                         </div>
                       )}
                     </div>
@@ -203,7 +215,7 @@ export default function ProjectsPage() {
                 {/* Delete button */}
                 <button
                   onClick={(e) => deleteProject(e, project.id, project.title)}
-                  className="absolute bottom-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                  className="absolute bottom-3 right-3 w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
                   style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}
                   title="Projekt löschen"
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.22)' }}

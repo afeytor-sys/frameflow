@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
-import { TrendingUp, Users, FileText, Euro, CheckCircle2 } from 'lucide-react'
+import { TrendingUp, Users, FileText, Euro, CheckCircle2, ArrowUpRight } from 'lucide-react'
 
 interface Invoice  { amount: number; status: string; created_at: string }
 interface Client   { created_at: string; status: string }
@@ -100,13 +100,14 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
   const activeGalleries = galleries.filter(g => g.status === 'active').length
   const avgRevenue = projects.length > 0 ? Math.round(totalRevenue / projects.length / 100) : 0
 
+  // KPI definitions — numeric ones get count-up, string ones display as-is
   const kpis = [
-    { label: 'Gesamtumsatz', value: formatEur(totalRevenue), icon: Euro,         color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
-    { label: 'Ausstehend',   value: formatEur(pendingRevenue), icon: TrendingUp,  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
-    { label: 'Kunden',       value: clients.length,            icon: Users,       color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
-    { label: 'Projekte',     value: projects.length,           icon: FileText,    color: '#C4A47C', bg: 'rgba(196,164,124,0.08)' },
-    { label: 'Konversion',   value: `${conversionRate}%`,      icon: CheckCircle2,color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)' },
-    { label: 'Ø pro Projekt',value: formatEur(avgRevenue * 100), icon: Euro,      color: '#EC4899', bg: 'rgba(236,72,153,0.08)' },
+    { label: 'Gesamtumsatz', display: formatEur(totalRevenue),    numericVal: null, description: totalRevenue > 0 ? 'Bezahlte Rechnungen' : 'Noch keine Einnahmen', icon: Euro,         color: '#10B981' },
+    { label: 'Ausstehend',   display: formatEur(pendingRevenue),  numericVal: null, description: pendingRevenue > 0 ? 'Offene Rechnungen' : 'Alles bezahlt ✓',      icon: TrendingUp,   color: '#F59E0B' },
+    { label: 'Kunden',       display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'Noch keine Kunden' : `${clients.length} gesamt`,   icon: Users,        color: '#3B82F6' },
+    { label: 'Projekte',     display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'Noch keine Projekte' : `${projects.length} gesamt`, icon: FileText,     color: '#C4A47C' },
+    { label: 'Konversion',   display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} von ${contracts.length} Verträgen` : 'Keine Verträge', icon: CheckCircle2, color: '#8B5CF6' },
+    { label: 'Ø pro Projekt',display: formatEur(avgRevenue * 100),numericVal: null, description: projects.length > 0 ? 'Durchschnittlicher Umsatz' : 'Noch keine Daten', icon: Euro,        color: '#EC4899' },
   ]
 
   const tooltipStyle = {
@@ -133,15 +134,19 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </p>
       </div>
 
-      {/* KPI Cards — same layout as dashboard stats */}
+      {/* KPI Cards — identical style to dashboard AnimatedStatsLight */}
       <style>{`
         @keyframes statFadeUp {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {kpis.map(({ label, value, icon: Icon, color }, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {kpis.map(({ label, display, description, icon: Icon, color }, i) => {
+          // Shrink font for long values (e.g. "10.000,00 €")
+          const valLen = display.length
+          const valSize = valLen > 10 ? '22px' : valLen > 7 ? '28px' : '36px'
+          return (
           <div
             key={label}
             className="relative group rounded-2xl overflow-hidden cursor-default transition-all duration-300"
@@ -168,7 +173,8 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: color, opacity: 0.7 }} />
             {/* Subtle gradient tint */}
             <div className="absolute inset-0 rounded-2xl" style={{ background: `linear-gradient(135deg, ${color}12 0%, ${color}03 100%)`, opacity: 0.5 }} />
-            <div className="relative z-10 p-6">
+            <div className="relative z-10 p-5">
+              {/* Icon + ArrowUpRight row */}
               <div className="flex items-start justify-between mb-4">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
@@ -176,16 +182,32 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                 >
                   <Icon className="w-5 h-5" style={{ color }} />
                 </div>
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                  style={{ background: color + '12' }}
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" style={{ color }} />
+                </div>
               </div>
-              <p className="font-black tabular-nums leading-none mb-1" style={{ fontSize: '42px', letterSpacing: '-0.05em', color }}>
-                {value}
+              {/* Value — shrinks for long strings like "10.000,00 €" */}
+              <p
+                className="font-black tabular-nums leading-none mb-1"
+                style={{ fontSize: valSize, letterSpacing: '-0.04em', color }}
+              >
+                {display}
               </p>
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: color + '99' }}>
+              {/* Label */}
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: color + '99' }}>
                 {label}
+              </p>
+              {/* Description */}
+              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                {description}
               </p>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Charts row 1 */}
