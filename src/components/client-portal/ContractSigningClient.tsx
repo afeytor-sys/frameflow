@@ -15,27 +15,42 @@ interface Props {
 }
 
 // Extract all {{variable}} keys from HTML content
+// Handles both plain {{key}} and TipTap's <span class="contract-variable">{{key}}</span>
 function extractVariables(html: string): string[] {
-  const matches = html.match(/\{\{([^}]+)\}\}/g) || []
-  const keys = matches.map(m => m.replace(/\{\{|\}\}/g, '').trim())
+  const keys: string[] = []
+
+  // Match inside span.contract-variable: <span class="contract-variable">{{key}}</span>
+  const spanMatches = html.matchAll(/<span[^>]*class="contract-variable"[^>]*>\{\{([^}]+)\}\}<\/span>/g)
+  for (const m of spanMatches) keys.push(m[1].trim())
+
+  // Also match plain {{key}} not inside a span (fallback)
+  const plainMatches = html.matchAll(/\{\{([^}]+)\}\}/g)
+  for (const m of plainMatches) keys.push(m[1].trim())
+
   return [...new Set(keys)] // deduplicate
 }
 
-// Replace {{variable}} in HTML with the filled values (highlighted span)
+// Replace variables in HTML with filled values
 function applyVariables(html: string, fields: Record<string, string>): string {
   let result = html
   for (const [key, value] of Object.entries(fields)) {
     const filled = value.trim()
       ? `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${value}</span>`
       : `<span style="background:rgba(239,68,68,0.10);color:#EF4444;border-radius:3px;padding:0 3px;font-style:italic;">[${key}]</span>`
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), filled)
-    // Also handle the span wrapper from the editor
+
+    // Replace TipTap span wrapper (exact class match)
     result = result.replace(
-      new RegExp(`<span[^>]*class="contract-variable"[^>]*>\\{\\{${key}\\}\\}</span>`, 'g'),
+      new RegExp(`<span[^>]*class="contract-variable"[^>]*>\\{\\{${escapeRegex(key)}\\}\\}<\\/span>`, 'g'),
       filled
     )
+    // Replace plain {{key}} (fallback)
+    result = result.replace(new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, 'g'), filled)
   }
   return result
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 // Label map for known variable keys
