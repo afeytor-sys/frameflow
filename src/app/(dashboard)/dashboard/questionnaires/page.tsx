@@ -325,9 +325,10 @@ export default function QuestionnairesPage() {
             const StatusIcon = sc.icon
 
             return (
-              <div
+              <Link
                 key={q.id}
-                className="group flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all"
+                href={`/dashboard/questionnaires/${q.id}`}
+                className="group flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all cursor-pointer"
                 style={{
                   background: 'var(--card-bg)',
                   border: '1px solid var(--border-color)',
@@ -379,19 +380,14 @@ export default function QuestionnairesPage() {
                   {sc.label}
                 </div>
 
-                {/* Open project link */}
-                {q.project && (
-                  <Link
-                    href={`/dashboard/projects/${Array.isArray(q.project) ? q.project[0]?.id : q.project.id}`}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                    title="Projekt öffnen"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
+                {/* Open arrow */}
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </div>
+              </Link>
             )
           })}
         </div>
