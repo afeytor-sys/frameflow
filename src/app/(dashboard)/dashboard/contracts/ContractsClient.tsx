@@ -8,8 +8,8 @@ import { formatRelative } from '@/lib/utils'
 import {
   FileText, Plus, X, ChevronRight, Check, Sparkles,
   BookOpen, Send, Eye, BookMarked, Trash2, PenLine, Download,
-  Bold, Italic, Underline, List, AlignLeft, Heading2,
 } from 'lucide-react'
+import ContractEditor from '@/components/dashboard/ContractEditor'
 import toast from 'react-hot-toast'
 
 interface Contract {
@@ -19,11 +19,9 @@ interface Contract {
   status: string
   created_at: string
   content?: string | null
-  // Client signature
   signed_by_name?: string | null
   signed_at?: string | null
   signature_data?: string | null
-  // Photographer signature
   photographer_signed_by_name?: string | null
   photographer_signed_at?: string | null
   photographer_signature_data?: string | null
@@ -74,7 +72,6 @@ const TEMPLATE_ACCENTS = [
   { bg: 'rgba(236,72,153,0.10)', color: '#EC4899', border: 'rgba(236,72,153,0.20)' },
 ]
 
-// "builtin:id" or "user:id"
 type TemplateKey = string
 
 interface TemplateOption {
@@ -94,14 +91,14 @@ export default function ContractsClient({
   const [contracts, setContracts] = useState<Contract[]>(initialContracts)
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>(initialUserTemplates)
 
-  // Modal state
+  // New contract modal
   const [showModal, setShowModal] = useState(false)
   const [selectedKey, setSelectedKey] = useState<TemplateKey | null>(null)
   const [selectedProject, setSelectedProject] = useState('')
   const [contractTitle, setContractTitle] = useState('Fotografievertrag')
   const [saving, setSaving] = useState(false)
 
-  // Preview state
+  // Preview modal
   const [previewKey, setPreviewKey] = useState<TemplateKey | null>(null)
 
   // New template modal
@@ -110,11 +107,9 @@ export default function ContractsClient({
   const [newTplDesc, setNewTplDesc] = useState('')
   const [newTplContent, setNewTplContent] = useState('')
   const [savingTemplate, setSavingTemplate] = useState(false)
-  const editorRef = useState<HTMLDivElement | null>(null)
 
-  const execCmd = (cmd: string, value?: string) => {
-    document.execCommand(cmd, false, value)
-  }
+  // PDF download
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]))
 
@@ -180,11 +175,15 @@ export default function ContractsClient({
       if (!user) { setSavingTemplate(false); return }
       const { data, error } = await supabase
         .from('contract_templates')
-        .insert({ photographer_id: user.id, name: newTplName.trim(), description: newTplDesc.trim() || null, content: newTplContent })
+        .insert({
+          photographer_id: user.id,
+          name: newTplName.trim(),
+          description: newTplDesc.trim() || null,
+          content: newTplContent,
+        })
         .select().single()
       if (error) {
         console.error('Template save error:', error)
-        // Table doesn't exist yet — migration pending
         if (error.code === '42P01') {
           toast.error('Vorlagen-Funktion noch nicht verfügbar. Bitte Migration ausführen.')
         } else {
@@ -195,7 +194,9 @@ export default function ContractsClient({
       }
       setUserTemplates(prev => [...prev, data as UserTemplate])
       setShowNewTemplateModal(false)
-      setNewTplName(''); setNewTplDesc(''); setNewTplContent('')
+      setNewTplName('')
+      setNewTplDesc('')
+      setNewTplContent('')
       toast.success('Vorlage gespeichert!')
     } catch (err) {
       console.error(err)
@@ -204,8 +205,6 @@ export default function ContractsClient({
       setSavingTemplate(false)
     }
   }
-
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const handleDownloadPDF = async (e: React.MouseEvent, contract: Contract) => {
     e.preventDefault()
@@ -399,23 +398,22 @@ export default function ContractsClient({
                     background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
                     border: `1px solid ${accent.color}28`,
                     boxShadow: `0 2px 12px ${accent.color}10`,
-                  animation: 'fadeSlideUp 0.4s ease forwards',
-                  animationDelay: `${i * 60}ms`,
-                  opacity: 0,
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
-                  e.currentTarget.style.borderColor = accent.color + '45'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
-                  e.currentTarget.style.borderColor = accent.color + '28'
-                }}
-              >
-                {/* Top color bar */}
-                <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
-                <div className="p-4 flex flex-col gap-3 flex-1">
-                  <div className="flex items-start justify-between">
+                    animation: 'fadeSlideUp 0.4s ease forwards',
+                    animationDelay: `${i * 60}ms`,
+                    opacity: 0,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
+                    e.currentTarget.style.borderColor = accent.color + '45'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
+                    e.currentTarget.style.borderColor = accent.color + '28'
+                  }}
+                >
+                  <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    <div className="flex items-start justify-between">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
                         style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
@@ -473,14 +471,11 @@ export default function ContractsClient({
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* ── Create new template card ── */}
+          {/* Create new template card */}
           <button
             onClick={() => setShowNewTemplateModal(true)}
             className="rounded-xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01] text-left group"
-            style={{
-              background: 'var(--bg-surface)',
-              border: '2px dashed var(--border-color)',
-            }}
+            style={{ background: 'var(--bg-surface)', border: '2px dashed var(--border-color)' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
           >
@@ -523,7 +518,6 @@ export default function ContractsClient({
                   e.currentTarget.style.borderColor = accent.color + '28'
                 }}
               >
-                {/* Top color bar */}
                 <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
                 <div className="p-4 flex flex-col gap-3 flex-1">
                   <div
@@ -563,22 +557,29 @@ export default function ContractsClient({
       {/* ── New Template Modal ── */}
       {showNewTemplateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col" style={{ height: 'min(92vh, 860px)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+          <div
+            className="w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col"
+            style={{ height: 'min(92vh, 900px)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+          >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Vorlage erstellen</h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Speichere deine eigene Vertragsvorlage</p>
               </div>
-              <button onClick={() => setShowNewTemplateModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }}
+              <button
+                onClick={() => setShowNewTemplateModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
-              {/* Name + Desc row */}
+              {/* Name + Desc */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Name *</label>
@@ -616,9 +617,6 @@ export default function ContractsClient({
                           setNewTplName(tpl.name)
                           setNewTplDesc(tpl.description)
                           setNewTplContent(tpl.content)
-                          // Update editor
-                          const el = document.getElementById('tpl-editor')
-                          if (el) el.innerHTML = tpl.content
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                         style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
@@ -631,99 +629,14 @@ export default function ContractsClient({
                 </div>
               </div>
 
-              {/* Rich text editor */}
-              <div className="flex flex-col flex-1" style={{ minHeight: '320px' }}>
+              {/* Rich text editor — TipTap */}
+              <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Vertragsinhalt</label>
-
-                {/* Toolbar */}
-                <div
-                  className="flex items-center gap-1 px-2 py-1.5 flex-wrap flex-shrink-0"
-                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderBottom: 'none', borderRadius: '10px 10px 0 0' }}
-                >
-                  {[
-                    { cmd: 'bold',          icon: <Bold className="w-3.5 h-3.5" />,        title: 'Fett (Ctrl+B)' },
-                    { cmd: 'italic',        icon: <Italic className="w-3.5 h-3.5" />,      title: 'Kursiv (Ctrl+I)' },
-                    { cmd: 'underline',     icon: <Underline className="w-3.5 h-3.5" />,   title: 'Unterstrichen (Ctrl+U)' },
-                  ].map(btn => (
-                    <button
-                      key={btn.cmd}
-                      onMouseDown={e => { e.preventDefault(); execCmd(btn.cmd) }}
-                      title={btn.title}
-                      className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
-                      style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-                    >
-                      {btn.icon}
-                    </button>
-                  ))}
-
-                  <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
-
-                  <button
-                    onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'h2') }}
-                    title="Überschrift"
-                    className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-                  >
-                    <Heading2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'p') }}
-                    title="Absatz"
-                    className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-                  >
-                    <AlignLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onMouseDown={e => { e.preventDefault(); execCmd('insertUnorderedList') }}
-                    title="Liste"
-                    className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:opacity-80"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </button>
-
-                  <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
-
-                  <button
-                    onMouseDown={e => { e.preventDefault(); execCmd('removeFormat') }}
-                    title="Formatierung entfernen"
-                    className="px-2 h-7 rounded-md flex items-center justify-center text-[10px] font-bold transition-all hover:opacity-80"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
-                  >
-                    Tx
-                  </button>
-                </div>
-
-                {/* Editable area */}
-                <div
-                  id="tpl-editor"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={e => setNewTplContent((e.currentTarget as HTMLDivElement).innerHTML)}
-                  dangerouslySetInnerHTML={{ __html: newTplContent }}
-                  className="flex-1 overflow-y-auto outline-none text-[13.5px] leading-relaxed"
-                  style={{
-                    minHeight: '280px',
-                    padding: '16px',
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '0 0 10px 10px',
-                    color: 'var(--text-primary)',
-                  }}
-                  data-placeholder="Vertragstext hier eingeben..."
+                <ContractEditor
+                  content={newTplContent}
+                  onChange={setNewTplContent}
+                  placeholder="Vertragstext hier eingeben..."
                 />
-                <style>{`
-                  #tpl-editor:empty:before {
-                    content: attr(data-placeholder);
-                    color: var(--text-muted);
-                    pointer-events: none;
-                  }
-                  #tpl-editor h2 { font-size: 1.1em; font-weight: 700; margin: 0.8em 0 0.3em; }
-                  #tpl-editor p  { margin: 0.4em 0; }
-                  #tpl-editor ul { padding-left: 1.4em; list-style: disc; }
-                  #tpl-editor li { margin: 0.2em 0; }
-                `}</style>
               </div>
             </div>
 
@@ -757,9 +670,10 @@ export default function ContractsClient({
 
         {contracts.length > 0 ? (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-            {/* Header row */}
-            <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] px-5 py-3"
-              style={{ borderBottom: '1px solid var(--border-color)' }}>
+            <div
+              className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] px-5 py-3"
+              style={{ borderBottom: '1px solid var(--border-color)' }}
+            >
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Vertrag</span>
               <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Kunde</span>
               <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Status</span>
@@ -785,23 +699,18 @@ export default function ContractsClient({
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  {/* Title */}
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: sc.bg }}>
                       <FileText className="w-4 h-4" style={{ color: sc.color }} />
                     </div>
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
                   </div>
-                  {/* Client */}
                   <span className="text-sm hidden md:block" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
-                  {/* Status */}
                   <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit" style={{ background: sc.bg, color: sc.color }}>
                     {STATUS_ICONS[contract.status]}
                     {STATUS_LABELS[contract.status]}
                   </span>
-                  {/* Date */}
                   <span className="text-xs hidden lg:block" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, 'de')}</span>
-                  {/* Download button — only when both parties have signed */}
                   <div className="hidden lg:flex items-center">
                     {fullySignedByBoth && (
                       <button
@@ -819,7 +728,6 @@ export default function ContractsClient({
                       </button>
                     )}
                   </div>
-                  {/* Arrow */}
                   <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                 </a>
               )
@@ -832,7 +740,11 @@ export default function ContractsClient({
             </div>
             <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Verträge</h3>
             <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>Wähle eine Vorlage oben aus oder erstelle einen neuen Vertrag.</p>
-            <button onClick={() => openNewContract()} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
+            <button
+              onClick={() => openNewContract()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+              style={{ background: 'var(--accent)' }}
+            >
               <Plus className="w-4 h-4" />
               Neuer Vertrag
             </button>
@@ -844,7 +756,6 @@ export default function ContractsClient({
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
           <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neuer Vertrag</h2>
@@ -854,19 +765,21 @@ export default function ContractsClient({
                   </p>
                 )}
               </div>
-              <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }}
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Template selector */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Vorlage</label>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  {/* Blank */}
                   <button
                     onClick={() => { setSelectedKey(null); setContractTitle('Fotografievertrag') }}
                     className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all text-left"
@@ -880,7 +793,6 @@ export default function ContractsClient({
                     <span className="font-medium text-xs">Leer</span>
                   </button>
 
-                  {/* User templates */}
                   {userTemplates.map((tpl, i) => {
                     const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
                     const key = `user:${tpl.id}`
@@ -901,7 +813,6 @@ export default function ContractsClient({
                     )
                   })}
 
-                  {/* Built-in templates */}
                   {CONTRACT_TEMPLATES.map((tpl, i) => {
                     const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
                     const key = `builtin:${tpl.id}`
@@ -924,17 +835,20 @@ export default function ContractsClient({
                 </div>
               </div>
 
-              {/* Title */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Titel</label>
                 <input type="text" value={contractTitle} onChange={(e) => setContractTitle(e.target.value)} className="input-base w-full" placeholder="z.B. Fotografievertrag" />
               </div>
 
-              {/* Project */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Projekt *</label>
                 {projects.length > 0 ? (
-                  <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} className="input-base w-full" style={{ color: selectedProject ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                  <select
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                    className="input-base w-full"
+                    style={{ color: selectedProject ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                  >
                     <option value="">Projekt auswählen...</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>{p.title}{p.clients?.full_name ? ` — ${p.clients.full_name}` : ''}</option>
@@ -948,13 +862,18 @@ export default function ContractsClient({
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Abbrechen</button>
-                <button onClick={handleCreate} disabled={saving || !selectedProject}
+                <button
+                  onClick={handleCreate}
+                  disabled={saving || !selectedProject}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background: 'var(--accent)' }}>
-                  {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Plus className="w-4 h-4" />Erstellen & bearbeiten</>}
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {saving
+                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <><Plus className="w-4 h-4" />Erstellen & bearbeiten</>
+                  }
                 </button>
               </div>
             </div>
@@ -964,27 +883,34 @@ export default function ContractsClient({
 
       {/* ── Template Preview Modal ── */}
       {previewTpl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }} onClick={() => setPreviewKey(null)}>
-          <div className="w-full max-w-2xl max-h-[85vh] rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }} onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setPreviewKey(null)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[85vh] rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{previewTpl.name}</h2>
                 {previewTpl.description && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{previewTpl.description}</p>}
               </div>
-              <button onClick={() => setPreviewKey(null)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }}
+              <button
+                onClick={() => setPreviewKey(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-sm max-w-none" style={{ color: 'var(--text-primary)' }} dangerouslySetInnerHTML={{ __html: previewTpl.content }} />
             </div>
-
-            {/* Footer */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
               <button onClick={() => setPreviewKey(null)} className="text-sm font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>Schließen</button>
               <button
