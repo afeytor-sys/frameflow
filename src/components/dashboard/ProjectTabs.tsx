@@ -701,11 +701,19 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               projectId={project.id}
               initialData={{
                 shoot_date: (project.shoot_date as string | null) ?? null,
+                shoot_time: (project.shoot_time as string | null) ?? null,
                 location: (project.location as string | null) ?? null,
                 meeting_point: (project.meeting_point as string | null) ?? null,
                 project_type: (project.project_type as string | null) ?? null,
                 notes: (project.notes as string | null) ?? null,
-                status: (project.status as string) ?? 'booked',
+                status: (project.status as string) ?? 'inquiry',
+                shoot_duration: (project.shoot_duration as string | null) ?? null,
+                num_persons: (project.num_persons as number | null) ?? null,
+                price: (project.price as string | null) ?? null,
+                custom_type_label: (project.custom_type_label as string | null) ?? null,
+                custom_type_color: (project.custom_type_color as string | null) ?? null,
+                custom_status_label: (project.custom_status_label as string | null) ?? null,
+                custom_status_color: (project.custom_status_color as string | null) ?? null,
               }}
             />
           )}
