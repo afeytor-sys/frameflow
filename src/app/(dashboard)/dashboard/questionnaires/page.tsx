@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen, Plus, Sparkles } from 'lucide-react'
+import { ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen, Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES } from '@/lib/questionnaireTemplates'
 
@@ -28,42 +28,30 @@ const STATUS_CONFIG = {
   completed: { label: 'Ausgefüllt', color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
 
+const TEMPLATE_ACCENTS = [
+  { color: '#F59E0B', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)' },
+  { color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.25)' },
+  { color: '#3B82F6', bg: 'rgba(59,130,246,0.10)',  border: 'rgba(59,130,246,0.25)' },
+]
+
 const TEMPLATE_CARDS = [
   {
     key: 'hochzeit',
-    emoji: '💍',
-    label: 'Hochzeit',
-    desc: 'Trauung, Feier, Gäste & Wünsche',
-    color: '#E879A0',
-    bg: 'rgba(232,121,160,0.10)',
-    border: 'rgba(232,121,160,0.25)',
+    label: 'Hochzeit-Fragebogen',
+    desc: 'Trauung, Feier, Gäste & besondere Wünsche',
+    accentIdx: 0,
   },
   {
     key: 'portrait',
-    emoji: '📸',
-    label: 'Portrait',
+    label: 'Portrait Shooting',
     desc: 'Stil, Look, Referenzen & Wünsche',
-    color: '#8B5CF6',
-    bg: 'rgba(139,92,246,0.10)',
-    border: 'rgba(139,92,246,0.25)',
+    accentIdx: 1,
   },
   {
     key: 'event',
-    emoji: '🎉',
-    label: 'Event',
-    desc: 'Ablauf, Personen & Programm',
-    color: '#F59E0B',
-    bg: 'rgba(245,158,11,0.10)',
-    border: 'rgba(245,158,11,0.25)',
-  },
-  {
-    key: 'blank',
-    emoji: '✏️',
-    label: 'Neu / Leer',
-    desc: 'Leerer Fragebogen zum Selbstgestalten',
-    color: '#6366F1',
-    bg: 'rgba(99,102,241,0.10)',
-    border: 'rgba(99,102,241,0.25)',
+    label: 'Event-Fragebogen',
+    desc: 'Ablauf, Personen & Programmpunkte',
+    accentIdx: 2,
   },
 ]
 
@@ -178,65 +166,118 @@ export default function QuestionnairesPage() {
 
       {/* ── Vorlagen ── */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-3.5 h-3.5" style={{ color: '#6366F1' }} />
-          <p className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
-            Vorlagen
-          </p>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+          <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+            Standard-Vorlagen
+          </h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {TEMPLATE_CARDS.map(tpl => (
-            <button
-              key={tpl.key}
-              onClick={() => createFromTemplate(tpl.key)}
-              disabled={creating === tpl.key}
-              className="group relative flex flex-col items-start gap-2 p-4 rounded-2xl text-left transition-all duration-200 disabled:opacity-60"
-              style={{
-                background: tpl.bg,
-                border: `1px solid ${tpl.border}`,
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = `0 8px 24px ${tpl.color}22`
-                e.currentTarget.style.borderColor = tpl.color + '50'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = 'none'
-                e.currentTarget.style.borderColor = tpl.border
-              }}
-            >
-              {/* Emoji icon */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* ── Neue leere Vorlage card ── */}
+          <button
+            onClick={() => createFromTemplate('blank')}
+            disabled={creating === 'blank'}
+            className="group relative flex flex-col rounded-2xl overflow-hidden text-left transition-all duration-200 disabled:opacity-60"
+            style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
+          >
+            <div className="p-4 flex flex-col gap-3 flex-1">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                style={{ background: tpl.color + '18', border: `1px solid ${tpl.color}25` }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
               >
-                {creating === tpl.key ? (
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: tpl.color }} />
+                {creating === 'blank' ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--text-muted)' }} />
                 ) : (
-                  tpl.emoji
+                  <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                 )}
               </div>
-
-              {/* Label + desc */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-black leading-tight" style={{ color: tpl.color }}>
-                  {tpl.label}
+              <div className="flex-1">
+                <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                  Neue Vorlage
                 </p>
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  {tpl.desc}
+                <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  Eigenen Fragebogen erstellen und speichern
                 </p>
               </div>
+              <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--accent)' }}>
+                <PenLine className="w-3.5 h-3.5" />
+                Vorlage erstellen
+              </div>
+            </div>
+          </button>
 
-              {/* Plus icon top-right */}
+          {/* ── Built-in template cards ── */}
+          {TEMPLATE_CARDS.map((tpl) => {
+            const accent = TEMPLATE_ACCENTS[tpl.accentIdx]
+            return (
               <div
-                className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: tpl.color + '20', color: tpl.color }}
+                key={tpl.key}
+                className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
+                  border: `1px solid ${accent.color}28`,
+                  boxShadow: `0 2px 12px ${accent.color}10`,
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
+                  e.currentTarget.style.borderColor = accent.color + '45'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
+                  e.currentTarget.style.borderColor = accent.color + '28'
+                }}
               >
-                <Plus className="w-3 h-3" />
+                {/* Top color bar */}
+                <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
+                <div className="p-4 flex flex-col gap-3 flex-1">
+                  {/* Icon */}
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                    style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
+                  >
+                    <ClipboardCheck className="w-5 h-5" style={{ color: accent.color }} />
+                  </div>
+                  {/* Title + desc */}
+                  <div className="flex-1">
+                    <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {tpl.label}
+                    </p>
+                    <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                      {tpl.desc}
+                    </p>
+                  </div>
+                  {/* Buttons */}
+                  <div className="flex items-center gap-2 mt-auto">
+                    <button
+                      onClick={() => {/* preview — future */ }}
+                      className="flex-1 flex items-center justify-center text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-80"
+                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                    >
+                      Vorschau
+                    </button>
+                    <button
+                      onClick={() => createFromTemplate(tpl.key)}
+                      disabled={creating === tpl.key}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
+                    >
+                      {creating === tpl.key ? (
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>Verwenden <ChevronRight className="w-3 h-3" /></>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </button>
-          ))}
+            )
+          })}
         </div>
       </div>
 
