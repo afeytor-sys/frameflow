@@ -119,20 +119,34 @@ export default function ClientDetailPage() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast.error('Nicht angemeldet'); setSaving(false); return }
-    const { error } = await supabase
+
+    // Build update payload — try with address first, fall back without if column missing
+    const payload: Record<string, string | null> = {
+      full_name: form.full_name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      location: form.location.trim() || null,
+      notes: form.notes.trim() || null,
+    }
+
+    let { error } = await supabase
       .from('clients')
-      .update({
-        full_name: form.full_name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        address: form.address.trim() || null,
-        location: form.location.trim() || null,
-        notes: form.notes.trim() || null,
-      })
+      .update({ ...payload, address: form.address.trim() || null })
       .eq('id', id)
       .eq('photographer_id', user.id)
 
+    // If address column doesn't exist yet (migration pending), retry without it
+    if (error && error.code === '42703') {
+      const retry = await supabase
+        .from('clients')
+        .update(payload)
+        .eq('id', id)
+        .eq('photographer_id', user.id)
+      error = retry.error
+    }
+
     if (error) {
+      console.error('saveEdit error:', error)
       toast.error('Fehler beim Speichern')
       setSaving(false)
       return
