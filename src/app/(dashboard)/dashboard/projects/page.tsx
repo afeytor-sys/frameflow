@@ -99,6 +99,13 @@ export default function ProjectsPage() {
       </div>
 
       {projects.length > 0 ? (
+        <>
+        <style>{`
+          @keyframes statFadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project, index) => {
             const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
@@ -110,25 +117,18 @@ export default function ProjectsPage() {
                 key={project.id}
                 className="relative group"
                 style={{
-                  animation: 'statFadeUp 0.45s ease forwards',
-                  animationDelay: `${index * 60}ms`,
+                  animation: 'statFadeUp 0.5s ease forwards',
+                  animationDelay: `${index * 90}ms`,
                   opacity: 0,
                 }}
               >
-                <style>{`
-                  @keyframes statFadeUp {
-                    from { opacity: 0; transform: translateY(14px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                  }
-                `}</style>
-
                 <Link
                   href={`/dashboard/projects/${project.id}`}
                   className="block rounded-2xl overflow-hidden transition-all duration-300"
                   style={{
-                    background: `linear-gradient(135deg, ${sc.color}20 0%, ${sc.color}08 100%)`,
-                    border: `1px solid ${sc.color}35`,
-                    boxShadow: `0 2px 16px ${sc.color}18`,
+                    background: 'var(--card-bg)',
+                    border: `1px solid ${sc.color}20`,
+                    boxShadow: `0 2px 12px ${sc.color}12`,
                   }}
                   onMouseEnter={e => {
                     const el = e.currentTarget
@@ -139,18 +139,17 @@ export default function ProjectsPage() {
                   onMouseLeave={e => {
                     const el = e.currentTarget
                     el.style.transform = 'translateY(0)'
-                    el.style.boxShadow = `0 2px 12px ${sc.color}10`
+                    el.style.boxShadow = `0 2px 12px ${sc.color}12`
                     el.style.borderColor = sc.color + '20'
                   }}
                 >
-                  {/* Color accent top bar */}
-                  <div
-                    className="h-[3px] w-full"
-                    style={{ background: sc.color, opacity: 0.7 }}
-                  />
+                  {/* Top accent bar */}
+                  <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: sc.color, opacity: 0.7 }} />
+                  {/* Subtle gradient tint */}
+                  <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ background: `linear-gradient(135deg, ${sc.color}12 0%, ${sc.color}03 100%)`, opacity: 0.5 }} />
 
-                  <div className="p-5">
-                    {/* Icon + Status row */}
+                  <div className="relative z-10 p-6">
+                    {/* Icon + Arrow row */}
                     <div className="flex items-start justify-between mb-4">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
@@ -166,14 +165,10 @@ export default function ProjectsPage() {
                       </div>
                     </div>
 
-                    {/* Title — big like stat number */}
+                    {/* Title */}
                     <h3
                       className="font-black leading-tight mb-2"
-                      style={{
-                        fontSize: '22px',
-                        letterSpacing: '-0.03em',
-                        color: 'var(--text-primary)',
-                      }}
+                      style={{ fontSize: '22px', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
                     >
                       {project.title}
                     </h3>
@@ -205,7 +200,7 @@ export default function ProjectsPage() {
                   </div>
                 </Link>
 
-                {/* Delete button — bottom right, inside card, on hover */}
+                {/* Delete button */}
                 <button
                   onClick={(e) => deleteProject(e, project.id, project.title)}
                   className="absolute bottom-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
@@ -220,6 +215,7 @@ export default function ProjectsPage() {
             )
           })}
         </div>
+        </>
       ) : (
         <div
           className="rounded-2xl flex flex-col items-center justify-center py-24 text-center"
