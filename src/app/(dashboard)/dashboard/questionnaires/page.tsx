@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen,
   Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine, BookmarkCheck, Trash2,
+  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
@@ -67,6 +68,22 @@ const TEMPLATE_CARDS = [
   },
 ]
 
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+  text:     <AlignLeft className="w-3.5 h-3.5" />,
+  textarea: <AlignLeft className="w-3.5 h-3.5" />,
+  choice:   <List className="w-3.5 h-3.5" />,
+  checkbox: <CheckSquare className="w-3.5 h-3.5" />,
+  yesno:    <ToggleLeft className="w-3.5 h-3.5" />,
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  text:     'Kurztext',
+  textarea: 'Langtext',
+  choice:   'Auswahl (eine)',
+  checkbox: 'Checkboxen (mehrere)',
+  yesno:    'Ja / Nein',
+}
+
 export default function QuestionnairesPage() {
   const [rows, setRows] = useState<QuestionnaireRow[]>([])
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
@@ -75,6 +92,12 @@ export default function QuestionnairesPage() {
   const [creating, setCreating] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
   const supabase = createClient()
+
+  // ── Inline builder modal ──
+  const [builderOpen, setBuilderOpen] = useState(false)
+  const [builderTitle, setBuilderTitle] = useState('')
+  const [builderQuestions, setBuilderQuestions] = useState<Question[]>([])
+  const [builderSaving, setBuilderSaving] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -105,6 +128,69 @@ export default function QuestionnairesPage() {
     load()
   }, [])
 
+  // Open builder modal with template pre-loaded
+  const openBuilderFromTemplate = (key: string, customTpl?: CustomTemplate) => {
+    let title = 'Neuer Fragebogen'
+    let questions: Question[] = []
+
+    if (customTpl) {
+      title = customTpl.title
+      questions = customTpl.questions.map(q => ({ ...q }))
+    } else if (key !== 'blank') {
+      const tpl = QUESTIONNAIRE_TEMPLATES.find(t => t.key === key)
+      if (tpl) {
+        title = tpl.title
+        questions = tpl.questions.map(q => ({ ...q }))
+      }
+    }
+
+    setBuilderTitle(title)
+    setBuilderQuestions(questions)
+    setBuilderOpen(true)
+  }
+
+  const builderAddQuestion = () => {
+    const id = `q${Date.now()}`
+    setBuilderQuestions(prev => [...prev, { id, type: 'text', label: '', required: false }])
+  }
+
+  const builderUpdateQuestion = (id: string, patch: Partial<Question>) => {
+    setBuilderQuestions(prev => prev.map(q => q.id === id ? { ...q, ...patch } : q))
+  }
+
+  const builderRemoveQuestion = (id: string) => {
+    setBuilderQuestions(prev => prev.filter(q => q.id !== id))
+  }
+
+  const builderSave = async () => {
+    if (!builderTitle.trim()) { toast.error('Bitte einen Titel eingeben'); return }
+    if (builderQuestions.length === 0) { toast.error('Mindestens eine Frage hinzufügen'); return }
+    setBuilderSaving(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setBuilderSaving(false); return }
+
+    const { data, error } = await supabase
+      .from('questionnaires')
+      .insert({ photographer_id: user.id, title: builderTitle.trim(), questions: builderQuestions })
+      .select('id')
+      .single()
+
+    if (error) { toast.error('Fehler beim Erstellen'); setBuilderSaving(false); return }
+
+    toast.success(`"${builderTitle.trim()}" erstellt!`)
+    setRows(prev => [{
+      id: data.id,
+      title: builderTitle.trim(),
+      sent_at: null,
+      created_at: new Date().toISOString(),
+      project: null,
+      submission: null,
+    }, ...prev])
+    setBuilderSaving(false)
+    setBuilderOpen(false)
+  }
+
   const createFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
     const creatingKey = customTpl ? `custom_${customTpl.id}` : key
     setCreating(creatingKey)
@@ -112,35 +198,18 @@ export default function QuestionnairesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      let title = 'Neuer Fragebogen'
-      let questions: object[] = []
-
-      if (customTpl) {
-        title = customTpl.title
-        questions = customTpl.questions
-      } else if (key === 'blank') {
-        title = 'Neuer Fragebogen'
-        questions = []
-      } else {
-        const tpl = QUESTIONNAIRE_TEMPLATES.find(t => t.key === key)
-        if (tpl) {
-          title = tpl.title
-          questions = tpl.questions
-        }
-      }
-
       const { data, error } = await supabase
         .from('questionnaires')
-        .insert({ photographer_id: user.id, title, questions })
+        .insert({ photographer_id: user.id, title: 'Neuer Fragebogen', questions: [] })
         .select('id')
         .single()
 
       if (error) { toast.error('Fehler beim Erstellen'); return }
 
-      toast.success(`"${title}" erstellt!`)
+      toast.success('Fragebogen erstellt!')
       setRows(prev => [{
         id: data.id,
-        title,
+        title: 'Neuer Fragebogen',
         sent_at: null,
         created_at: new Date().toISOString(),
         project: null,
@@ -301,16 +370,11 @@ export default function QuestionnairesPage() {
                       Vorschau
                     </button>
                     <button
-                      onClick={() => createFromTemplate(tpl.key)}
-                      disabled={isCreating}
-                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90 disabled:opacity-50"
+                      onClick={() => openBuilderFromTemplate(tpl.key)}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
                       style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                     >
-                      {isCreating ? (
-                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>Verwenden <ChevronRight className="w-3 h-3" /></>
-                      )}
+                      Verwenden <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -405,16 +469,11 @@ export default function QuestionnairesPage() {
                   </div>
                   {/* Use button */}
                   <button
-                    onClick={() => createFromTemplate('', tpl)}
-                    disabled={isCreating}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90 disabled:opacity-50"
+                    onClick={() => openBuilderFromTemplate('', tpl)}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90"
                     style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
                   >
-                    {isCreating ? (
-                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>Verwenden <ChevronRight className="w-3 h-3" /></>
-                    )}
+                    Verwenden <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -550,6 +609,160 @@ export default function QuestionnairesPage() {
           <p className="text-[13px] max-w-xs" style={{ color: 'var(--text-muted)' }}>
             Wähle eine Vorlage oben aus oder erstelle Fragebögen direkt in einem Projekt
           </p>
+        </div>
+      )}
+
+      {/* ── Builder Modal ── */}
+      {builderOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setBuilderOpen(false) }}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
+              <div>
+                <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                  Fragebogen bearbeiten & speichern
+                </h3>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Passe die Fragen an und speichere den Fragebogen</p>
+              </div>
+              <button
+                onClick={() => setBuilderOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-70"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Title */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Titel *</label>
+                <input
+                  type="text"
+                  value={builderTitle}
+                  onChange={e => setBuilderTitle(e.target.value)}
+                  placeholder="z.B. Hochzeit Fragebogen"
+                  className="input-base w-full"
+                  autoFocus
+                />
+              </div>
+
+              {/* Questions */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+                    Fragen ({builderQuestions.length})
+                  </p>
+                  <button
+                    onClick={builderAddQuestion}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white"
+                    style={{ background: 'var(--accent)' }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Frage hinzufügen
+                  </button>
+                </div>
+
+                {builderQuestions.length === 0 && (
+                  <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
+                    <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Fragen — füge Fragen hinzu</p>
+                  </div>
+                )}
+
+                {builderQuestions.map((q, idx) => (
+                  <div key={q.id} className="p-4 rounded-xl space-y-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                        style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
+                        {idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={q.label}
+                        onChange={e => builderUpdateQuestion(q.id, { label: e.target.value })}
+                        placeholder="Frage eingeben..."
+                        className="flex-1 bg-transparent text-[13px] outline-none font-medium"
+                        style={{ color: 'var(--text-primary)' }}
+                      />
+                      <button onClick={() => builderRemoveQuestion(q.id)} className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ color: '#C43B2C' }}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="relative">
+                        <select
+                          value={q.type}
+                          onChange={e => builderUpdateQuestion(q.id, { type: e.target.value as Question['type'] })}
+                          className="appearance-none pl-7 pr-6 py-1 rounded-lg text-[11px] font-bold outline-none cursor-pointer"
+                          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                        >
+                          {Object.entries(TYPE_LABELS).map(([val, lbl]) => (
+                            <option key={val} value={val}>{lbl}</option>
+                          ))}
+                        </select>
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }}>
+                          {TYPE_ICONS[q.type]}
+                        </span>
+                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                      </div>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <div
+                          onClick={() => builderUpdateQuestion(q.id, { required: !q.required })}
+                          className="relative rounded-full cursor-pointer"
+                          style={{ width: '28px', height: '16px', background: q.required ? 'var(--accent)' : 'var(--border-strong)', transition: 'background 150ms' }}
+                        >
+                          <div className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow"
+                            style={{ left: q.required ? '13px' : '2px', transition: 'left 150ms' }} />
+                        </div>
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Pflichtfeld</span>
+                      </label>
+                    </div>
+                    {(q.type === 'choice' || q.type === 'checkbox') && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Optionen (kommagetrennt)</p>
+                        <input
+                          type="text"
+                          value={(q.options || []).join(', ')}
+                          onChange={e => builderUpdateQuestion(q.id, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                          placeholder="Option 1, Option 2, Option 3"
+                          className="input-base w-full text-[12px]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setBuilderOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={builderSave}
+                  disabled={builderSaving || !builderTitle.trim() || builderQuestions.length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {builderSaving
+                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <><CheckCircle2 className="w-4 h-4" />Speichern & Erstellen</>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
