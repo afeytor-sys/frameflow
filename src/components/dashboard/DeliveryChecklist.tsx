@@ -43,54 +43,57 @@ export default function DeliveryChecklist({
 
   if (allDone) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 bg-[#2A9B68]/6 border border-[#2A9B68]/20 rounded-xl">
-        <CheckCircle2 className="w-4 h-4 text-[#2A9B68] flex-shrink-0" />
-        <p className="text-[13px] font-medium text-[#2A9B68]">Portal bereit zum Versand — alles vollständig ✓</p>
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(42,155,104,0.08)', border: '1px solid rgba(42,155,104,0.20)' }}>
+        <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#2A9B68' }} />
+        <p className="text-[13px] font-medium" style={{ color: '#2A9B68' }}>Portal bereit zum Versand — alles vollständig ✓</p>
       </div>
     )
   }
 
   return (
-    <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F7F7F5] transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 transition-colors"
+        style={{ background: 'var(--bg-surface)' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-surface)')}
       >
-        <AlertCircle className="w-4 h-4 text-[#CC8415] flex-shrink-0" />
+        <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#CC8415' }} />
         <div className="flex-1 text-left">
-          <p className="text-[13px] font-semibold text-[#111827]">
+          <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
             Portal-Checkliste — {doneCount}/{total} erledigt
           </p>
           {/* Progress bar */}
-          <div className="mt-1.5 h-1 bg-[#E5E7EB] rounded-full overflow-hidden w-48">
+          <div className="mt-1.5 h-1 rounded-full overflow-hidden w-48" style={{ background: 'var(--border-color)' }}>
             <div
-              className="h-full bg-[#C4A47C] rounded-full transition-all duration-500"
-              style={{ width: `${pct}%` }}
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${pct}%`, background: '#C4A47C' }}
             />
           </div>
         </div>
         {expanded
-          ? <ChevronUp className="w-4 h-4 text-[#9CA3AF] flex-shrink-0" />
-          : <ChevronDown className="w-4 h-4 text-[#9CA3AF] flex-shrink-0" />
+          ? <ChevronUp className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+          : <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
         }
       </button>
 
       {/* Items */}
       {expanded && (
-        <div className="border-t border-[#E5E7EB] divide-y divide-[#F3F4F6]">
+        <div style={{ borderTop: '1px solid var(--border-color)' }}>
           {items.map(({ key, label, done, hint }) => (
-            <div key={key} className="flex items-start gap-3 px-4 py-2.5">
+            <div key={key} className="flex items-start gap-3 px-4 py-2.5" style={{ borderBottom: '1px solid var(--border-color)' }}>
               {done
-                ? <CheckCircle2 className="w-4 h-4 text-[#2A9B68] flex-shrink-0 mt-0.5" />
-                : <Circle className="w-4 h-4 text-[#D1D5DB] flex-shrink-0 mt-0.5" />
+                ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#2A9B68' }} />
+                : <Circle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--border-strong)' }} />
               }
               <div>
-                <p className={`text-[13px] font-medium ${done ? 'text-[#4B5563] line-through' : 'text-[#111827]'}`}>
+                <p className="text-[13px] font-medium" style={{ color: done ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none' }}>
                   {label}
                 </p>
                 {!done && hint && (
-                  <p className="text-[11.5px] text-[#9CA3AF] mt-0.5">{hint}</p>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{hint}</p>
                 )}
               </div>
             </div>

@@ -141,12 +141,8 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {kpis.map(({ label, display, description, icon: Icon, color }, i) => {
-          // Shrink font for long values (e.g. "10.000,00 €")
-          const valLen = display.length
-          const valSize = valLen > 10 ? '22px' : valLen > 7 ? '28px' : '36px'
-          return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {kpis.map(({ label, display, description, icon: Icon, color }, i) => (
           <div
             key={label}
             className="relative group rounded-2xl overflow-hidden cursor-default transition-all duration-300"
@@ -173,41 +169,40 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: color, opacity: 0.7 }} />
             {/* Subtle gradient tint */}
             <div className="absolute inset-0 rounded-2xl" style={{ background: `linear-gradient(135deg, ${color}12 0%, ${color}03 100%)`, opacity: 0.5 }} />
-            <div className="relative z-10 p-5">
+            <div className="relative z-10 p-4">
               {/* Icon + ArrowUpRight row */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
                   style={{ background: color + '15', border: `1px solid ${color}25` }}
                 >
-                  <Icon className="w-5 h-5" style={{ color }} />
+                  <Icon className="w-4 h-4" style={{ color }} />
                 </div>
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                  className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
                   style={{ background: color + '12' }}
                 >
-                  <ArrowUpRight className="w-3.5 h-3.5" style={{ color }} />
+                  <ArrowUpRight className="w-3 h-3" style={{ color }} />
                 </div>
               </div>
-              {/* Value — shrinks for long strings like "10.000,00 €" */}
+              {/* Value */}
               <p
-                className="font-black tabular-nums leading-none mb-1"
-                style={{ fontSize: valSize, letterSpacing: '-0.04em', color }}
+                className="font-black tabular-nums leading-none mb-1 truncate"
+                style={{ fontSize: '20px', letterSpacing: '-0.03em', color }}
               >
                 {display}
               </p>
               {/* Label */}
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: color + '99' }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: color + '99' }}>
                 {label}
               </p>
               {/* Description */}
-              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                 {description}
               </p>
             </div>
           </div>
-          )
-        })}
+        ))}
       </div>
 
       {/* Charts row 1 */}
