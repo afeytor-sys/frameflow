@@ -4,10 +4,13 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Gift } from 'lucide-react'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [showInvite, setShowInvite] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -18,13 +21,27 @@ export default function SignupPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.signUp({
+
+    const { error: signupError, data } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
-    if (error) { setError(error.message); setLoading(false) }
-    else setSuccess(true)
+
+    if (signupError) {
+      setError(signupError.message)
+      setLoading(false)
+      return
+    }
+
+    // If invite code provided, try to redeem it after signup
+    // (will be redeemed after email confirmation via onboarding)
+    if (inviteCode.trim()) {
+      // Store invite code in localStorage to redeem after email confirmation
+      localStorage.setItem('pending_invite_code', inviteCode.trim().toUpperCase())
+    }
+
+    setSuccess(true)
   }
 
   const inputClass = "w-full px-3.5 py-2.5 rounded-md border border-[#E4E1DC] bg-white text-[14px] text-[#111110] placeholder:text-[#B0ACA6] focus:outline-none focus:border-[#111110] transition-colors"
@@ -94,6 +111,13 @@ export default function SignupPage() {
                 Wir haben dir eine Bestätigungs-E-Mail an <strong className="text-[#111110]">{email}</strong> gesendet.
                 Bitte klicke auf den Link, um dein Konto zu aktivieren.
               </p>
+              {inviteCode.trim() && (
+                <div className="mt-4 px-4 py-3 rounded-xl bg-[#2D9E6B]/8 border border-[#2D9E6B]/20">
+                  <p className="text-[13px] text-[#2D9E6B] font-medium">
+                    🎁 Einladungscode gespeichert — wird nach der Bestätigung aktiviert.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -136,6 +160,38 @@ export default function SignupPage() {
                     className={inputClass}
                   />
                 </div>
+
+                {/* Invite code toggle */}
+                {!showInvite ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowInvite(true)}
+                    className="flex items-center gap-1.5 text-[13px] text-[#C8A882] hover:text-[#B8946E] font-medium transition-colors"
+                  >
+                    <Gift className="w-3.5 h-3.5" />
+                    Ich wurde eingeladen und habe einen Einladungscode
+                  </button>
+                ) : (
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
+                      Einladungscode
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                        placeholder="z.B. FOTO-BETA-A1B2"
+                        className={inputClass + ' pr-10 font-mono tracking-widest'}
+                        autoFocus
+                      />
+                      <Gift className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#C8A882]" />
+                    </div>
+                    <p className="text-[11px] text-[#7A7670] mt-1">
+                      🎁 Mit einem gültigen Code erhältst du bis zu 6 Monate gratis Pro.
+                    </p>
+                  </div>
+                )}
 
                 {error && (
                   <div className="rounded-md bg-[#C94030]/8 border border-[#C94030]/20 px-3.5 py-2.5">

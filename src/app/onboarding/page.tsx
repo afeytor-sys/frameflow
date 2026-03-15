@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -39,6 +39,15 @@ export default function OnboardingPage() {
   const [inviteCode, setInviteCode] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteApplied, setInviteApplied] = useState(false)
+
+  // Pre-fill invite code from signup page (stored in localStorage)
+  useEffect(() => {
+    const pending = localStorage.getItem('pending_invite_code')
+    if (pending) {
+      setInviteCode(pending)
+      localStorage.removeItem('pending_invite_code')
+    }
+  }, [])
 
   const toggleType = (key: string) => {
     setPhotographyTypes((prev) =>

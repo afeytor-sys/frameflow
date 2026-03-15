@@ -111,7 +111,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
           <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
           <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
-            🎉 <span style={{ color: '#F59E0B' }}>Lançamento:</span> Primeiros <strong>2 meses 50% günstiger</strong> — automatisch!
+            🎉 <span style={{ color: '#F59E0B' }}>Launch-Angebot:</span> Die ersten <strong>2 Monate 50% günstiger</strong> — automatisch!
           </p>
         </div>
 

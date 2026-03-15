@@ -88,7 +88,7 @@ export default function PricingSection() {
         style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
         <Zap className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
         <p className="text-sm font-semibold text-center" style={{ color: '#1A1A1A' }}>
-          🎉 <span style={{ color: '#F59E0B' }}>Lançamento:</span> Primeiros <strong>2 meses com 50% de desconto</strong> em todos os planos pagos — automaticamente!
+          🎉 <span style={{ color: '#F59E0B' }}>Launch-Angebot:</span> Die ersten <strong>2 Monate 50% günstiger</strong> auf alle bezahlten Pläne — automatisch!
         </p>
       </div>
 
