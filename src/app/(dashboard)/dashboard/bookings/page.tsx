@@ -304,6 +304,15 @@ export default function BookingsPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
+          <button
+            onClick={openModal}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
+            style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
+          >
+            <Plus className="w-4 h-4" />
+            Booking
+          </button>
+
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
             <button
               onClick={() => setView('list')}
@@ -320,15 +329,6 @@ export default function BookingsPage() {
               <CalendarDays className="w-3.5 h-3.5" />Kalender
             </button>
           </div>
-
-          <button
-            onClick={openModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
-            style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
-          >
-            <Plus className="w-4 h-4" />
-            Booking
-          </button>
         </div>
       </div>
 
