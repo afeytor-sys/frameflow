@@ -24,7 +24,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('plan')
+    .select('plan, full_name, studio_name')
     .eq('id', user!.id)
     .single()
 
@@ -168,6 +168,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         galleries={galleries || []}
         plan={photographer?.plan || 'free'}
         userTemplates={userTemplates || []}
+        photographerName={photographer?.full_name || photographer?.studio_name || null}
       />
     </div>
   )

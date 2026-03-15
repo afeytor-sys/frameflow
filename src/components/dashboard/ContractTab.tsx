@@ -26,6 +26,7 @@ interface Props {
   projectId: string
   clientEmail?: string
   clientName?: string
+  photographerName?: string | null
   contracts: Contract[]
   userTemplates?: UserTemplate[]
 }
@@ -90,19 +91,21 @@ function SignatureBlock({
 // ── PhotographerSignatureSection — canvas for photographer to sign ────────────
 function PhotographerSignatureSection({
   contractId,
+  photographerName,
   existingSignature,
   existingName,
   existingAt,
   onSaved,
 }: {
   contractId: string
+  photographerName?: string | null
   existingSignature: string | null
   existingName: string | null
   existingAt: string | null
   onSaved: (data: { photographer_signature_data: string; photographer_signed_by_name: string; photographer_signed_at: string }) => void
 }) {
   const sigRef = useRef<SignatureCanvas>(null)
-  const [name, setName] = useState(existingName ?? '')
+  const [name, setName] = useState(existingName ?? photographerName ?? '')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(!!existingSignature)
 
@@ -133,7 +136,7 @@ function PhotographerSignatureSection({
   if (done && existingSignature) {
     return (
       <SignatureBlock
-        label="Fotograf"
+        label={photographerName || 'Fotograf'}
         name={existingName ?? name}
         signedAt={existingAt}
         ipAddress={null}
@@ -216,6 +219,8 @@ function PhotographerSignatureSection({
 export default function ContractTab({
   projectId,
   clientEmail,
+  clientName,
+  photographerName,
   contracts: initialContracts,
   userTemplates: initialUserTemplates = [],
 }: Props) {
@@ -547,7 +552,7 @@ export default function ContractTab({
         {/* ── Client signature block ── */}
         {activeContract.status === 'signed' && (
           <SignatureBlock
-            label="Kunde"
+            label={clientName || 'Kunde'}
             name={activeContract.signed_by_name ?? ''}
             signedAt={activeContract.signed_at ?? null}
             ipAddress={(activeContract as Contract & { ip_address?: string }).ip_address ?? null}
@@ -568,6 +573,7 @@ export default function ContractTab({
         {['sent', 'viewed', 'signed'].includes(activeContract.status) && (
           <PhotographerSignatureSection
             contractId={activeContract.id}
+            photographerName={photographerName}
             existingSignature={(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data ?? null}
             existingName={(activeContract as Contract & { photographer_signed_by_name?: string }).photographer_signed_by_name ?? null}
             existingAt={(activeContract as Contract & { photographer_signed_at?: string }).photographer_signed_at ?? null}

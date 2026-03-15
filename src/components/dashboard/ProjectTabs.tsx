@@ -57,6 +57,7 @@ interface Props {
   galleries: GalleryItem[]
   plan: Plan
   userTemplates?: UserTemplate[]
+  photographerName?: string | null
 }
 
 const TABS = [
@@ -127,7 +128,7 @@ const TABS = [
 const MWST_RATE = 0.19
 const SET_SUGGESTIONS = ['Getting Ready', 'Trauung', 'Feier', 'Portraits', 'Details', 'Highlights', 'Momente']
 
-export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [] }: Props) {
+export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [], photographerName }: Props) {
   const [activeTab, setActiveTab] = useState('contract')
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
@@ -647,6 +648,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               contracts={contracts}
               clientEmail={client?.email}
               clientName={client?.full_name}
+              photographerName={photographerName}
               userTemplates={userTemplates}
             />
           )}
