@@ -192,7 +192,7 @@ function PhotographerSignatureSection({
             ref={sigRef}
             canvasProps={{ className: 'w-full', style: { height: '140px', touchAction: 'none' } }}
             backgroundColor="transparent"
-            penColor="var(--text-primary)"
+            penColor="#111110"
           />
         </div>
         <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Mit Maus oder Finger unterschreiben</p>
