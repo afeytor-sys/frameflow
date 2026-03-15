@@ -106,6 +106,7 @@ export default function ContractsClient({
   const [newTplName, setNewTplName] = useState('')
   const [newTplDesc, setNewTplDesc] = useState('')
   const [newTplContent, setNewTplContent] = useState('')
+  const [editorKey, setEditorKey] = useState(0)
   const [savingTemplate, setSavingTemplate] = useState(false)
 
   // PDF download
@@ -617,6 +618,7 @@ export default function ContractsClient({
                           setNewTplName(tpl.name)
                           setNewTplDesc(tpl.description)
                           setNewTplContent(tpl.content)
+                          setEditorKey(k => k + 1)
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                         style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
@@ -633,6 +635,7 @@ export default function ContractsClient({
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Vertragsinhalt</label>
                 <ContractEditor
+                  key={editorKey}
                   content={newTplContent}
                   onChange={setNewTplContent}
                   placeholder="Vertragstext hier eingeben..."
