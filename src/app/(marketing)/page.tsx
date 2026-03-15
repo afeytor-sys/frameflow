@@ -11,7 +11,7 @@ const T = {
   de: {
     nav: { features: 'Features', pricing: 'Preise', faq: 'FAQ', signin: 'Anmelden', cta: 'Kostenlos starten' },
     badge: 'Built by photographers, for photographers.',
-    h1a: 'Dein Fotostudio.',
+    h1a: 'Fotonizer ist dein Fotostudio-Organizer.',
     h1b: 'Alles an einem Ort.',
     sub: 'Buchungen, Verträge, Kundenkommunikation und Galerien — in einer einfachen Plattform für moderne Fotostudios.',
     ctaPrimary: 'Kostenlos starten',
@@ -525,8 +525,8 @@ export default function HomePage() {
             style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid rgba(196,164,124,0.2)' }}>
             <Zap className="w-3 h-3" />{t.badge}
           </div>
-          <h1 className="font-black mb-6" style={{ fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', letterSpacing: '-0.04em', lineHeight: 1.0 }}>
-            {t.h1a}{' '}<span className="text-gradient-gold">{t.h1b}</span>
+          <h1 className="font-black mb-6" style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+            {t.h1a}<br /><span className="text-gradient-gold">{t.h1b}</span>
           </h1>
           <p className="text-[17px] leading-relaxed max-w-2xl mx-auto mb-10" style={{ color: 'var(--text-secondary)' }}>{t.sub}</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
