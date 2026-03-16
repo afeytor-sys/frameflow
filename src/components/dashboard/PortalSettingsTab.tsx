@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
   Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock, LockOpen,
+  Link2, Plus, Trash2, GripVertical,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -53,17 +54,23 @@ const MESSAGE_PRESETS = [
   { emoji: '📸', label: 'Shooting heute', text: 'Heute ist euer großer Tag! Ich bin aufgeregt und freue mich riesig auf das Shooting. Bis gleich!' },
 ]
 
+interface PortalLink {
+  label: string
+  url: string
+}
+
 interface Props {
   projectId: string
   clientToken: string | null
   initialSections: PortalSections | null
   initialMessage: string | null
   initialPassword?: string | null
+  initialLinks?: PortalLink[] | null
   // kept for backwards compat but no longer used in UI
   initialStepsOverride?: Record<string, boolean> | null
 }
 
-export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword }: Props) {
+export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword, initialLinks }: Props) {
   const [sections, setSections] = useState<PortalSections>({
     ...DEFAULT_SECTIONS,
     ...(initialSections ?? {}),
@@ -71,6 +78,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
   const [message, setMessage] = useState(initialMessage ?? '')
   const [portalPassword, setPortalPassword] = useState(initialPassword ?? '')
   const [showPassword, setShowPassword] = useState(false)
+  const [links, setLinks] = useState<PortalLink[]>(initialLinks ?? [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -80,14 +88,21 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
     setSections(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  const addLink = () => setLinks(prev => [...prev, { label: '', url: '' }])
+  const removeLink = (i: number) => setLinks(prev => prev.filter((_, idx) => idx !== i))
+  const updateLink = (i: number, field: keyof PortalLink, value: string) =>
+    setLinks(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l))
+
   const handleSave = async () => {
     setSaving(true)
+    const cleanLinks = links.filter(l => l.url.trim())
     const { error } = await supabase
       .from('projects')
       .update({
         portal_sections: sections,
         portal_message: message || null,
         portal_password: portalPassword.trim() || null,
+        portal_links: cleanLinks,
       })
       .eq('id', projectId)
     setSaving(false)
@@ -316,6 +331,74 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           >
             × Passwort entfernen
           </button>
+        )}
+      </div>
+
+      {/* Portal Links */}
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Link2 className="w-4 h-4" style={{ color: '#6366F1' }} />
+            <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+              Links für den Kunden
+            </span>
+          </div>
+          <button
+            onClick={addLink}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all hover:opacity-80"
+            style={{ background: 'rgba(99,102,241,0.10)', color: '#6366F1', border: '1px solid rgba(99,102,241,0.25)' }}
+          >
+            <Plus className="w-3 h-3" />
+            Link hinzufügen
+          </button>
+        </div>
+
+        <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+          Füge nützliche Links hinzu, die dein Kunde im Portal sehen soll — z.B. Pinterest-Board, WeTransfer, Dropbox, deine Website, etc.
+        </p>
+
+        {links.length === 0 ? (
+          <div
+            className="flex flex-col items-center justify-center py-6 rounded-xl cursor-pointer transition-all hover:opacity-80"
+            style={{ background: 'var(--bg-hover)', border: '1px dashed var(--border-color)' }}
+            onClick={addLink}
+          >
+            <Link2 className="w-5 h-5 mb-2 opacity-40" style={{ color: '#6366F1' }} />
+            <p className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>Noch keine Links — klicke um einen hinzuzufügen</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {links.map((link, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <GripVertical className="w-4 h-4 flex-shrink-0 opacity-30" style={{ color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  value={link.label}
+                  onChange={e => updateLink(i, 'label', e.target.value)}
+                  placeholder="Bezeichnung (z.B. Moodboard)"
+                  className="input-base text-[12px] flex-shrink-0"
+                  style={{ width: '140px' }}
+                />
+                <input
+                  type="url"
+                  value={link.url}
+                  onChange={e => updateLink(i, 'url', e.target.value)}
+                  placeholder="https://..."
+                  className="input-base text-[12px] flex-1 min-w-0"
+                />
+                <button
+                  onClick={() => removeLink(i)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0 transition-all hover:opacity-80"
+                  style={{ background: 'rgba(196,59,44,0.08)', color: '#C43B2C' }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

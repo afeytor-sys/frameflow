@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
+import EmailVorlagePicker from '@/components/dashboard/EmailVorlagePicker'
 
 interface Invoice {
   id: string
@@ -443,6 +444,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   // After-create modal
   const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null)
   const [sendingCreated, setSendingCreated] = useState(false)
+  const [sendSubject, setSendSubject] = useState('')
+  const [sendMessage, setSendMessage] = useState('')
 
   const [form, setForm] = useState({
     project_id: '',
@@ -1117,60 +1120,100 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       {createdInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden animate-scale-in"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col animate-scale-in"
+            style={{ maxHeight: '92vh', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
 
-            <div className="px-6 pt-6 pb-4 text-center">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'rgba(249,115,22,0.10)' }}>
-                <FileText className="w-7 h-7" style={{ color: '#F97316' }} />
+            {/* Accent bar */}
+            <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #F97316, #CC8415)' }} />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.12)' }}>
+                  <Mail className="w-4 h-4" style={{ color: '#F97316' }} />
+                </div>
+                <div>
+                  <h2 className="font-black text-[15px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+                    Rechnung senden
+                  </h2>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {getClientEmail(createdInvoice.project) ? `An ${getClientEmail(createdInvoice.project)}` : 'Keine E-Mail hinterlegt'}
+                  </p>
+                </div>
               </div>
-              <h2 className="font-black text-[18px] mb-1" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-                Rechnung erstellt! 🎉
-              </h2>
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                Möchtest du die Rechnung jetzt an den Kunden senden?
-              </p>
+              <button onClick={() => setCreatedInvoice(null)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="mx-6 mb-4 p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono font-bold" style={{ color: 'var(--text-muted)' }}>
-                  {createdInvoice.invoice_number}
-                </span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: STATUS_CONFIG.sent.bg, color: STATUS_CONFIG.sent.color }}>
-                  Gesendet
-                </span>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Invoice summary */}
+              <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,115,22,0.10)' }}>
+                  <FileText className="w-4 h-4" style={{ color: '#F97316' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
+                    {getClientName(createdInvoice.project)} · {createdInvoice.invoice_number}
+                  </p>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {formatEur(createdInvoice.amount)}{createdInvoice.due_date ? ` · Fällig ${new Date(createdInvoice.due_date).toLocaleDateString('de-DE')}` : ''}
+                  </p>
+                </div>
               </div>
-              <p className="font-bold text-[15px] mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                {getClientName(createdInvoice.project)}
-              </p>
-              {createdInvoice.description && (
-                <p className="text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>{createdInvoice.description}</p>
-              )}
-              <p className="font-black text-[22px]" style={{ color: '#F97316', letterSpacing: '-0.03em' }}>
-                {formatEur(createdInvoice.amount)}
-              </p>
-              {createdInvoice.due_date && (
-                <p className="text-[11px] mt-1 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                  <Clock className="w-3 h-3" />
-                  Fällig: {new Date(createdInvoice.due_date).toLocaleDateString('de-DE')}
-                </p>
-              )}
-              {getClientEmail(createdInvoice.project) && (
+
+              {/* Vorlage picker */}
+              <div className="flex items-center justify-between">
+                <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>E-Mail Vorlage</p>
+                <EmailVorlagePicker
+                  category="rechnung"
+                  onSelect={(subject, body) => { setSendSubject(subject); setSendMessage(body) }}
+                  vars={{ client_name: getClientName(createdInvoice.project), invoice_number: createdInvoice.invoice_number || undefined, amount: formatEur(createdInvoice.amount) }}
+                  label="Vorlage wählen"
+                />
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betreff</label>
+                <input
+                  type="text"
+                  value={sendSubject}
+                  onChange={e => setSendSubject(e.target.value)}
+                  className="input-base w-full"
+                  placeholder={`Rechnung ${createdInvoice.invoice_number || ''}`}
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Nachricht</label>
+                <textarea
+                  value={sendMessage}
+                  onChange={e => setSendMessage(e.target.value)}
+                  rows={6}
+                  className="input-base w-full resize-none"
+                  style={{ fontFamily: 'inherit', lineHeight: '1.6' }}
+                  placeholder="Deine Nachricht an den Kunden..."
+                />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  📧 {getClientEmail(createdInvoice.project)}
+                  Der Rechnungslink wird automatisch im E-Mail hinzugefügt.
                 </p>
-              )}
+              </div>
             </div>
 
-            <div className="px-6 pb-6 flex flex-col gap-2">
+            {/* Footer */}
+            <div className="flex flex-col gap-2 px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
               {getClientEmail(createdInvoice.project) ? (
                 <button
                   onClick={handleSendCreated}
                   disabled={sendingCreated}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-88 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 disabled:opacity-50"
                   style={{ background: '#CC8415', boxShadow: '0 1px 8px rgba(204,132,21,0.30)' }}
                 >
                   {sendingCreated
@@ -1188,7 +1231,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               <div className="flex gap-2">
                 <button
                   onClick={() => { setAutoPrint(false); setPreviewInvoice(createdInvoice); setCreatedInvoice(null) }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[13px] font-medium transition-colors"
                   style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -1196,7 +1239,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 </button>
                 <button
                   onClick={() => setCreatedInvoice(null)}
-                  className="flex-1 py-2.5 rounded-xl text-[13px] font-medium transition-colors"
+                  className="flex-1 py-2 rounded-xl text-[13px] font-medium transition-colors"
                   style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
                 >
                   Später

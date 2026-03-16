@@ -5,7 +5,7 @@ import { formatDate, daysUntil } from '@/lib/utils'
 import {
   FileText, Images, Clock, CheckCircle2, ChevronRight, PenLine,
   Calendar, Sparkles, Camera, Sun, Shirt, MapPin, MessageCircle,
-  ArrowRight, Star, Heart
+  ArrowRight, Star, Heart, ClipboardList, Link2, ExternalLink,
 } from 'lucide-react'
 import WeatherWidget from '@/components/client-portal/WeatherWidget'
 import MoodBoard from '@/components/client-portal/MoodBoard'
@@ -41,10 +41,12 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     { data: contracts },
     { data: gallery },
     { data: timeline },
+    { data: questionnaire },
   ] = await Promise.all([
     supabase.from('contracts').select('id, title, status').eq('project_id', project.id),
     supabase.from('galleries').select('id, status, view_count, download_count').eq('project_id', project.id).eq('status', 'active').single(),
     supabase.from('timelines').select('id, events').eq('project_id', project.id).single(),
+    supabase.from('questionnaires').select('id, status, submitted_at').eq('project_id', project.id).order('created_at', { ascending: false }).limit(1).single(),
   ])
 
   let photoCount = 0
@@ -55,18 +57,19 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
   const days = project.shoot_date ? daysUntil(project.shoot_date) : null
   const meetingPoint: string | null = (project as { meeting_point?: string | null }).meeting_point ?? null
+  const portalLinks = ((project as { portal_links?: { label: string; url: string }[] | null }).portal_links ?? []).filter(l => l.url?.trim())
 
   // Portal visibility settings
   // moodboard defaults to FALSE (opt-in), all others default to TRUE
   const rawSections = (project as { portal_sections?: Record<string, boolean> | null }).portal_sections
   const show = {
-    contract:   rawSections?.contract   !== false,
-    gallery:    rawSections?.gallery    !== false,
-    timeline:   rawSections?.timeline   !== false,
-    treffpunkt: rawSections?.treffpunkt !== false,
-    moodboard:  rawSections?.moodboard  === true,
-    tips:       rawSections?.tips       !== false,
-    weather:    rawSections?.weather    !== false,
+    contract:    rawSections?.contract   !== false,
+    gallery:     rawSections?.gallery    !== false,
+    timeline:    rawSections?.timeline   !== false,
+    treffpunkt:  rawSections?.treffpunkt !== false,
+    moodboard:   rawSections?.moodboard  === true,
+    tips:        rawSections?.tips       !== false,
+    weather:     rawSections?.weather    !== false,
   }
   const customMessage: string | null = (project as { portal_message?: string | null }).portal_message ?? null
   const stepsOverride = (project as { project_steps_override?: Record<string, boolean> | null }).project_steps_override ?? null
@@ -487,6 +490,52 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </div>
         )}
 
+        {/* ── FRAGEBOGEN CARD ── */}
+        {questionnaire && (
+          <Link href={`/client/${token}/questionnaire`}
+            className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: questionnaire.status === 'submitted' ? 'rgba(42,155,104,0.10)' : 'rgba(139,92,246,0.10)' }}>
+                    {questionnaire.status === 'submitted'
+                      ? <CheckCircle2 className="w-5 h-5" style={{ color: '#2A9B68' }} />
+                      : <ClipboardList className="w-5 h-5" style={{ color: '#8B5CF6' }} />}
+                  </div>
+                  <div>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Fragebogen</p>
+                    <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {questionnaire.status === 'submitted'
+                        ? 'Ausgefüllt ✓ — Antworten ansehen'
+                        : 'Bitte ausfüllen — hilft bei der Vorbereitung'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {questionnaire.status !== 'submitted' && (
+                    <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
+                      style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6' }}>
+                      Ausstehend
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </div>
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--card-border)' }}>
+                <div className="flex items-center gap-1.5 text-[15.5px] font-bold"
+                  style={{ color: questionnaire.status === 'submitted' ? '#2A9B68' : '#8B5CF6' }}>
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  {questionnaire.status === 'submitted' ? 'Antworten ansehen' : 'Jetzt ausfüllen'}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
+
         {/* ── TIMELINE CARD ── */}
         {show.timeline && timelineEvents.length > 0 && (
           <Link href={`/client/${token}/timeline`}
@@ -513,38 +562,46 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </Link>
         )}
 
-        {/* ── PROJEKT TIMELINE (inline) ── */}
-        <div className="rounded-2xl p-5 animate-in-delay-2"
-          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-            <h2 className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              Projekt Timeline
-            </h2>
-          </div>
-          <div className="relative pl-5">
-            <div className="absolute left-1.5 top-1 bottom-1 w-0.5" style={{ background: 'var(--border-color)' }} />
-            <div className="space-y-4">
-              {derivedTimeline.map((event, i) => (
-                <div key={i} className="relative flex items-start gap-3">
-                  <div className="absolute -left-5 w-3 h-3 rounded-full mt-0.5 flex-shrink-0"
-                    style={{
-                      background: event.done ? 'var(--accent)' : 'var(--border-color)',
-                      border: event.done ? '2px solid var(--accent)' : '2px solid var(--border-color)',
-                    }} />
-                  <div>
-                    <p className="text-[19px] font-semibold" style={{ color: event.done ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                      {event.label}
-                    </p>
-                    {event.date && (
-                      <p className="text-[17px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{event.date}</p>
-                    )}
-                  </div>
+        {/* ── LINKS CARD ── */}
+        {portalLinks.length > 0 && (
+          <div className="rounded-2xl overflow-hidden animate-in-delay-2"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #6366F1, #818CF8)' }} />
+            <div className="p-5">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(99,102,241,0.10)' }}>
+                  <Link2 className="w-4.5 h-4.5" style={{ color: '#6366F1', width: '18px', height: '18px' }} />
                 </div>
-              ))}
+                <div>
+                  <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Links</p>
+                  <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Von deinem Fotografen</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {portalLinks.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:-translate-y-0.5"
+                    style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(99,102,241,0.12)' }}>
+                      <Link2 className="w-3.5 h-3.5" style={{ color: '#6366F1' }} />
+                    </div>
+                    <span className="flex-1 text-[15px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      {link.label || link.url}
+                    </span>
+                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#6366F1' }} />
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* ── GALLERY CARD ── */}
         {show.gallery && gallery && (

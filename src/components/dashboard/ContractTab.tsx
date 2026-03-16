@@ -10,9 +10,10 @@ import ContractPDFDownload from './ContractPDFDownload'
 import SignatureCanvas from 'react-signature-canvas'
 import {
   FileText, Plus, Send, Download, Check, Trash2,
-  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2,
+  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2, Mail,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import EmailVorlagePicker from './EmailVorlagePicker'
 import type { Contract } from '@/types/database'
 
 interface UserTemplate {
@@ -235,11 +236,19 @@ export default function ContractTab({
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
 
+  // Send email modal
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [pendingSendContract, setPendingSendContract] = useState<Contract | null>(null)
+  const [sendSubject, setSendSubject] = useState('')
+  const [sendMessage, setSendMessage] = useState('')
+
   // Save as template modal
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateDesc, setTemplateDesc] = useState('')
   const [savingTemplate, setSavingTemplate] = useState(false)
+
+  const [markingSigned, setMarkingSigned] = useState(false)
 
   const handleCreateFromTemplate = (tplContent: string, tplName: string) => {
     setTitle(tplName)
@@ -326,8 +335,6 @@ export default function ContractTab({
     setSending(false)
   }
 
-  const [markingSigned, setMarkingSigned] = useState(false)
-
   const handleMarkSigned = async (contract: Contract) => {
     if (!confirm('Vertrag als unterschrieben markieren? Dies kann nicht rückgängig gemacht werden.')) return
     setMarkingSigned(true)
@@ -390,6 +397,95 @@ export default function ContractTab({
     }
     setSavingTemplate(false)
   }
+
+  // ── Send email modal ──
+  const sendModal = showSendModal && pendingSendContract ? (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+      onClick={() => setShowSendModal(false)}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: '92vh', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
+              <Mail className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+            </div>
+            <div>
+              <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Vertrag senden</h3>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>An {clientEmail}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowSendModal(false)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Vorlage picker */}
+          <div className="flex items-center justify-between">
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>E-Mail Vorlage</p>
+            <EmailVorlagePicker
+              category="rechnung"
+              onSelect={(subject, body) => { setSendSubject(subject); setSendMessage(body) }}
+              vars={{ client_name: clientName, project_title: pendingSendContract.title }}
+              label="Vorlage wählen"
+            />
+          </div>
+          {/* Subject */}
+          <div>
+            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betreff</label>
+            <input
+              type="text"
+              value={sendSubject}
+              onChange={e => setSendSubject(e.target.value)}
+              className="input-base w-full"
+              placeholder="E-Mail Betreff..."
+            />
+          </div>
+          {/* Message */}
+          <div>
+            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Nachricht</label>
+            <textarea
+              value={sendMessage}
+              onChange={e => setSendMessage(e.target.value)}
+              rows={8}
+              className="input-base w-full resize-none"
+              style={{ fontFamily: 'inherit', lineHeight: '1.6' }}
+              placeholder="Deine Nachricht an den Kunden..."
+            />
+            <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              Der Unterschriften-Link wird automatisch im E-Mail hinzugefügt.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
+          <button onClick={() => setShowSendModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+          <button
+            onClick={() => { handleSend(pendingSendContract); setShowSendModal(false) }}
+            disabled={sending}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+            style={{ background: '#8B5CF6' }}
+          >
+            {sending
+              ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <><Send className="w-4 h-4" />Jetzt senden</>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
 
   // ── Creating new contract ──
   if (isCreating) {
@@ -514,15 +610,20 @@ export default function ContractTab({
                   {saving ? 'Speichern...' : 'Speichern'}
                 </button>
                 <button
-                  onClick={() => handleSend(activeContract)}
-                  disabled={sending || !clientEmail}
+                  onClick={() => {
+                    setPendingSendContract(activeContract)
+                    setSendSubject(`📄 ${activeContract.title}`)
+                    setSendMessage(`Hallo ${clientName?.split(' ')[0] || ''},\n\nbitte unterzeichne den beigefügten Vertrag über den folgenden Link.\n\nVielen Dank!\n${photographerName || ''}`)
+                    setShowSendModal(true)
+                  }}
+                  disabled={!clientEmail}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                   style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                 >
                   <Send className="w-3.5 h-3.5" />
-                  {sending ? 'Senden...' : 'An Kunden senden'}
+                  An Kunden senden
                 </button>
               </>
             )}
@@ -717,6 +818,9 @@ export default function ContractTab({
             </div>
           </div>
         )}
+
+        {/* Send modal rendered here for activeContract view */}
+        {sendModal}
       </div>
     )
   }
@@ -910,6 +1014,9 @@ export default function ContractTab({
           })}
         </div>
       )}
+
+      {/* Send modal rendered here for list view */}
+      {sendModal}
     </div>
   )
 }

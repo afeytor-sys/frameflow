@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
 import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail, Sparkles, ClipboardCheck, BookmarkCheck, ChevronRight } from 'lucide-react'
+import EmailVorlagePicker from './EmailVorlagePicker'
 import toast from 'react-hot-toast'
 
 interface Submission {
@@ -676,6 +677,19 @@ ${studio}`
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Vorlage picker */}
+              <div className="flex items-center justify-between">
+                <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+                  E-Mail Vorlage
+                </p>
+                <EmailVorlagePicker
+                  category="fragebogen"
+                  onSelect={(subject, body) => { setEmailSubject(subject); setEmailMessage(body) }}
+                  vars={{ client_name: clientName, project_title: questionnaire?.title }}
+                  label="Vorlage wählen"
+                />
+              </div>
+
               {/* Subject */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
