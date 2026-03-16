@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { PLAN_DISPLAY, PLAN_LIMITS, type PlanKey } from '@/lib/stripe'
+import { formatFileSize } from '@/lib/utils'
 import UpgradeModal from '@/components/dashboard/UpgradeModal'
 import {
   Check, X, ExternalLink, CreditCard, Zap, Crown, Users, Image,
-  BarChart2, Globe, Headphones, FileText, Palette,
+  BarChart2, HardDrive, Headphones, FileText, Palette,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -45,6 +46,11 @@ const FEATURES: FeatureRow[] = [
     getValue: (p) => PLAN_LIMITS[p].maxGalleries === null ? 'Unbegrenzt' : `Bis zu ${PLAN_LIMITS[p].maxGalleries}`,
   },
   {
+    icon: <HardDrive className="w-3.5 h-3.5" />,
+    label: 'Speicherplatz',
+    getValue: (p) => PLAN_LIMITS[p].maxStorageBytes === null ? 'Unbegrenzt' : formatFileSize(PLAN_LIMITS[p].maxStorageBytes as number),
+  },
+  {
     icon: <Palette className="w-3.5 h-3.5" />,
     label: 'Eigenes Branding',
     getValue: (p) => PLAN_LIMITS[p].customBranding,
@@ -57,12 +63,7 @@ const FEATURES: FeatureRow[] = [
   {
     icon: <Users className="w-3.5 h-3.5" />,
     label: 'Team-Seats',
-    getValue: (p) => PLAN_LIMITS[p].teamSeats === 1 ? '1 Seat' : `${PLAN_LIMITS[p].teamSeats} Seats`,
-  },
-  {
-    icon: <Globe className="w-3.5 h-3.5" />,
-    label: 'Custom Domain',
-    getValue: (p) => PLAN_LIMITS[p].customDomain,
+    getValue: (p) => PLAN_LIMITS[p].teamSeats === null ? 'Unbegrenzt' : PLAN_LIMITS[p].teamSeats === 1 ? '1 Seat' : `${PLAN_LIMITS[p].teamSeats} Seats`,
   },
   {
     icon: <Headphones className="w-3.5 h-3.5" />,
@@ -297,7 +298,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
             </h3>
           </div>
           <p className="text-[13px] mb-4" style={{ color: 'rgba(255,255,255,0.60)' }}>
-            Upgrade auf Starter ab €9/Monat und verwalte bis zu 10 Kunden ohne Wasserzeichen.
+            Upgrade auf Starter ab €10/Monat und verwalte bis zu 10 Kunden mit 15 GB Speicher.
           </p>
           <button
             onClick={() => setShowUpgrade(true)}

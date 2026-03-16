@@ -12,7 +12,7 @@ interface Props {
   reason?: string // e.g. "Du hast dein Kundenlimit erreicht"
 }
 
-const UPGRADE_TARGETS: PlanKey[] = ['starter', 'pro']
+const UPGRADE_TARGETS: PlanKey[] = ['starter', 'pro', 'studio']
 const COMING_SOON: PlanKey[] = ['studio']
 
 export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: Props) {
@@ -186,7 +186,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
 
         {/* Plans */}
         <div className="p-6 grid sm:grid-cols-3 gap-4">
-          {[...UPGRADE_TARGETS, ...COMING_SOON].map((plan) => {
+          {UPGRADE_TARGETS.map((plan) => {
             const display = PLAN_DISPLAY[plan]
             const features = PLAN_UNLOCK_COPY[plan]
             const isCurrentOrLower = plan === currentPlan

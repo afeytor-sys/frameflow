@@ -448,15 +448,61 @@ export default function QuestionnaireDetailPage() {
               </div>
 
               {(q.type === 'choice' || q.type === 'checkbox') && (
-                <div className="space-y-1.5">
-                  <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Optionen (kommagetrennt)</p>
-                  <input
-                    type="text"
-                    value={(q.options || []).join(', ')}
-                    onChange={e => updateQuestion(q.id, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                    placeholder="Option 1, Option 2, Option 3"
-                    className="input-base w-full text-[12px]"
-                  />
+                <div className="space-y-2">
+                  <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                    Optionen ({(q.options || []).length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {(q.options || []).map((opt, optIdx) => (
+                      <div key={optIdx} className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0"
+                          style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
+                          {optIdx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={opt}
+                          onChange={e => {
+                            const newOpts = [...(q.options || [])]
+                            newOpts[optIdx] = e.target.value
+                            updateQuestion(q.id, { options: newOpts })
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              const newOpts = [...(q.options || []), '']
+                              updateQuestion(q.id, { options: newOpts })
+                            }
+                          }}
+                          placeholder={`Option ${optIdx + 1}`}
+                          className="flex-1 px-2.5 py-1.5 rounded-lg text-[12px] outline-none"
+                          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                          autoFocus={opt === '' && optIdx === (q.options || []).length - 1}
+                        />
+                        <button
+                          onClick={() => {
+                            const newOpts = (q.options || []).filter((_, i) => i !== optIdx)
+                            updateQuestion(q.id, { options: newOpts })
+                          }}
+                          className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+                          style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = '#C43B2C' }}
+                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                          title="Option entfernen"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => updateQuestion(q.id, { options: [...(q.options || []), ''] })}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-bold transition-all hover:opacity-80"
+                    style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-color)' }}
+                  >
+                    <Plus className="w-3 h-3" />
+                    Option hinzufügen
+                  </button>
                 </div>
               )}
             </div>

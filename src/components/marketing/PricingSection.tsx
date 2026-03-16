@@ -13,43 +13,48 @@ const PLANS = [
     annual: 0,
     description: 'Zum Ausprobieren',
     features: [
-      'Bis zu 3 aktive Kunden',
-      'Bis zu 3 Verträge',
-      'Bis zu 3 Projekte',
-      'Bis zu 3 Galerien',
+      'Bis zu 2 aktive Kunden',
+      'Bis zu 2 Verträge',
+      'Bis zu 2 Projekte',
+      'Bis zu 2 Galerien',
+      '5 GB Speicherplatz',
       'Kunden-Portal',
     ],
     cta: 'Kostenlos starten',
     href: '/signup',
     highlight: false,
+    comingSoon: false,
   },
   {
     key: 'starter',
     name: 'Starter',
-    monthly: 11,
-    annual: 119, // 11 × 12 × 0.9 = 118.8 → 119
+    monthly: 10,
+    annual: 108, // 10 × 12 × 0.9 = 108
     description: 'Für wachsende Studios',
     features: [
       'Bis zu 10 aktive Kunden',
       'Bis zu 10 Verträge',
-      'Bis zu 10 Galerien',
+      'Bis zu 10 Projekte & Galerien',
+      '15 GB Speicherplatz',
       '"Fotonizer" Badge ausblenden',
       'E-Mail-Vorlagen',
     ],
     cta: 'Starter wählen',
     href: '/signup?plan=starter',
     highlight: false,
+    comingSoon: false,
   },
   {
     key: 'pro',
     name: 'Pro',
-    monthly: 18,
-    annual: 194, // 18 × 12 × 0.9 = 194.4 → 194
+    monthly: 16,
+    annual: 172, // 16 × 12 × 0.9 ≈ 172
     description: 'Für professionelle Fotografen',
     badge: 'Beliebteste Wahl',
     features: [
-      'Unbegrenzte Kunden',
+      'Unbegrenzte Kunden & Projekte',
       'Alles unbegrenzt',
+      '1 TB Speicherplatz',
       '"Fotonizer" Logo ausblenden',
       'Analytics-Dashboard',
       'Prioritäts-Support',
@@ -57,24 +62,26 @@ const PLANS = [
     cta: 'Pro wählen',
     href: '/signup?plan=pro',
     highlight: true,
+    comingSoon: false,
   },
   {
     key: 'studio',
     name: 'Studio',
-    monthly: 39,
-    annual: 421, // 39 × 12 × 0.9 = 421.2 → 421
+    monthly: 31,
+    annual: 324, // 27 × 12 = 324
     description: 'Für Teams & Agenturen',
-    comingSoon: true,
     features: [
       'Alles in Pro',
-      'Bis zu 5 Fotografen-Accounts',
-      'Custom Domain',
-      'Custom E-Mail-Domain',
-      'Full White Label',
+      'Bis zu 2 Fotografen-Accounts',
+      'Unbegrenzter Speicherplatz',
+      '"Fotonizer" Logo ausblenden',
+      'Analytics-Dashboard',
+      'Prioritäts-Support',
     ],
     cta: 'Studio wählen',
     href: '/signup?plan=studio',
     highlight: false,
+    comingSoon: true,
   },
 ]
 
@@ -123,9 +130,12 @@ export default function PricingSection() {
       {/* Plan cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {PLANS.map((plan) => {
-          const price = billing === 'annual' ? Math.round(plan.annual / 12) : plan.monthly
+          // For annual billing: show per-month price (annual/12)
+          const pricePerMonth = billing === 'annual' && plan.annual > 0
+            ? Math.round(plan.annual / 12)
+            : plan.monthly
           const annualTotal = plan.annual
-          const promoPrice = price > 0 ? Math.round(price * 0.5) : 0
+          const promoPrice = pricePerMonth > 0 ? Math.round(pricePerMonth * 0.5) : 0
 
           return (
             <div
@@ -134,18 +144,19 @@ export default function PricingSection() {
                 'rounded-2xl border-2 p-6 flex flex-col relative',
                 plan.highlight
                   ? 'border-[#1A1A1A] bg-[#1A1A1A] text-white'
-                  : (plan as {comingSoon?: boolean}).comingSoon
-                  ? 'border-[#E8E8E4] bg-[#F8F8F6] opacity-75'
-                  : 'border-[#E8E8E4] bg-white'
+                  : 'border-[#E8E8E4] bg-white',
+                plan.comingSoon && 'opacity-70'
               )}
             >
-              {(plan as {comingSoon?: boolean}).comingSoon && (
-                <div className="absolute top-3 right-3">
+              {/* Coming Soon badge */}
+              {plan.comingSoon && (
+                <div className="absolute top-4 right-4">
                   <span className="inline-block bg-[#6B6B6B]/10 text-[#6B6B6B] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
                     Coming Soon
                   </span>
                 </div>
               )}
+
               {plan.badge && (
                 <div className="mb-3">
                   <span className="inline-block bg-[#C8A882] text-[#1A1A1A] text-xs font-semibold px-2.5 py-0.5 rounded-full">
@@ -162,25 +173,29 @@ export default function PricingSection() {
                   {plan.description}
                 </p>
 
-                {price > 0 ? (
+                {pricePerMonth > 0 ? (
                   <>
-                    {/* Promo: show original crossed out + promo price for first 2 months */}
                     <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
                       <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
                         €{promoPrice}
                       </span>
                       <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
-                      <span className={cn('text-sm line-through', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>€{price}</span>
+                      <span className={cn('text-sm line-through', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>€{pricePerMonth}</span>
                     </div>
-                    <p className={cn('text-[10px] font-semibold mb-1', plan.highlight ? 'text-[#F59E0B]' : 'text-[#F59E0B]')}>
+                    <p className={cn('text-[10px] font-semibold mb-1', 'text-[#F59E0B]')}>
                       🎉 50% off — erste 2 Monate
                     </p>
                     <p className={cn('text-[10px]', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
-                      danach €{price}/Monat zzgl. MwSt.
+                      danach €{pricePerMonth}/Monat zzgl. MwSt.
                     </p>
                     {billing === 'annual' && annualTotal > 0 && (
                       <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/50' : 'text-[#6B6B6B]')}>
                         €{annualTotal}/Jahr
+                      </p>
+                    )}
+                    {billing === 'monthly' && plan.annual > 0 && (
+                      <p className={cn('text-[10px] mt-0.5', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
+                        oder €{Math.round(plan.annual / 12)}/Monat jährlich
                       </p>
                     )}
                   </>
@@ -204,10 +219,10 @@ export default function PricingSection() {
                 ))}
               </ul>
 
-              {(plan as {comingSoon?: boolean}).comingSoon ? (
+              {plan.comingSoon ? (
                 <button
                   disabled
-                  className="block w-full text-center py-2.5 rounded-xl text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
+                  className="block text-center py-2.5 rounded-xl text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
                 >
                   Demnächst verfügbar
                 </button>

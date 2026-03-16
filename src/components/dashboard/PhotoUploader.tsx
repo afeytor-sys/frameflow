@@ -22,9 +22,27 @@ interface Props {
   sectionId?: string | null
   galleryTitle?: string
   onUploadComplete: (photos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[]) => void
+  /** Called when a file is rejected due to storage limit — use to open UpgradeModal */
+  onStorageLimitReached?: () => void
+  /** Check if a file of given size can be uploaded (from usePlanLimits) */
+  canUploadFile?: (fileSizeBytes: number) => boolean
+  /** Max storage bytes for the current plan (null = unlimited) */
+  maxStorageBytes?: number | null
+  /** Storage already used in bytes */
+  storageUsedBytes?: number
 }
 
-export default function PhotoUploader({ galleryId, photographerId, sectionId, galleryTitle = 'Galerie', onUploadComplete }: Props) {
+export default function PhotoUploader({
+  galleryId,
+  photographerId,
+  sectionId,
+  galleryTitle = 'Galerie',
+  onUploadComplete,
+  onStorageLimitReached,
+  canUploadFile,
+  maxStorageBytes,
+  storageUsedBytes = 0,
+}: Props) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -34,7 +52,39 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
 
-    const uploadItems: UploadFile[] = imageFiles.map((file) => ({
+    // Check storage limit for each file before starting
+    const allowed: File[] = []
+    const rejected: File[] = []
+
+    let runningUsed = storageUsedBytes
+    for (const file of imageFiles) {
+      if (canUploadFile) {
+        // Use the hook's check (accounts for already-queued files)
+        const fits = maxStorageBytes === null || maxStorageBytes === undefined
+          ? true
+          : (runningUsed + file.size) <= maxStorageBytes
+        if (fits) {
+          allowed.push(file)
+          runningUsed += file.size
+        } else {
+          rejected.push(file)
+        }
+      } else {
+        allowed.push(file)
+      }
+    }
+
+    if (rejected.length > 0) {
+      toast.error(
+        `${rejected.length} ${rejected.length === 1 ? 'Datei' : 'Dateien'} übersprungen — Speicherlimit erreicht.`,
+        { duration: 5000 }
+      )
+      if (onStorageLimitReached) onStorageLimitReached()
+    }
+
+    if (allowed.length === 0) return
+
+    const uploadItems: UploadFile[] = allowed.map((file) => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
       progress: 0,
@@ -45,7 +95,7 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
     setIsUploading(true)
 
     // Register with global upload context
-    const jobId = uploadCtx ? uploadCtx.startUpload(galleryId, galleryTitle, imageFiles.length) : null
+    const jobId = uploadCtx ? uploadCtx.startUpload(galleryId, galleryTitle, allowed.length) : null
 
     const supabase = createClient()
     const uploadedPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[] = []
@@ -107,7 +157,7 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
       onUploadComplete(uploadedPhotos)
       toast.success(`${uploadedPhotos.length} ${uploadedPhotos.length === 1 ? 'Foto' : 'Fotos'} hochgeladen`)
     }
-  }, [galleryId, galleryTitle, sectionId, uploadCtx, onUploadComplete])
+  }, [galleryId, galleryTitle, sectionId, uploadCtx, onUploadComplete, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached])
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/'))
@@ -128,19 +178,48 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
     ? Math.round(files.reduce((sum, f) => sum + f.progress, 0) / files.length)
     : 0
 
+  // Storage limit UI info
+  const storagePercent = maxStorageBytes
+    ? Math.min(100, Math.round((storageUsedBytes / maxStorageBytes) * 100))
+    : null
+  const storageNearLimit = storagePercent !== null && storagePercent >= 80
+  const storageFull = storagePercent !== null && storagePercent >= 100
+
   return (
     <div className="space-y-4">
+      {/* Storage usage bar (only when limit exists) */}
+      {maxStorageBytes !== null && maxStorageBytes !== undefined && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
+              Speicher: {formatFileSize(storageUsedBytes)} / {formatFileSize(maxStorageBytes)}
+            </span>
+            <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
+              {storagePercent}%
+            </span>
+          </div>
+          <div className="h-1.5 bg-[#E8E8E4] rounded-full overflow-hidden">
+            <div
+              className={cn('h-full rounded-full transition-all duration-300', storageNearLimit ? 'bg-[#E84C1A]' : 'bg-[#C8A882]')}
+              style={{ width: `${storagePercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Drop zone */}
       <div
         onDrop={handleDrop}
         onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
         onDragLeave={() => setIsDragging(false)}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !storageFull && inputRef.current?.click()}
         className={cn(
-          'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
-          isDragging
-            ? 'border-[#C8A882] bg-[#C8A882]/5'
-            : 'border-[#E8E8E4] dark:border-[#333] hover:border-[#C8A882]/50'
+          'border-2 border-dashed rounded-xl p-8 text-center transition-all',
+          storageFull
+            ? 'border-[#E84C1A]/40 bg-[#E84C1A]/5 cursor-not-allowed opacity-60'
+            : isDragging
+            ? 'border-[#C8A882] bg-[#C8A882]/5 cursor-pointer'
+            : 'border-[#E8E8E4] dark:border-[#333] hover:border-[#C8A882]/50 cursor-pointer'
         )}
       >
         <input
@@ -149,13 +228,22 @@ export default function PhotoUploader({ galleryId, photographerId, sectionId, ga
           multiple
           accept="image/*"
           className="hidden"
+          disabled={storageFull}
           onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }}
         />
-        <Upload className={cn('w-8 h-8 mx-auto mb-3', isDragging ? 'text-[#C8A882]' : 'text-[#6B6B6B]')} />
+        <Upload className={cn('w-8 h-8 mx-auto mb-3', isDragging ? 'text-[#C8A882]' : storageFull ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')} />
         <p className="text-sm font-medium text-[#1A1A1A] mb-1">
-          {isDragging ? 'Fotos hier ablegen' : 'Fotos hierher ziehen oder klicken'}
+          {storageFull
+            ? 'Speicherlimit erreicht'
+            : isDragging
+            ? 'Fotos hier ablegen'
+            : 'Fotos hierher ziehen oder klicken'}
         </p>
-        <p className="text-xs text-[#6B6B6B]">JPG, PNG, WEBP · Upload startet automatisch</p>
+        <p className="text-xs text-[#6B6B6B]">
+          {storageFull
+            ? 'Upgrade erforderlich, um weitere Fotos hochzuladen'
+            : 'JPG, PNG, WEBP · Upload startet automatisch'}
+        </p>
       </div>
 
       {/* File list */}

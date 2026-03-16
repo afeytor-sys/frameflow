@@ -10,6 +10,8 @@ import PortalSettingsTab from './PortalSettingsTab'
 import QuestionnaireTab from './QuestionnaireTab'
 import type { Contract, Plan } from '@/types/database'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
+import { usePlanLimits } from '@/hooks/usePlanLimits'
+import UpgradeModal from './UpgradeModal'
 import toast from 'react-hot-toast'
 
 type Photo = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number; is_favorite: boolean }
@@ -167,6 +169,10 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const supabase = createClient()
   const client = project.client as { full_name?: string; email?: string } | null
   const selectedGallery = galleries.find(g => g.id === selectedGalleryId) ?? null
+
+  // Storage limits
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const planLimits = usePlanLimits()
 
   const openCreateModal = () => {
     setCreateForm({ title: '', password: '', theme: 'classic-white', download_enabled: true, comments_enabled: true, tags_enabled: true })
@@ -405,6 +411,13 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
   return (
     <>
+      {/* ── Upgrade Modal ───────────────────────────────────────────────── */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        currentPlan={planLimits.plan}
+      />
+
       {/* ── Full Create Gallery Modal ────────────────────────────────────── */}
       {showCreateModal && (
         <div
@@ -690,6 +703,10 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     }}
                     photos={(selectedGallery.photos ?? []) as Photo[]}
                     showWatermark={false}
+                    canUploadFile={planLimits.canUploadFile}
+                    maxStorageBytes={planLimits.limits.maxStorageBytes}
+                    storageUsedBytes={planLimits.storageUsedBytes}
+                    onStorageLimitReached={() => setShowUpgradeModal(true)}
                   />
                 </div>
               ) : (

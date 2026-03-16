@@ -72,6 +72,11 @@ interface Props {
   gallery: Gallery | null
   photos: Photo[]
   showWatermark: boolean
+  // Storage limit props (from usePlanLimits)
+  canUploadFile?: (fileSizeBytes: number) => boolean
+  maxStorageBytes?: number | null
+  storageUsedBytes?: number
+  onStorageLimitReached?: () => void
 }
 
 // Sortable photo item
@@ -145,7 +150,7 @@ function SortablePhoto({
   )
 }
 
-export default function GalleryTab({ projectId, photographerId, clientUrl, gallery: initialGallery, photos: initialPhotos, showWatermark }: Props) {
+export default function GalleryTab({ projectId, photographerId, clientUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [sections, setSections] = useState<Section[]>([])
@@ -683,6 +688,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
             galleryId={gallery.id}
             photographerId={photographerId}
             sectionId={uploadSectionId}
+            canUploadFile={canUploadFile}
+            maxStorageBytes={maxStorageBytes}
+            storageUsedBytes={storageUsedBytes}
+            onStorageLimitReached={onStorageLimitReached}
             onUploadComplete={(newPhotos) => {
               setPhotos((prev) => [...prev, ...newPhotos.map((p) => ({ ...p, is_favorite: false, section_id: uploadSectionId }))])
               setShowUploader(false)
