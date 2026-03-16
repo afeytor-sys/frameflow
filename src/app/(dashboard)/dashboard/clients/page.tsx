@@ -96,7 +96,7 @@ export default async function ClientsPage() {
                     style={{ borderBottom: '1px solid var(--border-color)' }}
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3.5">
+                      <Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3.5 group/name">
                         {/* Larger avatar */}
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[14px] font-black transition-transform duration-150 group-hover:scale-105"
@@ -105,12 +105,12 @@ export default async function ClientsPage() {
                           {client.full_name[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-[13.5px] font-semibold" style={{ color: 'var(--text-primary)' }}>{client.full_name}</p>
+                          <p className="text-[13.5px] font-semibold group-hover/name:underline" style={{ color: 'var(--text-primary)' }}>{client.full_name}</p>
                           {client.email && (
                             <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{client.email}</p>
                           )}
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-6 py-4 hidden md:table-cell">
                       <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>

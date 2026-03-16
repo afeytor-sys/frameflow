@@ -564,6 +564,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         description: finalDescription,
         due_date: form.due_date || null,
         invoice_number: invoiceNumber,
+        notes: form.notes || null,
       })
       .select('*, project:projects(title, client:clients(full_name, email))')
       .single()
@@ -830,6 +831,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                       <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
                       <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-20 min-w-[200px]"
                         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+                        {/* Send — only for draft/sent */}
                         {(inv.status === 'draft' || inv.status === 'sent') && (
                           <button onClick={() => { handleSendInvoice(inv.id); setOpenMenu(null) }}
                             className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors"
@@ -840,17 +842,19 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             An Kunden senden
                           </button>
                         )}
-                        {inv.status === 'sent' && (
+                        {/* Mark as paid — always visible (except already paid) */}
+                        {inv.status !== 'paid' && (
                           <button onClick={() => updateStatus(inv.id, 'paid')}
                             className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors"
                             style={{ color: 'var(--text-primary)' }}
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#2A9B68' }} />
-                            Als bezahlt markieren
+                            Als bezahlt markieren ✓
                           </button>
                         )}
-                        {(inv.status === 'sent' || inv.status === 'draft') && (
+                        {/* Mark as overdue — for draft/sent/paid */}
+                        {inv.status !== 'overdue' && (
                           <button onClick={() => updateStatus(inv.id, 'overdue')}
                             className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors"
                             style={{ color: 'var(--text-primary)' }}

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
-  Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink,
+  Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, CheckCircle2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -18,14 +18,26 @@ type PortalSections = {
   weather: boolean
 }
 
+type StepsOverride = {
+  contract: boolean
+  shooting: boolean
+  gallery: boolean
+}
+
 const DEFAULT_SECTIONS: PortalSections = {
   contract: true,
   gallery: true,
   timeline: true,
   treffpunkt: true,
-  moodboard: true,
+  moodboard: false,
   tips: true,
   weather: true,
+}
+
+const DEFAULT_STEPS: StepsOverride = {
+  contract: false,
+  shooting: false,
+  gallery: false,
 }
 
 const SECTION_CONFIG: {
@@ -40,9 +52,20 @@ const SECTION_CONFIG: {
   { key: 'gallery',    label: 'Galerie',        description: 'Galeriecard mit Foto-Anzahl',           icon: Images,     color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
   { key: 'timeline',   label: 'Zeitplan',       description: 'Tagesablauf / Timeline-Card',           icon: Clock,      color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
   { key: 'treffpunkt', label: 'Treffpunkt',     description: 'Mini-Karte mit Treffpunkt',             icon: MapPin,     color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
-  { key: 'moodboard',  label: 'Moodboard',      description: 'Inspirationsboard für den Kunden',      icon: Heart,      color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
   { key: 'tips',       label: 'Shooting-Tipps', description: 'Tipps zu Outfit, Licht, Vorbereitung',  icon: Lightbulb,  color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
   { key: 'weather',    label: 'Wetter-Widget',  description: 'Wettervorhersage für den Shooting-Tag', icon: CloudSun,   color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
+  { key: 'moodboard',  label: 'Moodboard',      description: 'Inspirationsboard für den Kunden',      icon: Heart,      color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
+]
+
+const STEPS_CONFIG: {
+  key: keyof StepsOverride
+  label: string
+  description: string
+  emoji: string
+}[] = [
+  { key: 'contract', label: 'Vertrag unterschrieben', description: 'z.B. extern unterschrieben (DocuSign, etc.)', emoji: '✍️' },
+  { key: 'shooting', label: 'Shooting stattgefunden',  description: 'Shooting-Tag manuell als erledigt markieren', emoji: '📸' },
+  { key: 'gallery',  label: 'Galerie geliefert',       description: 'Galerie extern geliefert (z.B. WeTransfer)', emoji: '🖼️' },
 ]
 
 const MESSAGE_PRESETS = [
@@ -58,12 +81,17 @@ interface Props {
   clientToken: string | null
   initialSections: PortalSections | null
   initialMessage: string | null
+  initialStepsOverride: StepsOverride | null
 }
 
-export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage }: Props) {
+export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialStepsOverride }: Props) {
   const [sections, setSections] = useState<PortalSections>({
     ...DEFAULT_SECTIONS,
     ...(initialSections ?? {}),
+  })
+  const [stepsOverride, setStepsOverride] = useState<StepsOverride>({
+    ...DEFAULT_STEPS,
+    ...(initialStepsOverride ?? {}),
   })
   const [message, setMessage] = useState(initialMessage ?? '')
   const [saving, setSaving] = useState(false)
@@ -75,11 +103,19 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
     setSections(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  const toggleStep = (key: keyof StepsOverride) => {
+    setStepsOverride(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
   const handleSave = async () => {
     setSaving(true)
     const { error } = await supabase
       .from('projects')
-      .update({ portal_sections: sections, portal_message: message || null })
+      .update({
+        portal_sections: sections,
+        portal_message: message || null,
+        project_steps_override: stepsOverride,
+      })
       .eq('id', projectId)
     setSaving(false)
     if (error) { toast.error('Fehler: ' + error.message); return }
@@ -89,6 +125,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
   }
 
   const enabledCount = Object.values(sections).filter(Boolean).length
+  const overrideCount = Object.values(stepsOverride).filter(Boolean).length
 
   return (
     <div className="space-y-5">
@@ -116,6 +153,77 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
               Portal in neuem Tab öffnen
             </a>
           )}
+        </div>
+      </div>
+
+      {/* ── Projekt-Schritte manuell markieren ── */}
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+            <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+              Projekt-Schritte
+            </span>
+          </div>
+          {overrideCount > 0 && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(42,155,104,0.12)', color: '#2A9B68' }}>
+              {overrideCount} manuell ✓
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>
+          Markiere Schritte manuell als erledigt — z.B. wenn der Vertrag extern unterschrieben wurde.
+        </p>
+
+        <div className="space-y-2">
+          {STEPS_CONFIG.map(({ key, label, description, emoji }) => {
+            const isDone = stepsOverride[key]
+            return (
+              <div
+                key={key}
+                className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 cursor-pointer"
+                style={{
+                  background: isDone ? 'rgba(42,155,104,0.08)' : 'var(--bg-hover)',
+                  border: `1px solid ${isDone ? 'rgba(42,155,104,0.30)' : 'var(--border-color)'}`,
+                }}
+                onClick={() => toggleStep(key)}
+              >
+                {/* Emoji */}
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[16px]"
+                  style={{
+                    background: isDone ? 'rgba(42,155,104,0.12)' : 'var(--bg-surface)',
+                    border: `1px solid ${isDone ? 'rgba(42,155,104,0.30)' : 'var(--border-color)'}`,
+                  }}>
+                  {isDone ? '✓' : emoji}
+                </div>
+
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold" style={{ color: isDone ? '#2A9B68' : 'var(--text-primary)' }}>
+                    {label}
+                  </p>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {description}
+                  </p>
+                </div>
+
+                {/* Checkbox */}
+                <div
+                  className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                  style={{
+                    background: isDone ? '#2A9B68' : 'var(--bg-surface)',
+                    border: `2px solid ${isDone ? '#2A9B68' : 'var(--border-strong)'}`,
+                  }}
+                >
+                  {isDone && <Check className="w-3 h-3 text-white" />}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

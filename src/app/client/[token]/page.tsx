@@ -56,18 +56,20 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const days = project.shoot_date ? daysUntil(project.shoot_date) : null
   const meetingPoint: string | null = (project as { meeting_point?: string | null }).meeting_point ?? null
 
-  // Portal visibility settings (default all true if not set)
+  // Portal visibility settings
+  // moodboard defaults to FALSE (opt-in), all others default to TRUE
   const rawSections = (project as { portal_sections?: Record<string, boolean> | null }).portal_sections
   const show = {
     contract:   rawSections?.contract   !== false,
     gallery:    rawSections?.gallery    !== false,
     timeline:   rawSections?.timeline   !== false,
     treffpunkt: rawSections?.treffpunkt !== false,
-    moodboard:  rawSections?.moodboard  !== false,
+    moodboard:  rawSections?.moodboard  === true,
     tips:       rawSections?.tips       !== false,
     weather:    rawSections?.weather    !== false,
   }
   const customMessage: string | null = (project as { portal_message?: string | null }).portal_message ?? null
+  const stepsOverride = (project as { project_steps_override?: Record<string, boolean> | null }).project_steps_override ?? null
 
   // Build Google Maps URL from meeting_point (link, coordinates, or address)
   function getMapsUrl(mp: string): string {
@@ -89,7 +91,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const timelineEvents = (timeline?.events as { id: string; time: string; title: string; phase: string }[]) || []
   const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
 
-  // Projekt Überblick steps
+  // Projekt Überblick steps — auto-detection + manual override
   const projectSteps = [
     {
       key: 'booking',
@@ -100,19 +102,19 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     {
       key: 'contract',
       label: 'Vertrag unterschrieben',
-      done: contractSigned,
+      done: contractSigned || stepsOverride?.contract === true,
       icon: '✍️',
     },
     {
       key: 'shooting',
       label: 'Shooting Tag',
-      done: isPostShooting || (days !== null && days < 0),
+      done: isPostShooting || (days !== null && days < 0) || stepsOverride?.shooting === true,
       icon: '📸',
     },
     {
       key: 'gallery',
       label: 'Galerie Lieferung',
-      done: !!gallery,
+      done: !!gallery || stepsOverride?.gallery === true,
       icon: '🖼️',
     },
   ]
@@ -132,7 +134,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
       key: 'moodboard',
       label: 'Moodboard erstellen',
       done: false,
-      show: !isPostShooting,
+      show: show.moodboard && !isPostShooting,
       href: undefined,
       cta: 'Inspirationen hinzufügen',
     },
@@ -244,6 +246,35 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           )}
         </div>
 
+        {/* ── NACHRICHTEN VOM FOTOGRAFEN ── */}
+        <div className="rounded-2xl p-5 animate-in-delay-1"
+          style={{
+            background: 'linear-gradient(135deg, var(--accent-muted) 0%, var(--card-bg) 100%)',
+            border: '1px solid var(--card-border)',
+            boxShadow: 'var(--card-shadow)',
+          }}>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[18px]"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
+              {photographerMessage.emoji}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <MessageCircle className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+                <p className="text-[19px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--accent)' }}>
+                  Nachricht von {studioName}
+                </p>
+              </div>
+              <p className="font-bold text-[17px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                {customMessage ? `Nachricht von ${studioName}` : photographerMessage.title}
+              </p>
+              <p className="text-[19px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {customMessage ?? photographerMessage.text}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* ── PROJEKT ÜBERBLICK (Stepper) ── */}
         <div className="rounded-2xl p-5 animate-in-delay-1"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
@@ -330,35 +361,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </div>
         )}
 
-        {/* ── NACHRICHTEN VOM FOTOGRAFEN ── */}
-        <div className="rounded-2xl p-5 animate-in-delay-1"
-          style={{
-            background: 'linear-gradient(135deg, var(--accent-muted) 0%, var(--card-bg) 100%)',
-            border: '1px solid var(--card-border)',
-            boxShadow: 'var(--card-shadow)',
-          }}>
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[18px]"
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
-              {photographerMessage.emoji}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-1.5 mb-1">
-                <MessageCircle className="w-3 h-3" style={{ color: 'var(--accent)' }} />
-                <p className="text-[19px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--accent)' }}>
-                  Nachricht von {studioName}
-                </p>
-              </div>
-              <p className="font-bold text-[17px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                {customMessage ? `Nachricht von ${studioName}` : photographerMessage.title}
-              </p>
-              <p className="text-[19px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                {customMessage ?? photographerMessage.text}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* ── CONTRACT CARD ── */}
         {show.contract && latestContract && (
           <Link href={`/client/${token}/contract`}
@@ -423,55 +425,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     </div>
                   </div>
                 </>
-              )}
-            </div>
-          </Link>
-        )}
-
-        {/* ── GALLERY CARD ── */}
-        {show.gallery && gallery && (
-          <Link href={`/client/${token}/gallery`}
-            className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
-            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
-            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, var(--accent), #E8C89C)' }} />
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                    style={{ background: 'var(--accent-muted)' }}>
-                    <Images className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Galerie</p>
-                    <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {photoCount > 0 ? `${photoCount} ${photoCount === 1 ? 'Foto' : 'Fotos'} bereit` : 'Galerie verfügbar'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {photoCount > 0 && (
-                    <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
-                      style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                      {photoCount} Fotos
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
-                </div>
-              </div>
-
-              <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: 'var(--accent)' }}>
-                  <Heart className="w-3.5 h-3.5" />
-                  Fotos ansehen & Favoriten markieren
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </div>
-              </div>
-
-              {(gallery.view_count > 0 || gallery.download_count > 0) && (
-                <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  {gallery.view_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>👁 {gallery.view_count} Aufrufe</span>}
-                  {gallery.download_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>⬇️ {gallery.download_count} Downloads</span>}
-                </div>
               )}
             </div>
           </Link>
@@ -592,6 +545,55 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             </div>
           </div>
         </div>
+
+        {/* ── GALLERY CARD ── */}
+        {show.gallery && gallery && (
+          <Link href={`/client/${token}/gallery`}
+            className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, var(--accent), #E8C89C)' }} />
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: 'var(--accent-muted)' }}>
+                    <Images className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Galerie</p>
+                    <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {photoCount > 0 ? `${photoCount} ${photoCount === 1 ? 'Foto' : 'Fotos'} bereit` : 'Galerie verfügbar'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {photoCount > 0 && (
+                    <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
+                      style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
+                      {photoCount} Fotos
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: 'var(--accent)' }}>
+                  <Heart className="w-3.5 h-3.5" />
+                  Fotos ansehen & Favoriten markieren
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
+              {(gallery.view_count > 0 || gallery.download_count > 0) && (
+                <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                  {gallery.view_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>👁 {gallery.view_count} Aufrufe</span>}
+                  {gallery.download_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>⬇️ {gallery.download_count} Downloads</span>}
+                </div>
+              )}
+            </div>
+          </Link>
+        )}
 
         {/* ── MOODBOARD ── */}
         {show.moodboard && (
