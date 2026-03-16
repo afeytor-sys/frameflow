@@ -531,7 +531,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
   const totalPending = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0)
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.amount, 0)
-  const totalMwst = Math.round(totalPaid * MWST_RATE)
+  // Only sum MwSt for paid invoices that explicitly include 19% MwSt (detected via description)
+  const totalMwst = invoices
+    .filter(i => i.status === 'paid' && i.description?.includes('inkl. 19% MwSt'))
+    .reduce((s, i) => s + Math.round(i.amount * MWST_RATE / (1 + MWST_RATE)), 0)
 
   const netAmount = parseFloat(form.amount.replace(',', '.')) || 0
   const mwstAmount = form.include_mwst ? netAmount * MWST_RATE : 0
