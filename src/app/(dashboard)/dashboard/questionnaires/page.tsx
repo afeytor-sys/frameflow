@@ -29,16 +29,20 @@ interface CustomTemplate {
   created_at: string
 }
 
-function getStatus(q: QuestionnaireRow): 'not_sent' | 'scheduled' | 'completed' {
-  if (q.submission) return 'completed'
+function getStatus(q: QuestionnaireRow): 'draft' | 'not_sent' | 'scheduled' | 'completed' {
+  // submission comes back as array from Supabase join
+  const hasSub = Array.isArray(q.submission) ? q.submission.length > 0 : !!q.submission
+  if (hasSub) return 'completed'
   if (q.scheduled_at) return 'scheduled'
-  return 'not_sent'
+  if (q.sent_at) return 'not_sent'   // sent but not yet answered
+  return 'draft'                      // never sent, never scheduled
 }
 
 const STATUS_CONFIG = {
-  not_sent:  { label: 'Nicht versendet', color: '#64748B', bg: 'rgba(100,116,139,0.12)', icon: Clock },
+  draft:     { label: 'Entwurf',         color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
+  not_sent:  { label: 'Gesendet',        color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
   scheduled: { label: 'Geplant',         color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
-  completed: { label: 'Complete',        color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
+  completed: { label: 'Ausgefüllt',      color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
 
 const TEMPLATE_ACCENTS = [
@@ -90,7 +94,7 @@ export default function QuestionnairesPage() {
   const [rows, setRows] = useState<QuestionnaireRow[]>([])
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'not_sent' | 'scheduled' | 'completed'>('all')
+  const [filter, setFilter] = useState<'all' | 'draft' | 'not_sent' | 'scheduled' | 'completed'>('all')
   const [creating, setCreating] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
   const [deletingRow, setDeletingRow] = useState<string | null>(null)
@@ -264,7 +268,8 @@ export default function QuestionnairesPage() {
   const filtered = filter === 'all' ? rows : rows.filter(r => getStatus(r) === filter)
 
   const counts = {
-    all: rows.length,
+    all:       rows.length,
+    draft:     rows.filter(r => getStatus(r) === 'draft').length,
     not_sent:  rows.filter(r => getStatus(r) === 'not_sent').length,
     scheduled: rows.filter(r => getStatus(r) === 'scheduled').length,
     completed: rows.filter(r => getStatus(r) === 'completed').length,
@@ -512,7 +517,7 @@ export default function QuestionnairesPage() {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2 flex-wrap">
-        {(['all', 'not_sent', 'scheduled', 'completed'] as const).map(f => {
+        {(['all', 'draft', 'not_sent', 'scheduled', 'completed'] as const).map(f => {
           const isActive = filter === f
           const cfg = f === 'all' ? null : STATUS_CONFIG[f]
           return (
