@@ -10,7 +10,7 @@ import ContractPDFDownload from './ContractPDFDownload'
 import SignatureCanvas from 'react-signature-canvas'
 import {
   FileText, Plus, Send, Download, Check, Trash2,
-  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine,
+  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { Contract } from '@/types/database'
@@ -326,6 +326,29 @@ export default function ContractTab({
     setSending(false)
   }
 
+  const [markingSigned, setMarkingSigned] = useState(false)
+
+  const handleMarkSigned = async (contract: Contract) => {
+    if (!confirm('Vertrag als unterschrieben markieren? Dies kann nicht rückgängig gemacht werden.')) return
+    setMarkingSigned(true)
+    const supabase = createClient()
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('contracts')
+      .update({
+        status: 'signed',
+        signed_at: now,
+        signed_by_name: clientName || 'Extern unterschrieben',
+      })
+      .eq('id', contract.id)
+    setMarkingSigned(false)
+    if (error) { toast.error('Fehler: ' + error.message); return }
+    const updated = { ...contract, status: 'signed' as const, signed_at: now, signed_by_name: clientName || 'Extern unterschrieben' }
+    setContracts(prev => prev.map(c => c.id === contract.id ? updated : c))
+    setActiveContract(updated)
+    toast.success('Vertrag als unterschrieben markiert ✓')
+  }
+
   const handleDelete = async (contractId: string) => {
     if (!confirm('Vertrag wirklich löschen?')) return
     const supabase = createClient()
@@ -518,6 +541,24 @@ export default function ContractTab({
               >
                 <Send className="w-3.5 h-3.5" />
                 Erneut senden
+              </button>
+            )}
+            {/* Mark as signed manually — for contracts signed on paper */}
+            {activeContract.status !== 'signed' && (
+              <button
+                onClick={() => handleMarkSigned(activeContract)}
+                disabled={markingSigned}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                style={{ background: 'rgba(61,186,111,0.12)', color: '#3DBA6F', border: '1px solid rgba(61,186,111,0.25)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(61,186,111,0.20)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(61,186,111,0.12)')}
+                title="Extern / auf Papier unterschrieben"
+              >
+                {markingSigned
+                  ? <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                  : <CheckCircle2 className="w-3.5 h-3.5" />
+                }
+                Als unterschrieben markieren
               </button>
             )}
             {/* PDF download — available whenever photographer has signed */}
