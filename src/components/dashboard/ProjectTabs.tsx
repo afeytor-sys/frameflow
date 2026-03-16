@@ -53,6 +53,7 @@ interface Props {
     status?: string
     portal_sections?: Record<string, boolean> | null
     portal_message?: string | null
+    portal_password?: string | null
     project_steps_override?: Record<string, boolean> | null
     [key: string]: unknown
   }
@@ -764,6 +765,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               initialSections={(project.portal_sections as any) ?? null}
               initialMessage={(project.portal_message as string | null) ?? null}
+              initialPassword={(project.portal_password as string | null) ?? null}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               initialStepsOverride={(project.project_steps_override as any) ?? null}
             />

@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import { PLAN_LIMITS, type PlanKey } from '@/lib/stripe'
+import PortalPasswordGate from '@/components/client-portal/PortalPasswordGate'
 
 export default async function ClientPortalLayout({
   children,
@@ -20,7 +21,7 @@ export default async function ClientPortalLayout({
   if (isUUID) {
     const { data } = await supabase
       .from('projects')
-      .select('id, client_token, custom_slug, photographer:photographers(id, full_name, studio_name, logo_url, plan)')
+      .select('id, client_token, custom_slug, portal_password, photographer:photographers(id, full_name, studio_name, logo_url, plan)')
       .eq('client_token', token)
       .single()
     project = data
@@ -28,7 +29,7 @@ export default async function ClientPortalLayout({
     // Try custom_slug first
     const { data } = await supabase
       .from('projects')
-      .select('id, client_token, custom_slug, photographer:photographers(id, full_name, studio_name, logo_url, plan)')
+      .select('id, client_token, custom_slug, portal_password, photographer:photographers(id, full_name, studio_name, logo_url, plan)')
       .eq('custom_slug', token)
       .single()
     project = data
@@ -37,7 +38,7 @@ export default async function ClientPortalLayout({
     if (!project) {
       const { data: data2 } = await supabase
         .from('projects')
-        .select('id, client_token, custom_slug, photographer:photographers(id, full_name, studio_name, logo_url, plan)')
+        .select('id, client_token, custom_slug, portal_password, photographer:photographers(id, full_name, studio_name, logo_url, plan)')
         .eq('client_token', token)
         .single()
       project = data2
@@ -58,8 +59,9 @@ export default async function ClientPortalLayout({
   const studioName = photographer?.studio_name || photographer?.full_name || 'Frameflow'
   const plan = (photographer?.plan || 'free') as PlanKey
   const showFotonizerBadge = PLAN_LIMITS[plan]?.showFotonizerBadge ?? true
+  const portalPassword = (project as { portal_password?: string | null }).portal_password ?? null
 
-  return (
+  const portalContent = (
     <div style={{ minHeight: '100vh', background: '#FAFAF8' }}>
       {/* Portal header */}
       <header style={{
@@ -137,4 +139,18 @@ export default async function ClientPortalLayout({
       </main>
     </div>
   )
+
+  if (portalPassword) {
+    return (
+      <PortalPasswordGate
+        password={portalPassword}
+        studioName={studioName}
+        logoUrl={photographer?.logo_url ?? null}
+      >
+        {portalContent}
+      </PortalPasswordGate>
+    )
+  }
+
+  return portalContent
 }

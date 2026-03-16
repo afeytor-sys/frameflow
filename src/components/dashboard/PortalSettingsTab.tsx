@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
-  Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink,
+  Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock, LockOpen,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -58,16 +58,19 @@ interface Props {
   clientToken: string | null
   initialSections: PortalSections | null
   initialMessage: string | null
+  initialPassword?: string | null
   // kept for backwards compat but no longer used in UI
   initialStepsOverride?: Record<string, boolean> | null
 }
 
-export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage }: Props) {
+export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword }: Props) {
   const [sections, setSections] = useState<PortalSections>({
     ...DEFAULT_SECTIONS,
     ...(initialSections ?? {}),
   })
   const [message, setMessage] = useState(initialMessage ?? '')
+  const [portalPassword, setPortalPassword] = useState(initialPassword ?? '')
+  const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -84,6 +87,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
       .update({
         portal_sections: sections,
         portal_message: message || null,
+        portal_password: portalPassword.trim() || null,
       })
       .eq('id', projectId)
     setSaving(false)
@@ -249,6 +253,68 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             style={{ color: 'var(--text-muted)' }}
           >
             × Nachricht löschen (automatisch)
+          </button>
+        )}
+      </div>
+
+      {/* Portal Password */}
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Lock className="w-4 h-4" style={{ color: portalPassword ? '#8B5CF6' : 'var(--text-muted)' }} />
+          <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+            Portal-Passwort
+          </span>
+          {portalPassword && (
+            <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+              🔒 Aktiv
+            </span>
+          )}
+        </div>
+
+        <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+          Schütze das Portal mit einem Passwort. Der Kunde muss es beim ersten Öffnen eingeben.
+          Leer lassen für keinen Schutz.
+        </p>
+
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            value={portalPassword}
+            onChange={e => setPortalPassword(e.target.value)}
+            placeholder="z.B. Hochzeit2026"
+            className="input-base w-full pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(p => !p)}
+            className="absolute right-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {portalPassword && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.20)' }}>
+            <LockOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+            <p className="text-[12px]" style={{ color: '#8B5CF6' }}>
+              Kunden müssen <strong>{portalPassword}</strong> eingeben, um das Portal zu öffnen.
+            </p>
+          </div>
+        )}
+
+        {portalPassword && (
+          <button
+            onClick={() => setPortalPassword('')}
+            className="mt-2 text-[11px] transition-all hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            × Passwort entfernen
           </button>
         )}
       </div>
