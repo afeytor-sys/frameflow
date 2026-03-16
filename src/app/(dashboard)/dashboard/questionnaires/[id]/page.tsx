@@ -8,6 +8,7 @@ import {
   ArrowLeft, ClipboardList, Pencil, Trash2, Send, CheckCircle2,
   Plus, X, ChevronDown, AlignLeft, List, ToggleLeft, Clock, FolderOpen,
   BookmarkPlus, CheckSquare, Search, User, Folder, Calendar, ChevronRight,
+  ChevronUp,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
@@ -219,6 +220,16 @@ export default function QuestionnaireDetailPage() {
     setEditQuestions(prev => prev.filter(q => q.id !== qid))
   }
 
+  const moveQuestion = (idx: number, direction: 'up' | 'down') => {
+    setEditQuestions(prev => {
+      const next = [...prev]
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+      if (swapIdx < 0 || swapIdx >= next.length) return prev
+      ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+      return next
+    })
+  }
+
   const loadTemplate = (key: string) => {
     const tpl = QUESTIONNAIRE_TEMPLATES.find(t => t.key === key)
     if (!tpl) return
@@ -363,6 +374,31 @@ export default function QuestionnaireDetailPage() {
           {editQuestions.map((q, idx) => (
             <div key={q.id} className="p-4 rounded-xl space-y-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
               <div className="flex items-center gap-2">
+                {/* Move up/down buttons */}
+                <div className="flex flex-col gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={() => moveQuestion(idx, 'up')}
+                    disabled={idx === 0}
+                    className="w-5 h-5 rounded flex items-center justify-center transition-colors disabled:opacity-20"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => { if (idx > 0) e.currentTarget.style.color = 'var(--text-primary)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                    title="Nach oben"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => moveQuestion(idx, 'down')}
+                    disabled={idx === editQuestions.length - 1}
+                    className="w-5 h-5 rounded flex items-center justify-center transition-colors disabled:opacity-20"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => { if (idx < editQuestions.length - 1) e.currentTarget.style.color = 'var(--text-primary)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+                    title="Nach unten"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
                   style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
                   {idx + 1}
