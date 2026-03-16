@@ -67,6 +67,8 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
 
   // Vorlage picker modal state
   const [showVorlagenModal, setShowVorlagenModal] = useState(false)
+  const [customTemplates, setCustomTemplates] = useState<{ id: string; title: string; questions: Question[]; created_at: string }[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
 
   // Builder state
   const [title, setTitle] = useState('')
@@ -239,6 +241,20 @@ ${studio}`
   const cancelSchedule = () => {
     setScheduledAt(null)
     toast('Geplanter Versand abgebrochen', { icon: '🗑️' })
+  }
+
+  const openVorlagenModal = async () => {
+    setShowVorlagenModal(true)
+    if (customTemplates.length === 0) {
+      setLoadingTemplates(true)
+      const { data } = await supabase
+        .from('questionnaire_templates')
+        .select('id, title, questions, created_at')
+        .eq('photographer_id', photographerId)
+        .order('created_at', { ascending: false })
+      setCustomTemplates((data as { id: string; title: string; questions: Question[]; created_at: string }[]) || [])
+      setLoadingTemplates(false)
+    }
   }
 
   const deleteQuestionnaire = async () => {
@@ -446,7 +462,7 @@ ${studio}`
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowVorlagenModal(true)}
+            onClick={openVorlagenModal}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-80"
             style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.22)' }}
           >
@@ -811,6 +827,55 @@ ${studio}`
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+              {/* Meine Vorlagen */}
+              {loadingTemplates ? (
+                <div className="space-y-2">
+                  <div className="h-4 w-32 rounded shimmer" />
+                  <div className="h-14 rounded-xl shimmer" />
+                  <div className="h-14 rounded-xl shimmer" />
+                </div>
+              ) : customTemplates.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <BookmarkCheck className="w-3.5 h-3.5" style={{ color: '#8B5CF6' }} />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Meine Vorlagen</p>
+                  </div>
+                  <div className="space-y-2">
+                    {customTemplates.map(tpl => (
+                      <button
+                        key={tpl.id}
+                        onClick={() => {
+                          setTitle(tpl.title)
+                          setQuestions(tpl.questions.map(q => ({ ...q })))
+                          setShowVorlagenModal(false)
+                          setShowBuilder(true)
+                        }}
+                        className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all hover:opacity-90 group"
+                        style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.22)' }}
+                      >
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'rgba(139,92,246,0.15)' }}>
+                          <ClipboardCheck className="w-5 h-5" style={{ color: '#8B5CF6' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{tpl.title}</p>
+                          <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            {tpl.questions.length} Fragen · Erstellt {new Date(tpl.created_at).toLocaleDateString('de-DE')}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" style={{ color: '#8B5CF6' }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Divider if both sections exist */}
+              {customTemplates.length > 0 && !loadingTemplates && (
+                <div style={{ height: 1, background: 'var(--border-color)' }} />
+              )}
+
               {/* Standard Vorlagen */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
