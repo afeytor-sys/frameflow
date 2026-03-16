@@ -8,6 +8,7 @@ import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import DeliveryChecklist from '@/components/dashboard/DeliveryChecklist'
 import SlugEditor from '@/components/dashboard/SlugEditor'
+import PortalPasswordInline from '@/components/dashboard/PortalPasswordInline'
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -131,18 +132,24 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       {/* Client portal link + QR */}
       {project.client_token ? (
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <SlugEditor
-              projectId={project.id}
-              currentSlug={(project as { custom_slug?: string | null }).custom_slug ?? null}
-              clientToken={project.client_token as string}
-              baseUrl={`${protocol}://${host}`}
-            />
+        <div className="space-y-2">
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <SlugEditor
+                projectId={project.id}
+                currentSlug={(project as { custom_slug?: string | null }).custom_slug ?? null}
+                clientToken={project.client_token as string}
+                baseUrl={`${protocol}://${host}`}
+              />
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+              <QRCodeModal clientUrl={clientUrl!} projectTitle={project.title} />
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
-            <QRCodeModal clientUrl={clientUrl!} projectTitle={project.title} />
-          </div>
+          <PortalPasswordInline
+            projectId={project.id}
+            initialPassword={(project as { portal_password?: string | null }).portal_password ?? null}
+          />
         </div>
       ) : (
         <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
