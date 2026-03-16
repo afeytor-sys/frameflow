@@ -141,51 +141,48 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             </a>
           )}
 
+          {/* Password — inside header card, below the link */}
+          <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(196,164,124,0.20)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: portalPassword ? '#8B5CF6' : 'var(--text-muted)' }} />
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+                Portal-Passwort
+              </span>
+              {portalPassword && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+                  🔒 Aktiv
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={portalPassword}
+                onChange={e => setPortalPassword(e.target.value)}
+                placeholder="z.B. Hochzeit2026 — leer = kein Schutz"
+                className="input-base w-full pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {portalPassword && (
+              <button
+                onClick={() => setPortalPassword('')}
+                className="mt-1.5 text-[11px] transition-all hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                × Passwort entfernen
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Portal Password — separate card */}
-      <div
-        className="rounded-2xl px-4 py-3 flex items-center gap-3"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
-      >
-        <Lock className="w-4 h-4 flex-shrink-0" style={{ color: portalPassword ? '#8B5CF6' : 'var(--text-muted)' }} />
-        <span className="text-[13px] font-bold flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-          Portal-Passwort
-        </span>
-        {portalPassword && (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-            style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
-            🔒 {portalPassword}
-          </span>
-        )}
-        <div className="relative flex-1 min-w-0">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            value={portalPassword}
-            onChange={e => setPortalPassword(e.target.value)}
-            placeholder="Passwort — leer = kein Schutz"
-            className="input-base w-full pr-8 text-[12px]"
-            style={{ paddingTop: '6px', paddingBottom: '6px' }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(p => !p)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-        {portalPassword && (
-          <button
-            onClick={() => setPortalPassword('')}
-            className="text-[11px] flex-shrink-0 transition-all hover:opacity-80"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            × entfernen
-          </button>
-        )}
       </div>
 
       {/* Visibility toggles */}
