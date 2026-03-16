@@ -1,3 +1,11 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'AGB',
+  description: 'Allgemeine Geschäftsbedingungen der Fotonizer-Plattform.',
+  robots: { index: false, follow: false },
+}
+
 export default function AGBPage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8]">

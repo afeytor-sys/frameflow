@@ -1,3 +1,11 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Datenschutzerklärung',
+  description: 'Datenschutzerklärung gemäß DSGVO für die Fotonizer-Plattform.',
+  robots: { index: false, follow: false },
+}
+
 export default function DatenschutzPage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
@@ -10,9 +18,9 @@ export default function DatenschutzPage() {
             <h2 className="text-base font-semibold text-[#1A1A1A] mb-3">1. Verantwortlicher</h2>
             <p>
               Verantwortlicher im Sinne der DSGVO ist:<br /><br />
-              [Dein Name / Firmenname]<br />
-              [Adresse]<br />
-              E-Mail: [deine@email.de]
+              Allan Feitor<br />
+              Kiefholzstr 14, 12435 Berlin<br />
+              E-Mail: af.photographer.berlin@gmail.com
             </p>
           </section>
 
@@ -71,7 +79,7 @@ export default function DatenschutzPage() {
               <li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
             </ul>
             <p className="mt-2">
-              Zur Ausübung deiner Rechte wende dich an: [deine@email.de]
+              Zur Ausübung deiner Rechte wende dich an: af.photographer.berlin@gmail.com
             </p>
           </section>
 

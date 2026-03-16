@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
-import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail } from 'lucide-react'
+import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail, Sparkles, ClipboardCheck, BookmarkCheck, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Submission {
@@ -64,6 +64,9 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
   const [emailMode, setEmailMode] = useState<'send' | 'schedule'>('send')
   const [emailSubject, setEmailSubject] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
+
+  // Vorlage picker modal state
+  const [showVorlagenModal, setShowVorlagenModal] = useState(false)
 
   // Builder state
   const [title, setTitle] = useState('')
@@ -441,16 +444,26 @@ ${studio}`
             <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Sende einen Fragebogen an deinen Kunden</p>
           </div>
         </div>
-        {!questionnaire && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => openBuilder()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white"
-            style={{ background: '#8B5CF6' }}
+            onClick={() => setShowVorlagenModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-80"
+            style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.22)' }}
           >
-            <Plus className="w-4 h-4" />
-            Erstellen
+            <Sparkles className="w-3.5 h-3.5" />
+            Vorlage
           </button>
-        )}
+          {!questionnaire && (
+            <button
+              onClick={() => openBuilder()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white"
+              style={{ background: '#8B5CF6' }}
+            >
+              <Plus className="w-4 h-4" />
+              Erstellen
+            </button>
+          )}
+        </div>
       </div>
 
       {!questionnaire ? (
@@ -754,6 +767,112 @@ ${studio}`
                     ? <><Send className="w-4 h-4" />Jetzt senden</>
                     : <><Calendar className="w-4 h-4" />Planen</>
                 }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Vorlagen Picker Modal ── */}
+      {showVorlagenModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowVorlagenModal(false) }}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '88vh' }}
+          >
+            {/* Top accent bar */}
+            <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                  <Sparkles className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                </div>
+                <div>
+                  <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Vorlage auswählen</h3>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Wähle eine Vorlage und passe sie an</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVorlagenModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Standard Vorlagen */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Standard-Vorlagen</p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { key: 'hochzeit', emoji: '💍', label: 'Hochzeit — Fragebogen', desc: 'Trauung, Feier, Gäste & besondere Wünsche', color: '#F59E0B', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)' },
+                    { key: 'portrait', emoji: '📸', label: 'Portrait Shooting — Fragebogen', desc: 'Stil, Look, Referenzen & Wünsche', color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)' },
+                    { key: 'event',   emoji: '🎉', label: 'Event — Fragebogen', desc: 'Ablauf, Personen & Programmpunkte', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.25)' },
+                  ].map(tpl => {
+                    const tplData = QUESTIONNAIRE_TEMPLATES.find(t => t.key === tpl.key)
+                    return (
+                      <button
+                        key={tpl.key}
+                        onClick={() => {
+                          loadTemplate(tpl.key)
+                          setShowVorlagenModal(false)
+                          setShowBuilder(true)
+                        }}
+                        className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all hover:opacity-90 group"
+                        style={{ background: tpl.bg, border: `1px solid ${tpl.border}` }}
+                      >
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                          style={{ background: 'rgba(255,255,255,0.15)' }}>
+                          {tpl.emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{tpl.label}</p>
+                          <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            {tpl.desc} · {tplData?.questions.length} Fragen
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" style={{ color: tpl.color }} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'var(--border-color)' }} />
+
+              {/* Eigener Fragebogen */}
+              <button
+                onClick={() => {
+                  setShowVorlagenModal(false)
+                  openBuilder()
+                }}
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all hover:opacity-90 group"
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                  <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Eigener Fragebogen</p>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Von Grund auf neu erstellen</p>
+                </div>
+                <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-40 group-hover:opacity-80 transition-opacity" style={{ color: 'var(--text-muted)' }} />
               </button>
             </div>
           </div>

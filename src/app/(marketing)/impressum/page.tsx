@@ -1,3 +1,11 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Impressum',
+  description: 'Impressum und Anbieterkennzeichnung gemäß § 5 TMG für Fotonizer.',
+  robots: { index: false, follow: false },
+}
+
 export default function ImpressumPage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
