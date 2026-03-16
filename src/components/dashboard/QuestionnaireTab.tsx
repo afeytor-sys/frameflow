@@ -484,32 +484,12 @@ ${studio}`
 
       {!questionnaire ? (
         /* Empty state */
-        <div className="text-center py-14 rounded-2xl" style={{ border: '2px dashed var(--border-color)' }}>
+        <div className="text-center py-16 rounded-2xl" style={{ border: '2px dashed var(--border-color)' }}>
           <ClipboardList className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
           <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>Noch kein Fragebogen</p>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
             Erstelle einen Fragebogen und sende ihn direkt an deinen Kunden
           </p>
-          <div className="flex gap-2 justify-center flex-wrap">
-            {QUESTIONNAIRE_TEMPLATES.map(tpl => (
-              <button
-                key={tpl.key}
-                onClick={() => { loadTemplate(tpl.key); setShowBuilder(true) }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold transition-all hover:opacity-80"
-                style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid rgba(196,164,124,0.25)' }}
-              >
-                {tpl.key === 'hochzeit' ? '💍' : '📸'} {tpl.title}
-              </button>
-            ))}
-            <button
-              onClick={() => openBuilder()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold transition-all hover:opacity-80"
-              style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Eigener Fragebogen
-            </button>
-          </div>
         </div>
       ) : (
         <>
