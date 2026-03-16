@@ -42,12 +42,16 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     { data: gallery },
     { data: timeline },
     { data: questionnaire },
+    { data: questionnaireSubmission },
   ] = await Promise.all([
     supabase.from('contracts').select('id, title, status').eq('project_id', project.id),
     supabase.from('galleries').select('id, status, view_count, download_count').eq('project_id', project.id).eq('status', 'active').single(),
     supabase.from('timelines').select('id, events').eq('project_id', project.id).single(),
-    supabase.from('questionnaires').select('id, status, submitted_at').eq('project_id', project.id).order('created_at', { ascending: false }).limit(1).single(),
+    supabase.from('questionnaires').select('id, sent_at').eq('project_id', project.id).order('created_at', { ascending: false }).limit(1).single(),
+    supabase.from('questionnaire_submissions').select('id').eq('project_id', project.id).limit(1).single(),
   ])
+
+  const questionnaireSubmitted = !!questionnaireSubmission
 
   let photoCount = 0
   if (gallery) {
@@ -63,13 +67,14 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   // moodboard defaults to FALSE (opt-in), all others default to TRUE
   const rawSections = (project as { portal_sections?: Record<string, boolean> | null }).portal_sections
   const show = {
-    contract:    rawSections?.contract   !== false,
-    gallery:     rawSections?.gallery    !== false,
-    timeline:    rawSections?.timeline   !== false,
-    treffpunkt:  rawSections?.treffpunkt !== false,
-    moodboard:   rawSections?.moodboard  === true,
-    tips:        rawSections?.tips       !== false,
-    weather:     rawSections?.weather    !== false,
+    contract:      rawSections?.contract      !== false,
+    gallery:       rawSections?.gallery       !== false,
+    timeline:      rawSections?.timeline      !== false,
+    treffpunkt:    rawSections?.treffpunkt    !== false,
+    moodboard:     rawSections?.moodboard     === true,
+    tips:          rawSections?.tips          !== false,
+    weather:       rawSections?.weather       !== false,
+    questionnaire: rawSections?.questionnaire !== false,
   }
   const customMessage: string | null = (project as { portal_message?: string | null }).portal_message ?? null
   const stepsOverride = (project as { project_steps_override?: Record<string, boolean> | null }).project_steps_override ?? null
@@ -108,6 +113,12 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
       done: contractSigned || stepsOverride?.contract === true,
       icon: '✍️',
     },
+    ...(questionnaire ? [{
+      key: 'questionnaire',
+      label: 'Fragebogen ausgefüllt',
+      done: questionnaireSubmitted,
+      icon: '📋',
+    }] : []),
     {
       key: 'shooting',
       label: 'Shooting Tag',
@@ -491,7 +502,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
         )}
 
         {/* ── FRAGEBOGEN CARD ── */}
-        {questionnaire && (
+        {show.questionnaire && questionnaire && (
           <Link href={`/client/${token}/questionnaire`}
             className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
@@ -500,22 +511,22 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3.5">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                    style={{ background: questionnaire.status === 'submitted' ? 'rgba(42,155,104,0.10)' : 'rgba(139,92,246,0.10)' }}>
-                    {questionnaire.status === 'submitted'
+                    style={{ background: questionnaireSubmitted ? 'rgba(42,155,104,0.10)' : 'rgba(139,92,246,0.10)' }}>
+                    {questionnaireSubmitted
                       ? <CheckCircle2 className="w-5 h-5" style={{ color: '#2A9B68' }} />
                       : <ClipboardList className="w-5 h-5" style={{ color: '#8B5CF6' }} />}
                   </div>
                   <div>
                     <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Fragebogen</p>
                     <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {questionnaire.status === 'submitted'
+                      {questionnaireSubmitted
                         ? 'Ausgefüllt ✓ — Antworten ansehen'
                         : 'Bitte ausfüllen — hilft bei der Vorbereitung'}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {questionnaire.status !== 'submitted' && (
+                  {!questionnaireSubmitted && (
                     <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
                       style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6' }}>
                       Ausstehend
@@ -526,9 +537,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               </div>
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--card-border)' }}>
                 <div className="flex items-center gap-1.5 text-[15.5px] font-bold"
-                  style={{ color: questionnaire.status === 'submitted' ? '#2A9B68' : '#8B5CF6' }}>
+                  style={{ color: questionnaireSubmitted ? '#2A9B68' : '#8B5CF6' }}>
                   <ClipboardList className="w-3.5 h-3.5" />
-                  {questionnaire.status === 'submitted' ? 'Antworten ansehen' : 'Jetzt ausfüllen'}
+                  {questionnaireSubmitted ? 'Antworten ansehen' : 'Jetzt ausfüllen'}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>

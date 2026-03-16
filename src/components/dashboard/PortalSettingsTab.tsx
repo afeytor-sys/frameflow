@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
   Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock,
-  Link2, Plus, Trash2, GripVertical,
+  Link2, Plus, Trash2, GripVertical, ClipboardList,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -17,6 +17,7 @@ type PortalSections = {
   moodboard: boolean
   tips: boolean
   weather: boolean
+  questionnaire: boolean
 }
 
 const DEFAULT_SECTIONS: PortalSections = {
@@ -27,6 +28,7 @@ const DEFAULT_SECTIONS: PortalSections = {
   moodboard: false,
   tips: true,
   weather: true,
+  questionnaire: true,
 }
 
 const SECTION_CONFIG: {
@@ -43,7 +45,8 @@ const SECTION_CONFIG: {
   { key: 'treffpunkt', label: 'Treffpunkt',     description: 'Mini-Karte mit Treffpunkt',             icon: MapPin,    color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
   { key: 'tips',       label: 'Shooting-Tipps', description: 'Tipps zu Outfit, Licht, Vorbereitung',  icon: Lightbulb, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
   { key: 'weather',    label: 'Wetter-Widget',  description: 'Wettervorhersage für den Shooting-Tag', icon: CloudSun,  color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
-  { key: 'moodboard',  label: 'Moodboard',      description: 'Inspirationsboard für den Kunden',      icon: Heart,     color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
+  { key: 'moodboard',      label: 'Moodboard',      description: 'Inspirationsboard für den Kunden',      icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
+  { key: 'questionnaire',  label: 'Fragebogen',     description: 'Fragebogen-Card im Kundenportal',       icon: ClipboardList, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
 ]
 
 const MESSAGE_PRESETS = [
