@@ -8,7 +8,6 @@ import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import DeliveryChecklist from '@/components/dashboard/DeliveryChecklist'
 import SlugEditor from '@/components/dashboard/SlugEditor'
-import PortalPasswordInline from '@/components/dashboard/PortalPasswordInline'
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -146,10 +145,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <QRCodeModal clientUrl={clientUrl!} projectTitle={project.title} />
             </div>
           </div>
-          <PortalPasswordInline
-            projectId={project.id}
-            initialPassword={(project as { portal_password?: string | null }).portal_password ?? null}
-          />
         </div>
       ) : (
         <div className="rounded-xl p-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
