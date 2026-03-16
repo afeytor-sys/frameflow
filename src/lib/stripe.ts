@@ -36,11 +36,13 @@ export const STRIPE_PRICES = {
 export type PlanKey = 'free' | 'starter' | 'pro' | 'studio'
 
 export interface PlanLimits {
-  maxClients: number | null       // null = unlimited
+  maxClients: number | null           // null = unlimited
   maxContractsPerClient: number | null
-  maxGalleries: number | null     // null = unlimited
-  watermark: boolean
-  customBranding: boolean         // hide "Powered by Fotonizer"
+  maxGalleries: number | null         // null = unlimited
+  maxQuestionnaires: number | null    // null = unlimited
+  maxInvoices: number | null          // null = unlimited
+  showFotonizerBadge: boolean         // show "Powered by Fotonizer" in client portal
+  customBranding: boolean             // hide "Powered by Fotonizer"
   teamSeats: number
   customDomain: boolean
   analytics: boolean
@@ -49,10 +51,12 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
   free: {
-    maxClients: 3,
+    maxClients: 2,
     maxContractsPerClient: 1,
     maxGalleries: 2,
-    watermark: false,
+    maxQuestionnaires: 2,
+    maxInvoices: 2,
+    showFotonizerBadge: true,
     customBranding: false,
     teamSeats: 1,
     customDomain: false,
@@ -60,10 +64,12 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     prioritySupport: false,
   },
   starter: {
-    maxClients: 15,
-    maxContractsPerClient: 10,
-    maxGalleries: 15,
-    watermark: false,
+    maxClients: 10,
+    maxContractsPerClient: 1,
+    maxGalleries: 10,
+    maxQuestionnaires: 10,
+    maxInvoices: 10,
+    showFotonizerBadge: false,
     customBranding: true,
     teamSeats: 1,
     customDomain: false,
@@ -74,7 +80,9 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     maxClients: null,
     maxContractsPerClient: null,
     maxGalleries: null,
-    watermark: false,
+    maxQuestionnaires: null,
+    maxInvoices: null,
+    showFotonizerBadge: false,
     customBranding: true,
     teamSeats: 1,
     customDomain: false,
@@ -85,7 +93,9 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     maxClients: null,
     maxContractsPerClient: null,
     maxGalleries: null,
-    watermark: false,
+    maxQuestionnaires: null,
+    maxInvoices: null,
+    showFotonizerBadge: false,
     customBranding: true,
     teamSeats: 5,
     customDomain: true,
