@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatDate, formatRelative } from '@/lib/utils'
 import { Users, Plus, ArrowUpRight } from 'lucide-react'
+import { getServerLocale, dashboardT } from '@/lib/dashboardTranslations'
 
 export default async function ClientsPage() {
   const supabase = await createClient()
@@ -13,6 +14,9 @@ export default async function ClientsPage() {
     .eq('photographer_id', user!.id)
     .order('created_at', { ascending: false })
 
+  const locale = await getServerLocale()
+  const de = locale === 'de'
+
   const statusColors: Record<string, { bg: string; color: string; dot: string }> = {
     lead:      { bg: 'rgba(59,130,246,0.10)',  color: '#3B82F6', dot: '#3B82F6' },
     active:    { bg: 'rgba(16,185,129,0.10)',  color: '#10B981', dot: '#10B981' },
@@ -20,11 +24,16 @@ export default async function ClientsPage() {
     archived:  { bg: 'rgba(100,116,139,0.08)', color: '#94A3B8', dot: '#94A3B8' },
   }
 
-  const statusLabels: Record<string, string> = {
+  const statusLabels: Record<string, string> = de ? {
     lead: 'Interessent',
     active: 'Aktiv',
     delivered: 'Geliefert',
     archived: 'Archiviert',
+  } : {
+    lead: 'Lead',
+    active: 'Active',
+    delivered: 'Delivered',
+    archived: 'Archived',
   }
 
   const avatarColors = [
@@ -45,10 +54,13 @@ export default async function ClientsPage() {
             className="font-black"
             style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
           >
-            Kunden
+            {de ? 'Kunden' : 'Clients'}
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {clients?.length ?? 0} {(clients?.length ?? 0) === 1 ? 'Kunde' : 'Kunden'} · Manage your client contacts
+            {clients?.length ?? 0} {de
+              ? ((clients?.length ?? 0) === 1 ? 'Kunde' : 'Kunden')
+              : ((clients?.length ?? 0) === 1 ? 'Client' : 'Clients')
+            } · {de ? 'Deine Kundenkontakte' : 'Manage your client contacts'}
           </p>
         </div>
         <Link
@@ -60,7 +72,7 @@ export default async function ClientsPage() {
           }}
         >
           <Plus className="w-4 h-4" />
-          New client
+          {de ? 'Neuer Kunde' : 'New client'}
         </Link>
       </div>
 
@@ -77,11 +89,11 @@ export default async function ClientsPage() {
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Kunde</th>
-                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em] hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>Shooting-Datum</th>
-                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em] hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Typ</th>
+                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>{de ? 'Kunde' : 'Client'}</th>
+                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em] hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>{de ? 'Shooting-Datum' : 'Shoot Date'}</th>
+                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em] hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>{de ? 'Typ' : 'Type'}</th>
                 <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Status</th>
-                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em] hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Erstellt</th>
+                <th className="text-left px-6 py-3.5 text-[11px] font-bold uppercase tracking-[0.08em] hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>{de ? 'Erstellt' : 'Created'}</th>
                 <th className="px-6 py-3.5"></th>
               </tr>
             </thead>
@@ -142,7 +154,7 @@ export default async function ClientsPage() {
                         className="inline-flex items-center gap-1 text-[12.5px] font-semibold transition-all opacity-0 group-hover:opacity-100 px-3 py-1.5 rounded-lg"
                         style={{ color: '#3B82F6', background: 'rgba(59,130,246,0.08)' }}
                       >
-                        Ansehen
+                        {de ? 'Ansehen' : 'View'}
                         <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </td>
@@ -171,10 +183,10 @@ export default async function ClientsPage() {
             className="font-black mb-2"
             style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
           >
-            No clients yet
+            {de ? 'Noch keine Kunden' : 'No clients yet'}
           </h3>
           <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Add your first client and start managing your studio
+            {de ? 'Füge deinen ersten Kunden hinzu und verwalte dein Studio' : 'Add your first client and start managing your studio'}
           </p>
           <Link
             href="/dashboard/clients/new"
@@ -182,7 +194,7 @@ export default async function ClientsPage() {
             style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
           >
             <Plus className="w-4 h-4" />
-            Create first client
+            {de ? 'Ersten Kunden erstellen' : 'Create first client'}
           </Link>
         </div>
       )}

@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils'
 import { ArrowLeft, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
+import { useLocale } from '@/hooks/useLocale'
 
-const PROJECT_TYPES = [
+const PROJECT_TYPES_DE = [
   { value: 'wedding', label: 'Hochzeit' },
   { value: 'portrait', label: 'Portrait' },
   { value: 'event', label: 'Event' },
@@ -21,15 +22,38 @@ const PROJECT_TYPES = [
   { value: 'other', label: 'Sonstiges' },
 ]
 
-const STATUS_OPTIONS = [
+const PROJECT_TYPES_EN = [
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'event', label: 'Event' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'realEstate', label: 'Real Estate' },
+  { value: 'fineArt', label: 'Fine Art' },
+  { value: 'newborn', label: 'Newborn' },
+  { value: 'family', label: 'Family' },
+  { value: 'other', label: 'Other' },
+]
+
+const STATUS_OPTIONS_DE = [
   { value: 'lead', label: 'Interessent' },
   { value: 'active', label: 'Aktiv' },
   { value: 'delivered', label: 'Geliefert' },
   { value: 'archived', label: 'Archiviert' },
 ]
 
+const STATUS_OPTIONS_EN = [
+  { value: 'lead', label: 'Lead' },
+  { value: 'active', label: 'Active' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'archived', label: 'Archived' },
+]
+
 export default function NewClientPage() {
   const router = useRouter()
+  const locale = useLocale()
+  const de = locale === 'de'
+  const PROJECT_TYPES = de ? PROJECT_TYPES_DE : PROJECT_TYPES_EN
+  const STATUS_OPTIONS = de ? STATUS_OPTIONS_DE : STATUS_OPTIONS_EN
   const { canCreateClient, clientCount, limits, plan, loading: limitsLoading } = usePlanLimits()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -98,27 +122,30 @@ export default function NewClientPage() {
           <Link href="/dashboard/clients" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-[#F0F0EC] transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">New Client</h1>
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">{de ? 'Neuer Kunde' : 'New Client'}</h1>
         </div>
         <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(196,164,124,0.12)' }}>
             <Lock className="w-6 h-6" style={{ color: 'var(--accent)' }} />
           </div>
           <h2 className="font-black text-[18px] mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-            Client limit reached
+            {de ? 'Kundenlimit erreicht' : 'Client limit reached'}
           </h2>
           <p className="text-[13.5px] mb-1" style={{ color: 'var(--text-muted)' }}>
-            You have used <strong>{clientCount}</strong> of <strong>{limits.maxClients}</strong> clients on the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan.
+            {de
+              ? <>{`Du hast `}<strong>{clientCount}</strong>{` von `}<strong>{limits.maxClients}</strong>{` Kunden im `}<strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong>{`-Plan verwendet.`}</>
+              : <>You have used <strong>{clientCount}</strong> of <strong>{limits.maxClients}</strong> clients on the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan.</>
+            }
           </p>
           <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
-            Upgrade to Starter or Pro for more clients.
+            {de ? 'Upgrade auf Starter oder Pro für mehr Kunden.' : 'Upgrade to Starter or Pro for more clients.'}
           </p>
           <div className="flex gap-3 justify-center">
             <Link href="/dashboard/clients" className="px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
-              Back
+              {de ? 'Zurück' : 'Back'}
             </Link>
             <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
-              Upgrade now →
+              {de ? 'Jetzt upgraden →' : 'Upgrade now →'}
             </Link>
           </div>
         </div>
@@ -137,8 +164,8 @@ export default function NewClientPage() {
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
-          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">New Client</h1>
-          <p className="text-[#6B6B6B] text-sm">Enter client details</p>
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">{de ? 'Neuer Kunde' : 'New Client'}</h1>
+          <p className="text-[#6B6B6B] text-sm">{de ? 'Kundendaten eingeben' : 'Enter client details'}</p>
         </div>
       </div>
 
@@ -146,7 +173,7 @@ export default function NewClientPage() {
         {/* Name */}
         <div>
           <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">
-            Full Name <span className="text-[#E84C1A]">*</span>
+            {de ? 'Vollständiger Name' : 'Full Name'} <span className="text-[#E84C1A]">*</span>
           </label>
           <input
             type="text"
@@ -173,7 +200,7 @@ export default function NewClientPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Telefon</label>
+            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Telefon' : 'Phone'}</label>
             <input
               type="tel"
               name="phone"
@@ -188,7 +215,7 @@ export default function NewClientPage() {
         {/* Shoot date + Location */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Shooting-Datum</label>
+            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Shooting-Datum' : 'Shoot Date'}</label>
             <input
               type="date"
               name="shoot_date"
@@ -198,7 +225,7 @@ export default function NewClientPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Ort</label>
+            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Ort' : 'Location'}</label>
             <input
               type="text"
               name="location"
@@ -213,7 +240,7 @@ export default function NewClientPage() {
         {/* Project type + Status */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Projekt-Typ</label>
+            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Projekt-Typ' : 'Project Type'}</label>
             <select
               name="project_type"
               value={form.project_type}
@@ -243,13 +270,13 @@ export default function NewClientPage() {
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Notizen</label>
+          <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Notizen' : 'Notes'}</label>
           <textarea
             name="notes"
             value={form.notes}
             onChange={handleChange}
             rows={3}
-            placeholder="Internal notes about client..."
+            placeholder={de ? 'Interne Notizen zum Kunden...' : 'Internal notes about client...'}
             className={cn(inputClass, 'resize-none')}
           />
         </div>
@@ -260,14 +287,14 @@ export default function NewClientPage() {
             href="/dashboard/clients"
             className="px-4 py-2.5 rounded-lg border border-[#E8E8E4] text-sm font-medium text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors"
           >
-            Cancel
+            {de ? 'Abbrechen' : 'Cancel'}
           </Link>
           <button
             type="submit"
             disabled={loading}
             className="flex-1 py-2.5 rounded-lg bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Create client'}
+            {loading ? (de ? 'Wird erstellt...' : 'Creating...') : (de ? 'Kunden erstellen' : 'Create client')}
           </button>
         </div>
       </form>
