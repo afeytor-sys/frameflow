@@ -18,7 +18,7 @@ interface Project {
 }
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; dot: string; label: string }> = {
-  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Entwurf' },
+  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Draft' },
   inquiry:   { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', dot: '#3B82F6', label: 'Anfrage' },
   booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Gebucht' },
   active:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Aktiv' },
@@ -365,7 +365,7 @@ export default function ProjectsPage() {
             style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
           >
             <Plus className="w-4 h-4" />
-            Neues Projekt
+            New project
           </Link>
         </div>
       </div>
@@ -734,7 +734,7 @@ export default function ProjectsPage() {
             className="font-black mb-2"
             style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
           >
-            Noch keine Projekte
+            No projects yet
           </h3>
           <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
             Erstelle dein erstes Projekt und verwalte Vertrag, Galerie und Rechnung an einem Ort

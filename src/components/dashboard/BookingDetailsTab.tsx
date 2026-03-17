@@ -132,7 +132,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       .eq('id', projectId)
 
     setSaving(false)
-    if (error) { toast.error('Fehler beim Speichern: ' + error.message); return }
+    if (error) { toast.error('Error saving: ' + error.message); return }
     setSaved(true)
     toast.success('Booking Details gespeichert!')
     setTimeout(() => setSaved(false), 2500)
@@ -518,7 +518,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               </div>
               {customTypeLabel && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Vorschau:</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Preview:</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
                     style={{ background: `${customTypeColor}18`, color: customTypeColor, border: `1px solid ${customTypeColor}35` }}>
                     ✦ {customTypeLabel}
@@ -633,7 +633,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               </div>
               {customStatusLabel && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Vorschau:</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Preview:</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
                     style={{ background: `${customStatusColor}18`, color: customStatusColor, border: `1px solid ${customStatusColor}35` }}>
                     ● {customStatusLabel}
@@ -683,11 +683,11 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           style={{ background: saved ? '#2A9B68' : 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}
         >
           {saving ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Speichern...</>
+            <><Loader2 className="w-4 h-4 animate-spin" />Saving...</>
           ) : saved ? (
             <><Check className="w-4 h-4" />Gespeichert!</>
           ) : (
-            'Speichern'
+            'Save'
           )}
         </button>
       </div>

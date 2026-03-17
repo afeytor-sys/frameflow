@@ -43,7 +43,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
         .from('projects')
         .update({ custom_slug: null })
         .eq('id', projectId)
-      if (error) { toast.error('Fehler beim Speichern'); return }
+      if (error) { toast.error('Error saving'); return }
       setSlug('')
       setEditing(false)
       toast.success('Slug entfernt')
@@ -60,7 +60,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
       if (error.code === '23505') {
         toast.error('This slug is already taken — please choose another one')
       } else {
-        toast.error('Fehler beim Speichern')
+        toast.error('Error saving')
       }
       setSaving(false)
       return
@@ -124,7 +124,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
                 >
                   {saving
                     ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><Check className="w-3 h-3" />Speichern</>
+                    : <><Check className="w-3 h-3" />Save</>
                   }
                 </button>
                 <button
@@ -133,7 +133,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
                 >
                   <X className="w-3 h-3" />
-                  Abbrechen
+                  Cancel
                 </button>
                 {slug && (
                   <button

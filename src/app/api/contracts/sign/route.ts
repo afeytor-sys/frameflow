@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
       drawText('[Unterschrift gespeichert]', { color: [0.42, 0.42, 0.42] })
     }
 
-    drawText(`Unterschrieben von: ${signedByName}`, { bold: true })
+    drawText(`Signed von: ${signedByName}`, { bold: true })
     drawText(`Datum: ${signedAt.toLocaleDateString('de-DE')} ${signedAt.toLocaleTimeString('de-DE')}`)
     drawText(`IP-Adresse: ${ipAddress}`)
     y -= 8

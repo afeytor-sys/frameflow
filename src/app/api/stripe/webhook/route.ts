@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px;">
   <h2 style="color:#1A1A1A;margin:0 0 16px;">Abo beendet</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
-    Hallo ${photographer.full_name || 'Fotograf'},<br><br>
+    Hello ${photographer.full_name || 'Photographer'},<br><br>
     your Fotonizer subscription has ended. You have been downgraded to the free plan.
   </p>
   <p style="color:#6B6B6B;margin:0 0 24px;">
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px;">
   <h2 style="color:#E84C1A;margin:0 0 16px;">Zahlung fehlgeschlagen ⚠️</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
-    Hallo ${photographer.full_name || 'Fotograf'},<br><br>
+    Hello ${photographer.full_name || 'Photographer'},<br><br>
     the payment for your Fotonizer subscription has failed. 
     Bitte aktualisiere deine Zahlungsmethode, um eine Unterbrechung zu vermeiden.
   </p>
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px;">
   <h2 style="color:#1A1A1A;margin:0 0 16px;">Upgrade erfolgreich 🎉</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
-    Hallo ${photographer.full_name || 'Fotograf'},<br><br>
+    Hello ${photographer.full_name || 'Photographer'},<br><br>
     dein Upgrade auf den <strong>${plan.charAt(0).toUpperCase() + plan.slice(1)}-Plan</strong> war erfolgreich!
     All new features are now available.
   </p>

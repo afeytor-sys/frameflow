@@ -286,7 +286,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
         design_theme: createTheme,
       })
       .select().single()
-    if (error) { toast.error('Fehler beim Erstellen der Galerie'); setCreating(false); return }
+    if (error) { toast.error('Error creating der Galerie'); setCreating(false); return }
     setGallery(data)
     setSelectedTheme(createTheme)
     setShowCreateModal(false)
@@ -309,7 +309,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
     }
     if (settingsPassword) updates.password = settingsPassword
     const { error } = await supabase.from('galleries').update(updates).eq('id', gallery.id)
-    if (error) { toast.error('Fehler beim Speichern') } else {
+    if (error) { toast.error('Error saving') } else {
       setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
       setShowSettings(false)
       toast.success('Einstellungen gespeichert')
@@ -400,7 +400,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
             <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
               <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <div>
-                  <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Galerie</h2>
+                  <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>New gallery</h2>
                   <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Choose a design template</p>
                 </div>
                 <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -440,7 +440,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
                 </div>
               </div>
               <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-                <button onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+                <button onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">Cancel</button>
                 <button
                   onClick={createGallery}
                   disabled={creating}
@@ -476,7 +476,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block" style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
-            {gallery.status === 'active' ? 'Aktiv' : 'Entwurf'}
+            {gallery.status === 'active' ? 'Aktiv' : 'Draft'}
           </button>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{photos.length} Fotos · {gallery.view_count} Aufrufe</span>
         </div>
@@ -665,9 +665,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
           <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
             <button onClick={saveSettings} disabled={savingSettings} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50" style={{ background: 'var(--text-primary)' }}>
-              {savingSettings ? 'Speichern...' : 'Speichern'}
+              {savingSettings ? 'Saving...' : 'Save'}
             </button>
-            <button onClick={() => setShowSettings(false)} className="px-4 py-2 text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>Abbrechen</button>
+            <button onClick={() => setShowSettings(false)} className="px-4 py-2 text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>Cancel</button>
           </div>
         </div>
       )}

@@ -117,7 +117,7 @@ export default function OnboardingPage() {
       })
 
     if (error) {
-      toast.error('Fehler beim Speichern. Bitte versuche es erneut.')
+      toast.error('Error saving. Bitte versuche es erneut.')
       setLoading(false)
       return
     }

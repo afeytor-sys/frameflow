@@ -166,7 +166,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
             Vertrag unterschrieben! 🎉
           </h2>
           <p className="text-[#6B6B6B] text-sm mb-6">
-            Unterschrieben von <strong>{contract.signed_by_name || signerName}</strong>
+            Signed von <strong>{contract.signed_by_name || signerName}</strong>
             {contract.signed_at && ` am ${new Date(contract.signed_at).toLocaleDateString('de-DE')}`}
           </p>
 
@@ -178,7 +178,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
             >
               <Download className="w-4 h-4" />
-              Unterschriebenes PDF herunterladen
+              Signedes PDF herunterladen
             </a>
           )}
         </div>

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const photographer = Array.isArray(project?.photographer) ? project.photographer[0] : project?.photographer
     const studioName = (photographer as { studio_name?: string; full_name?: string } | null)?.studio_name
       || (photographer as { studio_name?: string; full_name?: string } | null)?.full_name
-      || 'Dein Fotograf'
+      || 'Your photographer'
 
     // Convert plain text message to HTML paragraphs
     const messageHtml = customMessage

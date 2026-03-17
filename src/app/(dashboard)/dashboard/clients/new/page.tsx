@@ -249,7 +249,7 @@ export default function NewClientPage() {
             value={form.notes}
             onChange={handleChange}
             rows={3}
-            placeholder="Interne Notizen zum Kunden..."
+            placeholder="Internal notes about client..."
             className={cn(inputClass, 'resize-none')}
           />
         </div>
@@ -260,7 +260,7 @@ export default function NewClientPage() {
             href="/dashboard/clients"
             className="px-4 py-2.5 rounded-lg border border-[#E8E8E4] text-sm font-medium text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors"
           >
-            Abbrechen
+            Cancel
           </Link>
           <button
             type="submit"

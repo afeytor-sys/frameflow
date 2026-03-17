@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     .eq('id', user.id)
 
   if (updateError) {
-    return NextResponse.json({ error: 'Fehler beim Aktivieren' }, { status: 500 })
+    return NextResponse.json({ error: 'Error activating' }, { status: 500 })
   }
 
   // Record the use

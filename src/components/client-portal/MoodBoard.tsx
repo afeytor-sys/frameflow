@@ -125,7 +125,7 @@ export default function MoodBoard({ projectId, token }: Props) {
               onClick={() => { setShowAdd(false); setInputUrl(''); setInputCaption('') }}
               className="px-4 py-2 text-[12.5px] text-[#A8A49E] hover:text-[#0D0D0C] transition-colors"
             >
-              Abbrechen
+              Cancel
             </button>
           </div>
         </div>

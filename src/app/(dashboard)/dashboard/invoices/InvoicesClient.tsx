@@ -57,8 +57,8 @@ interface Props {
 }
 
 const STATUS_CONFIG = {
-  draft:   { label: 'Entwurf',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)', icon: FileText },
-  sent:    { label: 'Gesendet',   color: '#CC8415', bg: 'rgba(204,132,21,0.10)',  icon: Send },
+  draft:   { label: 'Draft',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)', icon: FileText },
+  sent:    { label: 'Sent',   color: '#CC8415', bg: 'rgba(204,132,21,0.10)',  icon: Send },
   paid:    { label: 'Bezahlt',    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)', icon: CheckCircle2 },
   overdue: { label: 'Overdue', color: '#C43B2C', bg: 'rgba(196,59,44,0.10)',  icon: AlertCircle },
 }
@@ -496,7 +496,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       })
       .select('id, title, client:clients(full_name)')
       .single()
-    if (error) { toast.error('Fehler beim Erstellen'); setSavingProject(false); return }
+    if (error) { toast.error('Error creating'); setSavingProject(false); return }
     const newProject = data as Project
     setProjectList(prev => [newProject, ...prev])
     setForm(f => ({ ...f, project_id: newProject.id }))
@@ -520,7 +520,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       })
       .select('id, full_name, email')
       .single()
-    if (error) { toast.error('Fehler beim Erstellen'); setSavingClient(false); return }
+    if (error) { toast.error('Error creating'); setSavingClient(false); return }
     const newClient = data as Client
     setClients(prev => [newClient, ...prev])
     setNewProjectClientId(newClient.id)
@@ -575,7 +575,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       .select('*, project:projects(title, client:clients(full_name, email))')
       .single()
 
-    if (error) { toast.error('Fehler beim Erstellen'); setSaving(false); return }
+    if (error) { toast.error('Error creating'); setSaving(false); return }
 
     const newInvoice = data as Invoice
     setInvoices(prev => [newInvoice, ...prev])
@@ -598,7 +598,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       if (json.error === 'Client has no email address') {
         toast.error('No client or email address found for this project.')
       } else {
-        toast.error('Fehler beim Senden der Rechnung')
+        toast.error('Error sending der Rechnung')
       }
       return false
     }
@@ -651,7 +651,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
           style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
           <Plus className="w-4 h-4" />
-          Neue Rechnung
+          New invoice
         </button>
       </div>
 
@@ -907,7 +907,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
             <div className="flex items-center justify-between px-6 py-4"
               style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Rechnung</h2>
+              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>New invoice</h2>
               <button onClick={() => setShowNew(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ color: 'var(--text-muted)' }}
@@ -932,7 +932,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     style={{ color: 'var(--accent)' }}
                   >
                     <FolderPlus className="w-3 h-3" />
-                    + Neues Projekt
+                    + New project
                   </button>
                 </div>
 
@@ -970,22 +970,22 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
                     {showNewClient && (
                       <div className="p-2.5 rounded-lg space-y-1.5" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-                        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Neuer Kunde</p>
+                        <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>New client</p>
                         <input type="text" value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Name *" className="input-base w-full text-[12px]" autoFocus />
                         <input type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} placeholder="E-Mail (optional)" className="input-base w-full text-[12px]" />
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => setShowNewClient(false)} className="flex-1 text-[12px] py-1.5 rounded-lg" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>Abbrechen</button>
+                          <button type="button" onClick={() => setShowNewClient(false)} className="flex-1 text-[12px] py-1.5 rounded-lg" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>Cancel</button>
                           <button type="button" onClick={handleCreateClient} disabled={savingClient || !newClientName.trim()} className="flex-1 text-[12px] py-1.5 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: 'var(--accent)' }}>
-                            {savingClient ? '...' : 'Erstellen'}
+                            {savingClient ? '...' : 'Create'}
                           </button>
                         </div>
                       </div>
                     )}
 
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setShowNewProject(false)} className="flex-1 text-[12px] py-1.5 rounded-lg" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>Abbrechen</button>
+                      <button type="button" onClick={() => setShowNewProject(false)} className="flex-1 text-[12px] py-1.5 rounded-lg" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>Cancel</button>
                       <button type="button" onClick={handleCreateProject} disabled={savingProject || !newProjectTitle.trim()} className="flex-1 text-[12px] py-1.5 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: 'var(--accent)' }}>
-                        {savingProject ? '...' : '+ Erstellen'}
+                        {savingProject ? '...' : '+ Create'}
                       </button>
                     </div>
                   </div>
@@ -1099,7 +1099,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowNew(false)} className="btn-secondary flex-1">
-                  Abbrechen
+                  Cancel
                 </button>
                 <button type="submit" disabled={saving}
                   className="btn-shimmer flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50"
@@ -1235,7 +1235,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  Vorschau
+                  Preview
                 </button>
                 <button
                   onClick={() => setCreatedInvoice(null)}

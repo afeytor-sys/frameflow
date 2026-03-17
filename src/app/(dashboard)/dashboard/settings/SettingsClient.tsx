@@ -74,7 +74,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       .update({ full_name: fullName, language, photography_types: photoTypes })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error('Fehler beim Speichern')
+    if (error) toast.error('Error saving')
     else toast.success('Profil gespeichert')
   }
 
@@ -85,8 +85,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
       .update({ studio_name: studioName, logo_url: logoUrl || null })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error('Fehler beim Speichern')
-    else toast.success('Studio-Einstellungen gespeichert')
+    if (error) toast.error('Error saving')
+    else toast.success('Studio settings saved')
   }
 
   const saveBankDetails = async () => {
@@ -101,7 +101,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error('Fehler beim Speichern')
+    if (error) toast.error('Error saving')
     else toast.success('Bankdaten gespeichert ✓')
   }
 
@@ -215,7 +215,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Speichern...' : 'Profil speichern'}
+            {saving ? 'Saving...' : 'Profil speichern'}
           </button>
         </div>
       )}
@@ -254,7 +254,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Speichern...' : 'Studio speichern'}
+            {saving ? 'Saving...' : 'Studio speichern'}
           </button>
         </div>
       )}
@@ -327,7 +327,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           {/* Preview */}
           {(bankAccountHolder || bankIban) && (
             <div className="p-4 rounded-lg border border-[#E8E8E4] bg-[#FAFAF8]">
-              <p className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Vorschau auf Rechnung</p>
+              <p className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Preview auf Rechnung</p>
               <div className="space-y-1 text-sm">
                 {bankAccountHolder && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Kontoinhaber:</span> {bankAccountHolder}</p>}
                 {bankName && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Bank:</span> {bankName}</p>}
@@ -342,7 +342,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Speichern...' : 'Bankdaten speichern'}
+            {saving ? 'Saving...' : 'Bankdaten speichern'}
           </button>
         </div>
       )}
@@ -396,7 +396,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           </p>
           {[
             'Vertrag unterschrieben',
-            'Galerie aufgerufen',
+            'Gallery viewed',
             'Zahlung fehlgeschlagen',
             'Subscription changes',
           ].map(item => (

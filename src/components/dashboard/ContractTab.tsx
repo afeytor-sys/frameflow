@@ -40,10 +40,10 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: 'Entwurf',
-  sent: 'Gesendet',
-  viewed: 'Angesehen',
-  signed: 'Unterschrieben',
+  draft: 'Draft',
+  sent: 'Sent',
+  viewed: 'Viewed',
+  signed: 'Signed',
 }
 
 // ── SignatureBlock — shows a signed signature (client or photographer) ──────
@@ -75,14 +75,14 @@ function SignatureBlock({
             {label}: <span style={{ color }}>{name}</span>
           </p>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {signedAt ? formatDateTime(signedAt, 'de') : ''}
+            {signedAt ? formatDateTime(signedAt, 'en') : ''}
             {ipAddress ? ` · IP: ${ipAddress}` : ''}
           </p>
         </div>
       </div>
       {signatureData && (
         <div className="rounded-lg overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', maxWidth: '320px' }}>
-          <img src={signatureData} alt={`Unterschrift ${label}`} className="w-full h-auto" style={{ maxHeight: '100px', objectFit: 'contain' }} />
+          <img src={signatureData} alt={`Signature ${label}`} className="w-full h-auto" style={{ maxHeight: '100px', objectFit: 'contain' }} />
         </div>
       )}
     </div>
@@ -113,8 +113,8 @@ function PhotographerSignatureSection({
   const supabase = createClient()
 
   const handleSign = async () => {
-    if (!name.trim()) { toast.error('Bitte deinen Namen eingeben'); return }
-    if (sigRef.current?.isEmpty()) { toast.error('Bitte unterschreibe im Feld'); return }
+    if (!name.trim()) { toast.error('Please enter your name'); return }
+    if (sigRef.current?.isEmpty()) { toast.error('Please sign in the field'); return }
     setSaving(true)
     const signatureData = sigRef.current!.toDataURL('image/png')
     const now = new Date().toISOString()
@@ -127,17 +127,17 @@ function PhotographerSignatureSection({
       })
       .eq('id', contractId)
 
-    if (error) { toast.error('Fehler beim Speichern'); setSaving(false); return }
+    if (error) { toast.error('Error saving signature'); setSaving(false); return }
     onSaved({ photographer_signature_data: signatureData, photographer_signed_by_name: name.trim(), photographer_signed_at: now })
     setDone(true)
     setSaving(false)
-    toast.success('Deine Unterschrift wurde gespeichert!')
+    toast.success('Your signature has been saved!')
   }
 
   if (done && existingSignature) {
     return (
       <SignatureBlock
-        label={photographerName || 'Fotograf'}
+        label={photographerName || 'Photographer'}
         name={existingName ?? name}
         signedAt={existingAt}
         ipAddress={null}
@@ -156,8 +156,8 @@ function PhotographerSignatureSection({
           <PenLine className="w-4 h-4" style={{ color: 'var(--accent)' }} />
         </div>
         <div>
-          <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Deine Unterschrift (Fotograf)</p>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Unterschreibe den Vertrag als Fotograf</p>
+          <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Your signature (Photographer)</p>
+          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Sign the contract as photographer</p>
         </div>
       </div>
 
@@ -177,7 +177,7 @@ function PhotographerSignatureSection({
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-            Unterschrift *
+            Signature *
           </label>
           <button
             type="button"
@@ -188,7 +188,7 @@ function PhotographerSignatureSection({
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
           >
             <RotateCcw className="w-3 h-3" />
-            Delete
+            Clear
           </button>
         </div>
         <div className="rounded-xl overflow-hidden" style={{ border: '2px dashed var(--border-color)', background: 'var(--bg-hover)' }}>
@@ -199,7 +199,7 @@ function PhotographerSignatureSection({
             penColor="#111110"
           />
         </div>
-        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Mit Maus oder Finger unterschreiben</p>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Sign with mouse or finger</p>
       </div>
 
       <button
@@ -210,7 +210,7 @@ function PhotographerSignatureSection({
       >
         {saving
           ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          : <><PenLine className="w-4 h-4" />Jetzt unterschreiben</>
+          : <><PenLine className="w-4 h-4" />Sign now</>
         }
       </button>
     </div>
@@ -231,7 +231,7 @@ export default function ContractTab({
   const [activeContract, setActiveContract] = useState<Contract | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
-  const [title, setTitle] = useState('Fotografievertrag')
+  const [title, setTitle] = useState('Photography Contract')
   const [content, setContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
@@ -258,7 +258,7 @@ export default function ContractTab({
   }
 
   const handleCreateBlank = () => {
-    setTitle('Fotografievertrag')
+    setTitle('Photography Contract')
     setContent('')
     setIsCreating(true)
     setShowTemplates(false)
@@ -266,7 +266,7 @@ export default function ContractTab({
 
   const handleSave = async () => {
     if (!content.trim()) {
-      toast.error('Vertragsinhalt darf nicht leer sein')
+      toast.error('Contract content cannot be empty')
       return
     }
     setSaving(true)
@@ -279,7 +279,7 @@ export default function ContractTab({
       .single()
 
     if (error) {
-      toast.error('Fehler beim Speichern')
+      toast.error('Error saving contract')
       setSaving(false)
       return
     }
@@ -287,7 +287,7 @@ export default function ContractTab({
     setContracts((prev) => [...prev, data])
     setActiveContract(data)
     setIsCreating(false)
-    toast.success('Vertrag gespeichert')
+    toast.success('Contract saved')
     setSaving(false)
     router.refresh()
   }
@@ -301,10 +301,10 @@ export default function ContractTab({
       .eq('id', contract.id)
 
     if (error) {
-      toast.error('Fehler beim Speichern')
+      toast.error('Error saving contract')
     } else {
       setContracts((prev) => prev.map((c) => c.id === contract.id ? { ...c, title, content } : c))
-      toast.success('Vertrag aktualisiert')
+      toast.success('Contract updated')
     }
     setSaving(false)
   }
@@ -322,7 +322,7 @@ export default function ContractTab({
     })
 
     if (!res.ok) {
-      toast.error('Fehler beim Senden')
+      toast.error('Error sending contract')
     } else {
       setContracts((prev) =>
         prev.map((c) => c.id === contract.id ? { ...c, status: 'sent' as const, sent_at: new Date().toISOString() } : c)
@@ -330,7 +330,7 @@ export default function ContractTab({
       if (activeContract?.id === contract.id) {
         setActiveContract((prev) => prev ? { ...prev, status: 'sent', sent_at: new Date().toISOString() } : prev)
       }
-      toast.success(`Vertrag an ${clientEmail} gesendet`)
+      toast.success(`Contract sent to ${clientEmail}`)
     }
     setSending(false)
   }
@@ -345,15 +345,15 @@ export default function ContractTab({
       .update({
         status: 'signed',
         signed_at: now,
-        signed_by_name: clientName || 'Extern unterschrieben',
+        signed_by_name: clientName || 'Signed externally',
       })
       .eq('id', contract.id)
     setMarkingSigned(false)
-    if (error) { toast.error('Fehler: ' + error.message); return }
-    const updated = { ...contract, status: 'signed' as const, signed_at: now, signed_by_name: clientName || 'Extern unterschrieben' }
+    if (error) { toast.error('Error: ' + error.message); return }
+    const updated = { ...contract, status: 'signed' as const, signed_at: now, signed_by_name: clientName || 'Signed externally' }
     setContracts(prev => prev.map(c => c.id === contract.id ? updated : c))
     setActiveContract(updated)
-    toast.success('Vertrag als unterschrieben markiert ✓')
+    toast.success('Contract marked as signed ✓')
   }
 
   const handleDelete = async (contractId: string) => {
@@ -367,7 +367,7 @@ export default function ContractTab({
 
   const handleSaveAsTemplate = async () => {
     if (!templateName.trim()) {
-      toast.error('Bitte einen Namen eingeben')
+      toast.error('Please enter a name')
       return
     }
     setSavingTemplate(true)
@@ -387,10 +387,10 @@ export default function ContractTab({
       .single()
 
     if (error) {
-      toast.error('Fehler beim Speichern der Vorlage')
+      toast.error('Error saving template')
     } else {
       setUserTemplates((prev) => [...prev, data])
-      toast.success('Vorlage gespeichert!')
+      toast.success('Template saved!')
       setShowSaveTemplate(false)
       setTemplateName('')
       setTemplateDesc('')
@@ -417,8 +417,8 @@ export default function ContractTab({
               <Mail className="w-4 h-4" style={{ color: '#8B5CF6' }} />
             </div>
             <div>
-              <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Vertrag senden</h3>
-              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>An {clientEmail}</p>
+              <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Send contract</h3>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>To {clientEmail}</p>
             </div>
           </div>
           <button
@@ -432,9 +432,9 @@ export default function ContractTab({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Vorlage picker */}
+          {/* Template picker */}
           <div className="flex items-center justify-between">
-            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>E-Mail Vorlage</p>
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Email template</p>
             <EmailVorlagePicker
               category="rechnung"
               onSelect={(subject, body) => { setSendSubject(subject); setSendMessage(body) }}
@@ -444,25 +444,25 @@ export default function ContractTab({
           </div>
           {/* Subject */}
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betreff</label>
+            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Subject</label>
             <input
               type="text"
               value={sendSubject}
               onChange={e => setSendSubject(e.target.value)}
               className="input-base w-full"
-              placeholder="E-Mail Betreff..."
+              placeholder="Email subject..."
             />
           </div>
           {/* Message */}
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Nachricht</label>
+            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Message</label>
             <textarea
               value={sendMessage}
               onChange={e => setSendMessage(e.target.value)}
               rows={8}
               className="input-base w-full resize-none"
               style={{ fontFamily: 'inherit', lineHeight: '1.6' }}
-              placeholder="Deine Nachricht an den Kunden..."
+              placeholder="Your message to the client..."
             />
             <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
               The signature link will be automatically added to the email.
@@ -470,7 +470,7 @@ export default function ContractTab({
           </div>
         </div>
         <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-          <button onClick={() => setShowSendModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+          <button onClick={() => setShowSendModal(false)} className="btn-secondary flex-1">Cancel</button>
           <button
             onClick={() => { handleSend(pendingSendContract); setShowSendModal(false) }}
             disabled={sending}
@@ -479,7 +479,7 @@ export default function ContractTab({
           >
             {sending
               ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><Send className="w-4 h-4" />Jetzt senden</>
+              : <><Send className="w-4 h-4" />Send now</>
             }
           </button>
         </div>
@@ -512,7 +512,7 @@ export default function ContractTab({
               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
-              Abbrechen
+              Cancel
             </button>
             <button
               onClick={handleSave}
@@ -520,7 +520,7 @@ export default function ContractTab({
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
             >
-              {saving ? 'Speichern...' : 'Speichern'}
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
@@ -586,10 +586,10 @@ export default function ContractTab({
                   e.currentTarget.style.background = 'transparent'
                   e.currentTarget.style.color = 'var(--text-muted)'
                 }}
-                title="Als Vorlage speichern"
+                title="Save as template"
               >
                 <Bookmark className="w-3.5 h-3.5" />
-                Als Vorlage
+                Save as template
               </button>
             )}
 
@@ -607,7 +607,7 @@ export default function ContractTab({
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {saving ? 'Speichern...' : 'Speichern'}
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   onClick={() => {
@@ -623,7 +623,7 @@ export default function ContractTab({
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                 >
                   <Send className="w-3.5 h-3.5" />
-                  An Kunden senden
+                  Send to client
                 </button>
               </>
             )}
@@ -641,7 +641,7 @@ export default function ContractTab({
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <Send className="w-3.5 h-3.5" />
-                Erneut senden
+                Resend
               </button>
             )}
             {/* Mark as signed manually — for contracts signed on paper */}
@@ -653,13 +653,13 @@ export default function ContractTab({
                 style={{ background: 'rgba(61,186,111,0.12)', color: '#3DBA6F', border: '1px solid rgba(61,186,111,0.25)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(61,186,111,0.20)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(61,186,111,0.12)')}
-                title="Extern / auf Papier unterschrieben"
+                title="Signed externally / on paper"
               >
                 {markingSigned
                   ? <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                   : <CheckCircle2 className="w-3.5 h-3.5" />
                 }
-                Als unterschrieben markieren
+                Mark as signed
               </button>
             )}
             {/* PDF download — available whenever photographer has signed */}
@@ -685,7 +685,7 @@ export default function ContractTab({
                 style={{ background: '#3DBA6F', color: '#fff' }}
               >
                 <Download className="w-3.5 h-3.5" />
-                PDF herunterladen
+                Download PDF
               </a>
             )}
           </div>
@@ -694,7 +694,7 @@ export default function ContractTab({
         {/* ── Client signature block ── */}
         {activeContract.status === 'signed' && (
           <SignatureBlock
-            label={clientName || 'Kunde'}
+            label={clientName || 'Client'}
             name={activeContract.signed_by_name ?? ''}
             signedAt={activeContract.signed_at ?? null}
             ipAddress={(activeContract as Contract & { ip_address?: string }).ip_address ?? null}
@@ -746,7 +746,7 @@ export default function ContractTab({
                 <div className="flex items-center gap-2">
                   <BookMarked className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                   <h3 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
-                    Als Vorlage speichern
+                    Save as template
                   </h3>
                 </div>
                 <button
@@ -765,13 +765,13 @@ export default function ContractTab({
                     className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    Name der Vorlage *
+                    Template name *
                   </label>
                   <input
                     type="text"
                     value={templateName}
                     onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="z.B. Mein Hochzeitsvertrag"
+                    placeholder="e.g. My Wedding Contract"
                     className="input-base w-full"
                     autoFocus
                   />
@@ -781,13 +781,13 @@ export default function ContractTab({
                     className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    Beschreibung (optional)
+                    Description (optional)
                   </label>
                   <input
                     type="text"
                     value={templateDesc}
                     onChange={(e) => setTemplateDesc(e.target.value)}
-                    placeholder="Kurze Beschreibung..."
+                    placeholder="Short description..."
                     className="input-base w-full"
                   />
                 </div>
@@ -796,7 +796,7 @@ export default function ContractTab({
                     onClick={() => setShowSaveTemplate(false)}
                     className="btn-secondary flex-1 text-sm"
                   >
-                    Abbrechen
+                    Cancel
                   </button>
                   <button
                     onClick={handleSaveAsTemplate}
@@ -809,7 +809,7 @@ export default function ContractTab({
                     ) : (
                       <>
                         <BookMarked className="w-3.5 h-3.5" />
-                        Speichern
+                        Save
                       </>
                     )}
                   </button>
@@ -839,7 +839,7 @@ export default function ContractTab({
             style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
           >
             <Plus className="w-3.5 h-3.5" />
-            Neuer Vertrag
+            New contract
             <ChevronDown className="w-3 h-3" />
           </button>
 
@@ -862,8 +862,8 @@ export default function ContractTab({
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Leerer Vertrag</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Von Grund auf neu erstellen</p>
+                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Blank contract</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Create from scratch</p>
                   </button>
 
                   {/* User templates */}
@@ -875,7 +875,7 @@ export default function ContractTab({
                         style={{ color: 'var(--accent)' }}
                       >
                         <BookMarked className="w-3 h-3" />
-                        Meine Vorlagen
+                        My templates
                       </p>
                       {userTemplates.map((tpl) => (
                         <button
@@ -900,7 +900,7 @@ export default function ContractTab({
                     className="text-xs font-bold px-3 py-1 uppercase tracking-wide"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    Standard-Vorlagen
+                    Default templates
                   </p>
                   {CONTRACT_TEMPLATES.map((template) => (
                     <button
@@ -930,10 +930,10 @@ export default function ContractTab({
             <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
           </div>
           <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-            Noch kein Vertrag
+            No contract yet
           </p>
           <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-            Erstelle einen Vertrag aus einer Vorlage oder von Grund auf neu.
+            Create a contract from a template or from scratch.
           </p>
           <button
             onClick={() => setShowTemplates(true)}
@@ -941,7 +941,7 @@ export default function ContractTab({
             style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
           >
             <Plus className="w-3 h-3" />
-            Ersten Vertrag erstellen
+            Create first contract
           </button>
         </div>
       ) : (
@@ -976,10 +976,10 @@ export default function ContractTab({
                     </p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {contract.signed_at
-                        ? `Unterschrieben ${formatDateTime(contract.signed_at, 'de')}`
+                        ? `Signed ${formatDateTime(contract.signed_at, 'en')}`
                         : contract.sent_at
-                        ? `Gesendet ${formatDateTime(contract.sent_at, 'de')}`
-                        : 'Entwurf'}
+                        ? `Sent ${formatDateTime(contract.sent_at, 'en')}`
+                        : 'Draft'}
                     </p>
                   </div>
                 </button>

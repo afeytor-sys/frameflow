@@ -27,7 +27,7 @@ interface Project {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Entwurf' },
+  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Draft' },
   booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Gebucht' },
   active:    { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Aktiv' },
   shooting:  { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C', label: 'Shooting' },
@@ -76,12 +76,12 @@ export default function BookingsPage() {
     notes: '',
   })
 
-  // Inline "Neuer Kunde" state
+  // Inline "New client" state
   const [showNewClient, setShowNewClient] = useState(false)
   const [newClientName, setNewClientName] = useState('')
   const [creatingClient, setCreatingClient] = useState(false)
 
-  // Inline "Neues Projekt" state
+  // Inline "New project" state
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectTitle, setNewProjectTitle] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
@@ -152,7 +152,7 @@ export default function BookingsPage() {
       .insert({ photographer_id: photographerId, full_name: newClientName.trim(), status: 'lead' })
       .select('id, full_name')
       .single()
-    if (error) { toast.error('Fehler beim Erstellen'); setCreatingClient(false); return }
+    if (error) { toast.error('Error creating'); setCreatingClient(false); return }
     const newClient = data as Client
     setClients(prev => [...prev, newClient].sort((a, b) => a.full_name.localeCompare(b.full_name)))
     setForm(f => ({ ...f, client_id: newClient.id }))
@@ -177,7 +177,7 @@ export default function BookingsPage() {
       })
       .select('id, title')
       .single()
-    if (error) { toast.error('Fehler beim Erstellen'); setCreatingProject(false); return }
+    if (error) { toast.error('Error creating'); setCreatingProject(false); return }
     const newProject = data as Project
     setProjects(prev => [newProject, ...prev])
     setForm(f => ({ ...f, project_id: newProject.id, title: f.title || newProject.title }))
@@ -244,7 +244,7 @@ export default function BookingsPage() {
       .select('id, title, shoot_date, location, status, client:clients(full_name)')
       .single()
 
-    if (error) { toast.error('Fehler beim Erstellen'); setSaving(false); return }
+    if (error) { toast.error('Error creating'); setSaving(false); return }
 
     const newBooking: Booking = {
       id: data.id,
@@ -557,7 +557,7 @@ export default function BookingsPage() {
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Status</label>
                   <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="input-base w-full">
-                    <option value="draft">Entwurf</option>
+                    <option value="draft">Draft</option>
                     <option value="booked">Gebucht</option>
                     <option value="active">Aktiv</option>
                     <option value="shooting">Shooting</option>
@@ -586,7 +586,7 @@ export default function BookingsPage() {
                     <button type="button" onClick={() => { setShowNewClient(true); setNewClientName('') }}
                       className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg transition-colors"
                       style={{ color: 'var(--accent)', background: 'var(--accent-muted)' }}>
-                      <Plus className="w-3 h-3" />Neuer Kunde
+                      <Plus className="w-3 h-3" />New client
                     </button>
                   )}
                 </div>
@@ -631,7 +631,7 @@ export default function BookingsPage() {
                     <button type="button" onClick={() => { setShowNewProject(true); setNewProjectTitle('') }}
                       className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg transition-colors"
                       style={{ color: '#3B82F6', background: 'rgba(59,130,246,0.10)' }}>
-                      <Plus className="w-3 h-3" />Neues Projekt
+                      <Plus className="w-3 h-3" />New project
                     </button>
                   )}
                 </div>
@@ -661,11 +661,11 @@ export default function BookingsPage() {
                 ) : projects.length === 0 ? (
                   <div className="p-3 rounded-xl text-[12px] flex items-center justify-between"
                     style={{ background: 'var(--bg-hover)', border: '1px dashed var(--border-color)', color: 'var(--text-muted)' }}>
-                    <span>Noch keine Projekte vorhanden</span>
+                    <span>No projects yet vorhanden</span>
                     <button type="button" onClick={() => { setShowNewProject(true); setNewProjectTitle(form.title) }}
                       className="text-[11px] font-bold flex items-center gap-1"
                       style={{ color: '#3B82F6' }}>
-                      <Plus className="w-3 h-3" />Erstellen
+                      <Plus className="w-3 h-3" />Create
                     </button>
                   </div>
                 ) : (
@@ -685,7 +685,7 @@ export default function BookingsPage() {
 
               {/* Footer */}
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
                 <button type="submit" disabled={saving || !form.title.trim() || !form.shoot_date}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
                   style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.25)' }}>

@@ -186,7 +186,7 @@ export default function QuestionnaireDetailPage() {
         }),
       })
 
-      if (!res.ok) { toast.error('Fehler beim Senden'); return }
+      if (!res.ok) { toast.error('Error sending'); return }
 
       // 3. Update sent_at
       const now = new Date().toISOString()
@@ -245,11 +245,11 @@ export default function QuestionnaireDetailPage() {
       .from('questionnaires')
       .update({ title: editTitle.trim(), questions: editQuestions })
       .eq('id', id)
-    if (error) { toast.error('Fehler beim Speichern'); setSaving(false); return }
+    if (error) { toast.error('Error saving'); setSaving(false); return }
     setQuestionnaire(prev => prev ? { ...prev, title: editTitle.trim(), questions: editQuestions } : prev)
     setSaving(false)
     setEditing(false)
-    toast.success('Fragebogen gespeichert!')
+    toast.success('Questionnaire saved!')
   }
 
   const saveAsTemplate = async () => {
@@ -267,7 +267,7 @@ export default function QuestionnaireDetailPage() {
       })
 
     if (error) {
-      toast.error('Fehler beim Speichern als Vorlage')
+      toast.error('Error saving als Vorlage')
     } else {
       toast.success(`"${questionnaire.title}" als Vorlage gespeichert! ✨`, { duration: 4000 })
       setTimeout(() => router.push('/dashboard/questionnaires'), 1200)
@@ -318,13 +318,13 @@ export default function QuestionnaireDetailPage() {
               <X className="w-4 h-4" />
             </button>
             <h1 className="font-black text-[1.4rem]" style={{ letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
-              Fragebogen bearbeiten
+              Edit questionnaire
             </h1>
           </div>
         </div>
 
         <div className="p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-          <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Vorlage laden</p>
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Load template</p>
           <div className="flex gap-2 flex-wrap">
             {QUESTIONNAIRE_TEMPLATES.map(tpl => (
               <button
@@ -510,7 +510,7 @@ export default function QuestionnaireDetailPage() {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button onClick={() => setEditing(false)} className="btn-secondary flex-1">Abbrechen</button>
+          <button onClick={() => setEditing(false)} className="btn-secondary flex-1">Cancel</button>
           <button
             onClick={saveEdit}
             disabled={saving || !editTitle.trim() || editQuestions.length === 0}
@@ -519,7 +519,7 @@ export default function QuestionnaireDetailPage() {
           >
             {saving
               ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><CheckCircle2 className="w-4 h-4" />Speichern</>
+              : <><CheckCircle2 className="w-4 h-4" />Save</>
             }
           </button>
         </div>
@@ -565,7 +565,7 @@ export default function QuestionnaireDetailPage() {
                 {questionnaire.sent_at && (
                   <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     <Send className="w-3 h-3" />
-                    Gesendet {new Date(questionnaire.sent_at).toLocaleDateString('de-DE')}
+                    Sent {new Date(questionnaire.sent_at).toLocaleDateString('de-DE')}
                   </span>
                 )}
               </div>
@@ -603,7 +603,7 @@ export default function QuestionnaireDetailPage() {
               style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
             >
               <Pencil className="w-3.5 h-3.5" />
-              Bearbeiten
+              Edit
             </button>
             <button
               onClick={deleteQuestionnaire}
@@ -629,7 +629,7 @@ export default function QuestionnaireDetailPage() {
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.20)' }}>
             <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
             <span className="text-[13px] font-bold" style={{ color: '#F59E0B' }}>
-              Gesendet — warte auf Antwort von {clientName || 'Kunde'}
+              Sent — warte auf Antwort von {clientName || 'Kunde'}
             </span>
           </div>
         ) : null}
@@ -715,7 +715,7 @@ export default function QuestionnaireDetailPage() {
                 </div>
                 <div>
                   <h2 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-                    Fragebogen senden
+                    Send questionnaire
                   </h2>
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{questionnaire.title}</p>
                 </div>
@@ -755,7 +755,7 @@ export default function QuestionnaireDetailPage() {
                 <div className="space-y-1.5 max-h-48 overflow-y-auto">
                   {filteredProjects.length === 0 ? (
                     <div className="text-center py-6" style={{ color: 'var(--text-muted)' }}>
-                      <p className="text-[12px]">Keine Projekte gefunden</p>
+                      <p className="text-[12px]">No projects found</p>
                     </div>
                   ) : filteredProjects.map(p => {
                     const isSelected = selectedProject?.id === p.id
@@ -876,7 +876,7 @@ export default function QuestionnaireDetailPage() {
                 className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
               >
-                Abbrechen
+                Cancel
               </button>
               <button
                 onClick={handleSend}

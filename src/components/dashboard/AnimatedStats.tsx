@@ -143,7 +143,7 @@ export default function AnimatedStats({ activeClients, pendingContracts, activeG
       color: '#C4A47C',
       glow: 'rgba(196,164,124,0.15)',
       href: '/dashboard/clients',
-      description: activeClients === 0 ? 'Noch keine Kunden' : `${activeClients} aktiv`,
+      description: activeClients === 0 ? 'No clients yet' : `${activeClients} aktiv`,
     },
     {
       label: 'Open contracts',

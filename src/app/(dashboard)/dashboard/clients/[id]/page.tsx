@@ -147,7 +147,7 @@ export default function ClientDetailPage() {
 
     if (error) {
       console.error('saveEdit error:', error)
-      toast.error('Fehler beim Speichern')
+      toast.error('Error saving')
       setSaving(false)
       return
     }
@@ -220,7 +220,7 @@ export default function ClientDetailPage() {
           style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
         >
           <Pencil className="w-3.5 h-3.5" />
-          Bearbeiten
+          Edit
         </button>
       </div>
 
@@ -336,7 +336,7 @@ export default function ClientDetailPage() {
                     style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                   >
                     <X className="w-3.5 h-3.5" />
-                    Abbrechen
+                    Cancel
                   </button>
                   <button
                     onClick={saveEdit}
@@ -346,7 +346,7 @@ export default function ClientDetailPage() {
                   >
                     {saving
                       ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      : <><Check className="w-3.5 h-3.5" />Speichern</>
+                      : <><Check className="w-3.5 h-3.5" />Save</>
                     }
                   </button>
                 </div>
@@ -478,7 +478,7 @@ export default function ClientDetailPage() {
               style={{ background: 'var(--text-primary)' }}
             >
               <Plus className="w-3.5 h-3.5" />
-              Neues Projekt
+              New project
             </Link>
           </div>
 
@@ -520,7 +520,7 @@ export default function ClientDetailPage() {
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'var(--bg-hover)' }}>
                 <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
               </div>
-              <p className="text-[13px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Projekte</p>
+              <p className="text-[13px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>No projects yet</p>
               <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>Create the first project for this client</p>
               <Link
                 href={`/dashboard/projects/new?client=${id}`}

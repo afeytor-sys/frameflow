@@ -18,17 +18,17 @@ export interface EmailTemplate {
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: 'rechnung-standard',
-    name: 'Rechnung versenden',
+    name: 'Send invoice',
     description: 'Professional email for invoice delivery',
     category: 'rechnung',
-    subject: 'Deine Rechnung von {{studio_name}}',
-    body: `Hallo {{client_name}},
+    subject: 'Your invoice from {{studio_name}}',
+    body: `Hello {{client_name}},
 
-please find your invoice for the project „{{project_title}}".
+please find your invoice for the project "{{project_title}}" attached.
 
 Please transfer the amount by the specified due date. Feel free to contact me if you have any questions.
 
-Du kannst deine Rechnung jederzeit im Kundenportal einsehen:
+You can view your invoice at any time in the client portal:
 {{portal_url}}
 
 Thank you for your trust!
@@ -38,89 +38,89 @@ Best regards,
   },
   {
     id: 'rechnung-erinnerung',
-    name: 'Zahlungserinnerung',
-    description: 'Freundliche Erinnerung an eine offene Rechnung',
+    name: 'Payment reminder',
+    description: 'Friendly reminder about an outstanding invoice',
     category: 'rechnung',
-    subject: 'Erinnerung: Offene Rechnung – {{project_title}}',
-    body: `Hallo {{client_name}},
+    subject: 'Reminder: Outstanding invoice – {{project_title}}',
+    body: `Hello {{client_name}},
 
-I would like to kindly remind you that there is still an open invoice for the project „{{project_title}}" offen ist.
+I would like to kindly remind you that there is still an outstanding invoice for the project "{{project_title}}".
 
-Falls du die Zahlung bereits veranlasst hast, betrachte diese Nachricht bitte als gegenstandslos.
+If you have already made the payment, please disregard this message.
 
-Bei Fragen oder Problemen melde dich gerne bei mir.
+Feel free to reach out if you have any questions or issues.
 
 Best regards,
 {{studio_name}}`,
   },
   {
     id: 'galerie-bereit',
-    name: 'Galerie ist bereit',
-    description: 'Benachrichtigung wenn die Bildergalerie fertig ist',
+    name: 'Gallery is ready',
+    description: 'Notification when the photo gallery is ready',
     category: 'galerie',
-    subject: '🎉 Deine Fotos sind fertig, {{client_name}}!',
-    body: `Hallo {{client_name}},
+    subject: '🎉 Your photos are ready, {{client_name}}!',
+    body: `Hello {{client_name}},
 
-I am happy to let you know that your photos from the project „{{project_title}}" are ready!
+I am happy to let you know that your photos from the project "{{project_title}}" are ready!
 
-Du kannst deine Galerie jetzt im Kundenportal ansehen, Favoriten markieren und die Bilder herunterladen:
+You can now view your gallery in the client portal, mark favorites and download the images:
 {{portal_url}}
 
-Ich hoffe, die Bilder gefallen dir genauso gut wie mir. Ich freue mich auf dein Feedback!
+I hope you love the photos as much as I do. Looking forward to your feedback!
 
 Best regards,
 {{studio_name}}`,
   },
   {
     id: 'galerie-erinnerung',
-    name: 'Galerie-Erinnerung',
+    name: 'Gallery reminder',
     description: 'Reminder that the gallery will expire soon',
     category: 'galerie',
     subject: '⏰ Your gallery will expire soon – {{project_title}}',
-    body: `Hallo {{client_name}},
+    body: `Hello {{client_name}},
 
-just a quick reminder: Your photo gallery from the project „{{project_title}}" will expire soon.
+just a quick reminder: Your photo gallery from the project "{{project_title}}" will expire soon.
 
 Please make sure you have downloaded all desired photos in time:
 {{portal_url}}
 
-Bei Fragen melde dich gerne bei mir.
+Feel free to reach out if you have any questions.
 
 Best regards,
 {{studio_name}}`,
   },
   {
     id: 'fragebogen-standard',
-    name: 'Fragebogen senden',
+    name: 'Send questionnaire',
     description: 'Ask the client to fill out the questionnaire',
     category: 'fragebogen',
     subject: '📋 Short questionnaire for your shoot – {{project_title}}',
-    body: `Hallo {{client_name}},
+    body: `Hello {{client_name}},
 
 to prepare your shoot perfectly, I would appreciate it if you could take a moment to fill out the following questionnaire.
 
 It only takes a few minutes and helps me better understand your wishes and ideas:
 {{portal_url}}
 
-Vielen Dank im Voraus!
+Thank you in advance!
 
 Best regards,
 {{studio_name}}`,
   },
   {
     id: 'fragebogen-erinnerung',
-    name: 'Fragebogen-Erinnerung',
+    name: 'Questionnaire reminder',
     description: 'Reminder to fill out the questionnaire',
     category: 'fragebogen',
-    subject: 'Erinnerung: Questionnaire for „{{project_title}}" still open',
-    body: `Hallo {{client_name}},
+    subject: 'Reminder: Questionnaire for "{{project_title}}" still open',
+    body: `Hello {{client_name}},
 
 I wanted to quickly check if you have had the chance to fill out the questionnaire for our shoot.
 
-Deine Antworten helfen mir sehr bei der Vorbereitung:
+Your answers help me a lot with the preparation:
 {{portal_url}}
 
-Falls du Fragen hast, melde dich gerne!
+Feel free to reach out if you have any questions!
 
 Best regards,
 {{studio_name}}`,
@@ -136,10 +136,10 @@ export function getEmailTemplatesByCategory(category: EmailCategory): EmailTempl
 }
 
 export const CATEGORY_LABELS: Record<EmailCategory | 'general', string> = {
-  rechnung:   'Rechnung',
-  galerie:    'Galerie',
-  fragebogen: 'Fragebogen',
-  general:    'Allgemein',
+  rechnung:   'Invoice',
+  galerie:    'Gallery',
+  fragebogen: 'Questionnaire',
+  general:    'General',
 }
 
 export const CATEGORY_COLORS: Record<EmailCategory | 'general', { color: string; bg: string; border: string }> = {

@@ -39,8 +39,8 @@ function getStatus(q: QuestionnaireRow): 'draft' | 'not_sent' | 'scheduled' | 'c
 }
 
 const STATUS_CONFIG = {
-  draft:     { label: 'Entwurf',         color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
-  not_sent:  { label: 'Gesendet',        color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
+  draft:     { label: 'Draft',         color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
+  not_sent:  { label: 'Sent',        color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
   scheduled: { label: 'Geplant',         color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
   completed: { label: 'Completed',      color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
@@ -56,7 +56,7 @@ const CUSTOM_ACCENT = { color: '#10B981', bg: 'rgba(16,185,129,0.10)', border: '
 const TEMPLATE_CARDS = [
   {
     key: 'hochzeit',
-    label: 'Hochzeit-Fragebogen',
+    label: 'Wedding questionnaire',
     desc: 'Ceremony, reception, guests & special wishes',
     accentIdx: 0,
   },
@@ -68,7 +68,7 @@ const TEMPLATE_CARDS = [
   },
   {
     key: 'event',
-    label: 'Event-Fragebogen',
+    label: 'Event questionnaire',
     desc: 'Ablauf, Personen & Programmpunkte',
     accentIdx: 2,
   },
@@ -138,7 +138,7 @@ export default function QuestionnairesPage() {
 
   // Verwenden: create questionnaire from template and navigate to its page
   const openBuilderFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
-    let title = 'Neuer Fragebogen'
+    let title = 'New questionnaire'
     let questions: Question[] = []
 
     if (customTpl) {
@@ -161,7 +161,7 @@ export default function QuestionnairesPage() {
       .select('id')
       .single()
 
-    if (error) { toast.error('Fehler beim Erstellen'); return }
+    if (error) { toast.error('Error creating'); return }
 
     router.push(`/dashboard/questionnaires/${data.id}`)
   }
@@ -193,7 +193,7 @@ export default function QuestionnairesPage() {
       .select('id')
       .single()
 
-    if (error) { toast.error('Fehler beim Erstellen'); setBuilderSaving(false); return }
+    if (error) { toast.error('Error creating'); setBuilderSaving(false); return }
 
     toast.success(`"${builderTitle.trim()}" erstellt!`)
     setRows(prev => [{
@@ -217,16 +217,16 @@ export default function QuestionnairesPage() {
 
       const { data, error } = await supabase
         .from('questionnaires')
-        .insert({ photographer_id: user.id, title: 'Neuer Fragebogen', questions: [] })
+        .insert({ photographer_id: user.id, title: 'New questionnaire', questions: [] })
         .select('id')
         .single()
 
-      if (error) { toast.error('Fehler beim Erstellen'); return }
+      if (error) { toast.error('Error creating'); return }
 
-      toast.success('Fragebogen erstellt!')
+      toast.success('Questionnaire created!')
       setRows(prev => [{
         id: data.id,
-        title: 'Neuer Fragebogen',
+        title: 'New questionnaire',
         sent_at: null,
         created_at: new Date().toISOString(),
         project: null,
@@ -304,12 +304,12 @@ export default function QuestionnairesPage() {
         </p>
       </div>
 
-      {/* ── Standard-Vorlagen ── */}
+      {/* ── Default templates ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Standard-Vorlagen
+            Default templates
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -339,15 +339,15 @@ export default function QuestionnairesPage() {
               </div>
               <div className="flex-1">
                 <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                  Neue Vorlage
+                  New template
                 </p>
                 <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  Eigenen Fragebogen erstellen und speichern
+                  Create and save your own questionnaire
                 </p>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--accent)' }}>
                 <PenLine className="w-3.5 h-3.5" />
-                Vorlage erstellen
+                Create template
               </div>
             </div>
           </button>
@@ -400,7 +400,7 @@ export default function QuestionnairesPage() {
                       className="flex-1 flex items-center justify-center text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-80"
                       style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                     >
-                      Vorschau
+                      Preview
                     </button>
                     <button
                       onClick={() => openBuilderFromTemplate(tpl.key)}
@@ -417,12 +417,12 @@ export default function QuestionnairesPage() {
         </div>
       </div>
 
-      {/* ── Meine Vorlagen (custom) ── */}
+      {/* ── My templates (custom) ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <BookmarkCheck className="w-4 h-4" style={{ color: CUSTOM_ACCENT.color }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Meine Vorlagen
+            My templates
           </h2>
           {customTemplates.length > 0 && (
             <span
@@ -440,7 +440,7 @@ export default function QuestionnairesPage() {
               style={{ border: '2px dashed var(--border-color)', background: 'var(--bg-surface)' }}
             >
               <BookmarkCheck className="w-8 h-8 mb-3 opacity-30" style={{ color: CUSTOM_ACCENT.color }} />
-              <p className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>Noch keine eigenen Vorlagen</p>
+              <p className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>No custom templates yet</p>
               <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                 Open a questionnaire and click &quot;Save as template&quot; to save it here
               </p>
@@ -674,7 +674,7 @@ export default function QuestionnairesPage() {
             <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                  Fragebogen bearbeiten & speichern
+                  Edit questionnaire & speichern
                 </h3>
                 <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Passe die Fragen an und speichere den Fragebogen</p>
               </div>
@@ -794,7 +794,7 @@ export default function QuestionnairesPage() {
                   className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   onClick={builderSave}
@@ -804,7 +804,7 @@ export default function QuestionnairesPage() {
                 >
                   {builderSaving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><CheckCircle2 className="w-4 h-4" />Speichern & Erstellen</>
+                    : <><CheckCircle2 className="w-4 h-4" />Speichern & Create</>
                   }
                 </button>
               </div>

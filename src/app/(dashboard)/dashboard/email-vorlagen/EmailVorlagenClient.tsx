@@ -10,7 +10,7 @@ import {
 } from '@/lib/emailTemplates'
 import {
   Mail, Plus, X, ChevronRight, Sparkles, BookMarked,
-  Trash2, PenLine, Eye, Check,
+  Trash2, PenLine, Check,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -38,18 +38,18 @@ const TEMPLATE_ACCENTS = [
 ]
 
 const CATEGORIES: { key: EmailCategory | 'all'; label: string }[] = [
-  { key: 'all',        label: 'Alle' },
-  { key: 'rechnung',   label: 'Rechnung' },
-  { key: 'galerie',    label: 'Galerie' },
-  { key: 'fragebogen', label: 'Fragebogen' },
-  { key: 'general',    label: 'Allgemein' },
+  { key: 'all',        label: 'All' },
+  { key: 'rechnung',   label: 'Invoice' },
+  { key: 'galerie',    label: 'Gallery' },
+  { key: 'fragebogen', label: 'Questionnaire' },
+  { key: 'general',    label: 'General' },
 ]
 
 const PLACEHOLDER_HINTS = [
-  { key: '{{client_name}}',    label: 'Kundenname' },
-  { key: '{{studio_name}}',    label: 'Studio-Name' },
-  { key: '{{project_title}}',  label: 'Projekttitel' },
-  { key: '{{portal_url}}',     label: 'Portal-Link' },
+  { key: '{{client_name}}',    label: 'Client name' },
+  { key: '{{studio_name}}',    label: 'Studio name' },
+  { key: '{{project_title}}',  label: 'Project title' },
+  { key: '{{portal_url}}',     label: 'Portal link' },
 ]
 
 export default function EmailVorlagenClient({ userTemplates: initialUserTemplates }: Props) {
@@ -98,8 +98,8 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
   }
 
   const handleCreate = async () => {
-    if (!newName.trim()) { toast.error('Bitte einen Namen eingeben'); return }
-    if (!newSubject.trim()) { toast.error('Bitte einen Betreff eingeben'); return }
+    if (!newName.trim()) { toast.error('Please enter a name'); return }
+    if (!newSubject.trim()) { toast.error('Please enter a subject'); return }
     setSaving(true)
     try {
       const supabase = createClient()
@@ -121,7 +121,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
         if (error.code === '42P01') {
           toast.error('Table not yet available. Please run migration.')
         } else {
-          toast.error(`Fehler: ${error.message}`)
+          toast.error(`Error: ${error.message}`)
         }
         setSaving(false)
         return
@@ -129,7 +129,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
       setUserTemplates(prev => [data as UserTemplate, ...prev])
       setShowNewModal(false)
       setNewName(''); setNewDesc(''); setNewSubject(''); setNewBody(''); setNewCategory('general')
-      toast.success('Vorlage gespeichert!')
+      toast.success('Template saved!')
     } finally {
       setSaving(false)
     }
@@ -137,8 +137,8 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
 
   const handleEdit = async () => {
     if (!editTpl) return
-    if (!editName.trim()) { toast.error('Bitte einen Namen eingeben'); return }
-    if (!editSubject.trim()) { toast.error('Bitte einen Betreff eingeben'); return }
+    if (!editName.trim()) { toast.error('Please enter a name'); return }
+    if (!editSubject.trim()) { toast.error('Please enter a subject'); return }
     setEditSaving(true)
     try {
       const supabase = createClient()
@@ -152,13 +152,13 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           body: editBody,
         })
         .eq('id', editTpl.id)
-      if (error) { toast.error(`Fehler: ${error.message}`); return }
+      if (error) { toast.error(`Error: ${error.message}`); return }
       setUserTemplates(prev => prev.map(t => t.id === editTpl.id
         ? { ...t, name: editName.trim(), description: editDesc.trim() || null, category: editCategory, subject: editSubject.trim(), body: editBody }
         : t
       ))
       setEditTpl(null)
-      toast.success('Vorlage aktualisiert!')
+      toast.success('Template updated!')
     } finally {
       setEditSaving(false)
     }
@@ -203,7 +203,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
             className="font-black"
             style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
           >
-            E-Mail Vorlagen
+            Email Templates
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
             {userTemplates.length + EMAIL_TEMPLATES.length} templates · Create and manage email templates for clients
@@ -215,7 +215,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}
         >
           <Plus className="w-4 h-4" />
-          Neue Vorlage
+          New template
         </button>
       </div>
 
@@ -241,13 +241,13 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
         })}
       </div>
 
-      {/* ── Meine Vorlagen ── */}
+      {/* ── My Templates ── */}
       {filteredUser.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
             <BookMarked className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-              Meine Vorlagen
+              My Templates
             </h2>
             <span
               className="px-2 py-0.5 rounded-full text-[10px] font-black"
@@ -297,7 +297,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                           style={{ color: 'var(--text-muted)' }}
                           onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-muted)' }}
                           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                          title="Bearbeiten"
+                          title="Edit"
                         >
                           <PenLine className="w-3.5 h-3.5" />
                         </button>
@@ -327,7 +327,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                         <p className="text-xs mt-1 leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
                       )}
                       <p className="text-xs mt-1.5 truncate font-medium" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                        Betreff: {tpl.subject}
+                        Subject: {tpl.subject}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -336,14 +336,14 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                         className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
                         style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
                       >
-                        Vorschau
+                        Preview
                       </button>
                       <button
                         onClick={() => openEdit(tpl)}
                         className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
                         style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                       >
-                        Bearbeiten
+                        Edit
                         <ChevronRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -355,12 +355,12 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
         </div>
       )}
 
-      {/* ── Standard-Vorlagen ── */}
+      {/* ── Default Templates ── */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Standard-Vorlagen
+            Default Templates
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -379,18 +379,17 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
               <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Neue Vorlage</p>
-              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>Eigene E-Mail-Vorlage erstellen und speichern</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>New template</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>Create and save your own email template</p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#F97316' }}>
               <PenLine className="w-3.5 h-3.5" />
-              Vorlage erstellen
+              Create template
             </div>
           </button>
 
           {filteredBuiltin.map((tpl, i) => {
             const cc = CATEGORY_COLORS[tpl.category]
-            const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
             return (
               <div
                 key={tpl.id}
@@ -430,7 +429,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                     </span>
                     <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
                     <p className="text-xs mt-1.5 truncate font-medium" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                      Betreff: {tpl.subject.replace(/\{\{[^}]+\}\}/g, '…')}
+                      Subject: {tpl.subject.replace(/\{\{[^}]+\}\}/g, '…')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -439,14 +438,14 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                       className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
                       style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
                     >
-                      Vorschau
+                      Preview
                     </button>
                     <button
                       onClick={() => openNewFromBuiltin(tpl)}
                       className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
                       style={{ background: cc.bg, color: cc.color, border: `1px solid ${cc.border}` }}
                     >
-                      Anpassen
+                      Customize
                       <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -483,15 +482,15 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           ))}
         </div>
         <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
-          Diese Platzhalter werden beim Senden automatisch durch die echten Werte ersetzt.
+          These placeholders are automatically replaced with real values when sending.
         </p>
       </div>
 
       {/* ── New Template Modal ── */}
       {showNewModal && (
         <TemplateModal
-          title="Neue E-Mail Vorlage"
-          subtitle="Erstelle deine eigene E-Mail-Vorlage"
+          title="New Email Template"
+          subtitle="Create your own email template"
           name={newName} setName={setNewName}
           desc={newDesc} setDesc={setNewDesc}
           category={newCategory} setCategory={setNewCategory}
@@ -506,7 +505,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
       {/* ── Edit Template Modal ── */}
       {editTpl && (
         <TemplateModal
-          title="Vorlage bearbeiten"
+          title="Edit template"
           subtitle={editTpl.name}
           name={editName} setName={setEditName}
           desc={editDesc} setDesc={setEditDesc}
@@ -563,7 +562,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {/* Subject */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betreff</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Subject</p>
                 <div
                   className="px-3 py-2.5 rounded-xl text-sm font-medium"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
@@ -573,7 +572,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
               </div>
               {/* Body */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Nachricht</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Message</p>
                 <div
                   className="px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontFamily: 'inherit' }}
@@ -595,7 +594,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                 style={{ background: '#F97316' }}
               >
                 <Check className="w-4 h-4" />
-                Als eigene Vorlage speichern
+                Save as my template
               </button>
             </div>
           </div>
@@ -633,7 +632,7 @@ function TemplateModal({
   ]
 
   const insertPlaceholder = (
-    field: 'subject' | 'body',
+    _field: 'subject' | 'body',
     ph: string,
     setter: (v: string) => void,
     current: string
@@ -673,18 +672,18 @@ function TemplateModal({
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="z.B. Galerie-Lieferung"
+                placeholder="e.g. Gallery delivery"
                 className="input-base w-full"
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Beschreibung (optional)</label>
+              <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Description (optional)</label>
               <input
                 type="text"
                 value={desc}
                 onChange={e => setDesc(e.target.value)}
-                placeholder="Kurze Beschreibung"
+                placeholder="Short description"
                 className="input-base w-full"
               />
             </div>
@@ -692,7 +691,7 @@ function TemplateModal({
 
           {/* Category */}
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Kategorie</label>
+            <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Category</label>
             <div className="flex flex-wrap gap-2">
               {(['rechnung', 'galerie', 'fragebogen', 'general'] as EmailCategory[]).map(cat => {
                 const cc = CATEGORY_COLORS[cat]
@@ -718,7 +717,7 @@ function TemplateModal({
           {/* Subject */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Betreff *</label>
+              <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Subject *</label>
               <div className="flex items-center gap-1">
                 {PLACEHOLDER_HINTS.slice(0, 3).map(ph => (
                   <button
@@ -737,7 +736,7 @@ function TemplateModal({
               type="text"
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              placeholder="z.B. Deine Fotos sind fertig, {{client_name}}!"
+              placeholder="e.g. Your photos are ready, {{client_name}}!"
               className="input-base w-full"
             />
           </div>
@@ -745,7 +744,7 @@ function TemplateModal({
           {/* Body */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Nachricht</label>
+              <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Message</label>
               <div className="flex items-center gap-1">
                 {PLACEHOLDER_HINTS.map(ph => (
                   <button
@@ -776,7 +775,7 @@ function TemplateModal({
 
         {/* Footer */}
         <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-          <button onClick={onClose} className="btn-secondary flex-1">Abbrechen</button>
+          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
           <button
             onClick={onSave}
             disabled={saving || !name.trim() || !subject.trim()}
@@ -785,7 +784,7 @@ function TemplateModal({
           >
             {saving
               ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><BookMarked className="w-4 h-4" />Vorlage speichern</>
+              : <><BookMarked className="w-4 h-4" />Save template</>
             }
           </button>
         </div>

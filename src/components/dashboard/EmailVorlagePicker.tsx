@@ -184,7 +184,7 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
                   <div className="flex items-center gap-1.5 mb-2">
                     <BookMarked className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
                     <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                      Meine Vorlagen
+                      My templates
                     </p>
                   </div>
                   <div className="space-y-1.5">
@@ -213,7 +213,7 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
                   <div className="flex items-center gap-1.5 mb-2">
                     <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
                     <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                      Standard-Vorlagen
+                      Default templates
                     </p>
                   </div>
                   <div className="space-y-1.5">
@@ -309,7 +309,7 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Nachricht (Vorschau)</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Nachricht (Preview)</p>
                 <div
                   className="px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontFamily: 'inherit' }}
@@ -386,7 +386,7 @@ function TemplateRow({
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
-          Vorschau
+          Preview
         </button>
         <button
           onClick={onApply}

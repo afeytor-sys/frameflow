@@ -397,8 +397,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   <div>
                     <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Vertrag</p>
                     <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {contractSigned ? 'Unterschrieben ✓'
-                        : latestContract.status === 'viewed' ? 'Angesehen — bitte unterschreiben'
+                      {contractSigned ? 'Signed ✓'
+                        : latestContract.status === 'viewed' ? 'Viewed — bitte unterschreiben'
                         : 'Bereit zur Unterschrift'}
                     </p>
                   </div>
@@ -428,7 +428,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       })}
                     </div>
                     <p className="text-[17px]" style={{ color: 'var(--text-muted)' }}>
-                      {latestContract.status === 'draft' ? 'Entwurf' : latestContract.status === 'sent' ? 'Gesendet' : 'Angesehen'}
+                      {latestContract.status === 'draft' ? 'Draft' : latestContract.status === 'sent' ? 'Sent' : 'Viewed'}
                     </p>
                   </div>
                   <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
@@ -717,7 +717,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               style={{ background: 'var(--bg-hover)' }}>
               <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
-            <p className="text-[16.5px]" style={{ color: 'var(--text-secondary)' }}>Dein Fotograf bereitet noch alles vor.</p>
+            <p className="text-[16.5px]" style={{ color: 'var(--text-secondary)' }}>Your photographer bereitet noch alles vor.</p>
             <p className="text-[18px] mt-1" style={{ color: 'var(--text-muted)' }}>Schau bald wieder vorbei!</p>
           </div>
         )}

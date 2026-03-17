@@ -90,7 +90,7 @@ export default function NewProjectPage() {
       .single()
 
     if (error) {
-      toast.error('Fehler beim Erstellen des Kunden')
+      toast.error('Error creating des Kunden')
       setCreatingClient(false)
       return
     }
@@ -134,7 +134,7 @@ export default function NewProjectPage() {
       .single()
 
     if (error) {
-      toast.error('Fehler beim Erstellen des Projekts')
+      toast.error('Error creating des Projekts')
       setLoading(false)
       return
     }
@@ -158,7 +158,7 @@ export default function NewProjectPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <h1 className="font-semibold text-[#111110]" style={{ fontSize: '24px', letterSpacing: '-0.03em' }}>
-            Neues Projekt
+            New project
           </h1>
         </div>
         <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
@@ -198,7 +198,7 @@ export default function NewProjectPage() {
             className="font-semibold text-[#111110]"
             style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em' }}
           >
-            Neues Projekt
+            New project
           </h1>
           <p className="text-[#7A7670] text-[13px]">Projekt erstellen und Kunden-Portal generieren</p>
         </div>
@@ -234,7 +234,7 @@ export default function NewProjectPage() {
               className="flex items-center gap-1 text-[12px] font-semibold text-[#C8A882] hover:text-[#B8966E] transition-colors"
             >
               {showNewClient ? (
-                <><X className="w-3 h-3" /> Abbrechen</>
+                <><X className="w-3 h-3" /> Cancel</>
               ) : (
                 <><UserPlus className="w-3 h-3" /> Neuen Kunden erstellen</>
               )}
@@ -361,7 +361,7 @@ export default function NewProjectPage() {
             href="/dashboard/projects"
             className="px-4 py-2.5 rounded-md border border-[#E4E1DC] text-[13px] font-semibold text-[#7A7670] hover:bg-[#F2F0EC] transition-colors"
           >
-            Abbrechen
+            Cancel
           </Link>
           <button
             type="submit"

@@ -48,7 +48,7 @@ export default async function ClientsPage() {
             Kunden
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {clients?.length ?? 0} {(clients?.length ?? 0) === 1 ? 'Kunde' : 'Kunden'} · Verwalte deine Kundenkontakte
+            {clients?.length ?? 0} {(clients?.length ?? 0) === 1 ? 'Kunde' : 'Kunden'} · Manage your client contacts
           </p>
         </div>
         <Link
@@ -60,7 +60,7 @@ export default async function ClientsPage() {
           }}
         >
           <Plus className="w-4 h-4" />
-          Neuer Kunde
+          New client
         </Link>
       </div>
 
@@ -171,7 +171,7 @@ export default async function ClientsPage() {
             className="font-black mb-2"
             style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
           >
-            Noch keine Kunden
+            No clients yet
           </h3>
           <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
             Add your first client and start managing your studio
@@ -182,7 +182,7 @@ export default async function ClientsPage() {
             style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
           >
             <Plus className="w-4 h-4" />
-            Ersten Kunden erstellen
+            Create first client
           </Link>
         </div>
       )}

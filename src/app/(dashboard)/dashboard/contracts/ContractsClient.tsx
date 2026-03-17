@@ -55,7 +55,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: 'Entwurf', sent: 'Gesendet', viewed: 'Angesehen', signed: 'Unterschrieben',
+  draft: 'Draft', sent: 'Sent', viewed: 'Viewed', signed: 'Signed',
 }
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -151,7 +151,7 @@ export default function ContractsClient({
       status: 'draft',
     })
 
-    if (error) { toast.error('Fehler beim Erstellen des Vertrags'); setSaving(false); return }
+    if (error) { toast.error('Error creating des Vertrags'); setSaving(false); return }
 
     toast.success('Vertrag erstellt!')
     setShowModal(false)
@@ -201,7 +201,7 @@ export default function ContractsClient({
       toast.success('Vorlage gespeichert!')
     } catch (err) {
       console.error(err)
-      toast.error('Unbekannter Fehler beim Speichern')
+      toast.error('Unbekannter Error saving')
     } finally {
       setSavingTemplate(false)
     }
@@ -332,7 +332,7 @@ export default function ContractsClient({
       toast.success('PDF heruntergeladen!')
     } catch (err) {
       console.error(err)
-      toast.error('Fehler beim Erstellen des PDFs')
+      toast.error('Error creating des PDFs')
     } finally {
       setDownloadingId(null)
     }
@@ -362,7 +362,7 @@ export default function ContractsClient({
           style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.30)' }}
         >
           <Plus className="w-4 h-4" />
-          Neuer Vertrag
+          New contract
         </button>
       </div>
 
@@ -385,7 +385,7 @@ export default function ContractsClient({
           <div className="flex items-center gap-2 mb-4">
             <BookMarked className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-              Meine Vorlagen
+              My templates
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -444,7 +444,7 @@ export default function ContractsClient({
                         className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
                         style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
                       >
-                        Vorschau
+                        Preview
                       </button>
                       <button
                         onClick={() => openNewContract(`user:${tpl.id}`)}
@@ -468,7 +468,7 @@ export default function ContractsClient({
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Standard-Vorlagen
+            Default templates
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -487,12 +487,12 @@ export default function ContractsClient({
               <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Neue Vorlage</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>New template</p>
               <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>Eigene Vertragsvorlage erstellen und speichern</p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--accent)' }}>
               <PenLine className="w-3.5 h-3.5" />
-              Vorlage erstellen
+              Create template
             </div>
           </button>
 
@@ -537,7 +537,7 @@ export default function ContractsClient({
                       className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
                       style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
                     >
-                      Vorschau
+                      Preview
                     </button>
                     <button
                       onClick={() => openNewContract(`builtin:${tpl.id}`)}
@@ -565,7 +565,7 @@ export default function ContractsClient({
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Vorlage erstellen</h2>
+                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>New template erstellen</h2>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Speichere deine eigene Vertragsvorlage</p>
               </div>
               <button
@@ -645,7 +645,7 @@ export default function ContractsClient({
 
             {/* Footer */}
             <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowNewTemplateModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button onClick={() => setShowNewTemplateModal(false)} className="btn-secondary flex-1">Cancel</button>
               <button
                 onClick={handleCreateTemplate}
                 disabled={savingTemplate || !newTplName.trim()}
@@ -749,7 +749,7 @@ export default function ContractsClient({
               style={{ background: 'var(--accent)' }}
             >
               <Plus className="w-4 h-4" />
-              Neuer Vertrag
+              New contract
             </button>
           </div>
         )}
@@ -761,7 +761,7 @@ export default function ContractsClient({
           <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neuer Vertrag</h2>
+                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>New contract</h2>
                 {selectedKey && (
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     Vorlage: {getTemplate(selectedKey)?.name}
@@ -866,7 +866,7 @@ export default function ContractsClient({
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
                 <button
                   onClick={handleCreate}
                   disabled={saving || !selectedProject}
@@ -875,7 +875,7 @@ export default function ContractsClient({
                 >
                   {saving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><Plus className="w-4 h-4" />Erstellen & bearbeiten</>
+                    : <><Plus className="w-4 h-4" />Create & bearbeiten</>
                   }
                 </button>
               </div>

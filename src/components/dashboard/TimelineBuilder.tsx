@@ -266,7 +266,7 @@ function EventForm({
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
           <X className="w-3.5 h-3.5" />
-          Abbrechen
+          Cancel
         </button>
       </div>
     </div>
@@ -312,7 +312,7 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
         if (data) setTimelineId(data.id)
       }
     } catch {
-      toast.error('Fehler beim Speichern')
+      toast.error('Error saving')
     } finally {
       setSaving(false)
     }
@@ -356,7 +356,7 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
         <div className="flex items-center gap-2">
           <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Zeitplan</h3>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{events.length} Ereignisse</span>
-          {saving && <span className="text-xs" style={{ color: 'var(--accent)' }}>Speichern...</span>}
+          {saving && <span className="text-xs" style={{ color: 'var(--accent)' }}>Saving...</span>}
         </div>
         <button
           onClick={() => { setAddingNew(true); setEditingId(null) }}

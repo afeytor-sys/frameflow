@@ -148,7 +148,7 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
         .from('questionnaires')
         .update({ title: title.trim(), questions })
         .eq('id', questionnaire.id)
-      if (error) { toast.error('Fehler beim Speichern'); setSaving(false); return }
+      if (error) { toast.error('Error saving'); setSaving(false); return }
       setQuestionnaire(prev => prev ? { ...prev, title: title.trim(), questions } : prev)
     } else {
       // Create new
@@ -157,19 +157,19 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
         .insert({ project_id: projectId, photographer_id: photographerId, title: title.trim(), questions })
         .select()
         .single()
-      if (error) { toast.error('Fehler beim Erstellen'); setSaving(false); return }
+      if (error) { toast.error('Error creating'); setSaving(false); return }
       setQuestionnaire(data as Questionnaire)
     }
 
     setSaving(false)
     setShowBuilder(false)
-    toast.success('Fragebogen gespeichert!')
+    toast.success('Questionnaire saved!')
   }
 
   // Build default email message
   const buildDefaultMessage = (qTitle: string, studioName?: string) => {
     const firstName = clientName?.split(' ')[0] || 'Hallo'
-    const studio = studioName || 'Dein Fotograf'
+    const studio = studioName || 'Your photographer'
     return `Hallo ${firstName}! 👋
 
 Thank you for your interest! I am very much looking forward to our shoot together.
@@ -216,7 +216,7 @@ ${studio}`
       }),
     })
 
-    if (!res.ok) { toast.error('Fehler beim Senden'); setSending(false); return }
+    if (!res.ok) { toast.error('Error sending'); setSending(false); return }
 
     // Mark as sent
     await supabase.from('questionnaires').update({ sent_at: new Date().toISOString() }).eq('id', questionnaire.id)
@@ -293,7 +293,7 @@ ${studio}`
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {questionnaire ? 'Fragebogen bearbeiten' : 'Neuer Fragebogen'}
+              {questionnaire ? 'Edit questionnaire' : 'New questionnaire'}
             </h3>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Create questions for your client</p>
           </div>
@@ -305,7 +305,7 @@ ${studio}`
         {/* Template picker */}
         {!questionnaire && (
           <div className="p-4 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Vorlage laden</p>
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>Load template</p>
             <div className="flex gap-2 flex-wrap">
               {QUESTIONNAIRE_TEMPLATES.map(tpl => (
                 <button
@@ -430,7 +430,7 @@ ${studio}`
 
         {/* Footer */}
         <div className="flex gap-3 pt-2">
-          <button onClick={() => setShowBuilder(false)} className="btn-secondary flex-1">Abbrechen</button>
+          <button onClick={() => setShowBuilder(false)} className="btn-secondary flex-1">Cancel</button>
           <button
             onClick={saveQuestionnaire}
             disabled={saving || !title.trim() || questions.length === 0}
@@ -439,7 +439,7 @@ ${studio}`
           >
             {saving
               ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><CheckCircle2 className="w-4 h-4" />Speichern</>
+              : <><CheckCircle2 className="w-4 h-4" />Save</>
             }
           </button>
         </div>
@@ -477,7 +477,7 @@ ${studio}`
               style={{ background: '#8B5CF6' }}
             >
               <Plus className="w-4 h-4" />
-              Erstellen
+              Create
             </button>
           )}
         </div>
@@ -507,7 +507,7 @@ ${studio}`
                   <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     {questionnaire.questions.length} {questionnaire.questions.length === 1 ? 'Frage' : 'Fragen'}
                     {questionnaire.sent_at && (
-                      <span> · Gesendet am {new Date(questionnaire.sent_at).toLocaleDateString('de-DE')}</span>
+                      <span> · Sent am {new Date(questionnaire.sent_at).toLocaleDateString('de-DE')}</span>
                     )}
                   </p>
                 </div>
@@ -516,7 +516,7 @@ ${studio}`
                     onClick={() => openBuilder(questionnaire)}
                     className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
                     style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                    title="Bearbeiten"
+                    title="Edit"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -764,7 +764,7 @@ ${studio}`
 
             {/* Footer */}
             <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowEmailModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button onClick={() => setShowEmailModal(false)} className="btn-secondary flex-1">Cancel</button>
               <button
                 onClick={emailMode === 'send' ? sendQuestionnaire : handleSchedule}
                 disabled={emailMode === 'send' ? (sending || !emailMessage.trim()) : (scheduling || !scheduleDate)}
@@ -822,7 +822,7 @@ ${studio}`
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
 
-              {/* Meine Vorlagen */}
+              {/* My templates */}
               {loadingTemplates ? (
                 <div className="space-y-2">
                   <div className="h-4 w-32 rounded shimmer" />
@@ -833,7 +833,7 @@ ${studio}`
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <BookmarkCheck className="w-3.5 h-3.5" style={{ color: '#8B5CF6' }} />
-                    <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Meine Vorlagen</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>My templates</p>
                   </div>
                   <div className="space-y-2">
                     {customTemplates.map(tpl => (
@@ -874,7 +874,7 @@ ${studio}`
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                  <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Standard-Vorlagen</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Default templates</p>
                 </div>
                 <div className="space-y-2">
                   {[
@@ -1014,7 +1014,7 @@ ${studio}`
 
             {/* Footer */}
             <div className="flex gap-3 px-5 py-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowScheduleModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button onClick={() => setShowScheduleModal(false)} className="btn-secondary flex-1">Cancel</button>
               <button
                 onClick={handleSchedule}
                 disabled={scheduling || !scheduleDate}

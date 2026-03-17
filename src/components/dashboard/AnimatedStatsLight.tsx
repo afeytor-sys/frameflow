@@ -154,7 +154,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       value: activeClients,
       icon: Users,
       href: '/dashboard/clients',
-      description: activeClients === 0 ? 'Noch keine Kunden' : `${activeClients} aktiv`,
+      description: activeClients === 0 ? 'No clients yet' : `${activeClients} aktiv`,
       accentColor: '#3B82F6',
       accentBg: 'rgba(59,130,246,0.08)',
       gradient: 'linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.03) 100%)',

@@ -260,7 +260,7 @@ export default function GalleryViewer({
     const { error } = await supabase.from('photos').update({ is_favorite: newValue }).eq('id', photoId)
     if (error) {
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: !newValue } : p))
-      toast.error('Fehler beim Speichern')
+      toast.error('Error saving')
     }
   }
 
@@ -274,7 +274,7 @@ export default function GalleryViewer({
     const { error } = await supabase.from('photos').update({ tag: newTag }).eq('id', photoId)
     if (error) {
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, tag: photo.tag } : p))
-      toast.error('Fehler beim Speichern')
+      toast.error('Error saving')
     }
   }
 

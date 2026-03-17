@@ -57,7 +57,7 @@ const CONTRACT_COLORS: Record<string, string> = {
 }
 
 const CONTRACT_LABELS: Record<string, string> = {
-  draft: 'Entwurf', sent: 'Gesendet', viewed: 'Angesehen', signed: 'Unterschrieben',
+  draft: 'Draft', sent: 'Sent', viewed: 'Viewed', signed: 'Signed',
 }
 
 export default function AnalyticsClient({ invoices, clients, projects, contracts, galleries }: Props) {
@@ -104,8 +104,8 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
   const kpis = [
     { label: 'Gesamtumsatz', display: formatEur(totalRevenue),    numericVal: null, description: totalRevenue > 0 ? 'Bezahlte Rechnungen' : 'Noch keine Einnahmen', icon: Euro,         color: '#10B981' },
     { label: 'Ausstehend',   display: formatEur(pendingRevenue),  numericVal: null, description: pendingRevenue > 0 ? 'Offene Rechnungen' : 'Alles bezahlt ✓',      icon: TrendingUp,   color: '#F59E0B' },
-    { label: 'Kunden',       display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'Noch keine Kunden' : `${clients.length} gesamt`,   icon: Users,        color: '#3B82F6' },
-    { label: 'Projekte',     display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'Noch keine Projekte' : `${projects.length} gesamt`, icon: FileText,     color: '#C4A47C' },
+    { label: 'Kunden',       display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'No clients yet' : `${clients.length} gesamt`,   icon: Users,        color: '#3B82F6' },
+    { label: 'Projekte',     display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'No projects yet' : `${projects.length} gesamt`, icon: FileText,     color: '#C4A47C' },
     { label: 'Conversion',   display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} of ${contracts.length} contracts` : 'No contracts', icon: CheckCircle2, color: '#8B5CF6' },
     { label: 'Ø pro Projekt',display: formatEur(avgRevenue * 100),numericVal: null, description: projects.length > 0 ? 'Durchschnittlicher Umsatz' : 'Noch keine Daten', icon: Euro,        color: '#EC4899' },
   ]
@@ -244,7 +244,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Letzte 6 Monate</p>
           {clientsByMonth.every(d => d.value === 0) ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              Noch keine Kunden
+              No clients yet
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -275,7 +275,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Verteilung der Shooting-Arten</p>
           {projectTypeData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              Noch keine Projekte
+              No projects yet
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -377,9 +377,9 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           <div className="space-y-1.5">
             {[
               { key: 'paid',    label: 'Bezahlt',    color: '#10B981' },
-              { key: 'sent',    label: 'Gesendet',   color: '#F59E0B' },
+              { key: 'sent',    label: 'Sent',   color: '#F59E0B' },
               { key: 'overdue', label: 'Overdue', color: '#EF4444' },
-              { key: 'draft',   label: 'Entwurf',    color: '#6B7280' },
+              { key: 'draft',   label: 'Draft',    color: '#6B7280' },
             ].map(({ key, label, color }) => {
               const count = invoices.filter(i => i.status === key).length
               const amount = invoices.filter(i => i.status === key).reduce((s, i) => s + i.amount, 0)

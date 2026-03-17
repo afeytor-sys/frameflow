@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const studioName = photographer?.studio_name || photographer?.full_name || 'Dein Fotograf'
+    const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
     const portalUrl = `${project.client_url}/contract`
 
     // Send email via Resend

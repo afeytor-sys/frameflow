@@ -296,7 +296,7 @@ export default function ContractPDFDownload({
       toast.success('PDF heruntergeladen!')
     } catch (err) {
       console.error(err)
-      toast.error('Fehler beim Erstellen des PDFs')
+      toast.error('Error creating des PDFs')
     } finally {
       setLoading(false)
     }

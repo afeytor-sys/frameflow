@@ -127,7 +127,7 @@ export default function GalleriesPage() {
       .select('id, title, status, view_count, download_count, project:projects(id, title, client_token, client:clients(full_name))')
       .single()
 
-    if (error) { toast.error('Fehler beim Erstellen'); setCreating(false); return }
+    if (error) { toast.error('Error creating'); setCreating(false); return }
 
     // Create sets
     if (sets.length > 0) {
@@ -183,7 +183,7 @@ export default function GalleriesPage() {
           style={{ background: '#10B981', boxShadow: '0 1px 8px rgba(16,185,129,0.30)' }}
         >
           <Plus className="w-4 h-4" />
-          Neue Galerie
+          New gallery
         </button>
       </div>
 
@@ -224,7 +224,7 @@ export default function GalleriesPage() {
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
                         style={{ background: isActive ? 'rgba(16,185,129,0.85)' : 'rgba(107,114,128,0.70)', color: '#fff' }}>
                         <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                        {isActive ? 'Aktiv' : 'Entwurf'}
+                        {isActive ? 'Aktiv' : 'Draft'}
                       </span>
                     </div>
                     {gallery.client_token && (
@@ -267,7 +267,7 @@ export default function GalleriesPage() {
           <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Galerien</h3>
           <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Erstelle deine erste Galerie direkt hier</p>
           <button onClick={openModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#10B981' }}>
-            <Plus className="w-3.5 h-3.5" />Neue Galerie
+            <Plus className="w-3.5 h-3.5" />New gallery
           </button>
         </div>
       )}
@@ -279,7 +279,7 @@ export default function GalleriesPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>Neue Galerie erstellen</h2>
+                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>New gallery erstellen</h2>
                 <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Konfiguriere deine Galerie vor dem Upload</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }}
@@ -438,7 +438,7 @@ export default function GalleriesPage() {
 
             {/* Footer */}
             <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
               <button
                 onClick={handleCreate}
                 disabled={creating || !form.title.trim() || !form.project_id}

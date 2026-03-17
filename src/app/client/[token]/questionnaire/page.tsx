@@ -53,7 +53,7 @@ export default async function QuestionnairePage({ params }: { params: Promise<{ 
   const photographer = Array.isArray(project.photographer) ? project.photographer[0] : project.photographer
   const studioName = (photographer as { studio_name?: string; full_name?: string } | null)?.studio_name
     || (photographer as { studio_name?: string; full_name?: string } | null)?.full_name
-    || 'Dein Fotograf'
+    || 'Your photographer'
   const logoUrl = (photographer as { logo_url?: string | null } | null)?.logo_url ?? null
 
   return (
