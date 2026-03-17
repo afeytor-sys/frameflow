@@ -132,7 +132,7 @@ export default function ContractsClient({
       if (tpl) { setSelectedKey(key); setContractTitle(tpl.name) }
     } else {
       setSelectedKey(null)
-      setContractTitle('Fotografievertrag')
+      setContractTitle('Photography Contract')
     }
     setSelectedProject('')
     setShowModal(true)
@@ -151,9 +151,9 @@ export default function ContractsClient({
       status: 'draft',
     })
 
-    if (error) { toast.error('Error creating des Vertrags'); setSaving(false); return }
+    if (error) { toast.error('Error creating contract'); setSaving(false); return }
 
-    toast.success('Vertrag erstellt!')
+    toast.success('Contract created!')
     setShowModal(false)
     setSaving(false)
     router.push(`/dashboard/projects/${selectedProject}?tab=contracts`)
@@ -168,7 +168,7 @@ export default function ContractsClient({
   }
 
   const handleCreateTemplate = async () => {
-    if (!newTplName.trim()) { toast.error('Bitte einen Namen eingeben'); return }
+    if (!newTplName.trim()) { toast.error('Please enter a name'); return }
     setSavingTemplate(true)
     try {
       const supabase = createClient()
@@ -198,10 +198,10 @@ export default function ContractsClient({
       setNewTplName('')
       setNewTplDesc('')
       setNewTplContent('')
-      toast.success('Vorlage gespeichert!')
+      toast.success('Template saved!')
     } catch (err) {
       console.error(err)
-      toast.error('Unbekannter Error saving')
+      toast.error('Unknown error saving template')
     } finally {
       setSavingTemplate(false)
     }
@@ -270,7 +270,7 @@ export default function ContractsClient({
       y -= 8
       drawText(contract.title, { size: 22, bold: true })
       y -= 4
-      drawText(`Erstellt am: ${fmtDate(contract.created_at)}`, { size: 9, color: colorMuted })
+      drawText(`Created: ${fmtDate(contract.created_at)}`, { size: 9, color: colorMuted })
       y -= 8; drawLine(); y -= 4
 
       const plainText = stripHtml(contract.content || '')
@@ -278,7 +278,7 @@ export default function ContractsClient({
 
       if (y < margin + 200) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
       drawLine(); y -= 4
-      drawText('Unterschriften', { size: 13, bold: true }); y -= 12
+      drawText('Signatures', { size: 13, bold: true }); y -= 12
 
       const sigBoxWidth = (contentWidth - 24) / 2
       const sigBoxHeight = 110
@@ -288,8 +288,8 @@ export default function ContractsClient({
       page.drawRectangle({ x: margin + sigBoxWidth + 24, y: sigBoxY, width: sigBoxWidth, height: sigBoxHeight, borderColor: colorLine, borderWidth: 1, color: rgb(0.98, 0.98, 0.99) })
 
       const labelY = sigBoxY + sigBoxHeight - 16
-      page.drawText('Fotograf', { x: margin + 10, y: labelY, size: 8, font: fontBold, color: colorMuted })
-      page.drawText('Kunde', { x: margin + sigBoxWidth + 34, y: labelY, size: 8, font: fontBold, color: colorMuted })
+      page.drawText('Photographer', { x: margin + 10, y: labelY, size: 8, font: fontBold, color: colorMuted })
+      page.drawText('Client', { x: margin + sigBoxWidth + 34, y: labelY, size: 8, font: fontBold, color: colorMuted })
 
       if (contract.photographer_signature_data) {
         try {
@@ -317,8 +317,8 @@ export default function ContractsClient({
       if (contract.signed_at) page.drawText(fmtDate(contract.signed_at), { x: margin + sigBoxWidth + 34, y: nameY - 13, size: 8, font, color: colorMuted })
 
       pdfDoc.getPages().forEach((p, idx) => {
-        p.drawText(`Seite ${idx + 1} von ${pdfDoc.getPageCount()}`, { x: margin, y: 24, size: 8, font, color: colorMuted })
-        p.drawText('Erstellt mit Frameflow', { x: pageWidth - margin - 100, y: 24, size: 8, font, color: colorMuted })
+        p.drawText(`Page ${idx + 1} of ${pdfDoc.getPageCount()}`, { x: margin, y: 24, size: 8, font, color: colorMuted })
+        p.drawText('Created with Frameflow', { x: pageWidth - margin - 110, y: 24, size: 8, font, color: colorMuted })
       })
 
       const pdfBytes = await pdfDoc.save()
@@ -329,10 +329,10 @@ export default function ContractsClient({
       a.download = `${contract.title.replace(/[^a-zA-Z0-9\s]/g, '').trim()}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-      toast.success('PDF heruntergeladen!')
+      toast.success('PDF downloaded!')
     } catch (err) {
       console.error(err)
-      toast.error('Error creating des PDFs')
+      toast.error('Error creating PDF')
     } finally {
       setDownloadingId(null)
     }
@@ -565,8 +565,8 @@ export default function ContractsClient({
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>New template erstellen</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Speichere deine eigene Vertragsvorlage</p>
+                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Create new template</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Save your own contract template</p>
               </div>
               <button
                 onClick={() => setShowNewTemplateModal(false)}
@@ -667,7 +667,7 @@ export default function ContractsClient({
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Meine Contracts
+            My Contracts
           </h2>
         </div>
 
@@ -677,10 +677,10 @@ export default function ContractsClient({
               className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] px-5 py-3"
               style={{ borderBottom: '1px solid var(--border-color)' }}
             >
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Vertrag</span>
-              <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Kunde</span>
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Contract</span>
+              <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Client</span>
               <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>Status</span>
-              <span className="text-xs font-medium uppercase tracking-wide hidden lg:block" style={{ color: 'var(--text-muted)' }}>Erstellt</span>
+              <span className="text-xs font-medium uppercase tracking-wide hidden lg:block" style={{ color: 'var(--text-muted)' }}>Created</span>
               <span className="hidden lg:block" />
               <span />
             </div>
