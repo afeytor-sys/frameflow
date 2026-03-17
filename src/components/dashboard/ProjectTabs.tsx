@@ -166,7 +166,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         const parts: string[] = []
         if (project.shoot_date) {
           const d = new Date(project.shoot_date as string)
-          parts.push(d.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }))
+          parts.push(d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }))
         }
         if (project.location) parts.push(project.location as string)
         return parts.length > 0 ? parts.join(' · ') : t.tabDesc.noDate
