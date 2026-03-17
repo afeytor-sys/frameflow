@@ -10,7 +10,8 @@ import {
   X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
+import { getQuestionnaireTemplatesForLocale, type Question } from '@/lib/questionnaireTemplates'
+import { useLocale } from '@/hooks/useLocale'
 
 interface QuestionnaireRow {
   id: string
@@ -37,13 +38,6 @@ function getStatus(q: QuestionnaireRow): 'draft' | 'not_sent' | 'scheduled' | 'c
   return 'draft'
 }
 
-const STATUS_CONFIG = {
-  draft:     { label: 'Draft',     color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
-  not_sent:  { label: 'Sent',      color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
-  scheduled: { label: 'Scheduled', color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
-  completed: { label: 'Completed', color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
-}
-
 const TEMPLATE_ACCENTS = [
   { color: '#F59E0B', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)' },
   { color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)',  border: 'rgba(139,92,246,0.25)' },
@@ -52,44 +46,156 @@ const TEMPLATE_ACCENTS = [
 
 const CUSTOM_ACCENT = { color: '#10B981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)' }
 
-const TEMPLATE_CARDS = [
-  {
-    key: 'hochzeit',
-    label: 'Wedding questionnaire',
-    desc: 'Ceremony, reception, guests & special wishes',
-    accentIdx: 0,
+// ─── Translations ─────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    title: 'Questionnaires',
+    subtitle: (n: number) => `${n} ${n === 1 ? 'Questionnaire' : 'Questionnaires'} · All client questionnaires at a glance`,
+    defaultTemplates: 'Default templates',
+    myTemplates: 'My templates',
+    newTemplate: 'New template',
+    newTemplateDesc: 'Create and save your own questionnaire',
+    createTemplate: 'Create template',
+    noCustomTemplates: 'No custom templates yet',
+    noCustomTemplatesDesc: 'Open a questionnaire and click "Save as template" to save it here',
+    question: 'question',
+    questions: 'questions',
+    saved: 'Saved',
+    use: 'Use',
+    preview: 'Preview',
+    filterAll: 'All',
+    statusDraft: 'Draft',
+    statusSent: 'Sent',
+    statusScheduled: 'Scheduled',
+    statusCompleted: 'Completed',
+    noQuestionnaires: 'No questionnaires yet',
+    noQuestionnairesFilter: (label: string) => `No "${label}" questionnaires`,
+    noQuestionnairesHint: 'Select a template above or create questionnaires directly in a project',
+    completed: 'Completed',
+    scheduled: 'Scheduled',
+    created: 'Created',
+    builderTitle: 'Edit questionnaire & save',
+    builderSubtitle: 'Adjust the questions and save the questionnaire',
+    builderTitleLabel: 'Title *',
+    builderTitlePlaceholder: 'e.g. Wedding questionnaire',
+    builderQuestionsLabel: (n: number) => `Questions (${n})`,
+    builderAddQuestion: 'Add question',
+    builderNoQuestions: 'No questions yet — add questions',
+    builderQuestionPlaceholder: 'Enter question...',
+    builderRequired: 'Required',
+    builderOptionsLabel: 'Options (comma-separated)',
+    builderOptionsPlaceholder: 'Option 1, Option 2, Option 3',
+    builderCancel: 'Cancel',
+    builderSave: 'Save & Create',
+    typeShortText: 'Short text',
+    typeLongText: 'Long text',
+    typeSingleChoice: 'Single choice',
+    typeMultipleChoice: 'Multiple choice',
+    typeYesNo: 'Yes / No',
+    errorTitle: 'Please enter a title',
+    errorQuestion: 'Add at least one question',
+    errorCreating: 'Error creating',
+    errorDeleting: 'Error deleting',
+    successCreated: (title: string) => `"${title}" created!`,
+    successDeleted: 'Questionnaire deleted',
+    successTemplateDeleted: 'Template deleted',
+    confirmDeleteQ: (title: string) => `Really delete questionnaire "${title}"?`,
+    confirmDeleteT: (title: string) => `Really delete template "${title}"?`,
+    templateCards: [
+      { key: 'hochzeit', label: 'Wedding questionnaire',  desc: 'Ceremony, reception, guests & special wishes' },
+      { key: 'portrait', label: 'Portrait Shooting',       desc: 'Style, look, references & wishes' },
+      { key: 'event',    label: 'Event questionnaire',     desc: 'Schedule, people & program items' },
+    ],
   },
-  {
-    key: 'portrait',
-    label: 'Portrait Shooting',
-    desc: 'Style, look, references & wishes',
-    accentIdx: 1,
+  de: {
+    title: 'Fragebögen',
+    subtitle: (n: number) => `${n} ${n === 1 ? 'Fragebogen' : 'Fragebögen'} · Alle Kundenfragebögen auf einen Blick`,
+    defaultTemplates: 'Standard-Vorlagen',
+    myTemplates: 'Meine Vorlagen',
+    newTemplate: 'Neue Vorlage',
+    newTemplateDesc: 'Erstelle und speichere deinen eigenen Fragebogen',
+    createTemplate: 'Vorlage erstellen',
+    noCustomTemplates: 'Noch keine eigenen Vorlagen',
+    noCustomTemplatesDesc: 'Öffne einen Fragebogen und klicke auf "Als Vorlage speichern"',
+    question: 'Frage',
+    questions: 'Fragen',
+    saved: 'Gespeichert',
+    use: 'Verwenden',
+    preview: 'Vorschau',
+    filterAll: 'Alle',
+    statusDraft: 'Entwurf',
+    statusSent: 'Gesendet',
+    statusScheduled: 'Geplant',
+    statusCompleted: 'Abgeschlossen',
+    noQuestionnaires: 'Noch keine Fragebögen',
+    noQuestionnairesFilter: (label: string) => `Keine "${label}"-Fragebögen`,
+    noQuestionnairesHint: 'Wähle eine Vorlage oben oder erstelle Fragebögen direkt in einem Projekt',
+    completed: 'Abgeschlossen',
+    scheduled: 'Geplant',
+    created: 'Erstellt',
+    builderTitle: 'Fragebogen bearbeiten & speichern',
+    builderSubtitle: 'Passe die Fragen an und speichere den Fragebogen',
+    builderTitleLabel: 'Titel *',
+    builderTitlePlaceholder: 'z.B. Hochzeits-Fragebogen',
+    builderQuestionsLabel: (n: number) => `Fragen (${n})`,
+    builderAddQuestion: 'Frage hinzufügen',
+    builderNoQuestions: 'Noch keine Fragen — füge Fragen hinzu',
+    builderQuestionPlaceholder: 'Frage eingeben...',
+    builderRequired: 'Pflichtfeld',
+    builderOptionsLabel: 'Optionen (kommagetrennt)',
+    builderOptionsPlaceholder: 'Option 1, Option 2, Option 3',
+    builderCancel: 'Abbrechen',
+    builderSave: 'Speichern & Erstellen',
+    typeShortText: 'Kurztext',
+    typeLongText: 'Langtext',
+    typeSingleChoice: 'Einfachauswahl',
+    typeMultipleChoice: 'Mehrfachauswahl',
+    typeYesNo: 'Ja / Nein',
+    errorTitle: 'Bitte einen Titel eingeben',
+    errorQuestion: 'Mindestens eine Frage hinzufügen',
+    errorCreating: 'Fehler beim Erstellen',
+    errorDeleting: 'Fehler beim Löschen',
+    successCreated: (title: string) => `"${title}" erstellt!`,
+    successDeleted: 'Fragebogen gelöscht',
+    successTemplateDeleted: 'Vorlage gelöscht',
+    confirmDeleteQ: (title: string) => `Fragebogen "${title}" wirklich löschen?`,
+    confirmDeleteT: (title: string) => `Vorlage "${title}" wirklich löschen?`,
+    templateCards: [
+      { key: 'hochzeit', label: 'Hochzeits-Fragebogen',   desc: 'Trauung, Feier, Gäste & besondere Wünsche' },
+      { key: 'portrait', label: 'Portrait-Shooting',       desc: 'Stil, Look, Referenzen & Wünsche' },
+      { key: 'event',    label: 'Event-Fragebogen',        desc: 'Ablauf, Personen & Programmpunkte' },
+    ],
   },
-  {
-    key: 'event',
-    label: 'Event questionnaire',
-    desc: 'Schedule, people & program items',
-    accentIdx: 2,
-  },
-]
-
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  text:     <AlignLeft className="w-3.5 h-3.5" />,
-  textarea: <AlignLeft className="w-3.5 h-3.5" />,
-  choice:   <List className="w-3.5 h-3.5" />,
-  checkbox: <CheckSquare className="w-3.5 h-3.5" />,
-  yesno:    <ToggleLeft className="w-3.5 h-3.5" />,
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  text:     'Short text',
-  textarea: 'Long text',
-  choice:   'Single choice',
-  checkbox: 'Multiple choice',
-  yesno:    'Yes / No',
 }
 
 export default function QuestionnairesPage() {
+  const locale = useLocale()
+  const t = T[locale]
+  const QUESTIONNAIRE_TEMPLATES = getQuestionnaireTemplatesForLocale(locale)
+
+  const STATUS_CONFIG = {
+    draft:     { label: t.statusDraft,     color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
+    not_sent:  { label: t.statusSent,      color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
+    scheduled: { label: t.statusScheduled, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
+    completed: { label: t.statusCompleted, color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
+  }
+
+  const TYPE_LABELS: Record<string, string> = {
+    text:     t.typeShortText,
+    textarea: t.typeLongText,
+    choice:   t.typeSingleChoice,
+    checkbox: t.typeMultipleChoice,
+    yesno:    t.typeYesNo,
+  }
+
+  const TYPE_ICONS: Record<string, React.ReactNode> = {
+    text:     <AlignLeft className="w-3.5 h-3.5" />,
+    textarea: <AlignLeft className="w-3.5 h-3.5" />,
+    choice:   <List className="w-3.5 h-3.5" />,
+    checkbox: <CheckSquare className="w-3.5 h-3.5" />,
+    yesno:    <ToggleLeft className="w-3.5 h-3.5" />,
+  }
+
   const [rows, setRows] = useState<QuestionnaireRow[]>([])
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -135,7 +241,7 @@ export default function QuestionnairesPage() {
   }, [])
 
   const openBuilderFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
-    let title = 'New questionnaire'
+    let title = locale === 'de' ? 'Neuer Fragebogen' : 'New questionnaire'
     let questions: Question[] = []
 
     if (customTpl) {
@@ -158,7 +264,7 @@ export default function QuestionnairesPage() {
       .select('id')
       .single()
 
-    if (error) { toast.error('Error creating'); return }
+    if (error) { toast.error(t.errorCreating); return }
 
     router.push(`/dashboard/questionnaires/${data.id}`)
   }
@@ -177,8 +283,8 @@ export default function QuestionnairesPage() {
   }
 
   const builderSave = async () => {
-    if (!builderTitle.trim()) { toast.error('Please enter a title'); return }
-    if (builderQuestions.length === 0) { toast.error('Add at least one question'); return }
+    if (!builderTitle.trim()) { toast.error(t.errorTitle); return }
+    if (builderQuestions.length === 0) { toast.error(t.errorQuestion); return }
     setBuilderSaving(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -190,9 +296,9 @@ export default function QuestionnairesPage() {
       .select('id')
       .single()
 
-    if (error) { toast.error('Error creating'); setBuilderSaving(false); return }
+    if (error) { toast.error(t.errorCreating); setBuilderSaving(false); return }
 
-    toast.success(`"${builderTitle.trim()}" created!`)
+    toast.success(t.successCreated(builderTitle.trim()))
     setRows(prev => [{
       id: data.id,
       title: builderTitle.trim(),
@@ -205,25 +311,25 @@ export default function QuestionnairesPage() {
     setBuilderOpen(false)
   }
 
-  const createFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
-    const creatingKey = customTpl ? `custom_${customTpl.id}` : key
-    setCreating(creatingKey)
+  const createFromTemplate = async (key: string) => {
+    setCreating(key)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      const blankTitle = locale === 'de' ? 'Neuer Fragebogen' : 'New questionnaire'
       const { data, error } = await supabase
         .from('questionnaires')
-        .insert({ photographer_id: user.id, title: 'New questionnaire', questions: [] })
+        .insert({ photographer_id: user.id, title: blankTitle, questions: [] })
         .select('id')
         .single()
 
-      if (error) { toast.error('Error creating'); return }
+      if (error) { toast.error(t.errorCreating); return }
 
-      toast.success('Questionnaire created!')
+      toast.success(locale === 'de' ? 'Fragebogen erstellt!' : 'Questionnaire created!')
       setRows(prev => [{
         id: data.id,
-        title: 'New questionnaire',
+        title: blankTitle,
         sent_at: null,
         created_at: new Date().toISOString(),
         project: null,
@@ -237,27 +343,27 @@ export default function QuestionnairesPage() {
   const deleteRow = async (rowId: string, rowTitle: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`Really delete questionnaire "${rowTitle}"?`)) return
+    if (!confirm(t.confirmDeleteQ(rowTitle))) return
     setDeletingRow(rowId)
     const { error } = await supabase.from('questionnaires').delete().eq('id', rowId)
     if (error) {
-      toast.error('Error deleting')
+      toast.error(t.errorDeleting)
     } else {
       setRows(prev => prev.filter(r => r.id !== rowId))
-      toast.success('Questionnaire deleted')
+      toast.success(t.successDeleted)
     }
     setDeletingRow(null)
   }
 
   const deleteCustomTemplate = async (tplId: string, tplTitle: string) => {
-    if (!confirm(`Really delete template "${tplTitle}"?`)) return
+    if (!confirm(t.confirmDeleteT(tplTitle))) return
     setDeletingTemplate(tplId)
     const { error } = await supabase.from('questionnaire_templates').delete().eq('id', tplId)
     if (error) {
-      toast.error('Error deleting')
+      toast.error(t.errorDeleting)
     } else {
       setCustomTemplates(prev => prev.filter(t => t.id !== tplId))
-      toast.success('Template deleted')
+      toast.success(t.successTemplateDeleted)
     }
     setDeletingTemplate(null)
   }
@@ -271,6 +377,8 @@ export default function QuestionnairesPage() {
     scheduled: rows.filter(r => getStatus(r) === 'scheduled').length,
     completed: rows.filter(r => getStatus(r) === 'completed').length,
   }
+
+  const dateLocale = locale === 'de' ? 'de-DE' : 'en-US'
 
   if (loading) {
     return (
@@ -294,10 +402,10 @@ export default function QuestionnairesPage() {
           className="font-black"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
         >
-          Questionnaires
+          {t.title}
         </h1>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-          {rows.length} {rows.length === 1 ? 'Questionnaire' : 'Questionnaires'} · All client questionnaires at a glance
+          {t.subtitle(rows.length)}
         </p>
       </div>
 
@@ -306,7 +414,7 @@ export default function QuestionnairesPage() {
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Default templates
+            {t.defaultTemplates}
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -336,25 +444,25 @@ export default function QuestionnairesPage() {
               </div>
               <div className="flex-1">
                 <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                  New template
+                  {t.newTemplate}
                 </p>
                 <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  Create and save your own questionnaire
+                  {t.newTemplateDesc}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--accent)' }}>
                 <PenLine className="w-3.5 h-3.5" />
-                Create template
+                {t.createTemplate}
               </div>
             </div>
           </button>
 
           {/* Built-in template cards */}
-          {TEMPLATE_CARDS.map((tpl) => {
-            const accent = TEMPLATE_ACCENTS[tpl.accentIdx]
+          {t.templateCards.map((tplCard, idx) => {
+            const accent = TEMPLATE_ACCENTS[idx]
             return (
               <div
-                key={tpl.key}
+                key={tplCard.key}
                 className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200"
                 style={{
                   background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
@@ -380,10 +488,10 @@ export default function QuestionnairesPage() {
                   </div>
                   <div className="flex-1">
                     <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                      {tpl.label}
+                      {tplCard.label}
                     </p>
                     <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                      {tpl.desc}
+                      {tplCard.desc}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 mt-auto">
@@ -392,14 +500,14 @@ export default function QuestionnairesPage() {
                       className="flex-1 flex items-center justify-center text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-80"
                       style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                     >
-                      Preview
+                      {t.preview}
                     </button>
                     <button
-                      onClick={() => openBuilderFromTemplate(tpl.key)}
+                      onClick={() => openBuilderFromTemplate(tplCard.key)}
                       className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
                       style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                     >
-                      Use <ChevronRight className="w-3 h-3" />
+                      {t.use} <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -414,7 +522,7 @@ export default function QuestionnairesPage() {
         <div className="flex items-center gap-2 mb-4">
           <BookmarkCheck className="w-4 h-4" style={{ color: CUSTOM_ACCENT.color }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            My templates
+            {t.myTemplates}
           </h2>
           {customTemplates.length > 0 && (
             <span
@@ -432,9 +540,9 @@ export default function QuestionnairesPage() {
               style={{ border: '2px dashed var(--border-color)', background: 'var(--bg-surface)' }}
             >
               <BookmarkCheck className="w-8 h-8 mb-3 opacity-30" style={{ color: CUSTOM_ACCENT.color }} />
-              <p className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>No custom templates yet</p>
+              <p className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>{t.noCustomTemplates}</p>
               <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                Open a questionnaire and click &quot;Save as template&quot; to save it here
+                {t.noCustomTemplatesDesc}
               </p>
             </div>
           ) : customTemplates.map((tpl) => {
@@ -471,7 +579,7 @@ export default function QuestionnairesPage() {
                       disabled={isDeleting}
                       className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                       style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                      title="Delete template"
+                      title={locale === 'de' ? 'Vorlage löschen' : 'Delete template'}
                     >
                       {isDeleting
                         ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -484,7 +592,7 @@ export default function QuestionnairesPage() {
                       {tpl.title}
                     </p>
                     <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                      {tpl.questions.length} {tpl.questions.length === 1 ? 'question' : 'questions'} · Saved {new Date(tpl.created_at).toLocaleDateString('en-US')}
+                      {tpl.questions.length} {tpl.questions.length === 1 ? t.question : t.questions} · {t.saved} {new Date(tpl.created_at).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
                   <button
@@ -492,7 +600,7 @@ export default function QuestionnairesPage() {
                     className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90"
                     style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
                   >
-                    Use <ChevronRight className="w-3 h-3" />
+                    {t.use} <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -521,7 +629,7 @@ export default function QuestionnairesPage() {
                 border: `1px solid ${isActive ? (cfg ? cfg.color + '40' : 'transparent') : 'var(--border-color)'}`,
               }}
             >
-              {f === 'all' ? 'All' : cfg!.label}
+              {f === 'all' ? t.filterAll : cfg!.label}
               <span
                 className="px-1.5 py-0.5 rounded-md text-[10px] font-black"
                 style={{
@@ -580,10 +688,10 @@ export default function QuestionnairesPage() {
                 <div className="hidden sm:block flex-shrink-0 text-right">
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {status === 'completed' && q.submission
-                      ? `Completed ${new Date(Array.isArray(q.submission) ? q.submission[0]?.submitted_at : q.submission.submitted_at).toLocaleDateString('en-US')}`
+                      ? `${t.completed} ${new Date(Array.isArray(q.submission) ? q.submission[0]?.submitted_at : q.submission.submitted_at).toLocaleDateString(dateLocale)}`
                       : status === 'scheduled' && q.scheduled_at
-                      ? `Scheduled ${new Date(q.scheduled_at).toLocaleDateString('en-US')}`
-                      : `Created ${new Date(q.created_at).toLocaleDateString('en-US')}`
+                      ? `${t.scheduled} ${new Date(q.scheduled_at).toLocaleDateString(dateLocale)}`
+                      : `${t.created} ${new Date(q.created_at).toLocaleDateString(dateLocale)}`
                     }
                   </p>
                 </div>
@@ -601,7 +709,7 @@ export default function QuestionnairesPage() {
                   disabled={deletingRow === q.id}
                   className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
                   style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                  title="Delete questionnaire"
+                  title={locale === 'de' ? 'Fragebogen löschen' : 'Delete questionnaire'}
                 >
                   {deletingRow === q.id
                     ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -631,10 +739,10 @@ export default function QuestionnairesPage() {
             <ClipboardList className="w-6 h-6" style={{ color: '#6366F1' }} />
           </div>
           <h3 className="font-black mb-2" style={{ fontSize: '1.1rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-            {filter === 'all' ? 'No questionnaires yet' : `No "${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}" questionnaires`}
+            {filter === 'all' ? t.noQuestionnaires : t.noQuestionnairesFilter(STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label)}
           </h3>
           <p className="text-[13px] max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Select a template above or create questionnaires directly in a project
+            {t.noQuestionnairesHint}
           </p>
         </div>
       )}
@@ -653,9 +761,9 @@ export default function QuestionnairesPage() {
             <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                  Edit questionnaire & save
+                  {t.builderTitle}
                 </h3>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Adjust the questions and save the questionnaire</p>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.builderSubtitle}</p>
               </div>
               <button
                 onClick={() => setBuilderOpen(false)}
@@ -668,12 +776,12 @@ export default function QuestionnairesPage() {
 
             <div className="p-5 space-y-5">
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Title *</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.builderTitleLabel}</label>
                 <input
                   type="text"
                   value={builderTitle}
                   onChange={e => setBuilderTitle(e.target.value)}
-                  placeholder="e.g. Wedding questionnaire"
+                  placeholder={t.builderTitlePlaceholder}
                   className="input-base w-full"
                   autoFocus
                 />
@@ -682,7 +790,7 @@ export default function QuestionnairesPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                    Questions ({builderQuestions.length})
+                    {t.builderQuestionsLabel(builderQuestions.length)}
                   </p>
                   <button
                     onClick={builderAddQuestion}
@@ -690,13 +798,13 @@ export default function QuestionnairesPage() {
                     style={{ background: 'var(--accent)' }}
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Add question
+                    {t.builderAddQuestion}
                   </button>
                 </div>
 
                 {builderQuestions.length === 0 && (
                   <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
-                    <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>No questions yet — add questions</p>
+                    <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{t.builderNoQuestions}</p>
                   </div>
                 )}
 
@@ -711,7 +819,7 @@ export default function QuestionnairesPage() {
                         type="text"
                         value={q.label}
                         onChange={e => builderUpdateQuestion(q.id, { label: e.target.value })}
-                        placeholder="Enter question..."
+                        placeholder={t.builderQuestionPlaceholder}
                         className="flex-1 bg-transparent text-[13px] outline-none font-medium"
                         style={{ color: 'var(--text-primary)' }}
                       />
@@ -745,17 +853,17 @@ export default function QuestionnairesPage() {
                           <div className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow"
                             style={{ left: q.required ? '13px' : '2px', transition: 'left 150ms' }} />
                         </div>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Required</span>
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.builderRequired}</span>
                       </label>
                     </div>
                     {(q.type === 'choice' || q.type === 'checkbox') && (
                       <div className="space-y-1.5">
-                        <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Options (comma-separated)</p>
+                        <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.builderOptionsLabel}</p>
                         <input
                           type="text"
                           value={(q.options || []).join(', ')}
                           onChange={e => builderUpdateQuestion(q.id, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                          placeholder="Option 1, Option 2, Option 3"
+                          placeholder={t.builderOptionsPlaceholder}
                           className="input-base w-full text-[12px]"
                         />
                       </div>
@@ -770,7 +878,7 @@ export default function QuestionnairesPage() {
                   className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                 >
-                  Cancel
+                  {t.builderCancel}
                 </button>
                 <button
                   onClick={builderSave}
@@ -780,7 +888,7 @@ export default function QuestionnairesPage() {
                 >
                   {builderSaving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><CheckCircle2 className="w-4 h-4" />Save & Create</>
+                    : <><CheckCircle2 className="w-4 h-4" />{t.builderSave}</>
                   }
                 </button>
               </div>
