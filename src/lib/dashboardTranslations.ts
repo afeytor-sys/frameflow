@@ -211,6 +211,46 @@ const en = {
     back: 'Back',
     loading: 'Loading...',
   },
+  // Dashboard home page
+  home: {
+    studioOverview: "Here's your studio overview for today.",
+    newClient: 'New Client',
+    newProject: 'New Project',
+    upcomingShoots: 'Upcoming Shoots',
+    next30Days: 'Next 30 days',
+    all: 'All',
+    noShootsTitle: 'No shoots scheduled',
+    noShootsDesc: 'No shoots in the next 30 days',
+    createProject: 'Create project →',
+    quickActions: 'Quick Actions',
+    commonTasks: 'Common tasks',
+    today: 'Today',
+    upgradePlan: 'Upgrade for unlimited clients, galleries without limits and more.',
+    viewUpgrade: 'View upgrade options',
+    quickActionItems: {
+      newClient:    { label: 'New Client',    sub: 'Add a client' },
+      newProject:   { label: 'New Project',   sub: 'Contract & gallery' },
+      allContracts: { label: 'All Contracts', sub: 'Check signatures' },
+      galleries:    { label: 'Galleries',     sub: 'Manage photos' },
+      invoices:     { label: 'Invoices',      sub: 'Track payments' },
+    },
+  },
+  // Sidebar
+  sidebar: {
+    dashboard: 'Dashboard',
+    projects: 'Projects',
+    clients: 'Clients',
+    contracts: 'Contracts',
+    galleries: 'Galleries',
+    invoices: 'Invoices',
+    questionnaires: 'Questionnaires',
+    emailTemplates: 'Email Templates',
+    analytics: 'Analytics',
+    settings: 'Settings',
+    billing: 'Billing',
+    newProject: 'New Project',
+    newClient: 'New Client',
+  },
 }
 
 const de = {
@@ -400,13 +440,64 @@ const de = {
     },
   },
   common: {
-    cancel: 'Cancel',
-    save: 'Save',
-    delete: 'Delete',
+    cancel: 'Abbrechen',
+    save: 'Speichern',
+    delete: 'Löschen',
     back: 'Zurück',
-    loading: 'Loading...',
+    loading: 'Laden...',
+  },
+  // Dashboard home page
+  home: {
+    studioOverview: 'Hier ist deine Studio-Übersicht für heute.',
+    newClient: 'Neuer Kunde',
+    newProject: 'Neues Projekt',
+    upcomingShoots: 'Bevorstehende Shootings',
+    next30Days: 'Nächste 30 Tage',
+    all: 'Alle',
+    noShootsTitle: 'Keine Shootings geplant',
+    noShootsDesc: 'Keine Shootings in den nächsten 30 Tagen',
+    createProject: 'Projekt erstellen →',
+    quickActions: 'Schnellaktionen',
+    commonTasks: 'Häufige Aufgaben',
+    today: 'Heute',
+    upgradePlan: 'Upgrade für unbegrenzte Kunden, Galerien ohne Limits und mehr.',
+    viewUpgrade: 'Upgrade-Optionen ansehen',
+    quickActionItems: {
+      newClient:    { label: 'Neuer Kunde',    sub: 'Kunden hinzufügen' },
+      newProject:   { label: 'Neues Projekt',  sub: 'Vertrag & Galerie' },
+      allContracts: { label: 'Alle Verträge',  sub: 'Unterschriften prüfen' },
+      galleries:    { label: 'Galerien',       sub: 'Fotos verwalten' },
+      invoices:     { label: 'Rechnungen',     sub: 'Zahlungen verfolgen' },
+    },
+  },
+  // Sidebar
+  sidebar: {
+    dashboard: 'Dashboard',
+    projects: 'Projekte',
+    clients: 'Kunden',
+    contracts: 'Verträge',
+    galleries: 'Galerien',
+    invoices: 'Rechnungen',
+    questionnaires: 'Fragebögen',
+    emailTemplates: 'E-Mail-Vorlagen',
+    analytics: 'Analytik',
+    settings: 'Einstellungen',
+    billing: 'Abrechnung',
+    newProject: 'Neues Projekt',
+    newClient: 'Neuer Kunde',
   },
 }
 
 export const dashboardT = (locale: 'en' | 'de'): DashboardTranslations =>
   locale === 'de' ? (de as unknown as DashboardTranslations) : en
+
+/**
+ * Server-side helper: reads the locale cookie from Next.js cookies()
+ * Use this in async Server Components (pages).
+ */
+export async function getServerLocale(): Promise<'en' | 'de'> {
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  const val = cookieStore.get('locale')?.value
+  return val === 'de' ? 'de' : 'en'
+}

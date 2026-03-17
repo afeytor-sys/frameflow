@@ -24,58 +24,12 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
 
 interface Props {
   photographer: Photographer
 }
-
-const navItems = [
-  {
-    key: 'dashboard', href: '/dashboard', icon: LayoutDashboard, label: 'Overview', plans: null,
-    activeColor: '#C4A47C', activeBg: 'rgba(196,164,124,0.15)',
-  },
-  {
-    key: 'clients', href: '/dashboard/clients', icon: Users, label: 'Clients', plans: null,
-    activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)',
-  },
-  {
-    key: 'projects', href: '/dashboard/projects', icon: FolderOpen, label: 'Projects', plans: null,
-    activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)',
-  },
-  {
-    key: 'bookings', href: '/dashboard/bookings', icon: CalendarDays, label: 'Bookings', plans: null,
-    activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)',
-  },
-  {
-    key: 'contracts', href: '/dashboard/contracts', icon: FileText, label: 'Contracts', plans: null,
-    activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)',
-  },
-  {
-    key: 'galleries', href: '/dashboard/galleries', icon: Images, label: 'Galleries', plans: null,
-    activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)',
-  },
-  {
-    key: 'invoices', href: '/dashboard/invoices', icon: Receipt, label: 'Invoices', plans: null,
-    activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)',
-  },
-  {
-    key: 'questionnaires', href: '/dashboard/questionnaires', icon: ClipboardList, label: 'Questionnaires', plans: null,
-    activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)',
-  },
-  {
-    key: 'email-vorlagen', href: '/dashboard/email-vorlagen', icon: Mail, label: 'Email Templates', plans: null,
-    activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)',
-  },
-  {
-    key: 'analytics', href: '/dashboard/analytics', icon: BarChart2, label: 'Analytics', plans: ['pro', 'studio'],
-    activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)',
-  },
-]
-
-const bottomItems = [
-  { key: 'settings', href: '/dashboard/settings', icon: Settings,   label: 'Settings' },
-  { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard, label: 'Subscription' },
-]
 
 
 const planLabel: Record<string, string> = {
@@ -93,6 +47,31 @@ export default function DashboardSidebar({ photographer }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const locale = useLocale()
+  const t = dashboardT(locale)
+  const s = t.sidebar
+
+  const navItems = [
+    { key: 'dashboard',      href: '/dashboard',              icon: LayoutDashboard, label: s.dashboard,      plans: null,             activeColor: '#C4A47C', activeBg: 'rgba(196,164,124,0.15)' },
+    { key: 'clients',        href: '/dashboard/clients',      icon: Users,           label: s.clients,        plans: null,             activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)' },
+    { key: 'projects',       href: '/dashboard/projects',     icon: FolderOpen,      label: s.projects,       plans: null,             activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)' },
+    { key: 'bookings',       href: '/dashboard/bookings',     icon: CalendarDays,    label: s.projects,       plans: null,             activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)' },
+    { key: 'contracts',      href: '/dashboard/contracts',    icon: FileText,        label: s.contracts,      plans: null,             activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)' },
+    { key: 'galleries',      href: '/dashboard/galleries',    icon: Images,          label: s.galleries,      plans: null,             activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
+    { key: 'invoices',       href: '/dashboard/invoices',     icon: Receipt,         label: s.invoices,       plans: null,             activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)' },
+    { key: 'questionnaires', href: '/dashboard/questionnaires', icon: ClipboardList, label: s.questionnaires, plans: null,             activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)' },
+    { key: 'email-vorlagen', href: '/dashboard/email-vorlagen', icon: Mail,          label: s.emailTemplates, plans: null,             activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)' },
+    { key: 'analytics',      href: '/dashboard/analytics',   icon: BarChart2,       label: s.analytics,      plans: ['pro', 'studio'], activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)' },
+  ]
+
+  const bottomItems = [
+    { key: 'settings', href: '/dashboard/settings', icon: Settings,   label: s.settings },
+    { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard, label: s.billing },
+  ]
+
+  const collapseLabel = locale === 'de' ? 'Einklappen' : 'Collapse'
+  const signOutLabel  = locale === 'de' ? 'Abmelden'   : 'Sign out'
+  const expandLabel   = locale === 'de' ? 'Ausklappen'  : 'Expand'
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -251,7 +230,7 @@ export default function DashboardSidebar({ photographer }: Props) {
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? 'Expand' : 'Collapse'}
+          title={collapsed ? expandLabel : collapseLabel}
           className={cn(
             'sidebar-nav-item sidebar-nav-inactive flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150 w-full',
             collapsed ? 'justify-center p-3' : 'px-3 py-2.5'
@@ -261,7 +240,7 @@ export default function DashboardSidebar({ photographer }: Props) {
             ? <PanelLeftOpen className="w-[16px] h-[16px] flex-shrink-0" />
             : <PanelLeftClose className="w-[16px] h-[16px] flex-shrink-0" />
           }
-          {!collapsed && <span>Collapse</span>}
+          {!collapsed && <span>{collapseLabel}</span>}
         </button>
 
         {/* User row */}
