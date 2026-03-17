@@ -42,16 +42,30 @@ const STATUS_CONFIG_EN: Record<string, { bg: string; color: string; dot: string;
   cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', dot: '#C43B2C', label: 'Cancelled' },
 }
 
-const SHOOTING_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  Hochzeit:    { label: 'Hochzeit',    color: '#E879A0', bg: 'rgba(232,121,160,0.10)' },
-  Portrait:    { label: 'Portrait',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
-  Event:       { label: 'Event',       color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
-  Commercial:  { label: 'Commercial',  color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
-  Immobilien:  { label: 'Immobilien',  color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
-  'Fine Art':  { label: 'Fine Art',    color: '#C4A47C', bg: 'rgba(196,164,124,0.10)' },
-  Sport:       { label: 'Sport',       color: '#EF4444', bg: 'rgba(239,68,68,0.10)' },
-  Newborn:     { label: 'Newborn',     color: '#F97316', bg: 'rgba(249,115,22,0.10)' },
-  Familie:     { label: 'Familie',     color: '#06B6D4', bg: 'rgba(6,182,212,0.10)' },
+// Maps every possible stored value → display config (supports both EN and DE stored values)
+const SHOOTING_TYPE_BASE: Array<{
+  keys: string[]
+  labelEn: string
+  labelDe: string
+  color: string
+  bg: string
+}> = [
+  { keys: ['Wedding', 'Hochzeit'],       labelEn: 'Wedding',     labelDe: 'Hochzeit',    color: '#E879A0', bg: 'rgba(232,121,160,0.10)' },
+  { keys: ['Portrait'],                  labelEn: 'Portrait',    labelDe: 'Portrait',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
+  { keys: ['Event'],                     labelEn: 'Event',       labelDe: 'Event',       color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
+  { keys: ['Commercial'],                labelEn: 'Commercial',  labelDe: 'Commercial',  color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
+  { keys: ['Real Estate', 'Immobilien'], labelEn: 'Real Estate', labelDe: 'Immobilien',  color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
+  { keys: ['Fine Art'],                  labelEn: 'Fine Art',    labelDe: 'Fine Art',    color: '#C4A47C', bg: 'rgba(196,164,124,0.10)' },
+  { keys: ['Sport'],                     labelEn: 'Sport',       labelDe: 'Sport',       color: '#EF4444', bg: 'rgba(239,68,68,0.10)' },
+  { keys: ['Newborn'],                   labelEn: 'Newborn',     labelDe: 'Newborn',     color: '#F97316', bg: 'rgba(249,115,22,0.10)' },
+  { keys: ['Family', 'Familie'],         labelEn: 'Family',      labelDe: 'Familie',     color: '#06B6D4', bg: 'rgba(6,182,212,0.10)' },
+]
+
+function getShootingTypeConfig(value: string | null, locale: string): { label: string; color: string; bg: string } | null {
+  if (!value) return null
+  const entry = SHOOTING_TYPE_BASE.find(e => e.keys.includes(value))
+  if (!entry) return { label: value, color: '#C4A47C', bg: 'rgba(196,164,124,0.10)' }
+  return { label: locale === 'de' ? entry.labelDe : entry.labelEn, color: entry.color, bg: entry.bg }
 }
 
 function getClientName(client: Project['client']): string | null {
@@ -309,7 +323,7 @@ export default function ProjectsPage() {
                         <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>Filter nach Typ</p>
                       </div>
                       {availableTypes.map(type => {
-                        const stc = SHOOTING_TYPE_CONFIG[type]
+                        const stc = getShootingTypeConfig(type, locale)
                         const isActive = filterType === type
                         return (
                           <button
@@ -393,7 +407,7 @@ export default function ProjectsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {projects.map((project, index) => {
                 const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
-                const stc = project.shooting_type ? SHOOTING_TYPE_CONFIG[project.shooting_type] : null
+                const stc = getShootingTypeConfig(project.shooting_type, locale)
                 const clientName = getClientName(project.client)
                 const isDragging = dragging === project.id
                 const isOver = dragOver === project.id
@@ -592,7 +606,7 @@ export default function ProjectsPage() {
             <div className="space-y-1.5">
               {projects.map((project, index) => {
                 const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
-                const stc = project.shooting_type ? SHOOTING_TYPE_CONFIG[project.shooting_type] : null
+                const stc = getShootingTypeConfig(project.shooting_type, locale)
                 const clientName = getClientName(project.client)
                 const isDragging = dragging === project.id
                 const isOver = dragOver === project.id
