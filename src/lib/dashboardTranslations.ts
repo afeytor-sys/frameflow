@@ -239,6 +239,7 @@ const en = {
   sidebar: {
     dashboard: 'Dashboard',
     projects: 'Projects',
+    bookings: 'Bookings',
     clients: 'Clients',
     contracts: 'Contracts',
     galleries: 'Galleries',
@@ -617,6 +618,7 @@ const de = {
   sidebar: {
     dashboard: 'Dashboard',
     projects: 'Projekte',
+    bookings: 'Buchungen',
     clients: 'Kunden',
     contracts: 'Verträge',
     galleries: 'Galerien',

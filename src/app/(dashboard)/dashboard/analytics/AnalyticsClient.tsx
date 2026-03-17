@@ -21,10 +21,10 @@ interface Props {
 }
 
 function formatEur(cents: number) {
-  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', currencyDisplay: 'symbol' }).format(cents / 100).replace('€', '€')
 }
 
-// Build last-N-months labels
+// Build last-N-months labels — always English
 function lastNMonths(n: number) {
   const months: { key: string; label: string }[] = []
   for (let i = n - 1; i >= 0; i--) {
@@ -32,7 +32,7 @@ function lastNMonths(n: number) {
     d.setDate(1)
     d.setMonth(d.getMonth() - i)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const label = d.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
+    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
     months.push({ key, label })
   }
   return months
@@ -102,12 +102,12 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
 
   // KPI definitions — numeric ones get count-up, string ones display as-is
   const kpis = [
-    { label: 'Gesamtumsatz', display: formatEur(totalRevenue),    numericVal: null, description: totalRevenue > 0 ? 'Bezahlte Rechnungen' : 'Noch keine Einnahmen', icon: Euro,         color: '#10B981' },
-    { label: 'Ausstehend',   display: formatEur(pendingRevenue),  numericVal: null, description: pendingRevenue > 0 ? 'Offene Rechnungen' : 'Alles bezahlt ✓',      icon: TrendingUp,   color: '#F59E0B' },
-    { label: 'Kunden',       display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'No clients yet' : `${clients.length} gesamt`,   icon: Users,        color: '#3B82F6' },
-    { label: 'Projekte',     display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'No projects yet' : `${projects.length} gesamt`, icon: FileText,     color: '#C4A47C' },
-    { label: 'Conversion',   display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} of ${contracts.length} contracts` : 'No contracts', icon: CheckCircle2, color: '#8B5CF6' },
-    { label: 'Ø pro Projekt',display: formatEur(avgRevenue * 100),numericVal: null, description: projects.length > 0 ? 'Durchschnittlicher Umsatz' : 'Noch keine Daten', icon: Euro,        color: '#EC4899' },
+    { label: 'Total Revenue',    display: formatEur(totalRevenue),    numericVal: null, description: totalRevenue > 0 ? 'Paid invoices' : 'No revenue yet',          icon: Euro,         color: '#10B981' },
+    { label: 'Outstanding',      display: formatEur(pendingRevenue),  numericVal: null, description: pendingRevenue > 0 ? 'Open invoices' : 'All paid ✓',             icon: TrendingUp,   color: '#F59E0B' },
+    { label: 'Clients',          display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'No clients yet' : `${clients.length} total`,   icon: Users,        color: '#3B82F6' },
+    { label: 'Projects',         display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'No projects yet' : `${projects.length} total`, icon: FileText,     color: '#C4A47C' },
+    { label: 'Conversion',       display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} of ${contracts.length} contracts` : 'No contracts', icon: CheckCircle2, color: '#8B5CF6' },
+    { label: 'Avg per Project',  display: formatEur(avgRevenue * 100),numericVal: null, description: projects.length > 0 ? 'Average revenue' : 'No data yet',         icon: Euro,         color: '#EC4899' },
   ]
 
   const tooltipStyle = {
@@ -213,11 +213,11 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Umsatz (€)</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Bezahlte Rechnungen — letzte 6 Monate</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Revenue (€)</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Paid invoices — last 6 months</p>
           {revenueByMonth.every(d => d.value === 0) ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              Noch keine bezahlten Rechnungen
+              No paid invoices yet
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -226,7 +226,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                 <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v) => [`€${v}`, 'Umsatz']}
+                  formatter={(v) => [`€${v}`, 'Revenue']}
                   cursor={{ fill: 'rgba(196,164,124,0.06)', radius: 8 }}
                 />
                 <Bar dataKey="value" fill="#C4A47C" radius={[6, 6, 0, 0]} />
@@ -240,8 +240,8 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Neue Kunden</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Letzte 6 Monate</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>New Clients</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Last 6 months</p>
           {clientsByMonth.every(d => d.value === 0) ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
               No clients yet
@@ -253,7 +253,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                 <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v) => [v, 'Kunden']}
+                  formatter={(v) => [v, 'Clients']}
                   cursor={{ fill: 'rgba(59,130,246,0.06)', radius: 8 }}
                 />
                 <Bar dataKey="value" fill="#3B82F6" radius={[6, 6, 0, 0]} />
@@ -271,8 +271,8 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Projekte nach Typ</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Verteilung der Shooting-Arten</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Projects by Type</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Distribution of shooting types</p>
           {projectTypeData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
               No projects yet
@@ -310,7 +310,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Vertrags-Status</h2>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Contract Status</h2>
           <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Overview of all contracts</p>
           {contractStatusData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
@@ -373,13 +373,13 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </div>
 
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Rechnungen</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Invoices</p>
           <div className="space-y-1.5">
             {[
-              { key: 'paid',    label: 'Bezahlt',    color: '#10B981' },
-              { key: 'sent',    label: 'Sent',   color: '#F59E0B' },
+              { key: 'paid',    label: 'Paid',    color: '#10B981' },
+              { key: 'sent',    label: 'Sent',    color: '#F59E0B' },
               { key: 'overdue', label: 'Overdue', color: '#EF4444' },
-              { key: 'draft',   label: 'Draft',    color: '#6B7280' },
+              { key: 'draft',   label: 'Draft',   color: '#6B7280' },
             ].map(({ key, label, color }) => {
               const count = invoices.filter(i => i.status === key).length
               const amount = invoices.filter(i => i.status === key).reduce((s, i) => s + i.amount, 0)
@@ -396,26 +396,26 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </div>
 
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Galerien & Projekte</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Galleries & Projects</p>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#10B981' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Aktive Galerien</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Active Galleries</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{activeGalleries}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#C4A47C' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Projekte gesamt</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Total Projects</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{projects.length}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#8B5CF6' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Konversionsrate</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Conversion Rate</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{conversionRate}%</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#EC4899' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Ø Umsatz/Projekt</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Avg Revenue/Project</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{formatEur(avgRevenue * 100)}</span>
             </div>
           </div>

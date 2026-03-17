@@ -15,7 +15,9 @@ export interface EmailTemplate {
 // {{project_title}}  — project title
 // {{portal_url}}     — link to client portal
 
-export const EMAIL_TEMPLATES: EmailTemplate[] = [
+// ─── ENGLISH TEMPLATES ───────────────────────────────────────────────────────
+
+export const EMAIL_TEMPLATES_EN: EmailTemplate[] = [
   {
     id: 'rechnung-standard',
     name: 'Send invoice',
@@ -127,6 +129,128 @@ Best regards,
   },
 ]
 
+// ─── GERMAN TEMPLATES ────────────────────────────────────────────────────────
+
+export const EMAIL_TEMPLATES_DE: EmailTemplate[] = [
+  {
+    id: 'rechnung-standard',
+    name: 'Rechnung senden',
+    description: 'Professionelle E-Mail zur Rechnungsübermittlung',
+    category: 'rechnung',
+    subject: 'Deine Rechnung von {{studio_name}}',
+    body: `Hallo {{client_name}},
+
+anbei findest du die Rechnung für das Projekt „{{project_title}}".
+
+Bitte überweise den Betrag bis zum angegebenen Fälligkeitsdatum. Bei Fragen stehe ich dir gerne zur Verfügung.
+
+Du kannst deine Rechnung jederzeit im Kundenportal einsehen:
+{{portal_url}}
+
+Vielen Dank für dein Vertrauen!
+
+Herzliche Grüße,
+{{studio_name}}`,
+  },
+  {
+    id: 'rechnung-erinnerung',
+    name: 'Zahlungserinnerung',
+    description: 'Freundliche Erinnerung an eine offene Rechnung',
+    category: 'rechnung',
+    subject: 'Erinnerung: Offene Rechnung – {{project_title}}',
+    body: `Hallo {{client_name}},
+
+ich möchte dich freundlich daran erinnern, dass für das Projekt „{{project_title}}" noch eine offene Rechnung besteht.
+
+Falls du die Zahlung bereits getätigt hast, betrachte diese Nachricht bitte als gegenstandslos.
+
+Bei Fragen oder Problemen kannst du dich jederzeit bei mir melden.
+
+Herzliche Grüße,
+{{studio_name}}`,
+  },
+  {
+    id: 'galerie-bereit',
+    name: 'Galerie ist bereit',
+    description: 'Benachrichtigung wenn die Fotogalerie fertig ist',
+    category: 'galerie',
+    subject: '🎉 Deine Fotos sind fertig, {{client_name}}!',
+    body: `Hallo {{client_name}},
+
+ich freue mich, dir mitteilen zu können, dass deine Fotos aus dem Projekt „{{project_title}}" fertig sind!
+
+Du kannst deine Galerie jetzt im Kundenportal ansehen, Favoriten markieren und die Bilder herunterladen:
+{{portal_url}}
+
+Ich hoffe, du liebst die Fotos genauso sehr wie ich. Ich freue mich auf dein Feedback!
+
+Herzliche Grüße,
+{{studio_name}}`,
+  },
+  {
+    id: 'galerie-erinnerung',
+    name: 'Galerie-Erinnerung',
+    description: 'Erinnerung, dass die Galerie bald abläuft',
+    category: 'galerie',
+    subject: '⏰ Deine Galerie läuft bald ab – {{project_title}}',
+    body: `Hallo {{client_name}},
+
+nur eine kurze Erinnerung: Deine Fotogalerie aus dem Projekt „{{project_title}}" läuft bald ab.
+
+Bitte stelle sicher, dass du alle gewünschten Fotos rechtzeitig heruntergeladen hast:
+{{portal_url}}
+
+Bei Fragen stehe ich dir gerne zur Verfügung.
+
+Herzliche Grüße,
+{{studio_name}}`,
+  },
+  {
+    id: 'fragebogen-standard',
+    name: 'Fragebogen senden',
+    description: 'Bitte den Kunden, den Fragebogen auszufüllen',
+    category: 'fragebogen',
+    subject: '📋 Kurzer Fragebogen für dein Shooting – {{project_title}}',
+    body: `Hallo {{client_name}},
+
+um dein Shooting perfekt vorzubereiten, würde ich mich freuen, wenn du dir kurz Zeit nimmst, den folgenden Fragebogen auszufüllen.
+
+Es dauert nur wenige Minuten und hilft mir, deine Wünsche und Ideen besser zu verstehen:
+{{portal_url}}
+
+Vielen Dank im Voraus!
+
+Herzliche Grüße,
+{{studio_name}}`,
+  },
+  {
+    id: 'fragebogen-erinnerung',
+    name: 'Fragebogen-Erinnerung',
+    description: 'Erinnerung, den Fragebogen auszufüllen',
+    category: 'fragebogen',
+    subject: 'Erinnerung: Fragebogen für „{{project_title}}" noch offen',
+    body: `Hallo {{client_name}},
+
+ich wollte kurz nachfragen, ob du die Gelegenheit hattest, den Fragebogen für unser Shooting auszufüllen.
+
+Deine Antworten helfen mir sehr bei der Vorbereitung:
+{{portal_url}}
+
+Bei Fragen kannst du dich jederzeit bei mir melden!
+
+Herzliche Grüße,
+{{studio_name}}`,
+  },
+]
+
+// ─── DEFAULT EXPORT (backwards compat) ───────────────────────────────────────
+export const EMAIL_TEMPLATES = EMAIL_TEMPLATES_EN
+
+// ─── LOCALE HELPER ───────────────────────────────────────────────────────────
+export function getEmailTemplatesForLocale(locale: 'en' | 'de'): EmailTemplate[] {
+  return locale === 'de' ? EMAIL_TEMPLATES_DE : EMAIL_TEMPLATES_EN
+}
+
 export function getEmailTemplate(id: string): EmailTemplate | undefined {
   return EMAIL_TEMPLATES.find((t) => t.id === id)
 }
@@ -135,11 +259,27 @@ export function getEmailTemplatesByCategory(category: EmailCategory): EmailTempl
   return EMAIL_TEMPLATES.filter((t) => t.category === category)
 }
 
-export const CATEGORY_LABELS: Record<EmailCategory | 'general', string> = {
+// ─── CATEGORY LABELS ─────────────────────────────────────────────────────────
+
+export const CATEGORY_LABELS_EN: Record<EmailCategory | 'general', string> = {
   rechnung:   'Invoice',
   galerie:    'Gallery',
   fragebogen: 'Questionnaire',
   general:    'General',
+}
+
+export const CATEGORY_LABELS_DE: Record<EmailCategory | 'general', string> = {
+  rechnung:   'Rechnung',
+  galerie:    'Galerie',
+  fragebogen: 'Fragebogen',
+  general:    'Allgemein',
+}
+
+// Default (backwards compat)
+export const CATEGORY_LABELS = CATEGORY_LABELS_EN
+
+export function getCategoryLabelsForLocale(locale: 'en' | 'de'): Record<EmailCategory | 'general', string> {
+  return locale === 'de' ? CATEGORY_LABELS_DE : CATEGORY_LABELS_EN
 }
 
 export const CATEGORY_COLORS: Record<EmailCategory | 'general', { color: string; bg: string; border: string }> = {

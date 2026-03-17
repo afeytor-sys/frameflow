@@ -30,19 +30,18 @@ interface CustomTemplate {
 }
 
 function getStatus(q: QuestionnaireRow): 'draft' | 'not_sent' | 'scheduled' | 'completed' {
-  // submission comes back as array from Supabase join
   const hasSub = Array.isArray(q.submission) ? q.submission.length > 0 : !!q.submission
   if (hasSub) return 'completed'
   if (q.scheduled_at) return 'scheduled'
-  if (q.sent_at) return 'not_sent'   // sent but not yet answered
-  return 'draft'                      // never sent, never scheduled
+  if (q.sent_at) return 'not_sent'
+  return 'draft'
 }
 
 const STATUS_CONFIG = {
-  draft:     { label: 'Draft',         color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
-  not_sent:  { label: 'Sent',        color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
-  scheduled: { label: 'Geplant',         color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
-  completed: { label: 'Completed',      color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
+  draft:     { label: 'Draft',     color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
+  not_sent:  { label: 'Sent',      color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
+  scheduled: { label: 'Scheduled', color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
+  completed: { label: 'Completed', color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
 
 const TEMPLATE_ACCENTS = [
@@ -69,7 +68,7 @@ const TEMPLATE_CARDS = [
   {
     key: 'event',
     label: 'Event questionnaire',
-    desc: 'Ablauf, Personen & Programmpunkte',
+    desc: 'Schedule, people & program items',
     accentIdx: 2,
   },
 ]
@@ -83,11 +82,11 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  text:     'Kurztext',
-  textarea: 'Langtext',
-  choice:   'Auswahl (eine)',
-  checkbox: 'Checkboxen (mehrere)',
-  yesno:    'Ja / Nein',
+  text:     'Short text',
+  textarea: 'Long text',
+  choice:   'Single choice',
+  checkbox: 'Multiple choice',
+  yesno:    'Yes / No',
 }
 
 export default function QuestionnairesPage() {
@@ -101,7 +100,6 @@ export default function QuestionnairesPage() {
   const supabase = createClient()
   const router = useRouter()
 
-  // ── Builder modal (for blank creation) ──
   const [builderOpen, setBuilderOpen] = useState(false)
   const [builderTitle, setBuilderTitle] = useState('')
   const [builderQuestions, setBuilderQuestions] = useState<Question[]>([])
@@ -136,7 +134,6 @@ export default function QuestionnairesPage() {
     load()
   }, [])
 
-  // Verwenden: create questionnaire from template and navigate to its page
   const openBuilderFromTemplate = async (key: string, customTpl?: CustomTemplate) => {
     let title = 'New questionnaire'
     let questions: Question[] = []
@@ -180,7 +177,7 @@ export default function QuestionnairesPage() {
   }
 
   const builderSave = async () => {
-    if (!builderTitle.trim()) { toast.error('Bitte einen Titel eingeben'); return }
+    if (!builderTitle.trim()) { toast.error('Please enter a title'); return }
     if (builderQuestions.length === 0) { toast.error('Add at least one question'); return }
     setBuilderSaving(true)
 
@@ -195,7 +192,7 @@ export default function QuestionnairesPage() {
 
     if (error) { toast.error('Error creating'); setBuilderSaving(false); return }
 
-    toast.success(`"${builderTitle.trim()}" erstellt!`)
+    toast.success(`"${builderTitle.trim()}" created!`)
     setRows(prev => [{
       id: data.id,
       title: builderTitle.trim(),
@@ -304,7 +301,7 @@ export default function QuestionnairesPage() {
         </p>
       </div>
 
-      {/* ── Default templates ── */}
+      {/* Default templates */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
@@ -313,7 +310,7 @@ export default function QuestionnairesPage() {
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* ── Neue leere Vorlage card ── */}
+          {/* Blank template card */}
           <button
             onClick={() => createFromTemplate('blank')}
             disabled={creating === 'blank'}
@@ -352,10 +349,9 @@ export default function QuestionnairesPage() {
             </div>
           </button>
 
-          {/* ── Built-in template cards ── */}
+          {/* Built-in template cards */}
           {TEMPLATE_CARDS.map((tpl) => {
             const accent = TEMPLATE_ACCENTS[tpl.accentIdx]
-            const isCreating = creating === tpl.key
             return (
               <div
                 key={tpl.key}
@@ -374,17 +370,14 @@ export default function QuestionnairesPage() {
                   e.currentTarget.style.borderColor = accent.color + '28'
                 }}
               >
-                {/* Top color bar */}
                 <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
                 <div className="p-4 flex flex-col gap-3 flex-1">
-                  {/* Icon */}
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
                     style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
                   >
                     <ClipboardCheck className="w-5 h-5" style={{ color: accent.color }} />
                   </div>
-                  {/* Title + desc */}
                   <div className="flex-1">
                     <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {tpl.label}
@@ -393,7 +386,6 @@ export default function QuestionnairesPage() {
                       {tpl.desc}
                     </p>
                   </div>
-                  {/* Buttons */}
                   <div className="flex items-center gap-2 mt-auto">
                     <button
                       onClick={() => {/* preview — future */ }}
@@ -407,7 +399,7 @@ export default function QuestionnairesPage() {
                       className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
                       style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                     >
-                      Verwenden <ChevronRight className="w-3 h-3" />
+                      Use <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -417,7 +409,7 @@ export default function QuestionnairesPage() {
         </div>
       </div>
 
-      {/* ── My templates (custom) ── */}
+      {/* My templates (custom) */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <BookmarkCheck className="w-4 h-4" style={{ color: CUSTOM_ACCENT.color }} />
@@ -446,7 +438,6 @@ export default function QuestionnairesPage() {
               </p>
             </div>
           ) : customTemplates.map((tpl) => {
-            const isCreating = creating === `custom_${tpl.id}`
             const isDeleting = deletingTemplate === tpl.id
             return (
               <div
@@ -466,10 +457,8 @@ export default function QuestionnairesPage() {
                   e.currentTarget.style.borderColor = CUSTOM_ACCENT.color + '28'
                 }}
               >
-                {/* Top color bar */}
                 <div className="h-[3px] w-full" style={{ background: CUSTOM_ACCENT.color, opacity: 0.7 }} />
                 <div className="p-4 flex flex-col gap-3 flex-1">
-                  {/* Icon */}
                   <div className="flex items-start justify-between">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
@@ -477,7 +466,6 @@ export default function QuestionnairesPage() {
                     >
                       <BookmarkCheck className="w-5 h-5" style={{ color: CUSTOM_ACCENT.color }} />
                     </div>
-                    {/* Delete button */}
                     <button
                       onClick={() => deleteCustomTemplate(tpl.id, tpl.title)}
                       disabled={isDeleting}
@@ -491,22 +479,20 @@ export default function QuestionnairesPage() {
                       }
                     </button>
                   </div>
-                  {/* Title + meta */}
                   <div className="flex-1">
                     <p className="text-[13.5px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
                       {tpl.title}
                     </p>
                     <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                      {tpl.questions.length} {tpl.questions.length === 1 ? 'Frage' : 'Fragen'} · Gespeichert {new Date(tpl.created_at).toLocaleDateString('de-DE')}
+                      {tpl.questions.length} {tpl.questions.length === 1 ? 'question' : 'questions'} · Saved {new Date(tpl.created_at).toLocaleDateString('en-US')}
                     </p>
                   </div>
-                  {/* Use button */}
                   <button
                     onClick={() => openBuilderFromTemplate('', tpl)}
                     className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90"
                     style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
                   >
-                    Verwenden <ChevronRight className="w-3 h-3" />
+                    Use <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -535,7 +521,7 @@ export default function QuestionnairesPage() {
                 border: `1px solid ${isActive ? (cfg ? cfg.color + '40' : 'transparent') : 'var(--border-color)'}`,
               }}
             >
-              {f === 'all' ? 'Alle' : cfg!.label}
+              {f === 'all' ? 'All' : cfg!.label}
               <span
                 className="px-1.5 py-0.5 rounded-md text-[10px] font-black"
                 style={{
@@ -570,7 +556,6 @@ export default function QuestionnairesPage() {
                 onMouseEnter={e => { e.currentTarget.style.borderColor = sc.color + '40' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)' }}
               >
-                {/* Icon */}
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: sc.bg }}
@@ -578,7 +563,6 @@ export default function QuestionnairesPage() {
                   <ClipboardList className="w-4 h-4" style={{ color: sc.color }} />
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                     {q.title}
@@ -593,19 +577,17 @@ export default function QuestionnairesPage() {
                   )}
                 </div>
 
-                {/* Date */}
                 <div className="hidden sm:block flex-shrink-0 text-right">
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {status === 'completed' && q.submission
                       ? `Completed ${new Date(Array.isArray(q.submission) ? q.submission[0]?.submitted_at : q.submission.submitted_at).toLocaleDateString('en-US')}`
                       : status === 'scheduled' && q.scheduled_at
-                      ? `Geplant ${new Date(q.scheduled_at).toLocaleDateString('en-US')}`
-                      : `Erstellt ${new Date(q.created_at).toLocaleDateString('en-US')}`
+                      ? `Scheduled ${new Date(q.scheduled_at).toLocaleDateString('en-US')}`
+                      : `Created ${new Date(q.created_at).toLocaleDateString('en-US')}`
                     }
                   </p>
                 </div>
 
-                {/* Status badge */}
                 <div
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0 text-[11px] font-bold"
                   style={{ background: sc.bg, color: sc.color }}
@@ -614,7 +596,6 @@ export default function QuestionnairesPage() {
                   {sc.label}
                 </div>
 
-                {/* Delete button */}
                 <button
                   onClick={e => deleteRow(q.id, q.title, e)}
                   disabled={deletingRow === q.id}
@@ -628,7 +609,6 @@ export default function QuestionnairesPage() {
                   }
                 </button>
 
-                {/* Open arrow */}
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
@@ -659,7 +639,7 @@ export default function QuestionnairesPage() {
         </div>
       )}
 
-      {/* ── Builder Modal ── */}
+      {/* Builder Modal */}
       {builderOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -670,13 +650,12 @@ export default function QuestionnairesPage() {
             className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
           >
-            {/* Modal header */}
             <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                  Edit questionnaire & speichern
+                  Edit questionnaire & save
                 </h3>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Passe die Fragen an und speichere den Fragebogen</p>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Adjust the questions and save the questionnaire</p>
               </div>
               <button
                 onClick={() => setBuilderOpen(false)}
@@ -688,24 +667,22 @@ export default function QuestionnairesPage() {
             </div>
 
             <div className="p-5 space-y-5">
-              {/* Title */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Titel *</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Title *</label>
                 <input
                   type="text"
                   value={builderTitle}
                   onChange={e => setBuilderTitle(e.target.value)}
-                  placeholder="z.B. Hochzeit Fragebogen"
+                  placeholder="e.g. Wedding questionnaire"
                   className="input-base w-full"
                   autoFocus
                 />
               </div>
 
-              {/* Questions */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                    Fragen ({builderQuestions.length})
+                    Questions ({builderQuestions.length})
                   </p>
                   <button
                     onClick={builderAddQuestion}
@@ -734,7 +711,7 @@ export default function QuestionnairesPage() {
                         type="text"
                         value={q.label}
                         onChange={e => builderUpdateQuestion(q.id, { label: e.target.value })}
-                        placeholder="Frage eingeben..."
+                        placeholder="Enter question..."
                         className="flex-1 bg-transparent text-[13px] outline-none font-medium"
                         style={{ color: 'var(--text-primary)' }}
                       />
@@ -768,12 +745,12 @@ export default function QuestionnairesPage() {
                           <div className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow"
                             style={{ left: q.required ? '13px' : '2px', transition: 'left 150ms' }} />
                         </div>
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Pflichtfeld</span>
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Required</span>
                       </label>
                     </div>
                     {(q.type === 'choice' || q.type === 'checkbox') && (
                       <div className="space-y-1.5">
-                        <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Optionen (kommagetrennt)</p>
+                        <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Options (comma-separated)</p>
                         <input
                           type="text"
                           value={(q.options || []).join(', ')}
@@ -787,7 +764,6 @@ export default function QuestionnairesPage() {
                 ))}
               </div>
 
-              {/* Footer */}
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setBuilderOpen(false)}
@@ -804,7 +780,7 @@ export default function QuestionnairesPage() {
                 >
                   {builderSaving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><CheckCircle2 className="w-4 h-4" />Speichern & Create</>
+                    : <><CheckCircle2 className="w-4 h-4" />Save & Create</>
                   }
                 </button>
               </div>

@@ -55,7 +55,7 @@ export default function DashboardSidebar({ photographer }: Props) {
     { key: 'dashboard',      href: '/dashboard',              icon: LayoutDashboard, label: s.dashboard,      plans: null,             activeColor: '#C4A47C', activeBg: 'rgba(196,164,124,0.15)' },
     { key: 'clients',        href: '/dashboard/clients',      icon: Users,           label: s.clients,        plans: null,             activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)' },
     { key: 'projects',       href: '/dashboard/projects',     icon: FolderOpen,      label: s.projects,       plans: null,             activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)' },
-    { key: 'bookings',       href: '/dashboard/bookings',     icon: CalendarDays,    label: s.projects,       plans: null,             activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)' },
+    { key: 'bookings',       href: '/dashboard/bookings',     icon: CalendarDays,    label: s.bookings,       plans: null,             activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)' },
     { key: 'contracts',      href: '/dashboard/contracts',    icon: FileText,        label: s.contracts,      plans: null,             activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)' },
     { key: 'galleries',      href: '/dashboard/galleries',    icon: Images,          label: s.galleries,      plans: null,             activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
     { key: 'invoices',       href: '/dashboard/invoices',     icon: Receipt,         label: s.invoices,       plans: null,             activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)' },

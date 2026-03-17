@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  EMAIL_TEMPLATES,
-  CATEGORY_LABELS,
+  getEmailTemplatesForLocale,
+  getCategoryLabelsForLocale,
   CATEGORY_COLORS,
   type EmailCategory,
 } from '@/lib/emailTemplates'
+import { useLocale } from '@/hooks/useLocale'
 import {
   Mail, Plus, X, ChevronRight, Sparkles, BookMarked,
   Trash2, PenLine, Check,
@@ -37,13 +38,6 @@ const TEMPLATE_ACCENTS = [
   { bg: 'rgba(245,158,11,0.10)',  color: '#F59E0B', border: 'rgba(245,158,11,0.20)' },
 ]
 
-const CATEGORIES: { key: EmailCategory | 'all'; label: string }[] = [
-  { key: 'all',        label: 'All' },
-  { key: 'rechnung',   label: 'Invoice' },
-  { key: 'galerie',    label: 'Gallery' },
-  { key: 'fragebogen', label: 'Questionnaire' },
-  { key: 'general',    label: 'General' },
-]
 
 const PLACEHOLDER_HINTS = [
   { key: '{{client_name}}',    label: 'Client name' },
@@ -53,6 +47,18 @@ const PLACEHOLDER_HINTS = [
 ]
 
 export default function EmailVorlagenClient({ userTemplates: initialUserTemplates }: Props) {
+  const locale = useLocale()
+  const EMAIL_TEMPLATES = getEmailTemplatesForLocale(locale)
+  const CATEGORY_LABELS = getCategoryLabelsForLocale(locale)
+
+  const CATEGORIES: { key: EmailCategory | 'all'; label: string }[] = [
+    { key: 'all',        label: locale === 'de' ? 'Alle' : 'All' },
+    { key: 'rechnung',   label: CATEGORY_LABELS.rechnung },
+    { key: 'galerie',    label: CATEGORY_LABELS.galerie },
+    { key: 'fragebogen', label: CATEGORY_LABELS.fragebogen },
+    { key: 'general',    label: CATEGORY_LABELS.general },
+  ]
+
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>(initialUserTemplates)
   const [categoryFilter, setCategoryFilter] = useState<EmailCategory | 'all'>('all')
 
@@ -499,6 +505,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           saving={saving}
           onSave={handleCreate}
           onClose={() => setShowNewModal(false)}
+          categoryLabels={CATEGORY_LABELS}
         />
       )}
 
@@ -515,6 +522,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           saving={editSaving}
           onSave={handleEdit}
           onClose={() => setEditTpl(null)}
+          categoryLabels={CATEGORY_LABELS}
         />
       )}
 
@@ -615,6 +623,7 @@ function TemplateModal({
   saving,
   onSave,
   onClose,
+  categoryLabels,
 }: {
   title: string
   subtitle: string
@@ -626,6 +635,7 @@ function TemplateModal({
   saving: boolean
   onSave: () => void
   onClose: () => void
+  categoryLabels: Record<EmailCategory | 'general', string>
 }) {
   const PLACEHOLDER_HINTS = [
     '{{client_name}}', '{{studio_name}}', '{{project_title}}', '{{portal_url}}',
@@ -707,7 +717,7 @@ function TemplateModal({
                       border: `1px solid ${isSelected ? cc.border : 'var(--border-color)'}`,
                     }}
                   >
-                    {CATEGORY_LABELS[cat]}
+                    {categoryLabels[cat]}
                   </button>
                 )
               })}
