@@ -118,7 +118,7 @@ export default function PortalPasswordGate({ password, studioName, logoUrl, chil
               margin: 0,
               lineHeight: 1.5,
             }}>
-              Dieses Portal ist passwortgeschützt.<br />
+              This portal is password protected.<br />
               Bitte gib das Passwort ein, um fortzufahren.
             </p>
           </div>
@@ -200,7 +200,7 @@ export default function PortalPasswordGate({ password, studioName, logoUrl, chil
                 letterSpacing: '-0.01em',
               }}
             >
-              Portal öffnen →
+              Open portal →
             </button>
           </form>
         </div>

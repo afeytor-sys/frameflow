@@ -11,28 +11,28 @@ interface FAQItem {
 
 const DEFAULT_ITEMS: FAQItem[] = [
   {
-    q: 'Ist die E-Signatur in Deutschland rechtsgültig?',
-    a: 'Ja. Fotonizer verwendet eine einfache elektronische Signatur (eES) gemäß eIDAS-Verordnung. Für Fotografieverträge ist diese Signaturform rechtlich anerkannt. Wir speichern Zeitstempel, IP-Adresse und das signierte PDF als Nachweis.',
+    q: 'Is the e-signature legally valid?',
+    a: 'Yes. Fotonizer uses a simple electronic signature (SES) in accordance with the eIDAS regulation. For photography contracts this signature form is legally recognized. We store timestamp, IP address and the signed PDF as proof.',
   },
   {
     q: 'Was passiert, wenn ich mein Kundenlimit erreiche?',
-    a: 'Du siehst ein freundliches Upgrade-Modal — keine Fehlermeldung. Du kannst bestehende Kunden weiterhin verwalten und erhältst eine direkte Möglichkeit, auf einen höheren Plan zu wechseln.',
+    a: 'You will see a friendly upgrade modal — no error message. You can continue to manage existing clients and get a direct option to upgrade to a higher plan.',
   },
   {
-    q: 'Können meine Kunden die Portale anderer Kunden sehen?',
-    a: 'Nein. Jeder Kunde erhält einen einzigartigen, zufällig generierten Link (32 Zeichen). Ohne diesen Link ist kein Zugriff möglich. Portale sind vollständig voneinander isoliert.',
+    q: 'Can my clients see other clients\' portals?',
+    a: 'No. Each client receives a unique, randomly generated link (32 characters). Without this link, no access is possible. Portals are completely isolated from each other.',
   },
   {
     q: 'Wie lange werden Fotos gespeichert?',
-    a: 'Fotos werden in Supabase Storage (EU-Region) gespeichert, solange dein Account aktiv ist. Du kannst Galerien jederzeit deaktivieren oder löschen. Bei Kündigung hast du 30 Tage Zeit, deine Daten zu exportieren.',
+    a: 'Photos are stored in Supabase Storage (EU region) as long as your account is active. You can deactivate or delete them at any time. Upon cancellation you have 30 days to export your data.',
   },
   {
     q: 'Kann ich meine eigene Domain verwenden?',
-    a: 'Custom Domains sind im Studio-Plan (€39/mo) verfügbar. Damit können Kundenportale unter deiner eigenen Domain erscheinen, z.B. portal.deinstudio.de.',
+    a: 'Custom domains are available in the Studio plan (€39/mo). This allows client portals to appear under your own domain, e.g. portal.yourstudio.com.',
   },
   {
-    q: 'Wie kündige ich?',
-    a: 'Jederzeit mit einem Klick im Billing-Bereich deines Dashboards. Keine Kündigungsfristen, keine versteckten Gebühren. Dein Account wechselt automatisch zum Free-Plan.',
+    q: 'How do I cancel?',
+    a: 'Anytime with one click in the billing section of your dashboard. No notice periods, no hidden fees. Your account automatically switches to the Free plan.',
   },
 ]
 

@@ -51,16 +51,16 @@ export default async function DashboardPage() {
       .limit(5),
   ])
 
-  const greeting = getGreeting(photographer?.language || 'de')
+  const greeting = getGreeting(photographer?.language || 'en')
   const firstName = photographer?.full_name?.split(' ')[0] || ''
   const plan = photographer?.plan || 'free'
 
   const quickActions = [
-    { label: 'Neuer Kunde',    sub: 'Kunden hinzufügen',    href: '/dashboard/clients/new',   icon: Users,     color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
-    { label: 'Neues Projekt',  sub: 'Vertrag & Galerie',    href: '/dashboard/projects/new',  icon: FolderOpen, color: '#C4A47C', bg: 'rgba(196,164,124,0.08)' },
-    { label: 'Alle Verträge',  sub: 'Signaturen prüfen',    href: '/dashboard/contracts',     icon: FileText,  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
-    { label: 'Galerien',       sub: 'Fotos verwalten',      href: '/dashboard/galleries',     icon: Images,    color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
-    { label: 'Rechnungen',     sub: 'Zahlungen verfolgen',  href: '/dashboard/invoices',      icon: Receipt,   color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)' },
+    { label: 'New Client',    sub: 'Add a client',          href: '/dashboard/clients/new',   icon: Users,     color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
+    { label: 'New Project',   sub: 'Contract & gallery',    href: '/dashboard/projects/new',  icon: FolderOpen, color: '#C4A47C', bg: 'rgba(196,164,124,0.08)' },
+    { label: 'All Contracts', sub: 'Check signatures',      href: '/dashboard/contracts',     icon: FileText,  color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
+    { label: 'Galleries',     sub: 'Manage photos',         href: '/dashboard/galleries',     icon: Images,    color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
+    { label: 'Invoices',      sub: 'Track payments',        href: '/dashboard/invoices',      icon: Receipt,   color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)' },
   ]
 
   return (
@@ -85,7 +85,7 @@ export default async function DashboardPage() {
               className="text-[11px] font-bold uppercase tracking-[0.12em] mb-2.5"
               style={{ color: 'var(--text-muted)' }}
             >
-              {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
             <h1
               className="font-black leading-tight"
@@ -96,7 +96,7 @@ export default async function DashboardPage() {
               ) : ''}.
             </h1>
             <p className="text-[14.5px] mt-2" style={{ color: 'var(--text-muted)' }}>
-              Hier ist dein Studio-Überblick für heute.
+              Here&apos;s your studio overview for today.
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
               }}
             >
               <Plus className="w-3.5 h-3.5" />
-              Neuer Kunde
+              New Client
             </Link>
             <Link
               href="/dashboard/projects/new"
@@ -123,7 +123,7 @@ export default async function DashboardPage() {
               }}
             >
               <Plus className="w-3.5 h-3.5" />
-              Neues Projekt
+              New Project
             </Link>
           </div>
         </div>
@@ -163,10 +163,10 @@ export default async function DashboardPage() {
                 </div>
                 <div>
                   <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
-                    Bevorstehende Shootings
+                    Upcoming Shoots
                   </h2>
                   <p className="text-[11.5px]" style={{ color: 'var(--text-muted)' }}>
-                    Nächste 30 Tage
+                    Next 30 days
                   </p>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
                 className="text-[12px] font-semibold flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg"
                 style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
               >
-                Alle <ArrowUpRight className="w-3 h-3" />
+                All <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
 
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
                           className="text-[9px] font-bold uppercase tracking-wider leading-none"
                           style={{ color: isToday ? 'rgba(255,255,255,0.75)' : isSoon ? '#F59E0B' : 'var(--text-muted)' }}
                         >
-                          {project.shoot_date ? new Date(project.shoot_date).toLocaleDateString('de-DE', { month: 'short' }) : '—'}
+                          {project.shoot_date ? new Date(project.shoot_date).toLocaleDateString('en-US', { month: 'short' }) : '—'}
                         </span>
                         <span
                           className="text-[18px] font-black leading-tight"
@@ -221,8 +221,8 @@ export default async function DashboardPage() {
                           {clientName}
                         </p>
                         <p className="text-[12px] mt-0.5 capitalize" style={{ color: 'var(--text-muted)' }}>
-                          {project.project_type || 'Projekt'}
-                          {project.shoot_date && ` · ${formatDate(project.shoot_date, 'de')}`}
+                          {project.project_type || 'Project'}
+                          {project.shoot_date && ` · ${formatDate(project.shoot_date, 'en')}`}
                         </p>
                       </div>
 
@@ -235,7 +235,7 @@ export default async function DashboardPage() {
                             border: `1px solid ${isToday ? 'transparent' : isSoon ? 'rgba(245,158,11,0.25)' : 'var(--border-color)'}`,
                           }}
                         >
-                          {isToday ? 'Heute' : `${days}d`}
+                          {isToday ? 'Today' : `${days}d`}
                         </span>
                       )}
                     </Link>
@@ -251,17 +251,17 @@ export default async function DashboardPage() {
                   <Calendar className="w-5 h-5" style={{ color: '#EC4899' }} />
                 </div>
                 <p className="text-[13.5px] font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                  Keine Shootings geplant
+                  No shoots scheduled
                 </p>
                 <p className="text-[12.5px] mb-4" style={{ color: 'var(--text-muted)' }}>
-                  Keine Shootings in den nächsten 30 Tagen
+                  No shoots in the next 30 days
                 </p>
                 <Link
                   href="/dashboard/projects/new"
                   className="text-[12.5px] font-semibold px-4 py-2 rounded-xl transition-all"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
                 >
-                  Projekt erstellen →
+                  Create project →
                 </Link>
               </div>
             )}
@@ -281,10 +281,10 @@ export default async function DashboardPage() {
             >
               <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
-                  Schnellaktionen
+                  Quick Actions
                 </h2>
                 <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Häufige Aufgaben
+                  Common tasks
                 </p>
               </div>
               <div className="p-2 space-y-0.5">
@@ -334,7 +334,7 @@ export default async function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    Upgrade für unbegrenzte Kunden, Galerien ohne Limit und mehr.
+                    Upgrade for unlimited clients, galleries without limits and more.
                   </p>
                   <Link
                     href="/dashboard/billing"
@@ -345,7 +345,7 @@ export default async function DashboardPage() {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                     }}
                   >
-                    Upgrade ansehen
+                    View upgrade options
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

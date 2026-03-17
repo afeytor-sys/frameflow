@@ -146,7 +146,7 @@ export default function AnimatedStats({ activeClients, pendingContracts, activeG
       description: activeClients === 0 ? 'Noch keine Kunden' : `${activeClients} aktiv`,
     },
     {
-      label: 'Offene Verträge',
+      label: 'Open contracts',
       value: pendingContracts,
       icon: FileText,
       color: pendingContracts > 0 ? '#E8A030' : '#4A4A48',

@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
           .map((line: string) => line.trim() === '' ? '<br>' : `<p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.7;">${line}</p>`)
           .join('')
       : `<p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.7;">
-          ${studioName} hat einen Fragebogen für dich vorbereitet: <strong style="color:#1A1A1A;">${q.title}</strong>
+          ${studioName} has prepared a questionnaire for you: <strong style="color:#1A1A1A;">${q.title}</strong>
         </p>
         <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.7;">
           Bitte nimm dir kurz Zeit, die Fragen zu beantworten — das hilft uns, dein Shooting perfekt vorzubereiten.
@@ -101,11 +101,11 @@ export async function POST(req: NextRequest) {
         <div style="text-align:center;margin-bottom:28px;">
           <a href="${portalUrl}"
             style="display:inline-block;background:#8B5CF6;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:700;letter-spacing:-0.01em;box-shadow:0 4px 16px rgba(139,92,246,0.30);">
-            Fragebogen ausfüllen →
+            Fill out questionnaire →
           </a>
         </div>
         <p style="text-align:center;font-size:12px;color:#9CA3AF;margin:0 0 24px;">
-          Oder öffne diesen Link: <a href="${portalUrl}" style="color:#8B5CF6;">${portalUrl}</a>
+          Or open this link: <a href="${portalUrl}" style="color:#8B5CF6;">${portalUrl}</a>
         </p>
         ` : ''}
 

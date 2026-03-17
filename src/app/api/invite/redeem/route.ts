@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     .eq('code', code.trim().toUpperCase())
     .single()
 
-  if (!invite) return NextResponse.json({ error: 'Ungültiger Code' }, { status: 404 })
+  if (!invite) return NextResponse.json({ error: 'Invalid code' }, { status: 404 })
 
   // Check if expired
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) {

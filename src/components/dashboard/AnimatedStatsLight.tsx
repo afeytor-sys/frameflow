@@ -160,7 +160,7 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
       gradient: 'linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.03) 100%)',
     },
     {
-      label: 'Offene Verträge',
+      label: 'Open contracts',
       value: pendingContracts,
       icon: FileText,
       href: '/dashboard/contracts',

@@ -59,7 +59,7 @@ export default function OnboardingPage() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Logo darf maximal 2MB groß sein')
+      toast.error('Logo must be max 2MB')
       return
     }
     setLogoFile(file)
@@ -185,7 +185,7 @@ export default function OnboardingPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">
-                    Vollständiger Name <span className="text-[#E84C1A]">*</span>
+                    Full Name <span className="text-[#E84C1A]">*</span>
                   </label>
                   <input
                     type="text"
@@ -249,7 +249,7 @@ export default function OnboardingPage() {
                   <h1 className="font-display text-2xl font-semibold text-[#1A1A1A] mb-1">
                     Dein Studio
                   </h1>
-                  <p className="text-[#6B6B6B] text-sm">Wie heißt dein Studio?</p>
+                  <p className="text-[#6B6B6B] text-sm">What is your studio name?</p>
                 </div>
 
                 <div>
@@ -278,7 +278,7 @@ export default function OnboardingPage() {
                     className="flex items-center gap-2 px-4 py-2.5 border border-[#E8E8E4] text-[#6B6B6B] rounded-lg text-sm font-medium hover:bg-[#F0F0EC] transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Zurück
+                    Back
                   </button>
                   <button
                     onClick={() => setStep(3)}
@@ -297,7 +297,7 @@ export default function OnboardingPage() {
                   <h1 className="font-display text-2xl font-semibold text-[#1A1A1A] mb-1">
                     Fotografie-Typen
                   </h1>
-                  <p className="text-[#6B6B6B] text-sm">Wähle alle zutreffenden aus</p>
+                  <p className="text-[#6B6B6B] text-sm">Select all that apply</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -363,20 +363,20 @@ export default function OnboardingPage() {
                             })
                             const data = await res.json()
                             if (!res.ok) {
-                              toast.error(data.error || 'Ungültiger Code')
+                              toast.error(data.error || 'Invalid code')
                             } else {
                               setInviteApplied(true)
                               toast.success('🎉 6 Monate Pro aktiviert!')
                             }
                           } catch {
-                            toast.error('Fehler beim Einlösen')
+                            toast.error('Error redeeming code')
                           } finally {
                             setInviteLoading(false)
                           }
                         }}
                         className="px-4 py-2.5 bg-[#C8A882] text-white rounded-lg text-sm font-medium hover:bg-[#B8956E] transition-colors disabled:opacity-40"
                       >
-                        {inviteLoading ? '...' : 'Einlösen'}
+                        {inviteLoading ? '...' : 'Redeem'}
                       </button>
                     </div>
                   )}
@@ -388,7 +388,7 @@ export default function OnboardingPage() {
                     className="flex items-center gap-2 px-4 py-2.5 border border-[#E8E8E4] text-[#6B6B6B] rounded-lg text-sm font-medium hover:bg-[#F0F0EC] transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Zurück
+                    Back
                   </button>
                   <button
                     onClick={handleComplete}
@@ -405,7 +405,7 @@ export default function OnboardingPage() {
                       </>
                     ) : (
                       <>
-                        Einrichtung abschließen
+                        Complete setup
                         <Check className="w-4 h-4" />
                       </>
                     )}
@@ -422,7 +422,7 @@ export default function OnboardingPage() {
                 onClick={handleComplete}
                 className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
               >
-                Überspringen und später einrichten
+                Skip and set up later
               </button>
             </p>
           )}

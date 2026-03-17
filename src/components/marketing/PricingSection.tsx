@@ -14,7 +14,7 @@ const PLANS = [
     description: 'Zum Ausprobieren',
     features: [
       'Bis zu 2 aktive Kunden',
-      'Bis zu 2 Verträge',
+      'Up to 2 contracts',
       'Bis zu 2 Projekte',
       'Bis zu 2 Galerien',
       '5 GB Speicherplatz',
@@ -30,17 +30,17 @@ const PLANS = [
     name: 'Starter',
     monthly: 10,
     annual: 108, // 10 × 12 × 0.9 = 108
-    description: 'Für wachsende Studios',
+    description: 'For growing studios',
     features: [
       'Bis zu 10 aktive Kunden',
-      'Bis zu 10 Verträge',
+      'Up to 10 contracts',
       'Bis zu 10 Projekte & Galerien',
       '15 GB Speicherplatz',
       'Vertrags-Vorlagen',
       'Kunden-Portal',
       '"Fotonizer" Badge ausblenden',
     ],
-    cta: 'Starter wählen',
+    cta: 'Choose Starter',
     href: '/signup?plan=starter',
     highlight: false,
     comingSoon: false,
@@ -50,19 +50,19 @@ const PLANS = [
     name: 'Pro',
     monthly: 16,
     annual: 172, // 16 × 12 × 0.9 ≈ 172
-    description: 'Für professionelle Fotografen',
+    description: 'For professional photographers',
     badge: 'Beliebteste Wahl',
     features: [
       'Unbegrenzte Kunden',
       'Unbegrenzte Projekte & Galerien',
-      'Unbegrenzte Verträge',
+      'Unlimited contracts',
       '1 TB Speicherplatz',
       'Kunden-Portal',
       '"Fotonizer" Logo ausblenden',
       'Analytics-Dashboard',
-      'Prioritäts-Support',
+      'Priority support',
     ],
-    cta: 'Pro wählen',
+    cta: 'Choose Pro',
     href: '/signup?plan=pro',
     highlight: true,
     comingSoon: false,
@@ -72,7 +72,7 @@ const PLANS = [
     name: 'Studio',
     monthly: 31,
     annual: 324, // 27 × 12 = 324
-    description: 'Für Teams & Agenturen',
+    description: 'For teams & agencies',
     features: [
       'Alles in Pro',
       'Bis zu 2 Fotografen-Accounts',
@@ -80,9 +80,9 @@ const PLANS = [
       'Kunden-Portal',
       '"Fotonizer" Logo ausblenden',
       'Analytics-Dashboard',
-      'Prioritäts-Support',
+      'Priority support',
     ],
-    cta: 'Studio wählen',
+    cta: 'Choose Studio',
     href: '/signup?plan=studio',
     highlight: false,
     comingSoon: true,
@@ -99,7 +99,7 @@ export default function PricingSection() {
         style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
         <Zap className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
         <p className="text-sm font-semibold text-center" style={{ color: '#1A1A1A' }}>
-          🎉 <span style={{ color: '#F59E0B' }}>Launch-Angebot:</span> Die ersten <strong>2 Monate 50% günstiger</strong> auf alle bezahlten Pläne — automatisch!
+          🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>2 months 50% off</strong> on all paid plans — automatically!
         </p>
       </div>
 
@@ -121,7 +121,7 @@ export default function PricingSection() {
             billing === 'annual' ? 'bg-[#1A1A1A] text-white' : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
           )}
         >
-          Jährlich
+          Annual
           <span className={cn(
             'text-xs px-1.5 py-0.5 rounded-full font-medium',
             billing === 'annual' ? 'bg-[#3DBA6F] text-white' : 'bg-[#3DBA6F]/10 text-[#3DBA6F]'
@@ -199,7 +199,7 @@ export default function PricingSection() {
                     )}
                     {billing === 'monthly' && plan.annual > 0 && (
                       <p className={cn('text-[10px] mt-0.5', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
-                        oder €{Math.round(plan.annual / 12)}/Monat jährlich
+                        or €{Math.round(plan.annual / 12)}/month billed annually
                       </p>
                     )}
                   </>
@@ -228,7 +228,7 @@ export default function PricingSection() {
                   disabled
                   className="block text-center py-2.5 rounded-xl text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
                 >
-                  Demnächst verfügbar
+                  Coming soon
                 </button>
               ) : (
                 <Link

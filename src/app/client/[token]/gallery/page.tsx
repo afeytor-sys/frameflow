@@ -70,9 +70,9 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           <Images style={{ width: 28, height: 28, color: 'var(--text-muted)' }} />
         </div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 24 }}>Dein Fotograf lädt bald deine Bilder hoch.</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 24 }}>Your photographer will upload your photos soon.</p>
         <Link href={`/client/${token}`} style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <ArrowLeft style={{ width: 16, height: 16 }} /> Zurück zum Portal
+          <ArrowLeft style={{ width: 16, height: 16 }} /> Back to portal
         </Link>
       </div>
     )
@@ -180,7 +180,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             }}
           >
             <ArrowLeft style={{ width: 14, height: 14 }} />
-            Zurück zum Portal
+            Back to portal
           </Link>
         </div>
 

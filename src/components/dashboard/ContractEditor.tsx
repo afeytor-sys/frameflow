@@ -38,7 +38,7 @@ function VariableInsertButton({ editor }: { editor: ReturnType<typeof useEditor>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        title="Kundenfeld einfügen"
+        title="Insert client field"
         className="flex items-center gap-1 px-2 h-8 rounded text-[11px] font-bold transition-colors"
         style={{ color: '#8B5CF6', background: open ? 'rgba(139,92,246,0.12)' : 'transparent', border: '1px solid rgba(139,92,246,0.25)' }}
         onMouseEnter={e => { if (!open) e.currentTarget.style.background = 'rgba(139,92,246,0.08)' }}
@@ -59,7 +59,7 @@ function VariableInsertButton({ editor }: { editor: ReturnType<typeof useEditor>
           >
             <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <p className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                Kundenfeld einfügen
+                Insert client field
               </p>
             </div>
             <div className="py-1">
@@ -236,14 +236,14 @@ export default function ContractEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             active={editor.isActive('heading', { level: 2 })}
-            title="Überschrift 2"
+            title="Heading 2"
           >
             <Heading2 className="w-3.5 h-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             active={editor.isActive('heading', { level: 3 })}
-            title="Überschrift 3"
+            title="Heading 3"
           >
             <Heading3 className="w-3.5 h-3.5" />
           </ToolbarButton>
@@ -253,7 +253,7 @@ export default function ContractEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             active={editor.isActive('bulletList')}
-            title="Aufzählung"
+            title="Bullet list"
           >
             <List className="w-3.5 h-3.5" />
           </ToolbarButton>
@@ -270,7 +270,7 @@ export default function ContractEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
-            title="Rückgängig"
+            title="Undo"
           >
             <Undo className="w-3.5 h-3.5" />
           </ToolbarButton>

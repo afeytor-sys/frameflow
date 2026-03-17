@@ -57,7 +57,7 @@ export function formatFileSize(bytes: number): string {
 
 // Format currency
 export function formatCurrency(amount: number, currency: string = 'EUR'): string {
-  return new Intl.NumberFormat('de-DE', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
   }).format(amount / 100)

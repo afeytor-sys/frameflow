@@ -102,8 +102,8 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                     {finished
-                      ? `✓ Upload abgeschlossen`
-                      : `${job.done}/${job.total} Fotos hochladen...`
+                      ? `✓ Upload complete`
+                      : `Uploading ${job.done}/${job.total} photos...`
                     }
                   </p>
                   <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>

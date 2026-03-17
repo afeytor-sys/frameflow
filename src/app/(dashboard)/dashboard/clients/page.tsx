@@ -174,7 +174,7 @@ export default async function ClientsPage() {
             Noch keine Kunden
           </h3>
           <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Füge deinen ersten Kunden hinzu und starte dein Studio-Management
+            Add your first client and start managing your studio
           </p>
           <Link
             href="/dashboard/clients/new"

@@ -564,7 +564,7 @@ export default function GalleryViewer({
                 <div className="fixed inset-0 z-10" onClick={() => setShowControls(false)} />
                 <div className="absolute right-0 top-full mt-2 z-20 rounded-2xl p-4 min-w-[200px]"
                   style={{ background: '#FFFFFF', border: '1px solid #E8E4DC', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-                  <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: '#B0ACA6' }}>Bildgröße</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: '#B0ACA6' }}>Image size</p>
                   <div className="flex items-center gap-3">
                     <span className="text-[10px]" style={{ color: '#B0ACA6' }}>S</span>
                     <input
@@ -609,7 +609,7 @@ export default function GalleryViewer({
             onMouseLeave={e => { e.currentTarget.style.color = tbText; e.currentTarget.style.borderColor = tbBorder }}
           >
             <Maximize2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Präsentation</span>
+            <span className="hidden sm:inline">Slideshow</span>
           </button>
 
           {/* Download all */}
@@ -640,7 +640,7 @@ export default function GalleryViewer({
       {filteredPhotos.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-white/30 text-sm">Keine Fotos in dieser Auswahl.</p>
-          <button onClick={() => setFilterTag(null)} className="mt-2 text-[12px] text-white/40 hover:text-white/70 transition-colors">Filter zurücksetzen</button>
+          <button onClick={() => setFilterTag(null)} className="mt-2 text-[12px] text-white/40 hover:text-white/70 transition-colors">Reset filter</button>
         </div>
       ) : layout === 'masonry' ? (
         /* MASONRY */
@@ -744,7 +744,7 @@ export default function GalleryViewer({
         </div>
       )}
 
-      {/* ── PRÄSENTATIONSMODUS ── */}
+      {/* ── SLIDESHOW MODE ── */}
       {presentMode && photos.length > 0 && (
         <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
           <div className="absolute inset-0 flex items-center justify-center">

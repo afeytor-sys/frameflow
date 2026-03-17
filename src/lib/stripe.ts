@@ -125,7 +125,7 @@ export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
   ],
   starter: [
     'Bis zu 10 aktive Kunden',
-    'Bis zu 10 Verträge',
+    'Up to 10 contracts',
     'Bis zu 10 Projekte & Galerien',
     '15 GB Speicherplatz',
     'Vertrags-Vorlagen',
@@ -135,12 +135,12 @@ export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
   pro: [
     'Unbegrenzte Kunden',
     'Unbegrenzte Projekte & Galerien',
-    'Unbegrenzte Verträge',
+    'Unlimited contracts',
     '1 TB Speicherplatz',
     'Kunden-Portal',
     '"Fotonizer" Logo ausblenden',
     'Analytics-Dashboard',
-    'Prioritäts-Support',
+    'Priority support',
   ],
   studio: [
     'Alles in Pro',
@@ -149,6 +149,6 @@ export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
     'Kunden-Portal',
     '"Fotonizer" Logo ausblenden',
     'Analytics-Dashboard',
-    'Prioritäts-Support',
+    'Priority support',
   ],
 }

@@ -99,7 +99,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
     // Validate required fields (all fields are required)
     const missing = variables.filter(k => !clientFields[k]?.trim())
     if (missing.length > 0) {
-      toast.error(`Bitte fülle alle Felder aus: ${missing.map(getLabel).join(', ')}`)
+      toast.error(`Please fill in all fields: ${missing.map(getLabel).join(', ')}`)
       return
     }
     setFieldsStep('sign')
@@ -107,11 +107,11 @@ export default function ContractSigningClient({ contract, clientName, token }: P
 
   const handleSign = async () => {
     if (!agreed) {
-      toast.error('Bitte bestätige, dass du den Vertrag gelesen hast')
+      toast.error('Please confirm that you have read the contract')
       return
     }
     if (!signerName.trim()) {
-      toast.error('Bitte gib deinen vollständigen Namen ein')
+      toast.error('Please enter your full name')
       return
     }
     if (sigCanvasRef.current?.isEmpty()) {
@@ -155,7 +155,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
       <div className="space-y-6 animate-in">
         <Link href={`/client/${token}`} className="inline-flex items-center gap-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Zurück zum Portal
+          Back to portal
         </Link>
 
         <div className="bg-white rounded-xl border border-[#3DBA6F]/30 p-8 text-center">
@@ -202,7 +202,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
         <div className="flex items-center gap-3">
           <Link href={`/client/${token}`} className="inline-flex items-center gap-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Zurück
+            Back
           </Link>
           <h1 className="font-display text-xl font-semibold text-[#1A1A1A]">{contract.title}</h1>
         </div>
@@ -226,7 +226,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
               <Braces className="w-4 h-4 text-purple-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1A1A1A] text-[15px]">Bitte fülle deine Angaben aus</h3>
+              <h3 className="font-semibold text-[#1A1A1A] text-[15px]">Please fill in your details</h3>
               <p className="text-[12px] text-[#6B6B6B]">Diese Informationen werden in den Vertrag eingetragen</p>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
       <div className="flex items-center gap-3">
         <Link href={`/client/${token}`} className="inline-flex items-center gap-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Zurück
+          Back
         </Link>
         <h1 className="font-display text-xl font-semibold text-[#1A1A1A]">{contract.title}</h1>
       </div>
@@ -320,20 +320,20 @@ export default function ContractSigningClient({ contract, clientName, token }: P
             {agreed && <Check className="w-3 h-3 text-white" />}
           </div>
           <span className="text-sm text-[#1A1A1A]">
-            Ich habe den Vertrag vollständig gelesen und stimme den Bedingungen zu.
+            I have fully read the contract and agree to the terms.
           </span>
         </label>
 
         {/* Full name */}
         <div>
           <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">
-            Vollständiger Name <span className="text-[#E84C1A]">*</span>
+            Full Name <span className="text-[#E84C1A]">*</span>
           </label>
           <input
             type="text"
             value={signerName}
             onChange={(e) => setSignerName(e.target.value)}
-            placeholder="Dein vollständiger Name"
+            placeholder="Your full name"
             className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20 outline-none transition-all text-sm text-[#1A1A1A] bg-white"
           />
         </div>
@@ -350,7 +350,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
               className="flex items-center gap-1 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
             >
               <RotateCcw className="w-3 h-3" />
-              Löschen
+              Delete
             </button>
           </div>
           <div className="border-2 border-dashed border-[#E8E8E4] rounded-xl overflow-hidden bg-[#FAFAF8] hover:border-[#C8A882]/50 transition-colors">
@@ -395,7 +395,7 @@ export default function ContractSigningClient({ contract, clientName, token }: P
         </button>
 
         <p className="text-xs text-[#6B6B6B] text-center">
-          Diese digitale Unterschrift ist rechtsgültig gemäß eIDAS-Verordnung.
+          This digital signature is legally valid in accordance with the eIDAS regulation.
         </p>
       </div>
     </div>

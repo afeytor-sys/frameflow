@@ -63,7 +63,7 @@ export default function PhotoComments({ photoId, projectId, token, clientName, c
       <button
         onClick={handleOpen}
         className="flex items-center gap-1 text-[11px] text-white/70 hover:text-white transition-colors"
-        title="Kommentar hinzufügen"
+        title="Add comment"
       >
         <MessageCircle className="w-3.5 h-3.5" />
         {comments.length > 0 && <span>{comments.length}</span>}

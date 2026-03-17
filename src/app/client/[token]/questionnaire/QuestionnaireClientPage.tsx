@@ -90,7 +90,7 @@ export default function QuestionnaireClientPage({ questionnaire, projectId, stud
             Vielen Dank! 🎉
           </h1>
           <p className="text-[15px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            Deine Antworten wurden erfolgreich übermittelt. {studioName} wird sich bei dir melden.
+            Your answers have been successfully submitted. {studioName} will get back to you.
           </p>
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function QuestionnaireClientPage({ questionnaire, projectId, stud
                 {questionnaire.title}
               </h1>
               <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-                Bitte beantworte die folgenden Fragen, damit wir dein Shooting perfekt vorbereiten können.
+                Please answer the following questions so we can perfectly prepare for your shoot.
               </p>
             </div>
           </div>

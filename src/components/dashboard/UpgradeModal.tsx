@@ -37,10 +37,10 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
       })
       const data = await res.json()
       if (res.ok) {
-        setInviteStatus({ ok: true, msg: data.message || '🎉 Code eingelöst! Dein Plan wurde aktualisiert.' })
+        setInviteStatus({ ok: true, msg: data.message || '🎉 Code redeemed! Your plan has been updated.' })
         setTimeout(() => window.location.reload(), 1500)
       } else {
-        setInviteStatus({ ok: false, msg: data.error || 'Ungültiger oder bereits verwendeter Code.' })
+        setInviteStatus({ ok: false, msg: data.error || 'Invalid or already used code.' })
       }
     } catch {
       setInviteStatus({ ok: false, msg: 'Verbindungsfehler. Bitte versuche es erneut.' })
@@ -122,7 +122,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                 billing === 'annual' ? 'bg-[#1A1A1A] text-white' : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
               )}
             >
-              Jährlich
+              Annual
               <span className={cn(
                 'text-xs px-1.5 py-0.5 rounded-full font-medium',
                 billing === 'annual' ? 'bg-[#3DBA6F] text-white' : 'bg-[#3DBA6F]/10 text-[#3DBA6F]'
@@ -138,7 +138,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
           <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
           <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
-            🎉 <span style={{ color: '#F59E0B' }}>Launch-Angebot:</span> Die ersten <strong>2 Monate 50% günstiger</strong> — automatisch!
+            🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>2 months 50% off</strong> — automatisch!
           </p>
         </div>
 
@@ -146,11 +146,11 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
         <div className="mx-6 mt-4 rounded-xl overflow-hidden" style={{ border: '2px solid #C8A882' }}>
           <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: 'linear-gradient(135deg, #C8A88220 0%, #F0E8D820 100%)' }}>
             <Gift className="w-4 h-4 flex-shrink-0" style={{ color: '#C8A882' }} />
-            <span className="text-sm font-bold" style={{ color: '#1A1A1A' }}>Einladungscode einlösen</span>
+            <span className="text-sm font-bold" style={{ color: '#1A1A1A' }}>Redeem invite code</span>
             <span className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#C8A88225', color: '#A8845C' }}>Beta-Zugang</span>
           </div>
           <div className="px-4 py-3" style={{ background: '#FDFCFA' }}>
-            <p className="text-xs text-[#6B6B6B] mb-3">Hast du einen Einladungscode erhalten? Löse ihn hier ein und erhalte kostenlosen Zugang.</p>
+            <p className="text-xs text-[#6B6B6B] mb-3">Have you received an invite code? Redeem it here and get free access.</p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -173,7 +173,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: '#C8A882', color: '#FFFFFF' }}
               >
-                {inviteLoading ? '...' : <><span>Einlösen</span><ArrowRight className="w-3.5 h-3.5" /></>}
+                {inviteLoading ? '...' : <><span>Redeem</span><ArrowRight className="w-3.5 h-3.5" /></>}
               </button>
             </div>
             {inviteStatus && (
@@ -251,7 +251,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                     disabled
                     className="w-full py-2 rounded-lg text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
                   >
-                    Demnächst verfügbar
+                    Coming soon
                   </button>
                 ) : (
                   <button
@@ -284,7 +284,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           </p>
         )}
         <p className="text-center text-xs text-[#6B6B6B] pb-5">
-          Jederzeit kündbar · Sichere Zahlung via Stripe
+          Cancel anytime · Secure payment via Stripe
         </p>
       </div>
     </div>

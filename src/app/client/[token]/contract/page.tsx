@@ -37,7 +37,7 @@ export default async function ClientContractPage({ params }: { params: Promise<{
   if (!contract) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-[#6B6B6B]">Kein Vertrag verfügbar.</p>
+        <p className="text-[#6B6B6B]">No contract available.</p>
       </div>
     )
   }

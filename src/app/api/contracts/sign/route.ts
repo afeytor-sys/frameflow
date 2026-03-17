@@ -233,11 +233,11 @@ export async function POST(request: NextRequest) {
     drawText(`IP-Adresse: ${ipAddress}`)
     y -= 8
     drawLine()
-    drawText('Dieses Dokument wurde digital unterzeichnet über Fotonizer (fotonizer.com)', {
+    drawText('This document was digitally signed via Fotonizer (fotonizer.com)', {
       size: 8,
       color: [0.6, 0.6, 0.6],
     })
-    drawText('Die Unterschrift ist rechtsgültig gemäß eIDAS-Verordnung (EU) Nr. 910/2014.', {
+    drawText('The signature is legally valid under eIDAS Regulation (EU) No. 910/2014.', {
       size: 8,
       color: [0.6, 0.6, 0.6],
     })
@@ -421,7 +421,7 @@ export async function POST(request: NextRequest) {
                 Diese E-Mail wurde automatisch von <strong style="color:#C4A47C;">Fotonizer</strong> gesendet.
               </p>
               <p style="margin:4px 0 0;font-size:11px;color:#B0B0B0;">
-                Die digitale Unterschrift ist rechtsgültig gemäß eIDAS-Verordnung (EU) Nr. 910/2014.
+                The digital signature is legally valid under eIDAS Regulation (EU) No. 910/2014.
               </p>
             </td>
           </tr>

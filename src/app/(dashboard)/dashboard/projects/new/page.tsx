@@ -172,11 +172,11 @@ export default function NewProjectPage() {
             Du hast <strong>{projectCount}</strong> von <strong>{limits.maxGalleries}</strong> Projekten im <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong>-Plan verwendet.
           </p>
           <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
-            Upgrade auf Starter oder Pro für mehr Projekte.
+            Upgrade to Starter or Pro for more projects.
           </p>
           <div className="flex gap-3 justify-center">
             <Link href="/dashboard/projects" className="px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
-              Zurück
+              Back
             </Link>
             <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
               Jetzt upgraden →
@@ -250,7 +250,7 @@ export default function NewProjectPage() {
               required
               className={inputClass}
             >
-              <option value="">Kunden auswählen...</option>
+              <option value="">Select client...</option>
               {clients.map(({ id, full_name }) => (
                 <option key={id} value={id}>{full_name}</option>
               ))}
@@ -270,7 +270,7 @@ export default function NewProjectPage() {
                   type="text"
                   value={newClient.full_name}
                   onChange={(e) => setNewClient(p => ({ ...p, full_name: e.target.value }))}
-                  placeholder="Anna Müller"
+                  placeholder="Jane Smith"
                   className={inputClass}
                 />
               </div>
@@ -305,7 +305,7 @@ export default function NewProjectPage() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                {creatingClient ? 'Wird erstellt...' : 'Kunden erstellen & auswählen'}
+                {creatingClient ? 'Creating...' : 'Create client & select'}
               </button>
             </div>
           )}
@@ -320,7 +320,7 @@ export default function NewProjectPage() {
           <div>
             <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Projekt-Typ</label>
             <select name="project_type" value={form.project_type} onChange={handleChange} className={inputClass}>
-              <option value="">Auswählen...</option>
+              <option value="">Select...</option>
               {PROJECT_TYPES.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}

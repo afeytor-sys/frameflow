@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
             <td style="padding:28px 40px;">
               <p style="margin:0 0 6px;font-size:15px;color:#7A7670;">Hallo <strong style="color:#111110;">${clientName}</strong>,</p>
               <p style="margin:0 0 24px;font-size:15px;color:#7A7670;line-height:1.6;">
-                anbei deine Rechnung für <strong style="color:#111110;">${project.title}</strong>.
+                please find your invoice for <strong style="color:#111110;">${project.title}</strong>.
               </p>
 
               <!-- Invoice details box -->
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
                       </tr>` : ''}
                       ${dueDateFormatted ? `
                       <tr>
-                        <td style="padding:6px 0;font-size:13px;color:#7A7670;">Fällig bis</td>
+                        <td style="padding:6px 0;font-size:13px;color:#7A7670;">Due by</td>
                         <td style="padding:6px 0;font-size:13px;color:#C94030;font-weight:600;text-align:right;">${dueDateFormatted}</td>
                       </tr>` : ''}
                       <tr>
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
               </table>
 
               <p style="margin:0 0 24px;font-size:14px;color:#7A7670;line-height:1.6;">
-                Bitte überweise den Betrag bis zum angegebenen Fälligkeitsdatum. Bei Fragen stehe ich dir gerne zur Verfügung.
+                Please transfer the amount by the due date. Feel free to reach out if you have any questions.
               </p>
 
               <!-- CTA -->
@@ -178,10 +178,10 @@ export async function POST(request: NextRequest) {
           <tr>
             <td align="center" style="padding:20px 40px 28px;">
               <p style="margin:0 0 6px;font-size:12px;color:#B0ACA6;">
-                Diese Rechnung wurde von <strong>${studioName}</strong> über Fotonizer gesendet.
+                This invoice was sent by <strong>${studioName}</strong> via Fotonizer.
               </p>
               <p style="margin:0;font-size:12px;color:#B0ACA6;">
-                © ${new Date().getFullYear()} Fotonizer · Das Studio-Management für Fotografen
+                © ${new Date().getFullYear()} Fotonizer · Studio management for photographers
               </p>
             </td>
           </tr>

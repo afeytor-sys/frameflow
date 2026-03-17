@@ -139,7 +139,7 @@ export default function ContractsClient({
   }
 
   const handleCreate = async () => {
-    if (!selectedProject) { toast.error('Bitte ein Projekt auswählen'); return }
+    if (!selectedProject) { toast.error('Please select a project'); return }
     setSaving(true)
     const supabase = createClient()
     const tpl = selectedKey ? getTemplate(selectedKey) : null
@@ -160,11 +160,11 @@ export default function ContractsClient({
   }
 
   const handleDeleteUserTemplate = async (id: string) => {
-    if (!confirm('Vorlage wirklich löschen?')) return
+    if (!confirm('Really delete this template?')) return
     const supabase = createClient()
     await supabase.from('contract_templates').delete().eq('id', id)
     setUserTemplates((prev) => prev.filter((t) => t.id !== id))
-    toast.success('Vorlage gelöscht')
+    toast.success('Template deleted')
   }
 
   const handleCreateTemplate = async () => {
@@ -186,7 +186,7 @@ export default function ContractsClient({
       if (error) {
         console.error('Template save error:', error)
         if (error.code === '42P01') {
-          toast.error('Vorlagen-Funktion noch nicht verfügbar. Bitte Migration ausführen.')
+          toast.error('Template feature not yet available. Please run migration.')
         } else {
           toast.error(`Fehler: ${error.message}`)
         }
@@ -326,7 +326,7 @@ export default function ContractsClient({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${contract.title.replace(/[^a-zA-Z0-9äöüÄÖÜß\s]/g, '').trim()}.pdf`
+      a.download = `${contract.title.replace(/[^a-zA-Z0-9\s]/g, '').trim()}.pdf`
       a.click()
       URL.revokeObjectURL(url)
       toast.success('PDF heruntergeladen!')
@@ -350,10 +350,10 @@ export default function ContractsClient({
             className="font-black"
             style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
           >
-            Verträge
+            Contracts
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {contracts.length} {contracts.length === 1 ? 'Vertrag' : 'Verträge'} · Erstelle und verwalte Kundenverträge
+            {contracts.length} {contracts.length === 1 ? 'Contract' : 'Contracts'} · Create and manage client contracts
           </p>
         </div>
         <button
@@ -427,7 +427,7 @@ export default function ContractsClient({
                         style={{ color: 'var(--text-muted)' }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                        title="Vorlage löschen"
+                        title="Delete template"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -667,7 +667,7 @@ export default function ContractsClient({
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Meine Verträge
+            Meine Contracts
           </h2>
         </div>
 
@@ -741,8 +741,8 @@ export default function ContractsClient({
             <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--bg-hover)' }}>
               <FileText className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
             </div>
-            <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Verträge</h3>
-            <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>Wähle eine Vorlage oben aus oder erstelle einen neuen Vertrag.</p>
+            <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>No contracts yet</h3>
+            <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--text-muted)' }}>Select a template above or create a new contract.</p>
             <button
               onClick={() => openNewContract()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
@@ -852,7 +852,7 @@ export default function ContractsClient({
                     className="input-base w-full"
                     style={{ color: selectedProject ? 'var(--text-primary)' : 'var(--text-muted)' }}
                   >
-                    <option value="">Projekt auswählen...</option>
+                    <option value="">Select project...</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>{p.title}{p.clients?.full_name ? ` — ${p.clients.full_name}` : ''}</option>
                     ))}
@@ -915,7 +915,7 @@ export default function ContractsClient({
               <div className="prose prose-sm max-w-none" style={{ color: 'var(--text-primary)' }} dangerouslySetInnerHTML={{ __html: previewTpl.content }} />
             </div>
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setPreviewKey(null)} className="text-sm font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>Schließen</button>
+              <button onClick={() => setPreviewKey(null)} className="text-sm font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>Close</button>
               <button
                 onClick={() => { setPreviewKey(null); openNewContract(previewKey!) }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"

@@ -50,7 +50,7 @@ export default function NewClientPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.full_name.trim()) {
-      toast.error('Name ist erforderlich')
+      toast.error('Name is required')
       return
     }
 
@@ -75,12 +75,12 @@ export default function NewClientPage() {
       .single()
 
     if (error) {
-      toast.error('Fehler beim Erstellen des Kunden')
+      toast.error('Error creating client')
       setLoading(false)
       return
     }
 
-    toast.success('Kunde erstellt!')
+    toast.success('Client created!')
     router.push(`/dashboard/clients/${data.id}`)
   }
 
@@ -98,27 +98,27 @@ export default function NewClientPage() {
           <Link href="/dashboard/clients" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-[#F0F0EC] transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">Neuer Kunde</h1>
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">New Client</h1>
         </div>
         <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(196,164,124,0.12)' }}>
             <Lock className="w-6 h-6" style={{ color: 'var(--accent)' }} />
           </div>
           <h2 className="font-black text-[18px] mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-            Kundenlimit erreicht
+            Client limit reached
           </h2>
           <p className="text-[13.5px] mb-1" style={{ color: 'var(--text-muted)' }}>
-            Du hast <strong>{clientCount}</strong> von <strong>{limits.maxClients}</strong> Kunden im <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong>-Plan verwendet.
+            You have used <strong>{clientCount}</strong> of <strong>{limits.maxClients}</strong> clients on the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan.
           </p>
           <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
-            Upgrade auf Starter oder Pro für mehr Kunden.
+            Upgrade to Starter or Pro for more clients.
           </p>
           <div className="flex gap-3 justify-center">
             <Link href="/dashboard/clients" className="px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
-              Zurück
+              Back
             </Link>
             <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
-              Jetzt upgraden →
+              Upgrade now →
             </Link>
           </div>
         </div>
@@ -137,8 +137,8 @@ export default function NewClientPage() {
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
-          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">Neuer Kunde</h1>
-          <p className="text-[#6B6B6B] text-sm">Kundendaten eingeben</p>
+          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">New Client</h1>
+          <p className="text-[#6B6B6B] text-sm">Enter client details</p>
         </div>
       </div>
 
@@ -146,7 +146,7 @@ export default function NewClientPage() {
         {/* Name */}
         <div>
           <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">
-            Vollständiger Name <span className="text-[#E84C1A]">*</span>
+            Full Name <span className="text-[#E84C1A]">*</span>
           </label>
           <input
             type="text"
@@ -154,7 +154,7 @@ export default function NewClientPage() {
             value={form.full_name}
             onChange={handleChange}
             required
-            placeholder="Anna Müller"
+            placeholder="Anna Smith"
             className={inputClass}
           />
         </div>
@@ -220,7 +220,7 @@ export default function NewClientPage() {
               onChange={handleChange}
               className={inputClass}
             >
-              <option value="">Auswählen...</option>
+              <option value="">Select...</option>
               {PROJECT_TYPES.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -267,7 +267,7 @@ export default function NewClientPage() {
             disabled={loading}
             className="flex-1 py-2.5 rounded-lg bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {loading ? 'Wird erstellt...' : 'Kunde erstellen'}
+            {loading ? 'Creating...' : 'Create client'}
           </button>
         </div>
       </form>

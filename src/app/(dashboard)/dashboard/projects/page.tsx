@@ -137,11 +137,11 @@ export default function ProjectsPage() {
   const deleteProject = async (e: React.MouseEvent, id: string, title: string) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`Projekt "${title}" wirklich löschen? Alle zugehörigen Daten werden gelöscht.`)) return
+    if (!confirm(`Really delete project "${title}"? All related data will be deleted.`)) return
     const { error } = await supabase.from('projects').delete().eq('id', id)
-    if (error) { toast.error('Fehler beim Löschen'); return }
+    if (error) { toast.error('Error deleting'); return }
     setProjects(prev => prev.filter(p => p.id !== id))
-    toast.success('Projekt gelöscht')
+    toast.success('Project deleted')
   }
 
   // ── Drag & Drop handlers ──────────────────────────────────────────────────
@@ -232,7 +232,7 @@ export default function ProjectsPage() {
             Projekte
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {projects.length} {projects.length === 1 ? 'Projekt' : 'Projekte'} · Verwalte deine Shootings und Aufträge
+            {projects.length} {projects.length === 1 ? 'Project' : 'Projects'} · Manage your shoots and jobs
           </p>
         </div>
 
@@ -249,7 +249,7 @@ export default function ProjectsPage() {
               }}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              {sortBy === 'date' ? 'Nächste Termine' : sortBy === 'alpha' ? 'A → Z' : sortBy === 'type' ? 'Shooting-Typ' : filterType ? filterType : 'Sortieren'}
+              {sortBy === 'date' ? 'Upcoming' : sortBy === 'alpha' ? 'A → Z' : sortBy === 'type' ? 'Shoot type' : filterType ? filterType : 'Sort'}
               <ChevronDown className="w-3 h-3 opacity-60" />
             </button>
             {showSortMenu && (
@@ -268,7 +268,7 @@ export default function ProjectsPage() {
                   </div>
                   {[
                     { key: 'manual', label: '⠿  Manuell (Standard)' },
-                    { key: 'date',   label: '🗓  Nächste Termine' },
+                    { key: 'date',   label: '🗓  Upcoming' },
                     { key: 'alpha',  label: '🔤  A → Z' },
                     { key: 'type',   label: '📷  Shooting-Typ' },
                   ].map(opt => (
@@ -324,7 +324,7 @@ export default function ProjectsPage() {
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.25)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.15)' }}
                       >
-                        Filter zurücksetzen
+                        Reset filter
                       </button>
                     </div>
                   )}
@@ -559,7 +559,7 @@ export default function ProjectsPage() {
                       onClick={(e) => deleteProject(e, project.id, project.title)}
                       className="absolute bottom-3 right-3 w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
                       style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}
-                      title="Projekt löschen"
+                      title="Delete project"
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.22)' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.12)' }}
                     >
@@ -698,7 +698,7 @@ export default function ProjectsPage() {
                         href={`/dashboard/projects/${project.id}`}
                         className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                         style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                        title="Öffnen"
+                        title="Open"
                       >
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </Link>
@@ -706,7 +706,7 @@ export default function ProjectsPage() {
                         onClick={(e) => deleteProject(e, project.id, project.title)}
                         className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                         style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                        title="Löschen"
+                        title="Delete"
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.20)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.10)' }}
                       >

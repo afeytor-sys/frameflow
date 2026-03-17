@@ -43,13 +43,13 @@ export default function EmailConfirmedPage() {
             color: '#111110',
           }}
         >
-          E-Mail bestätigt! 🎉
+          Email confirmed! 🎉
         </h1>
 
         <p className="text-lg mb-8" style={{ color: '#6B7280', lineHeight: 1.6 }}>
-          Dein Konto ist jetzt aktiv. Willkommen bei{' '}
+          Your account is now active. Welcome to{' '}
           <span className="font-semibold" style={{ color: '#C4A47C' }}>Fotonizer</span>
-          {' '}— dein Fotostudio-Organizer.
+          {' '}— your photo studio organizer.
         </p>
 
         {/* Feature highlights */}
@@ -62,13 +62,13 @@ export default function EmailConfirmedPage() {
           }}
         >
           <p className="text-sm font-bold uppercase tracking-widest mb-3" style={{ color: '#C4A47C' }}>
-            Was dich erwartet
+            What awaits you
           </p>
           {[
-            { icon: '📸', text: 'Projekte & Shootings verwalten' },
-            { icon: '🖼️', text: 'Galerien für deine Kunden erstellen' },
-            { icon: '✍️', text: 'Verträge digital unterschreiben lassen' },
-            { icon: '📊', text: 'Analytics & Umsatz im Blick behalten' },
+            { icon: '📸', text: 'Manage projects & shoots' },
+            { icon: '🖼️', text: 'Create galleries for your clients' },
+            { icon: '✍️', text: 'Get contracts signed digitally' },
+            { icon: '📊', text: 'Track analytics & revenue' },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-3">
               <span className="text-xl">{item.icon}</span>
@@ -87,14 +87,14 @@ export default function EmailConfirmedPage() {
           }}
         >
           <Sparkles className="w-5 h-5" />
-          Jetzt loslegen
+          Get started
           <ArrowRight className="w-5 h-5" />
         </Link>
 
         <p className="mt-4 text-sm" style={{ color: '#9CA3AF' }}>
-          Oder{' '}
+          Or{' '}
           <Link href="/dashboard" className="underline" style={{ color: '#C4A47C' }}>
-            direkt zum Dashboard
+            go straight to the dashboard
           </Link>
         </p>
       </div>

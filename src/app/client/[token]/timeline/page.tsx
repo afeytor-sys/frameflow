@@ -80,7 +80,7 @@ export default async function ClientTimelinePage({ params }: { params: Promise<{
           className="inline-flex items-center gap-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Zurück
+          Back
         </Link>
         <h1 className="font-display text-xl font-semibold text-[#1A1A1A]">📅 Zeitplan</h1>
       </div>

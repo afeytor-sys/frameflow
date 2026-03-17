@@ -163,13 +163,13 @@ function PhotographerSignatureSection({
 
       <div>
         <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-          Vollständiger Name *
+          Full Name *
         </label>
         <input
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="Dein vollständiger Name"
+          placeholder="Your full name"
           className="input-base w-full text-[13px]"
         />
       </div>
@@ -188,7 +188,7 @@ function PhotographerSignatureSection({
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
           >
             <RotateCcw className="w-3 h-3" />
-            Löschen
+            Delete
           </button>
         </div>
         <div className="rounded-xl overflow-hidden" style={{ border: '2px dashed var(--border-color)', background: 'var(--bg-hover)' }}>
@@ -311,7 +311,7 @@ export default function ContractTab({
 
   const handleSend = async (contract: Contract) => {
     if (!clientEmail) {
-      toast.error('Keine E-Mail-Adresse für diesen Kunden hinterlegt')
+      toast.error('No email address found for this client')
       return
     }
     setSending(true)
@@ -336,7 +336,7 @@ export default function ContractTab({
   }
 
   const handleMarkSigned = async (contract: Contract) => {
-    if (!confirm('Vertrag als unterschrieben markieren? Dies kann nicht rückgängig gemacht werden.')) return
+    if (!confirm('Mark contract as signed? This cannot be undone.')) return
     setMarkingSigned(true)
     const supabase = createClient()
     const now = new Date().toISOString()
@@ -357,12 +357,12 @@ export default function ContractTab({
   }
 
   const handleDelete = async (contractId: string) => {
-    if (!confirm('Vertrag wirklich löschen?')) return
+    if (!confirm('Really delete this contract?')) return
     const supabase = createClient()
     await supabase.from('contracts').delete().eq('id', contractId)
     setContracts((prev) => prev.filter((c) => c.id !== contractId))
     if (activeContract?.id === contractId) setActiveContract(null)
-    toast.success('Vertrag gelöscht')
+    toast.success('Contract deleted')
   }
 
   const handleSaveAsTemplate = async () => {
@@ -439,7 +439,7 @@ export default function ContractTab({
               category="rechnung"
               onSelect={(subject, body) => { setSendSubject(subject); setSendMessage(body) }}
               vars={{ client_name: clientName, project_title: pendingSendContract.title }}
-              label="Vorlage wählen"
+              label="Select template"
             />
           </div>
           {/* Subject */}
@@ -465,7 +465,7 @@ export default function ContractTab({
               placeholder="Deine Nachricht an den Kunden..."
             />
             <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-              Der Unterschriften-Link wird automatisch im E-Mail hinzugefügt.
+              The signature link will be automatically added to the email.
             </p>
           </div>
         </div>
@@ -543,7 +543,7 @@ export default function ContractTab({
               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
-              ← Zurück
+              ← Back
             </button>
             <input
               type="text"
@@ -613,7 +613,7 @@ export default function ContractTab({
                   onClick={() => {
                     setPendingSendContract(activeContract)
                     setSendSubject(`📄 ${activeContract.title}`)
-                    setSendMessage(`Hallo ${clientName?.split(' ')[0] || ''},\n\nbitte unterzeichne den beigefügten Vertrag über den folgenden Link.\n\nVielen Dank!\n${photographerName || ''}`)
+                    setSendMessage(`Hello ${clientName?.split(' ')[0] || ''},\n\nplease sign the attached contract via the following link.\n\nThank you!\n${photographerName || ''}`)
                     setShowSendModal(true)
                   }}
                   disabled={!clientEmail}
@@ -830,7 +830,7 @@ export default function ContractTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Verträge
+          Contracts
         </h3>
         <div className="relative">
           <button

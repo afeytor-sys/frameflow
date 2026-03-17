@@ -139,7 +139,7 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
 
   const saveQuestionnaire = async () => {
     if (!title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (questions.length === 0) { toast.error('Mindestens eine Frage hinzufügen'); return }
+    if (questions.length === 0) { toast.error('Add at least one question'); return }
     setSaving(true)
 
     if (questionnaire) {
@@ -172,13 +172,13 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
     const studio = studioName || 'Dein Fotograf'
     return `Hallo ${firstName}! 👋
 
-Vielen Dank für dein Interesse! Ich freue mich sehr auf unser gemeinsames Shooting.
+Thank you for your interest! I am very much looking forward to our shoot together.
 
-Ich habe einen Fragebogen für dich vorbereitet: "${qTitle}"
+I have prepared a questionnaire for you: "${qTitle}"
 
-Bitte nimm dir kurz Zeit, die Fragen zu beantworten — das hilft mir, alles perfekt für euch vorzubereiten.
+Please take a moment to answer the questions — it helps me prepare everything perfectly for you.
 
-Liebe Grüße,
+Best regards,
 ${studio}`
   }
 
@@ -228,7 +228,7 @@ ${studio}`
 
   const handleSchedule = async () => {
     if (!questionnaire || !clientEmail) return
-    if (!scheduleDate) { toast.error('Bitte ein Datum auswählen'); return }
+    if (!scheduleDate) { toast.error('Please select a date'); return }
     setScheduling(true)
     const dt = new Date(`${scheduleDate}T${scheduleTime}:00`)
     if (dt <= new Date()) { toast.error('Das Datum muss in der Zukunft liegen'); setScheduling(false); return }
@@ -236,7 +236,7 @@ ${studio}`
     setShowEmailModal(false)
     setShowScheduleModal(false)
     setScheduling(false)
-    toast.success(`Fragebogen geplant für ${dt.toLocaleDateString('de-DE')} um ${scheduleTime} Uhr`)
+    toast.success(`Questionnaire scheduled for ${dt.toLocaleDateString('en-US')} at ${scheduleTime}`)
   }
 
   const cancelSchedule = () => {
@@ -260,11 +260,11 @@ ${studio}`
 
   const deleteQuestionnaire = async () => {
     if (!questionnaire) return
-    if (!confirm('Fragebogen wirklich löschen?')) return
+    if (!confirm('Really delete this questionnaire?')) return
     await supabase.from('questionnaires').delete().eq('id', questionnaire.id)
     setQuestionnaire(null)
     setSubmission(null)
-    toast.success('Fragebogen gelöscht')
+    toast.success('Questionnaire deleted')
   }
 
   // Format checkbox answers for display
@@ -295,7 +295,7 @@ ${studio}`
             <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               {questionnaire ? 'Fragebogen bearbeiten' : 'Neuer Fragebogen'}
             </h3>
-            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Erstelle Fragen für deinen Kunden</p>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Create questions for your client</p>
           </div>
           <button onClick={() => setShowBuilder(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
             <X className="w-4 h-4" />
@@ -346,13 +346,13 @@ ${studio}`
               style={{ background: 'var(--accent)' }}
             >
               <Plus className="w-3.5 h-3.5" />
-              Frage hinzufügen
+              Add question
             </button>
           </div>
 
           {questions.length === 0 && (
             <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Fragen — lade eine Vorlage oder füge Fragen hinzu</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>No questions yet — load a template or add questions</p>
             </div>
           )}
 
@@ -524,7 +524,7 @@ ${studio}`
                     onClick={deleteQuestionnaire}
                     className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
                     style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                    title="Löschen"
+                    title="Delete"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -597,7 +597,7 @@ ${studio}`
                 <div className="flex items-center gap-2 py-2.5 px-4 rounded-xl" style={{ background: 'rgba(61,186,111,0.10)', border: '1px solid rgba(61,186,111,0.20)' }}>
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#3DBA6F' }} />
                   <span className="text-[13px] font-bold" style={{ color: '#3DBA6F' }}>
-                    Ausgefüllt am {new Date(submission.submitted_at).toLocaleDateString('de-DE')}
+                    Completed on {new Date(submission.submitted_at).toLocaleDateString('en-US')}
                   </span>
                 </div>
               )}
@@ -686,7 +686,7 @@ ${studio}`
                   category="fragebogen"
                   onSelect={(subject, body) => { setEmailSubject(subject); setEmailMessage(body) }}
                   vars={{ client_name: clientName, project_title: questionnaire?.title }}
-                  label="Vorlage wählen"
+                  label="Select template"
                 />
               </div>
 
@@ -718,7 +718,7 @@ ${studio}`
                   placeholder="Deine Nachricht an den Kunden..."
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Der Button zum Fragebogen wird automatisch im Email hinzugefügt.
+                  The questionnaire button will be automatically added to the email.
                 </p>
               </div>
 
@@ -804,8 +804,8 @@ ${studio}`
                   <Sparkles className="w-4 h-4" style={{ color: '#8B5CF6' }} />
                 </div>
                 <div>
-                  <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Vorlage auswählen</h3>
-                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Wähle eine Vorlage und passe sie an</p>
+                  <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Select template</h3>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Choose a template and customize it</p>
                 </div>
               </div>
               <button
@@ -878,8 +878,8 @@ ${studio}`
                 </div>
                 <div className="space-y-2">
                   {[
-                    { key: 'hochzeit', emoji: '💍', label: 'Hochzeit — Fragebogen', desc: 'Trauung, Feier, Gäste & besondere Wünsche', color: '#F59E0B', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)' },
-                    { key: 'portrait', emoji: '📸', label: 'Portrait Shooting — Fragebogen', desc: 'Stil, Look, Referenzen & Wünsche', color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)' },
+                    { key: 'hochzeit', emoji: '💍', label: 'Wedding — Questionnaire', desc: 'Ceremony, reception, guests & special wishes', color: '#F59E0B', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)' },
+                    { key: 'portrait', emoji: '📸', label: 'Portrait Shoot — Questionnaire', desc: 'Style, look, references & wishes', color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.25)' },
                     { key: 'event',   emoji: '🎉', label: 'Event — Fragebogen', desc: 'Ablauf, Personen & Programmpunkte', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.25)' },
                   ].map(tpl => {
                     const tplData = QUESTIONNAIRE_TEMPLATES.find(t => t.key === tpl.key)

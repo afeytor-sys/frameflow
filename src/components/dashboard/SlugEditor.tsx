@@ -58,7 +58,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
 
     if (error) {
       if (error.code === '23505') {
-        toast.error('Dieser Slug ist bereits vergeben — bitte einen anderen wählen')
+        toast.error('This slug is already taken — please choose another one')
       } else {
         toast.error('Fehler beim Speichern')
       }
@@ -177,7 +177,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
               rel="noopener noreferrer"
               className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
               style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
-              title="Portal öffnen"
+              title="Open portal"
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>

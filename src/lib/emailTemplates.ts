@@ -19,21 +19,21 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: 'rechnung-standard',
     name: 'Rechnung versenden',
-    description: 'Professionelle E-Mail für den Rechnungsversand',
+    description: 'Professional email for invoice delivery',
     category: 'rechnung',
     subject: 'Deine Rechnung von {{studio_name}}',
     body: `Hallo {{client_name}},
 
-anbei findest du deine Rechnung für das Projekt „{{project_title}}".
+please find your invoice for the project „{{project_title}}".
 
-Bitte überweise den Betrag bis zum angegebenen Fälligkeitsdatum. Bei Fragen stehe ich dir gerne zur Verfügung.
+Please transfer the amount by the specified due date. Feel free to contact me if you have any questions.
 
 Du kannst deine Rechnung jederzeit im Kundenportal einsehen:
 {{portal_url}}
 
-Vielen Dank für dein Vertrauen!
+Thank you for your trust!
 
-Herzliche Grüße,
+Best regards,
 {{studio_name}}`,
   },
   {
@@ -44,13 +44,13 @@ Herzliche Grüße,
     subject: 'Erinnerung: Offene Rechnung – {{project_title}}',
     body: `Hallo {{client_name}},
 
-ich möchte dich freundlich daran erinnern, dass noch eine Rechnung für das Projekt „{{project_title}}" offen ist.
+I would like to kindly remind you that there is still an open invoice for the project „{{project_title}}" offen ist.
 
 Falls du die Zahlung bereits veranlasst hast, betrachte diese Nachricht bitte als gegenstandslos.
 
 Bei Fragen oder Problemen melde dich gerne bei mir.
 
-Herzliche Grüße,
+Best regards,
 {{studio_name}}`,
   },
   {
@@ -61,68 +61,68 @@ Herzliche Grüße,
     subject: '🎉 Deine Fotos sind fertig, {{client_name}}!',
     body: `Hallo {{client_name}},
 
-ich freue mich, dir mitteilen zu können, dass deine Fotos aus dem Projekt „{{project_title}}" fertig bearbeitet sind!
+I am happy to let you know that your photos from the project „{{project_title}}" are ready!
 
 Du kannst deine Galerie jetzt im Kundenportal ansehen, Favoriten markieren und die Bilder herunterladen:
 {{portal_url}}
 
 Ich hoffe, die Bilder gefallen dir genauso gut wie mir. Ich freue mich auf dein Feedback!
 
-Herzliche Grüße,
+Best regards,
 {{studio_name}}`,
   },
   {
     id: 'galerie-erinnerung',
     name: 'Galerie-Erinnerung',
-    description: 'Erinnerung, dass die Galerie bald abläuft',
+    description: 'Reminder that the gallery will expire soon',
     category: 'galerie',
-    subject: '⏰ Deine Galerie läuft bald ab – {{project_title}}',
+    subject: '⏰ Your gallery will expire soon – {{project_title}}',
     body: `Hallo {{client_name}},
 
-nur eine kurze Erinnerung: Deine Fotogalerie aus dem Projekt „{{project_title}}" läuft in Kürze ab.
+just a quick reminder: Your photo gallery from the project „{{project_title}}" will expire soon.
 
-Bitte stelle sicher, dass du alle gewünschten Bilder rechtzeitig heruntergeladen hast:
+Please make sure you have downloaded all desired photos in time:
 {{portal_url}}
 
 Bei Fragen melde dich gerne bei mir.
 
-Herzliche Grüße,
+Best regards,
 {{studio_name}}`,
   },
   {
     id: 'fragebogen-standard',
     name: 'Fragebogen senden',
-    description: 'Bitte den Kunden, den Fragebogen auszufüllen',
+    description: 'Ask the client to fill out the questionnaire',
     category: 'fragebogen',
-    subject: '📋 Kurzer Fragebogen für dein Shooting – {{project_title}}',
+    subject: '📋 Short questionnaire for your shoot – {{project_title}}',
     body: `Hallo {{client_name}},
 
-damit ich dein Shooting perfekt vorbereiten kann, würde ich mich freuen, wenn du dir kurz Zeit nimmst, den folgenden Fragebogen auszufüllen.
+to prepare your shoot perfectly, I would appreciate it if you could take a moment to fill out the following questionnaire.
 
-Das dauert nur wenige Minuten und hilft mir, deine Wünsche und Vorstellungen besser zu verstehen:
+It only takes a few minutes and helps me better understand your wishes and ideas:
 {{portal_url}}
 
 Vielen Dank im Voraus!
 
-Herzliche Grüße,
+Best regards,
 {{studio_name}}`,
   },
   {
     id: 'fragebogen-erinnerung',
     name: 'Fragebogen-Erinnerung',
-    description: 'Erinnerung, den Fragebogen noch auszufüllen',
+    description: 'Reminder to fill out the questionnaire',
     category: 'fragebogen',
-    subject: 'Erinnerung: Fragebogen für „{{project_title}}" noch offen',
+    subject: 'Erinnerung: Questionnaire for „{{project_title}}" still open',
     body: `Hallo {{client_name}},
 
-ich wollte kurz nachfragen, ob du schon die Möglichkeit hattest, den Fragebogen für unser Shooting auszufüllen.
+I wanted to quickly check if you have had the chance to fill out the questionnaire for our shoot.
 
 Deine Antworten helfen mir sehr bei der Vorbereitung:
 {{portal_url}}
 
 Falls du Fragen hast, melde dich gerne!
 
-Herzliche Grüße,
+Best regards,
 {{studio_name}}`,
   },
 ]

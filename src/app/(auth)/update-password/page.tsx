@@ -32,11 +32,11 @@ export default function UpdatePasswordPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) {
-      setError('Die Passwörter stimmen nicht überein.')
+      setError('Passwords do not match.')
       return
     }
     if (password.length < 8) {
-      setError('Das Passwort muss mindestens 8 Zeichen lang sein.')
+      setError('Password must be at least 8 characters.')
       return
     }
     setLoading(true)
@@ -77,10 +77,10 @@ export default function UpdatePasswordPage() {
               className="text-[#111110] font-semibold mb-2"
               style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em' }}
             >
-              Passwort aktualisiert!
+              Password updated!
             </h2>
             <p className="text-[#7A7670] text-[14px] leading-relaxed">
-              Dein Passwort wurde erfolgreich geändert. Du wirst gleich weitergeleitet…
+              Your password has been changed successfully. You will be redirected shortly…
             </p>
           </div>
         ) : (
@@ -90,10 +90,10 @@ export default function UpdatePasswordPage() {
                 className="text-[#111110] font-semibold mb-2"
                 style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '28px', letterSpacing: '-0.03em' }}
               >
-                Neues Passwort
-              </h1>
-              <p className="text-[#7A7670] text-[14px]">
-                Gib dein neues Passwort ein.
+              New password
+            </h1>
+            <p className="text-[#7A7670] text-[14px]">
+              Enter your new password.
               </p>
             </div>
 
@@ -108,7 +108,7 @@ export default function UpdatePasswordPage() {
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-                    Neues Passwort
+                    New password
                   </label>
                   <input
                     type="password"
@@ -116,7 +116,7 @@ export default function UpdatePasswordPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    placeholder="Mindestens 8 Zeichen"
+                    placeholder="At least 8 characters"
                     className={inputClass}
                     autoFocus
                   />
@@ -124,7 +124,7 @@ export default function UpdatePasswordPage() {
 
                 <div>
                   <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-                    Passwort bestätigen
+                    Confirm password
                   </label>
                   <input
                     type="password"
@@ -132,7 +132,7 @@ export default function UpdatePasswordPage() {
                     onChange={(e) => setConfirm(e.target.value)}
                     required
                     minLength={8}
-                    placeholder="Passwort wiederholen"
+                    placeholder="Repeat password"
                     className={inputClass}
                   />
                 </div>
@@ -149,7 +149,7 @@ export default function UpdatePasswordPage() {
                   className="w-full py-2.5 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                   style={{ letterSpacing: '0.01em' }}
                 >
-                  {loading ? 'Wird gespeichert...' : 'Passwort aktualisieren'}
+                  {loading ? 'Saving...' : 'Update password'}
                 </button>
               </form>
             )}

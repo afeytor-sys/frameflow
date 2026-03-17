@@ -13,24 +13,24 @@ const T = {
     badge: 'Built by photographers, for photographers.',
     h1a: 'Fotonizer ist dein Fotostudio-Organizer.',
     h1b: 'Alles an einem Ort.',
-    sub: 'Buchungen, Verträge, Kundenkommunikation und Galerien — in einer einfachen Plattform für moderne Fotostudios.',
+    sub: 'Bookings, contracts, client communication and galleries — in one simple platform for modern photo studios.',
     ctaPrimary: 'Kostenlos starten',
     ctaSecondary: 'Demo ansehen',
     socialProof: 'Vertraut von',
     socialProof2: '200+ Fotografen in Europa',
     darkModeLabel: 'Hell & Dunkel — du entscheidest.',
     darkModeSub: 'Fotonizer passt sich deinem Stil an. Wechsle jederzeit zwischen hellem und dunklem Modus.',
-    problem: { label: 'Das Problem', h2: 'Schluss mit fünf verschiedenen Tools.', p1: 'Die meisten Fotobetriebe nutzen eine Mischung aus Kalendern, Verträgen, E-Mail-Threads und Galerie-Plattformen.', p2: 'Fotonizer bringt alles in einem sauberen System zusammen — speziell für Fotografen entwickelt.' },
-    bookings: { label: 'Buchungen', h2: 'Behalte jeden Shoot im Blick.', p1: 'Buchungen, Sessions und Kunden in einer klaren Übersicht verwalten.', p2: 'Weißt immer, was als Nächstes kommt — ohne Tabellen oder verstreute Tools.' },
-    contracts: { label: 'Verträge', h2: 'Verträge ohne Aufwand.', p1: 'Verträge in Sekunden erstellen, versenden und verwalten.', p2: 'Kunden können online unterschreiben — du behältst alles an einem Ort.' },
-    analytics: { label: 'Analytics', h2: 'Dein Studio auf einen Blick.', p1: 'Umsatz, offene Rechnungen, Kunden und Konversionsrate — alles in einer klaren Übersicht.', p2: 'Verstehe, wie dein Business wächst, und triff bessere Entscheidungen.' },
-    portal: { label: 'Kundenportal', h2: 'Jedem Kunden sein eigenes Portal.', p1: 'Jeder Kunde bekommt einen privaten Bereich für sein Projekt — Galerie, Vertrag, Zeitplan und Treffpunkt.', p2: 'Das schafft ein Premium-Erlebnis, das Fotografen und Kunden gleichermaßen lieben.' },
-    featuresSection: { label: 'Alles inklusive', h2: 'Gebaut für echte Foto-Workflows.', sub: 'Vom ersten Booking bis zur finalen Galerie-Lieferung — Fotonizer unterstützt jeden Schritt.' },
+    problem: { label: 'The Problem', h2: 'Stop juggling five different tools.', p1: 'Most photography businesses use a mix of calendars, contracts, email threads and gallery platforms.', p2: 'Fotonizer brings everything together in one clean system — built specifically for photographers.' },
+    bookings: { label: 'Bookings', h2: 'Keep track of every shoot.', p1: 'Manage bookings, sessions and clients in one clear overview.', p2: 'Always know what’s coming next — no spreadsheets or scattered tools.' },
+    contracts: { label: 'Contracts', h2: 'Contracts without the hassle.', p1: 'Create, send and manage contracts in seconds.', p2: 'Clients can sign online — you keep everything in one place.' },
+    analytics: { label: 'Analytics', h2: 'Your studio at a glance.', p1: 'Revenue, open invoices, clients and conversion rate — all in one clear overview.', p2: 'Understand how your business grows and make better decisions.' },
+    portal: { label: 'Client Portal', h2: 'Every client gets their own portal.', p1: 'Each client gets a private space for their project — gallery, contract, timeline and meeting point.', p2: 'This creates a premium experience that photographers and clients love equally.' },
+    featuresSection: { label: 'Everything included', h2: 'Built for real photo workflows.', sub: 'From the first booking to the final gallery delivery — Fotonizer supports every step.' },
     features: [
-      { icon: '📅', title: 'Buchungen & Sessions', desc: 'Jeden Shoot, jede Session und jeden Kunden in einer klaren Übersicht verfolgen.' },
-      { icon: '✍️', title: 'Digitale Verträge', desc: 'Verträge in Sekunden erstellen und versenden. Kunden unterschreiben online.' },
-      { icon: '🖼️', title: 'Foto-Galerien', desc: 'Bilder über schöne Online-Galerien liefern — mit Download-Kontrolle und Kunden-Favoriten.' },
-      { icon: '🔗', title: 'Kundenportal', desc: 'Jeder Kunde bekommt einen privaten Bereich für sein Projekt, Verträge, Moodboards und Galerie.' },
+      { icon: '📅', title: 'Bookings & Sessions', desc: 'Track every shoot, session and client in one clear overview.' },
+      { icon: '✍️', title: 'Digital Contracts', desc: 'Create and send contracts in seconds. Clients sign online.' },
+      { icon: '🖼️', title: 'Photo Galleries', desc: 'Deliver images via beautiful online galleries — with download control and client favorites.' },
+      { icon: '🔗', title: 'Client Portal', desc: 'Every client gets a private space for their project, contracts, moodboards and gallery.' },
       { icon: '📊', title: 'Analytics', desc: 'Umsatz, Konversionsrate und Wachstum auf einen Blick. Verstehe dein Business.' },
       { icon: '💳', title: 'Rechnungen', desc: 'Professionelle Rechnungen direkt aus der Plattform erstellen und versenden.' },
     ],
@@ -45,14 +45,14 @@ const T = {
     testimonials: { label: 'Was Fotografen sagen', h2: 'Fotografen lieben Fotonizer' },
     reviews: [
       { quote: 'Meine Kunden fragen immer, welches Tool ich benutze. Das Portal wirkt so professionell.', name: 'Anna M.', role: 'Hochzeitsfotografin · Wien', stars: 5 },
-      { quote: 'Ich spare mindestens 3 Stunden pro Woche, die ich früher mit E-Mails und PDFs verbracht habe.', name: 'Thomas B.', role: 'Portrait-Fotograf · Berlin', stars: 5 },
-      { quote: 'Endlich ein Tool, das wirklich für Fotografen gebaut wurde. Alles macht einfach Sinn.', name: 'Julia S.', role: 'Commercial-Fotografin · Zürich', stars: 5 },
+      { quote: 'I save at least 3 hours a week that I used to spend on emails and PDFs.', name: 'Thomas B.', role: 'Portrait Photographer · Berlin', stars: 5 },
+      { quote: 'Finally a tool that was truly built for photographers. Everything just makes sense.', name: 'Julia S.', role: 'Commercial Photographer · Zurich', stars: 5 },
     ],
-    pricing: { label: 'Preise', h2: 'Transparent. Fair. Jederzeit kündbar.', sub: 'Kostenlos starten — upgrade wenn du bereit bist.' },
-    faq: { label: 'FAQ', h2: 'Häufige Fragen' },
-    finalCta: { h2: 'Führe dein Fotobusiness wie ein Profi.', sub: 'Schließe dich Fotografen an, die ihren Workflow mit Fotonizer vereinfachen.', btn1: 'Kostenlos starten', btn2: 'Demo buchen' },
+    pricing: { label: 'Pricing', h2: 'Transparent. Fair. Cancel anytime.', sub: 'Start for free — upgrade when you’re ready.' },
+    faq: { label: 'FAQ', h2: 'Frequently asked questions' },
+    finalCta: { h2: 'Run your photography business like a pro.', sub: 'Join photographers who simplify their workflow with Fotonizer.', btn1: 'Start for free', btn2: 'Book a demo' },
     trust: ['Kostenlos starten', 'DSGVO-konform', 'EU-Server'],
-    footer: { tagline: 'Studio-Management für professionelle Fotografen.', copyright: 'Alle Rechte vorbehalten.', social: '200+ Fotografen vertrauen Fotonizer' },
+    footer: { tagline: 'Studio management for professional photographers.', copyright: 'All rights reserved.', social: '200+ photographers trust Fotonizer' },
     footerLinks: [
       { href: '#features', label: 'Features' },
       { href: '#pricing', label: 'Preise' },
@@ -384,8 +384,8 @@ function PhonePortalMockup() {
                 </div>
               </div>
               <div style={{ background: '#1C1C1A', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8', marginBottom: 2 }}>Schönbrunn Palace</div>
-                <div style={{ fontSize: 8, color: '#5A5A58' }}>Schönbrunner Schloßstraße 47, Vienna</div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8', marginBottom: 2 }}>Schoenbrunn Palace</div>
+                <div style={{ fontSize: 8, color: '#5A5A58' }}>Schoenbrunn Palace Rd 47, Vienna</div>
                 <div style={{ fontSize: 8, color: '#C4A47C', marginTop: 4 }}>Open in Maps →</div>
               </div>
             </div>
@@ -429,7 +429,7 @@ function BookingsMockup() {
           { name: 'Laura & Marc', type: 'Wedding', date: 'Mar 27', time: '10:00', color: '#C4A47C' },
           { name: 'Anna K.', type: 'Portrait', date: 'Apr 3', time: '14:00', color: '#3B82F6' },
           { name: 'TechCorp', type: 'Commercial', date: 'Apr 10', time: '09:00', color: '#10B981' },
-          { name: 'Müller Family', type: 'Family', date: 'Apr 15', time: '16:00', color: '#F59E0B' },
+          { name: 'Miller Family', type: 'Family', date: 'Apr 15', time: '16:00', color: '#F59E0B' },
         ].map(({ name, type, date, time, color }) => (
           <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#1C1C1A', borderRadius: 9, marginBottom: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ width: 3, height: 30, borderRadius: 2, background: color, flexShrink: 0 }} />
@@ -686,7 +686,7 @@ export default function HomePage() {
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-black mb-10" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>
-            {lang === 'de' ? 'Fotonizer funktioniert für jeden Stil und jedes Genre' : 'Fotonizer works for every style and genre'}
+            {'Fotonizer works for every style and genre'}
           </h2>
           <div className="flex flex-wrap justify-center gap-3">
             {t.genres.map(({ emoji, label }) => (

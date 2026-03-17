@@ -42,7 +42,7 @@ const STATUS_CONFIG = {
   draft:     { label: 'Entwurf',         color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', icon: PenLine },
   not_sent:  { label: 'Gesendet',        color: '#F59E0B', bg: 'rgba(245,158,11,0.12)',  icon: Send },
   scheduled: { label: 'Geplant',         color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)',  icon: Calendar },
-  completed: { label: 'Ausgefüllt',      color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
+  completed: { label: 'Completed',      color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: CheckCircle2 },
 }
 
 const TEMPLATE_ACCENTS = [
@@ -57,13 +57,13 @@ const TEMPLATE_CARDS = [
   {
     key: 'hochzeit',
     label: 'Hochzeit-Fragebogen',
-    desc: 'Trauung, Feier, Gäste & besondere Wünsche',
+    desc: 'Ceremony, reception, guests & special wishes',
     accentIdx: 0,
   },
   {
     key: 'portrait',
     label: 'Portrait Shooting',
-    desc: 'Stil, Look, Referenzen & Wünsche',
+    desc: 'Style, look, references & wishes',
     accentIdx: 1,
   },
   {
@@ -181,7 +181,7 @@ export default function QuestionnairesPage() {
 
   const builderSave = async () => {
     if (!builderTitle.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (builderQuestions.length === 0) { toast.error('Mindestens eine Frage hinzufügen'); return }
+    if (builderQuestions.length === 0) { toast.error('Add at least one question'); return }
     setBuilderSaving(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -240,27 +240,27 @@ export default function QuestionnairesPage() {
   const deleteRow = async (rowId: string, rowTitle: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`Fragebogen "${rowTitle}" wirklich löschen?`)) return
+    if (!confirm(`Really delete questionnaire "${rowTitle}"?`)) return
     setDeletingRow(rowId)
     const { error } = await supabase.from('questionnaires').delete().eq('id', rowId)
     if (error) {
-      toast.error('Fehler beim Löschen')
+      toast.error('Error deleting')
     } else {
       setRows(prev => prev.filter(r => r.id !== rowId))
-      toast.success('Fragebogen gelöscht')
+      toast.success('Questionnaire deleted')
     }
     setDeletingRow(null)
   }
 
   const deleteCustomTemplate = async (tplId: string, tplTitle: string) => {
-    if (!confirm(`Vorlage "${tplTitle}" wirklich löschen?`)) return
+    if (!confirm(`Really delete template "${tplTitle}"?`)) return
     setDeletingTemplate(tplId)
     const { error } = await supabase.from('questionnaire_templates').delete().eq('id', tplId)
     if (error) {
-      toast.error('Fehler beim Löschen')
+      toast.error('Error deleting')
     } else {
       setCustomTemplates(prev => prev.filter(t => t.id !== tplId))
-      toast.success('Vorlage gelöscht')
+      toast.success('Template deleted')
     }
     setDeletingTemplate(null)
   }
@@ -297,10 +297,10 @@ export default function QuestionnairesPage() {
           className="font-black"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
         >
-          Fragebögen
+          Questionnaires
         </h1>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-          {rows.length} {rows.length === 1 ? 'Fragebogen' : 'Fragebögen'} · Alle Kundenfragebögen im Überblick
+          {rows.length} {rows.length === 1 ? 'Questionnaire' : 'Questionnaires'} · All client questionnaires at a glance
         </p>
       </div>
 
@@ -442,7 +442,7 @@ export default function QuestionnairesPage() {
               <BookmarkCheck className="w-8 h-8 mb-3 opacity-30" style={{ color: CUSTOM_ACCENT.color }} />
               <p className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>Noch keine eigenen Vorlagen</p>
               <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                Öffne einen Fragebogen und klicke auf &quot;Als Vorlage&quot; um ihn hier zu speichern
+                Open a questionnaire and click &quot;Save as template&quot; to save it here
               </p>
             </div>
           ) : customTemplates.map((tpl) => {
@@ -483,7 +483,7 @@ export default function QuestionnairesPage() {
                       disabled={isDeleting}
                       className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                       style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                      title="Vorlage löschen"
+                      title="Delete template"
                     >
                       {isDeleting
                         ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -597,10 +597,10 @@ export default function QuestionnairesPage() {
                 <div className="hidden sm:block flex-shrink-0 text-right">
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {status === 'completed' && q.submission
-                      ? `Ausgefüllt ${new Date(Array.isArray(q.submission) ? q.submission[0]?.submitted_at : q.submission.submitted_at).toLocaleDateString('de')}`
+                      ? `Completed ${new Date(Array.isArray(q.submission) ? q.submission[0]?.submitted_at : q.submission.submitted_at).toLocaleDateString('en-US')}`
                       : status === 'scheduled' && q.scheduled_at
-                      ? `Geplant ${new Date(q.scheduled_at).toLocaleDateString('de')}`
-                      : `Erstellt ${new Date(q.created_at).toLocaleDateString('de')}`
+                      ? `Geplant ${new Date(q.scheduled_at).toLocaleDateString('en-US')}`
+                      : `Erstellt ${new Date(q.created_at).toLocaleDateString('en-US')}`
                     }
                   </p>
                 </div>
@@ -620,7 +620,7 @@ export default function QuestionnairesPage() {
                   disabled={deletingRow === q.id}
                   className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
                   style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                  title="Fragebogen löschen"
+                  title="Delete questionnaire"
                 >
                   {deletingRow === q.id
                     ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -651,10 +651,10 @@ export default function QuestionnairesPage() {
             <ClipboardList className="w-6 h-6" style={{ color: '#6366F1' }} />
           </div>
           <h3 className="font-black mb-2" style={{ fontSize: '1.1rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-            {filter === 'all' ? 'Noch keine Fragebögen' : `Keine "${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}"-Fragebögen`}
+            {filter === 'all' ? 'No questionnaires yet' : `No "${STATUS_CONFIG[filter as keyof typeof STATUS_CONFIG]?.label}" questionnaires`}
           </h3>
           <p className="text-[13px] max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Wähle eine Vorlage oben aus oder erstelle Fragebögen direkt in einem Projekt
+            Select a template above or create questionnaires directly in a project
           </p>
         </div>
       )}
@@ -713,13 +713,13 @@ export default function QuestionnairesPage() {
                     style={{ background: 'var(--accent)' }}
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Frage hinzufügen
+                    Add question
                   </button>
                 </div>
 
                 {builderQuestions.length === 0 && (
                   <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
-                    <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Fragen — füge Fragen hinzu</p>
+                    <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>No questions yet — add questions</p>
                   </div>
                 )}
 

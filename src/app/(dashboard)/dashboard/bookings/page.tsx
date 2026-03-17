@@ -37,7 +37,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }
   cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', label: 'Storniert' },
 }
 
-const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+const MONTHS_DE = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS_DE = ['Mo','Di','Mi','Do','Fr','Sa','So']
 
 function formatDateDE(dateStr: string) {
@@ -190,7 +190,7 @@ export default function BookingsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (!form.shoot_date) { toast.error('Bitte ein Datum auswählen'); return }
+    if (!form.shoot_date) { toast.error('Please select a date'); return }
     if (!photographerId) return
     setSaving(true)
 
@@ -573,7 +573,7 @@ export default function BookingsPage() {
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Location (optional)</label>
                 <input type="text" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  placeholder="z.B. Schloss Nymphenburg, München" className="input-base w-full" />
+                  placeholder="e.g. Central Park, New York" className="input-base w-full" />
               </div>
 
               {/* ── KUNDE ── */}
@@ -680,7 +680,7 @@ export default function BookingsPage() {
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Notizen (optional)</label>
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Besondere Wünsche, Infos..." rows={2} className="input-base w-full resize-none" />
+                  placeholder="Special requests, notes..." rows={2} className="input-base w-full resize-none" />
               </div>
 
               {/* Footer */}

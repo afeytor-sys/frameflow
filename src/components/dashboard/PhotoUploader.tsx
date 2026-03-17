@@ -76,7 +76,7 @@ export default function PhotoUploader({
 
     if (rejected.length > 0) {
       toast.error(
-        `${rejected.length} ${rejected.length === 1 ? 'Datei' : 'Dateien'} übersprungen — Speicherlimit erreicht.`,
+        `${rejected.length} ${rejected.length === 1 ? 'file' : 'files'} skipped — storage limit reached.`,
         { duration: 5000 }
       )
       if (onStorageLimitReached) onStorageLimitReached()

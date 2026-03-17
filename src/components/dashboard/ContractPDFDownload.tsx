@@ -290,7 +290,7 @@ export default function ContractPDFDownload({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${title.replace(/[^a-zA-Z0-9äöüÄÖÜß\s]/g, '').trim()}.pdf`
+      a.download = `${title.replace(/[^a-zA-Z0-9\s]/g, '').trim()}.pdf`
       a.click()
       URL.revokeObjectURL(url)
       toast.success('PDF heruntergeladen!')

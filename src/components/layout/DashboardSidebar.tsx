@@ -31,15 +31,15 @@ interface Props {
 
 const navItems = [
   {
-    key: 'dashboard', href: '/dashboard', icon: LayoutDashboard, label: 'Übersicht', plans: null,
+    key: 'dashboard', href: '/dashboard', icon: LayoutDashboard, label: 'Overview', plans: null,
     activeColor: '#C4A47C', activeBg: 'rgba(196,164,124,0.15)',
   },
   {
-    key: 'clients', href: '/dashboard/clients', icon: Users, label: 'Kunden', plans: null,
+    key: 'clients', href: '/dashboard/clients', icon: Users, label: 'Clients', plans: null,
     activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)',
   },
   {
-    key: 'projects', href: '/dashboard/projects', icon: FolderOpen, label: 'Projekte', plans: null,
+    key: 'projects', href: '/dashboard/projects', icon: FolderOpen, label: 'Projects', plans: null,
     activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)',
   },
   {
@@ -47,23 +47,23 @@ const navItems = [
     activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)',
   },
   {
-    key: 'contracts', href: '/dashboard/contracts', icon: FileText, label: 'Verträge', plans: null,
+    key: 'contracts', href: '/dashboard/contracts', icon: FileText, label: 'Contracts', plans: null,
     activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)',
   },
   {
-    key: 'galleries', href: '/dashboard/galleries', icon: Images, label: 'Galerien', plans: null,
+    key: 'galleries', href: '/dashboard/galleries', icon: Images, label: 'Galleries', plans: null,
     activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)',
   },
   {
-    key: 'invoices', href: '/dashboard/invoices', icon: Receipt, label: 'Rechnungen', plans: null,
+    key: 'invoices', href: '/dashboard/invoices', icon: Receipt, label: 'Invoices', plans: null,
     activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)',
   },
   {
-    key: 'questionnaires', href: '/dashboard/questionnaires', icon: ClipboardList, label: 'Fragebögen', plans: null,
+    key: 'questionnaires', href: '/dashboard/questionnaires', icon: ClipboardList, label: 'Questionnaires', plans: null,
     activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)',
   },
   {
-    key: 'email-vorlagen', href: '/dashboard/email-vorlagen', icon: Mail, label: 'E-Mail Vorlagen', plans: null,
+    key: 'email-vorlagen', href: '/dashboard/email-vorlagen', icon: Mail, label: 'Email Templates', plans: null,
     activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)',
   },
   {
@@ -73,8 +73,8 @@ const navItems = [
 ]
 
 const bottomItems = [
-  { key: 'settings', href: '/dashboard/settings', icon: Settings,   label: 'Einstellungen' },
-  { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard, label: 'Abonnement' },
+  { key: 'settings', href: '/dashboard/settings', icon: Settings,   label: 'Settings' },
+  { key: 'billing',  href: '/dashboard/billing',  icon: CreditCard, label: 'Subscription' },
 ]
 
 
@@ -251,7 +251,7 @@ export default function DashboardSidebar({ photographer }: Props) {
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? 'Erweitern' : 'Einklappen'}
+          title={collapsed ? 'Expand' : 'Collapse'}
           className={cn(
             'sidebar-nav-item sidebar-nav-inactive flex items-center gap-3 rounded-xl text-[13.5px] font-medium transition-all duration-150 w-full',
             collapsed ? 'justify-center p-3' : 'px-3 py-2.5'
@@ -261,7 +261,7 @@ export default function DashboardSidebar({ photographer }: Props) {
             ? <PanelLeftOpen className="w-[16px] h-[16px] flex-shrink-0" />
             : <PanelLeftClose className="w-[16px] h-[16px] flex-shrink-0" />
           }
-          {!collapsed && <span>Einklappen</span>}
+          {!collapsed && <span>Collapse</span>}
         </button>
 
         {/* User row */}
@@ -299,7 +299,7 @@ export default function DashboardSidebar({ photographer }: Props) {
               <button
                 onClick={handleLogout}
                 className="sidebar-nav-item sidebar-nav-inactive transition-colors flex-shrink-0 p-1.5 rounded-lg"
-                title="Abmelden"
+                title="Sign out"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>

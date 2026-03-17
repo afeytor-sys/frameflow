@@ -15,7 +15,7 @@ interface WeatherData {
 // WMO Weather interpretation codes → icon + label
 function getWeatherInfo(code: number): { icon: React.ElementType; label: string; color: string } {
   if (code === 0)                    return { icon: Sun,            label: 'Sonnig',       color: '#F59E0B' }
-  if (code <= 2)                     return { icon: Cloud,          label: 'Bewölkt',      color: '#94A3B8' }
+  if (code <= 2)                     return { icon: Cloud,          label: 'Cloudy',      color: '#94A3B8' }
   if (code === 3)                    return { icon: Cloud,          label: 'Bedeckt',      color: '#64748B' }
   if (code >= 51 && code <= 57)      return { icon: CloudDrizzle,   label: 'Nieselregen',  color: '#60A5FA' }
   if (code >= 61 && code <= 67)      return { icon: CloudRain,      label: 'Regen',        color: '#3B82F6' }
@@ -23,7 +23,7 @@ function getWeatherInfo(code: number): { icon: React.ElementType; label: string;
   if (code >= 80 && code <= 82)      return { icon: CloudRain,      label: 'Schauer',      color: '#3B82F6' }
   if (code >= 95 && code <= 99)      return { icon: CloudLightning, label: 'Gewitter',     color: '#A78BFA' }
   if (code >= 20 && code <= 29)      return { icon: Wind,           label: 'Windig',       color: '#94A3B8' }
-  return { icon: Cloud, label: 'Bewölkt', color: '#94A3B8' }
+  return { icon: Cloud, label: 'Cloudy', color: '#94A3B8' }
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {

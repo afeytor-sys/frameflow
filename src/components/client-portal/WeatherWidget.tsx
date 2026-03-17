@@ -28,7 +28,7 @@ function getWeatherIcon(code: number) {
 
 function getWeatherLabel(code: number): string {
   if (code === 0) return 'Sonnig'
-  if (code <= 3) return 'Bewölkt'
+  if (code <= 3) return 'Cloudy'
   if (code <= 48) return 'Neblig'
   if (code <= 67) return 'Regen'
   if (code <= 77) return 'Schnee'

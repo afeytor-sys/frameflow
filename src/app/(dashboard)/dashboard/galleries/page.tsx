@@ -106,7 +106,7 @@ export default function GalleriesPage() {
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (!form.project_id) { toast.error('Bitte ein Projekt auswählen'); return }
+    if (!form.project_id) { toast.error('Please select a project'); return }
     setCreating(true)
 
     const { data: gallery, error } = await supabase
@@ -322,7 +322,7 @@ export default function GalleriesPage() {
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Projekt *</label>
                 {projects.length > 0 ? (
                   <select value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} className="input-base w-full">
-                    <option value="">Projekt auswählen...</option>
+                    <option value="">Select project...</option>
                     {projects.map(p => {
                       const c = p.client
                       const cn = Array.isArray(c) ? c[0]?.full_name : c?.full_name

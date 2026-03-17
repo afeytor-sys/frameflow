@@ -150,7 +150,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           <h2 className="text-sm font-semibold text-[#1A1A1A]">Profil</h2>
 
           <div>
-            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Vollständiger Name</label>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Full Name</label>
             <input
               type="text"
               value={fullName}
@@ -167,7 +167,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
               disabled
               className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm bg-[#FAFAF8] text-[#6B6B6B] cursor-not-allowed"
             />
-            <p className="text-xs text-[#6B6B6B] mt-1">E-Mail kann nicht geändert werden.</p>
+            <p className="text-xs text-[#6B6B6B] mt-1">Email cannot be changed.</p>
           </div>
 
           <div>
@@ -265,14 +265,14 @@ export default function SettingsClient({ photographer, userId }: Props) {
           <div>
             <h2 className="text-sm font-semibold text-[#1A1A1A]">Bankverbindung</h2>
             <p className="text-xs text-[#6B6B6B] mt-1">
-              Diese Daten erscheinen auf deinen Rechnungen, damit Kunden die Zahlung überweisen können.
+              This information appears on your invoices so clients can make payments.
             </p>
           </div>
 
           <div className="p-3 rounded-lg bg-[#F0F0EC] border border-[#E8E8E4] flex items-start gap-2">
             <CreditCard className="w-4 h-4 text-[#C8A882] flex-shrink-0 mt-0.5" />
             <p className="text-xs text-[#6B6B6B]">
-              Deine Bankdaten werden <strong className="text-[#1A1A1A]">nur auf deinen Rechnungen</strong> angezeigt und niemals öffentlich geteilt.
+              Your bank details are <strong className="text-[#1A1A1A]">only shown on your invoices</strong> and never shared publicly.
             </p>
           </div>
 
@@ -359,7 +359,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
               </div>
               <p className="text-sm font-medium text-[#1A1A1A] mb-1">Pro-Funktion</p>
               <p className="text-xs text-[#6B6B6B] mb-4">
-                Eigenes Branding ist ab dem Pro-Plan verfügbar.
+                Custom branding is available from the Pro plan.
               </p>
               <a
                 href="/dashboard/billing"
@@ -380,7 +380,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
                 </div>
               </div>
               <p className="text-xs text-[#6B6B6B]">
-                Weitere Branding-Optionen (Primärfarbe, Custom Footer) folgen in einem Update.
+                More branding options (primary color, custom footer) coming in a future update.
               </p>
             </div>
           )}
@@ -392,13 +392,13 @@ export default function SettingsClient({ photographer, userId }: Props) {
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-4">
           <h2 className="text-sm font-semibold text-[#1A1A1A]">Benachrichtigungen</h2>
           <p className="text-xs text-[#6B6B6B]">
-            E-Mail-Benachrichtigungen werden automatisch gesendet für:
+            Email notifications are automatically sent for:
           </p>
           {[
             'Vertrag unterschrieben',
             'Galerie aufgerufen',
             'Zahlung fehlgeschlagen',
-            'Abo-Änderungen',
+            'Subscription changes',
           ].map(item => (
             <div key={item} className="flex items-center justify-between py-2 border-b border-[#E8E8E4] last:border-0">
               <span className="text-sm text-[#1A1A1A]">{item}</span>

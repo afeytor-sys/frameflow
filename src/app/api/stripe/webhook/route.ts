@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   <h2 style="color:#1A1A1A;margin:0 0 16px;">Abo beendet</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
     Hallo ${photographer.full_name || 'Fotograf'},<br><br>
-    dein Fotonizer-Abo wurde beendet. Du wurdest auf den kostenlosen Plan zurückgesetzt.
+    your Fotonizer subscription has ended. You have been downgraded to the free plan.
   </p>
   <p style="color:#6B6B6B;margin:0 0 24px;">
     Du kannst jederzeit wieder upgraden, um alle Funktionen zu nutzen.
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
   <h2 style="color:#E84C1A;margin:0 0 16px;">Zahlung fehlgeschlagen ⚠️</h2>
   <p style="color:#6B6B6B;margin:0 0 16px;">
     Hallo ${photographer.full_name || 'Fotograf'},<br><br>
-    die Zahlung für dein Fotonizer-Abo ist fehlgeschlagen. 
+    the payment for your Fotonizer subscription has failed. 
     Bitte aktualisiere deine Zahlungsmethode, um eine Unterbrechung zu vermeiden.
   </p>
   <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing" 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
   <p style="color:#6B6B6B;margin:0 0 16px;">
     Hallo ${photographer.full_name || 'Fotograf'},<br><br>
     dein Upgrade auf den <strong>${plan.charAt(0).toUpperCase() + plan.slice(1)}-Plan</strong> war erfolgreich!
-    Alle neuen Funktionen sind sofort verfügbar.
+    All new features are now available.
   </p>
   <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" 
      style="display:inline-block;background:#1A1A1A;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;">

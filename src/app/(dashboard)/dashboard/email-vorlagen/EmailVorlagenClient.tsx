@@ -119,7 +119,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
         .single()
       if (error) {
         if (error.code === '42P01') {
-          toast.error('Tabelle noch nicht vorhanden. Bitte Migration ausführen.')
+          toast.error('Table not yet available. Please run migration.')
         } else {
           toast.error(`Fehler: ${error.message}`)
         }
@@ -165,11 +165,11 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Vorlage wirklich löschen?')) return
+    if (!confirm('Really delete this template?')) return
     const supabase = createClient()
     await supabase.from('email_templates').delete().eq('id', id)
     setUserTemplates(prev => prev.filter(t => t.id !== id))
-    toast.success('Vorlage gelöscht')
+    toast.success('Template deleted')
   }
 
   const filteredBuiltin = categoryFilter === 'all'
@@ -206,7 +206,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
             E-Mail Vorlagen
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {userTemplates.length + EMAIL_TEMPLATES.length} Vorlagen · Erstelle und verwalte E-Mail-Vorlagen für Kunden
+            {userTemplates.length + EMAIL_TEMPLATES.length} templates · Create and manage email templates for clients
           </p>
         </div>
         <button
@@ -307,7 +307,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                           style={{ color: 'var(--text-muted)' }}
                           onMouseEnter={e => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
                           onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                          title="Löschen"
+                          title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -467,7 +467,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
             <span className="text-xs">💡</span>
           </div>
           <p className="text-[12px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            Verfügbare Platzhalter
+            Available placeholders
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -584,7 +584,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
             </div>
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
               <button onClick={() => setPreviewTpl(null)} className="text-sm font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>
-                Schließen
+                Close
               </button>
               <button
                 onClick={() => {
@@ -726,7 +726,7 @@ function TemplateModal({
                     onClick={() => insertPlaceholder('subject', ph, setSubject, subject)}
                     className="text-[10px] px-1.5 py-0.5 rounded font-mono transition-colors"
                     style={{ background: 'rgba(249,115,22,0.10)', color: '#F97316', border: '1px solid rgba(249,115,22,0.20)' }}
-                    title={`${ph} einfügen`}
+                    title={`Insert ${ph}`}
                   >
                     {ph.replace(/\{\{|\}\}/g, '')}
                   </button>
@@ -753,7 +753,7 @@ function TemplateModal({
                     onClick={() => insertPlaceholder('body', ph, setBody, body)}
                     className="text-[10px] px-1.5 py-0.5 rounded font-mono transition-colors"
                     style={{ background: 'rgba(249,115,22,0.10)', color: '#F97316', border: '1px solid rgba(249,115,22,0.20)' }}
-                    title={`${ph} einfügen`}
+                    title={`Insert ${ph}`}
                   >
                     {ph.replace(/\{\{|\}\}/g, '')}
                   </button>
@@ -763,13 +763,13 @@ function TemplateModal({
             <textarea
               value={body}
               onChange={e => setBody(e.target.value)}
-              placeholder={`Hallo {{client_name}},\n\ndeine Fotos sind fertig!\n\n{{portal_url}}\n\nHerzliche Grüße,\n{{studio_name}}`}
+              placeholder={`Hello {{client_name}},\n\nyour photos are ready!\n\n{{portal_url}}\n\nBest regards,\n{{studio_name}}`}
               rows={10}
               className="input-base w-full resize-none"
               style={{ fontFamily: 'inherit', lineHeight: '1.6' }}
             />
             <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-              Klicke auf einen Platzhalter-Button um ihn einzufügen. Zeilenumbrüche werden beibehalten.
+              Click a placeholder button to insert it. Line breaks are preserved.
             </p>
           </div>
         </div>

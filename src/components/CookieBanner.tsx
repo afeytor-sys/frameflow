@@ -33,7 +33,7 @@ export default function CookieBanner() {
     )}>
       <p className="text-sm font-medium mb-1">🍪 Cookies</p>
       <p className="text-xs text-white/60 mb-4 leading-relaxed">
-        Wir verwenden technisch notwendige Cookies für die Authentifizierung.
+        We use technically necessary cookies for authentication.
         Weitere Cookies nur mit deiner Zustimmung.{' '}
         <Link href="/datenschutz" className="text-[#C8A882] hover:underline">
           Datenschutz

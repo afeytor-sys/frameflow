@@ -95,11 +95,11 @@ export async function POST(request: NextRequest) {
         Hallo ${clientName} 👋
       </h1>
       <p style="margin:0 0 24px;color:#6B6B6B;font-size:15px;line-height:1.6;">
-        Dein Fotografievertrag für <strong style="color:#1A1A1A;">${project.title}</strong> ist bereit zur Unterschrift.
+        Your photography contract for <strong style="color:#1A1A1A;">${project.title}</strong> is ready to sign.
       </p>
       
       <p style="margin:0 0 24px;color:#6B6B6B;font-size:15px;line-height:1.6;">
-        Bitte lies den Vertrag sorgfältig durch und unterzeichne ihn digital. Das dauert nur wenige Minuten.
+        Please read the contract carefully and sign it digitally. It only takes a few minutes.
       </p>
       
       <!-- CTA Button -->
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     <!-- Footer -->
     <div style="padding:20px 32px;border-top:1px solid #F0F0EC;background:#FAFAF8;">
       <p style="margin:0;color:#6B6B6B;font-size:12px;">
-        Diese E-Mail wurde von ${studioName} über Fotonizer gesendet.
+        This email was sent by ${studioName} via Fotonizer.
         Wenn du Fragen hast, antworte direkt auf diese E-Mail.
       </p>
     </div>

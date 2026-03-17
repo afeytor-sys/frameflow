@@ -37,7 +37,7 @@ const FEATURES: FeatureRow[] = [
   },
   {
     icon: <FileText className="w-3.5 h-3.5" />,
-    label: 'Verträge pro Kunde',
+    label: 'Contracts per client',
     getValue: (p) => PLAN_LIMITS[p].maxContractsPerClient === null ? 'Unbegrenzt' : `Bis zu ${PLAN_LIMITS[p].maxContractsPerClient}`,
   },
   {
@@ -67,7 +67,7 @@ const FEATURES: FeatureRow[] = [
   },
   {
     icon: <Headphones className="w-3.5 h-3.5" />,
-    label: 'Prioritäts-Support',
+    label: 'Priority support',
     getValue: (p) => PLAN_LIMITS[p].prioritySupport,
   },
 ]
@@ -91,10 +91,10 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
       if (data.url) {
         window.location.href = data.url
       } else {
-        toast.error('Fehler beim Öffnen des Kundenportals')
+        toast.error('Error opening client portal')
       }
     } catch {
-      toast.error('Fehler beim Öffnen des Kundenportals')
+      toast.error('Error opening client portal')
     } finally {
       setPortalLoading(false)
     }
@@ -271,7 +271,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
             </h3>
           </div>
           <p className="text-[12.5px] mb-4" style={{ color: 'var(--text-muted)' }}>
-            Verwalte deine Zahlungsmethode, lade Rechnungen herunter und kündige dein Abo im Stripe-Kundenportal.
+            Manage your payment method, download invoices and cancel your subscription in the Stripe customer portal.
           </p>
           <button
             onClick={openPortal}
@@ -280,7 +280,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            {portalLoading ? 'Weiterleitung...' : 'Stripe-Kundenportal öffnen'}
+            {portalLoading ? 'Redirecting...' : 'Open Stripe customer portal'}
           </button>
         </div>
       )}
@@ -294,7 +294,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-4 h-4" style={{ color: '#C8A882' }} />
             <h3 className="font-black text-[15px] text-white" style={{ letterSpacing: '-0.03em' }}>
-              Bereit für mehr?
+              Ready for more?
             </h3>
           </div>
           <p className="text-[13px] mb-4" style={{ color: 'rgba(255,255,255,0.60)' }}>

@@ -246,7 +246,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const clearSelection = () => setSelected(new Set())
 
   const deleteSelected = async () => {
-    if (!confirm(`${selected.size} ${selected.size === 1 ? 'Foto' : 'Fotos'} wirklich löschen?`)) return
+    if (!confirm(`Really delete ${selected.size} ${selected.size === 1 ? 'photo' : 'photos'}?`)) return
     const ids = Array.from(selected)
     for (const id of ids) {
       const photo = photos.find((p) => p.id === id)
@@ -257,18 +257,18 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
     }
     setPhotos((prev) => prev.filter((p) => !ids.includes(p.id)))
     setSelected(new Set())
-    toast.success(`${ids.length} ${ids.length === 1 ? 'Foto' : 'Fotos'} gelöscht`)
+    toast.success(`${ids.length} ${ids.length === 1 ? 'photo' : 'photos'} deleted`)
   }
 
   const deletePhoto = async (id: string) => {
-    if (!confirm('Foto wirklich löschen?')) return
+    if (!confirm('Really delete this photo?')) return
     const photo = photos.find((p) => p.id === id)
     if (photo) {
       try { const url = new URL(photo.storage_url); const path = url.pathname.split('/photos/')[1]; if (path) await supabase.storage.from('photos').remove([path]) } catch {}
     }
     await supabase.from('photos').delete().eq('id', id)
     setPhotos((prev) => prev.filter((p) => p.id !== id))
-    toast.success('Foto gelöscht')
+    toast.success('Photo deleted')
   }
 
   const createGallery = async () => {
@@ -355,13 +355,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   }
 
   const deleteSection = async (id: string) => {
-    if (!confirm('Set löschen? Fotos bleiben erhalten.')) return
+    if (!confirm('Delete set? Photos will be kept.')) return
     await supabase.from('gallery_sections').delete().eq('id', id)
     // Unassign photos from this section
     await supabase.from('photos').update({ section_id: null }).eq('section_id', id)
     setSections(prev => prev.filter(s => s.id !== id))
     setPhotos(prev => prev.map(p => p.section_id === id ? { ...p, section_id: null } : p))
-    toast.success('Set gelöscht')
+    toast.success('Set deleted')
   }
 
   const assignPhotosToSection = async (sectionId: string | null) => {
@@ -388,7 +388,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
           <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--bg-hover)' }}>
             <Images className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
           </div>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No gallery for this project yet</p>
           <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--text-primary)' }}>
             Galerie erstellen
           </button>
@@ -401,7 +401,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
               <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <div>
                   <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Neue Galerie</h2>
-                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Wähle ein Design-Template</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Choose a design template</p>
                 </div>
                 <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <X className="w-4 h-4" />
@@ -585,7 +585,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
           {/* Design tab — 10 themes */}
           {activeSettingsTab === 'design' && (
             <div className="space-y-3">
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Wähle ein Layout für die Kunden-Galerie</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Choose a layout for the client gallery</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {GALLERY_THEMES.map(theme => (
                   <button
@@ -703,9 +703,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
       {/* Bulk actions */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 p-3 rounded-lg flex-wrap" style={{ background: 'rgba(200,168,130,0.10)', border: '1px solid rgba(200,168,130,0.20)' }}>
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{selected.size} ausgewählt</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{selected.size} selected</span>
           <button onClick={clearSelection} className="text-xs" style={{ color: 'var(--text-muted)' }}>Auswahl aufheben</button>
-          <button onClick={selectAll} className="text-xs" style={{ color: 'var(--text-muted)' }}>Alle auswählen</button>
+          <button onClick={selectAll} className="text-xs" style={{ color: 'var(--text-muted)' }}>Select all</button>
           {sections.length > 0 && (
             <div className="flex items-center gap-1.5">
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Zuweisen zu:</span>
@@ -716,7 +716,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
             </div>
           )}
           <button onClick={deleteSelected} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg" style={{ background: '#E84C1A' }}>
-            <Trash2 className="w-3 h-3" />Löschen
+            <Trash2 className="w-3 h-3" />Delete
           </button>
         </div>
       )}

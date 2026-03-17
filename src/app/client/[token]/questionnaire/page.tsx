@@ -37,7 +37,7 @@ export default async function QuestionnairePage({ params }: { params: Promise<{ 
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
         <div className="text-center p-8">
-          <p className="text-[16px]" style={{ color: 'var(--text-muted)' }}>Kein Fragebogen verfügbar.</p>
+          <p className="text-[16px]" style={{ color: 'var(--text-muted)' }}>No questionnaire available.</p>
         </div>
       </div>
     )

@@ -45,17 +45,17 @@ export default function ResetPasswordPage() {
               className="text-[#111110] font-semibold mb-2"
               style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em' }}
             >
-              E-Mail gesendet
+              Email sent
             </h2>
             <p className="text-[#7A7670] text-[14px] leading-relaxed mb-6">
-              Wir haben dir einen Link zum Zurücksetzen deines Passworts an{' '}
-              <strong className="text-[#111110]">{email}</strong> gesendet.
+              We sent a password reset link to{' '}
+              <strong className="text-[#111110]">{email}</strong>.
             </p>
             <Link
               href="/login"
               className="text-[13px] font-semibold text-[#111110] hover:underline"
             >
-              ← Zurück zur Anmeldung
+              ← Back to sign in
             </Link>
           </div>
         ) : (
@@ -65,24 +65,24 @@ export default function ResetPasswordPage() {
                 className="text-[#111110] font-semibold mb-2"
                 style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '28px', letterSpacing: '-0.03em' }}
               >
-                Passwort zurücksetzen
+                Reset password
               </h1>
               <p className="text-[#7A7670] text-[14px]">
-                Gib deine E-Mail-Adresse ein und wir senden dir einen Reset-Link.
+                Enter your email and we&apos;ll send you a reset link.
               </p>
             </div>
 
             <form onSubmit={handleReset} className="space-y-4">
               <div>
                 <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-                  E-Mail
+                  Email
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="max@studio.de"
+                  placeholder="max@studio.com"
                   className="w-full px-3.5 py-2.5 rounded-md border border-[#E4E1DC] bg-white text-[14px] text-[#111110] placeholder:text-[#B0ACA6] focus:outline-none focus:border-[#111110] transition-colors"
                 />
               </div>
@@ -99,13 +99,13 @@ export default function ResetPasswordPage() {
                 className="w-full py-2.5 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                 style={{ letterSpacing: '0.01em' }}
               >
-                {loading ? 'Senden...' : 'Reset-Link senden'}
+                {loading ? 'Sending...' : 'Send reset link'}
               </button>
             </form>
 
             <p className="text-[14px] text-[#7A7670] text-center mt-8">
               <Link href="/login" className="text-[#111110] font-semibold hover:underline">
-                ← Zurück zur Anmeldung
+                ← Back to sign in
               </Link>
             </p>
           </>

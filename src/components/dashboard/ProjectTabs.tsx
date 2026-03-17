@@ -260,11 +260,11 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   }
 
   const deleteGallery = async (id: string) => {
-    if (!confirm('Galerie wirklich löschen? Alle Fotos werden ebenfalls gelöscht.')) return
+    if (!confirm('Really delete gallery? All photos will also be deleted.')) return
     const { error } = await supabase.from('galleries').delete().eq('id', id)
-    if (error) { toast.error('Fehler beim Löschen'); return }
+    if (error) { toast.error('Error deleting'); return }
     setGalleries(prev => prev.filter(g => g.id !== id))
-    toast.success('Galerie gelöscht')
+    toast.success('Gallery deleted')
   }
 
   const shareGallery = async (_g: GalleryItem) => {
@@ -294,7 +294,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       {galleries.length === 0 ? (
         <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
           <Images className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>Noch keine Galerie für dieses Projekt</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No gallery for this project yet</p>
           <button
             onClick={openCreateModal}
             className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
@@ -346,7 +346,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     onClick={e => { e.stopPropagation(); deleteGallery(g.id) }}
                     className="absolute bottom-2 right-2 w-8 h-8 rounded-lg flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
                     style={{ background: 'rgba(232,76,26,0.75)', backdropFilter: 'blur(6px)', border: '1px solid rgba(232,76,26,0.40)' }}
-                    title="Galerie löschen"
+                    title="Delete gallery"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -967,7 +967,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                 </div>
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    <Clock className="w-3 h-3 inline mr-1" />Fälligkeitsdatum
+                    <Clock className="w-3 h-3 inline mr-1" />Due date
                   </label>
                   <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="input-base w-full" />
                 </div>
@@ -986,7 +986,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                   className="input-base w-full resize-none text-[13px]"
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Nur für dich sichtbar — erscheint nicht auf der Rechnung
+                  Only visible to you — does not appear on the invoice
                 </p>
               </div>
 
@@ -1023,7 +1023,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
         <div className="text-center py-14 rounded-2xl" style={{ border: '2px dashed var(--border-color)' }}>
           <Receipt className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
           <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Rechnung</p>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Erstelle die erste Rechnung für dieses Projekt</p>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Create the first invoice for this project</p>
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white mx-auto transition-all hover:opacity-90"
@@ -1059,7 +1059,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                     )}
                     {inv.due_date && (
                       <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        · Fällig: {new Date(inv.due_date).toLocaleDateString('de-DE')}
+                        · Due: {new Date(inv.due_date).toLocaleDateString('en-US')}
                       </span>
                     )}
                   </div>

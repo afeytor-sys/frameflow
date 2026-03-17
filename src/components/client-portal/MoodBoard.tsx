@@ -82,7 +82,7 @@ export default function MoodBoard({ projectId, token }: Props) {
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111827] text-white rounded-xl text-[12px] font-semibold hover:opacity-85 transition-opacity"
         >
           <Plus className="w-3.5 h-3.5" />
-          Hinzufügen
+          Add
         </button>
       </div>
 
@@ -138,12 +138,12 @@ export default function MoodBoard({ projectId, token }: Props) {
             <Image className="w-4 h-4 text-[#C4C0BA]" />
           </div>
           <p className="text-[13px] text-[#A8A49E]">Noch keine Inspirationen</p>
-          <p className="text-[11.5px] text-[#C4C0BA] mt-1">Füge Bilder oder Links hinzu, die deinen Stil zeigen</p>
+          <p className="text-[11.5px] text-[#C4C0BA] mt-1">Add images or links that show your style</p>
           <button
             onClick={() => setShowAdd(true)}
             className="mt-4 text-[12px] font-semibold text-[#C4A47C] hover:text-[#A8845C] transition-colors"
           >
-            + Erste Inspiration hinzufügen
+            + Add first inspiration
           </button>
         </div>
       ) : (

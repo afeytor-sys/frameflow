@@ -60,7 +60,7 @@ const STATUS_CONFIG = {
   draft:   { label: 'Entwurf',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)', icon: FileText },
   sent:    { label: 'Gesendet',   color: '#CC8415', bg: 'rgba(204,132,21,0.10)',  icon: Send },
   paid:    { label: 'Bezahlt',    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)', icon: CheckCircle2 },
-  overdue: { label: 'Überfällig', color: '#C43B2C', bg: 'rgba(196,59,44,0.10)',  icon: AlertCircle },
+  overdue: { label: 'Overdue', color: '#C43B2C', bg: 'rgba(196,59,44,0.10)',  icon: AlertCircle },
 }
 
 function formatEur(cents: number) {
@@ -141,14 +141,14 @@ function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null)
     <div>
       <div class="invoice-label">Rechnung</div>
       <div class="invoice-number">${invoice.invoice_number || '—'}</div>
-      <div class="invoice-date">${new Date(invoice.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+      <div class="invoice-date">${new Date(invoice.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
     </div>
   </div>
 
   <div class="divider"></div>
 
   <div style="margin-bottom:24px">
-    <div class="section-label">Rechnungsempfänger</div>
+    <div class="section-label">Bill to</div>
     <div class="client-name">${clientName}</div>
     ${clientEmail ? `<div class="client-meta">${clientEmail}</div>` : ''}
     ${invoice.project?.title ? `<div class="client-meta">Projekt: ${invoice.project.title}</div>` : ''}
@@ -177,13 +177,13 @@ function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null)
 
   <div class="status-row">
     <div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Status: </span><span class="status-badge">${cfg.label}</span></div>
-    ${invoice.due_date ? `<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Fällig am: </span><span style="font-size:12px;font-weight:700;">${new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</span></div>` : ''}
+    ${invoice.due_date ? `<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Due on: </span><span style="font-size:12px;font-weight:700;">${new Date(invoice.due_date).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</span></div>` : ''}
   </div>
 
   ${hasBankDetails ? `
   <div class="divider"></div>
   <div class="bank-box">
-    <div class="section-label">Bankverbindung — Bitte überweisen Sie den Betrag auf folgendes Konto:</div>
+    <div class="section-label">Bank details — Please transfer the amount to the following account:</div>
     <div class="bank-grid">
       ${photographer?.bank_account_holder ? `<div><div class="bank-label">Kontoinhaber</div><div class="bank-value">${photographer.bank_account_holder}</div></div>` : ''}
       ${photographer?.bank_name ? `<div><div class="bank-label">Bank</div><div class="bank-value">${photographer.bank_name}</div></div>` : ''}
@@ -194,7 +194,7 @@ function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null)
   </div>
   ` : ''}
 
-  <div class="footer">Vielen Dank für Ihr Vertrauen! · ${photographer?.studio_name || photographer?.full_name || 'Fotonizer'}</div>
+  <div class="footer">Thank you for your trust! · ${photographer?.studio_name || photographer?.full_name || 'Fotonizer'}</div>
 
   <script>window.onload = function() { window.print(); }</script>
 </body>
@@ -285,7 +285,7 @@ function InvoicePreviewModal({
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-1">Rechnung</p>
                 <p className="font-mono font-bold text-[15px] text-[#1A1A1A]">{invoice.invoice_number || '—'}</p>
                 <p className="text-[12px] text-[#6B6B6B] mt-1">
-                  {new Date(invoice.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  {new Date(invoice.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </p>
               </div>
             </div>
@@ -295,7 +295,7 @@ function InvoicePreviewModal({
 
             {/* Bill to */}
             <div className="mb-6">
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-2">Rechnungsempfänger</p>
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-2">Bill to</p>
               <p className="font-bold text-[15px] text-[#1A1A1A]">{clientName}</p>
               {clientEmail && <p className="text-[13px] text-[#6B6B6B] mt-0.5">{clientEmail}</p>}
               {invoice.project?.title && (
@@ -346,9 +346,9 @@ function InvoicePreviewModal({
               </div>
               {invoice.due_date && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Fällig am:</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Due on:</span>
                   <span className="text-[12px] font-bold text-[#1A1A1A]">
-                    {new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    {new Date(invoice.due_date).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}
                   </span>
                 </div>
               )}
@@ -360,7 +360,7 @@ function InvoicePreviewModal({
                 <div className="h-px bg-[#E8E8E4] mb-5" />
                 <div className="rounded-xl p-5" style={{ background: '#F8F8F6', border: '1px solid #E8E8E4' }}>
                   <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-3">
-                    Bankverbindung — Bitte überweisen Sie den Betrag auf folgendes Konto:
+                    Bank details — Please transfer the amount to the following account:
                   </p>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                     {photographer?.bank_account_holder && (
@@ -400,7 +400,7 @@ function InvoicePreviewModal({
             {/* Footer */}
             <div className="mt-6 pt-4 border-t border-[#E8E8E4] text-center">
               <p className="text-[11px] text-[#6B6B6B]">
-                Vielen Dank für Ihr Vertrauen! · {photographer?.studio_name || photographer?.full_name || 'Fotonizer'}
+                Thank you for your trust! · {photographer?.studio_name || photographer?.full_name || 'Fotonizer'}
               </p>
             </div>
           </div>
@@ -420,7 +420,7 @@ function InvoicePreviewModal({
               className="px-5 py-3 rounded-xl text-[13px] font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
               style={{ background: '#F0F0EC' }}
             >
-              Schließen
+              Close
             </button>
           </div>
         </div>
@@ -545,7 +545,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.project_id) { toast.error('Bitte ein Projekt auswählen'); return }
+    if (!form.project_id) { toast.error('Please select a project'); return }
     if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
     setSaving(true)
 
@@ -596,7 +596,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setSendingId(null)
     if (!res.ok) {
       if (json.error === 'Client has no email address') {
-        toast.error('Kein Kunde oder keine E-Mail-Adresse für dieses Projekt hinterlegt.')
+        toast.error('No client or email address found for this project.')
       } else {
         toast.error('Fehler beim Senden der Rechnung')
       }
@@ -624,12 +624,12 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   }
 
   const deleteInvoice = async (id: string) => {
-    if (!confirm('Rechnung löschen?')) return
+    if (!confirm('Delete invoice?')) return
     const { error } = await supabase.from('invoices').delete().eq('id', id)
     if (error) { toast.error('Fehler'); return }
     setInvoices(prev => prev.filter(i => i.id !== id))
     setOpenMenu(null)
-    toast.success('Rechnung gelöscht')
+    toast.success('Invoice deleted')
   }
 
   return (
@@ -666,8 +666,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         {([
           { label: 'Bezahlt',       value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? 'Erfolgreich eingegangen' : 'Noch keine Zahlungen',   Icon: CheckCircle2, delay: 0 },
           { label: 'Ausstehend',    value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? 'Warten auf Zahlung' : 'Keine offenen Rechnungen', Icon: Clock,        delay: 90 },
-          { label: 'Überfällig',    value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? 'Sofort nachfassen!' : 'Alles im grünen Bereich',  Icon: AlertCircle,  delay: 180 },
-          { label: 'MwSt. bezahlt', value: formatEur(totalMwst),   color: '#8B5CF6', desc: 'Geschätzte 19% MwSt.',                                               Icon: Percent,      delay: 270 },
+          { label: 'Overdue',    value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? 'Follow up immediately!' : 'All good',  Icon: AlertCircle,  delay: 180 },
+          { label: 'VAT paid', value: formatEur(totalMwst),   color: '#8B5CF6', desc: 'Estimated 19% VAT',                                               Icon: Percent,      delay: 270 },
         ] as const).map(({ label, value, color, desc, Icon, delay }) => (
           <div
             key={label}
@@ -721,7 +721,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               Noch keine Rechnungen
             </h3>
             <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-              Erstelle deine erste Rechnung und behalte deine Zahlungen im Überblick
+              Create your first invoice and keep track of your payments
             </p>
             <button onClick={() => setShowNew(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
@@ -765,7 +765,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   {inv.due_date && (
                     <p className="text-[11.5px] mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                       <Clock className="w-3 h-3" />
-                      Fällig: {new Date(inv.due_date).toLocaleDateString('de-DE')}
+                      Due: {new Date(inv.due_date).toLocaleDateString('en-US')}
                     </p>
                   )}
                 </div>
@@ -867,7 +867,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <AlertCircle className="w-3.5 h-3.5" style={{ color: '#C43B2C' }} />
-                            Als überfällig markieren
+                            Mark as overdue
                           </button>
                         )}
                         <div style={{ borderTop: '1px solid var(--border-color)' }} />
@@ -877,7 +877,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.06)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                           <Trash2 className="w-3.5 h-3.5" />
-                          Löschen
+                          Delete
                         </button>
                       </div>
                     </>
@@ -997,7 +997,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   className="input-base"
                   style={{ color: form.project_id ? 'var(--text-primary)' : 'var(--text-muted)' }}
                 >
-                  <option value="">Projekt auswählen...</option>
+                  <option value="">Select project...</option>
                   {projectList.map(p => {
                     const c = p.client
                     const clientName = Array.isArray(c) ? c[0]?.full_name : c?.full_name
@@ -1077,7 +1077,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 <textarea
                   value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Interne Notizen oder Hinweise für den Kunden..."
+                  placeholder="Internal notes or hints for the client..."
                   rows={3}
                   className="input-base resize-none"
                   style={{ lineHeight: '1.5' }}
@@ -1087,7 +1087,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               {/* Due date */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                  Fälligkeitsdatum
+                  Due date
                 </label>
                 <input
                   type="date"
@@ -1162,7 +1162,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     {getClientName(createdInvoice.project)} · {createdInvoice.invoice_number}
                   </p>
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    {formatEur(createdInvoice.amount)}{createdInvoice.due_date ? ` · Fällig ${new Date(createdInvoice.due_date).toLocaleDateString('de-DE')}` : ''}
+                    {formatEur(createdInvoice.amount)}{createdInvoice.due_date ? ` · Due ${new Date(createdInvoice.due_date).toLocaleDateString('en-US')}` : ''}
                   </p>
                 </div>
               </div>
@@ -1174,7 +1174,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   category="rechnung"
                   onSelect={(subject, body) => { setSendSubject(subject); setSendMessage(body) }}
                   vars={{ client_name: getClientName(createdInvoice.project), invoice_number: createdInvoice.invoice_number || undefined, amount: formatEur(createdInvoice.amount) }}
-                  label="Vorlage wählen"
+                  label="Select template"
                 />
               </div>
 
@@ -1202,7 +1202,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   placeholder="Deine Nachricht an den Kunden..."
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Der Rechnungslink wird automatisch im E-Mail hinzugefügt.
+                  The invoice link will be automatically added to the email.
                 </p>
               </div>
             </div>
@@ -1225,7 +1225,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               ) : (
                 <div className="w-full py-2.5 px-4 rounded-xl text-[13px] text-center"
                   style={{ background: 'rgba(196,59,44,0.08)', color: '#C43B2C', border: '1px solid rgba(196,59,44,0.20)' }}>
-                  ⚠️ Kein Kunde oder keine E-Mail-Adresse für dieses Projekt hinterlegt.
+                  ⚠️ No client or email address found for this project.
                 </div>
               )}
               <div className="flex gap-2">
@@ -1242,7 +1242,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   className="flex-1 py-2 rounded-xl text-[13px] font-medium transition-colors"
                   style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
                 >
-                  Später
+                  Later
                 </button>
               </div>
             </div>

@@ -106,7 +106,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
     { label: 'Ausstehend',   display: formatEur(pendingRevenue),  numericVal: null, description: pendingRevenue > 0 ? 'Offene Rechnungen' : 'Alles bezahlt ✓',      icon: TrendingUp,   color: '#F59E0B' },
     { label: 'Kunden',       display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'Noch keine Kunden' : `${clients.length} gesamt`,   icon: Users,        color: '#3B82F6' },
     { label: 'Projekte',     display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'Noch keine Projekte' : `${projects.length} gesamt`, icon: FileText,     color: '#C4A47C' },
-    { label: 'Konversion',   display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} von ${contracts.length} Verträgen` : 'Keine Verträge', icon: CheckCircle2, color: '#8B5CF6' },
+    { label: 'Conversion',   display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} of ${contracts.length} contracts` : 'No contracts', icon: CheckCircle2, color: '#8B5CF6' },
     { label: 'Ø pro Projekt',display: formatEur(avgRevenue * 100),numericVal: null, description: projects.length > 0 ? 'Durchschnittlicher Umsatz' : 'Noch keine Daten', icon: Euro,        color: '#EC4899' },
   ]
 
@@ -130,7 +130,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           Analytics
         </h1>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-          Überblick über dein Studio-Wachstum
+          Overview of your studio growth
         </p>
       </div>
 
@@ -311,10 +311,10 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
           <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Vertrags-Status</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Übersicht aller Verträge</p>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Overview of all contracts</p>
           {contractStatusData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              Noch keine Verträge
+              No contracts yet
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -355,7 +355,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
       >
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Verträge</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Contracts</p>
           <div className="space-y-1.5">
             {Object.entries(CONTRACT_LABELS).map(([key, label]) => {
               const count = contracts.filter(c => c.status === key).length
@@ -378,7 +378,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             {[
               { key: 'paid',    label: 'Bezahlt',    color: '#10B981' },
               { key: 'sent',    label: 'Gesendet',   color: '#F59E0B' },
-              { key: 'overdue', label: 'Überfällig', color: '#EF4444' },
+              { key: 'overdue', label: 'Overdue', color: '#EF4444' },
               { key: 'draft',   label: 'Entwurf',    color: '#6B7280' },
             ].map(({ key, label, color }) => {
               const count = invoices.filter(i => i.status === key).length

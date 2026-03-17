@@ -225,12 +225,12 @@ function EventForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Notiz für Kunden</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Note for client</label>
         <input
           type="text"
           value={form.notes || ''}
           onChange={e => set('notes', e.target.value)}
-          placeholder="Sichtbar für den Kunden"
+          placeholder="Visible to the client"
           className="input-base w-full text-sm"
         />
       </div>
@@ -241,7 +241,7 @@ function EventForm({
           type="text"
           value={form.photographer_note || ''}
           onChange={e => set('photographer_note', e.target.value)}
-          placeholder="Nur für dich sichtbar"
+          placeholder="Only visible to you"
           className="input-base w-full text-sm"
         />
       </div>
@@ -338,15 +338,15 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
     setEditingId(null)
     setAddingNew(false)
     await saveToDb(sorted)
-    toast.success(exists ? 'Ereignis aktualisiert' : 'Ereignis hinzugefügt')
+    toast.success(exists ? 'Event updated' : 'Event added')
   }
 
   const deleteEvent = async (id: string) => {
-    if (!confirm('Ereignis wirklich löschen?')) return
+    if (!confirm('Really delete this event?')) return
     const updated = events.filter(e => e.id !== id)
     setEvents(updated)
     await saveToDb(updated)
-    toast.success('Ereignis gelöscht')
+    toast.success('Event deleted')
   }
 
   return (
@@ -364,7 +364,7 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
           style={{ background: 'var(--text-primary)' }}
         >
           <Plus className="w-3.5 h-3.5" />
-          Ereignis hinzufügen
+          Add event
         </button>
       </div>
 
@@ -387,7 +387,7 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
             className="text-sm hover:underline"
             style={{ color: 'var(--accent)' }}
           >
-            Erstes Ereignis hinzufügen
+            Erstes Add event
           </button>
         </div>
       ) : (

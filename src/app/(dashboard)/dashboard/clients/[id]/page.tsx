@@ -301,7 +301,7 @@ export default function ClientDetailPage() {
                       className="input-base w-full text-[13px] resize-none"
                       style={{ paddingLeft: '2rem' }}
                       rows={2}
-                      placeholder="Straße, PLZ Stadt"
+                      placeholder="Street, ZIP City"
                     />
                   </div>
                 </div>
@@ -458,7 +458,7 @@ export default function ClientDetailPage() {
                     className="w-full text-center py-4 rounded-xl text-[12px] transition-all hover:opacity-70"
                     style={{ border: '2px dashed var(--border-color)', color: 'var(--text-muted)' }}
                   >
-                    + Kontaktdaten hinzufügen
+                    + Add contact details
                   </button>
                 )}
               </div>
@@ -521,7 +521,7 @@ export default function ClientDetailPage() {
                 <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
               </div>
               <p className="text-[13px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Projekte</p>
-              <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>Erstelle das erste Projekt für diesen Kunden</p>
+              <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>Create the first project for this client</p>
               <Link
                 href={`/dashboard/projects/new?client=${id}`}
                 className="text-[12px] font-bold transition-colors hover:opacity-70"

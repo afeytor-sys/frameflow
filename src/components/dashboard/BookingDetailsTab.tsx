@@ -238,7 +238,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="z.B. Stadtpark München"
+            placeholder="e.g. Central Park, New York"
             className="input-base w-full text-[13px]"
           />
         </div>
@@ -262,7 +262,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           </div>
           <div className="flex-1">
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Treffpunkt (präzise)
+              Meeting point (precise)
             </span>
           </div>
           {meetingPoint && (
@@ -274,13 +274,13 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
             >
               <MapPin className="w-3 h-3" />
-              Maps öffnen
+              Open in Maps
             </a>
           )}
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          Füge einen Google Maps Link oder Koordinaten ein — wird dem Kunden als interaktive Karte angezeigt.
+          Add a Google Maps link or coordinates — shown to the client as an interactive map.
         </p>
 
         <input

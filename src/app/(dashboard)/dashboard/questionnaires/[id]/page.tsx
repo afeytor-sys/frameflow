@@ -146,7 +146,7 @@ export default function QuestionnaireDetailPage() {
   )
 
   const handleSend = async () => {
-    if (!selectedProject) { toast.error('Bitte ein Projekt auswählen'); return }
+    if (!selectedProject) { toast.error('Please select a project'); return }
     if (!selectedProject.client?.email) { toast.error('Kein Kunde mit E-Mail in diesem Projekt'); return }
 
     setSending(true)
@@ -166,7 +166,7 @@ export default function QuestionnaireDetailPage() {
           .from('questionnaires')
           .update({ sent_at: null })
           .eq('id', id)
-        toast.success(`Versand geplant für ${new Date(scheduledAt).toLocaleString('de-DE')} ✅`)
+        toast.success(`Scheduled for ${new Date(scheduledAt).toLocaleString('en-US')} ✅`)
         setShowSendModal(false)
         setSending(false)
         return
@@ -239,7 +239,7 @@ export default function QuestionnaireDetailPage() {
 
   const saveEdit = async () => {
     if (!editTitle.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (editQuestions.length === 0) { toast.error('Mindestens eine Frage hinzufügen'); return }
+    if (editQuestions.length === 0) { toast.error('Add at least one question'); return }
     setSaving(true)
     const { error } = await supabase
       .from('questionnaires')
@@ -276,9 +276,9 @@ export default function QuestionnaireDetailPage() {
   }
 
   const deleteQuestionnaire = async () => {
-    if (!confirm('Fragebogen wirklich löschen?')) return
+    if (!confirm('Really delete this questionnaire?')) return
     await supabase.from('questionnaires').delete().eq('id', id)
-    toast.success('Fragebogen gelöscht')
+    toast.success('Questionnaire deleted')
     router.push('/dashboard/questionnaires')
   }
 
@@ -361,13 +361,13 @@ export default function QuestionnaireDetailPage() {
               style={{ background: 'var(--accent)' }}
             >
               <Plus className="w-3.5 h-3.5" />
-              Frage hinzufügen
+              Add question
             </button>
           </div>
 
           {editQuestions.length === 0 && (
             <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Fragen — lade eine Vorlage oder füge Fragen hinzu</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>No questions yet — load a template or add questions</p>
             </div>
           )}
 
@@ -501,7 +501,7 @@ export default function QuestionnaireDetailPage() {
                     style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-color)' }}
                   >
                     <Plus className="w-3 h-3" />
-                    Option hinzufügen
+                    Add option
                   </button>
                 </div>
               )}
@@ -622,7 +622,7 @@ export default function QuestionnaireDetailPage() {
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}>
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#10B981' }} />
             <span className="text-[13px] font-bold" style={{ color: '#10B981' }}>
-              Ausgefüllt von {clientName || 'Kunde'} am {new Date(submission.submitted_at).toLocaleDateString('de-DE')}
+              Submitted by {clientName || 'Client'} on {new Date(submission.submitted_at).toLocaleDateString('en-US')}
             </span>
           </div>
         ) : questionnaire.sent_at ? (
@@ -646,7 +646,7 @@ export default function QuestionnaireDetailPage() {
             </div>
             {questionnaire.questions.length === 0 ? (
               <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
-                <p className="text-[13px]">Noch keine Fragen — klicke auf &quot;Bearbeiten&quot; um Fragen hinzuzufügen</p>
+                <p className="text-[13px]">No questions yet — click &quot;Edit&quot; to add questions</p>
               </div>
             ) : (
               questionnaire.questions.map((q, i) => {
@@ -734,7 +734,7 @@ export default function QuestionnaireDetailPage() {
               <div>
                 <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>
                   <Folder className="w-3.5 h-3.5" />
-                  Projekt auswählen
+                  Select project
                 </label>
 
                 {/* Search input */}
@@ -785,7 +785,7 @@ export default function QuestionnaireDetailPage() {
                               {hasEmail ? ` · ${p.client.email}` : ' · Keine E-Mail'}
                             </p>
                           ) : (
-                            <p className="text-[11px]" style={{ color: '#F59E0B' }}>Kein Kunde verknüpft</p>
+                            <p className="text-[11px]" style={{ color: '#F59E0B' }}>No client linked</p>
                           )}
                         </div>
                         {isSelected && (
@@ -862,7 +862,7 @@ export default function QuestionnaireDetailPage() {
                       min={new Date().toISOString().slice(0, 16)}
                     />
                     <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                      ℹ️ Der Versand wird als geplant markiert. Du kannst ihn später manuell auslösen.
+                      ℹ️ The send will be marked as scheduled. You can trigger it manually later.
                     </p>
                   </div>
                 )}

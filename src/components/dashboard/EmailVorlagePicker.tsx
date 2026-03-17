@@ -105,10 +105,10 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
           color: '#F97316',
           border: '1px solid rgba(249,115,22,0.25)',
         }}
-        title="E-Mail Vorlage auswählen"
+        title="Select email template"
       >
         <Mail className="w-3.5 h-3.5" />
-        {label || 'Vorlage wählen'}
+        {label || 'Select template'}
       </button>
 
       {/* Modal */}
@@ -142,7 +142,7 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
                 </div>
                 <div>
                   <h3 className="font-black text-[15px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-                    E-Mail Vorlage wählen
+                    Select email template
                   </h3>
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {category ? `Kategorie: ${CATEGORY_LABELS[category]}` : 'Alle Kategorien'}
@@ -324,7 +324,7 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
                 className="text-sm font-medium"
                 style={{ color: 'var(--text-muted)' }}
               >
-                Zurück
+                Back
               </button>
               <button
                 onClick={() => apply(previewTpl.subject, previewTpl.body)}

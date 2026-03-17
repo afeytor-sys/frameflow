@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError('E-Mail oder Passwort ist falsch.'); setLoading(false) }
+    if (error) { setError('Incorrect email or password.'); setLoading(false) }
     else { router.push('/dashboard'); router.refresh() }
   }
 
@@ -61,17 +61,17 @@ export default function LoginPage() {
             ))}
           </div>
           <blockquote className="text-white/75 text-[16px] leading-relaxed font-light mb-6">
-            &ldquo;Meine Kunden kommentieren immer, wie professionell das Portal aussieht. Fotonizer hat mein Business verändert.&rdquo;
+            &ldquo;My clients always comment on how professional the portal looks. Fotonizer has transformed my business.&rdquo;
           </blockquote>
           <div>
             <p className="text-white text-[13px] font-bold">Marco R.</p>
-            <p className="text-white/35 text-[12px] mt-0.5">Event-Fotograf · München</p>
+            <p className="text-white/35 text-[12px] mt-0.5">Event Photographer · Munich</p>
           </div>
         </div>
 
         {/* Bottom features */}
         <div className="flex items-center gap-5 relative z-10">
-          {['Verträge', 'Galerien', 'Zeitpläne'].map((item, i) => (
+          {['Contracts', 'Galleries', 'Timelines'].map((item, i) => (
             <div key={item} className="flex items-center gap-5">
               <span className="text-white/30 text-[11px] font-semibold tracking-wide">{item}</span>
               {i < 2 && <span className="w-px h-3 bg-white/10" />}
@@ -97,10 +97,10 @@ export default function LoginPage() {
 
           <div className="mb-8 animate-in">
             <h1 className="font-black mb-2" style={{ fontSize: '28px', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              Willkommen zurück
+              Welcome back
             </h1>
             <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-              Melde dich in deinem Studio-Account an.
+              Sign in to your studio account.
             </p>
           </div>
 
@@ -108,14 +108,14 @@ export default function LoginPage() {
             <div>
               <label className="block text-[11.5px] font-bold mb-1.5 uppercase tracking-[0.08em]"
                 style={{ color: 'var(--text-primary)' }}>
-                E-Mail
+                Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="max@studio.de"
+                placeholder="max@studio.com"
                 className="input-base"
               />
             </div>
@@ -124,11 +124,11 @@ export default function LoginPage() {
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em]"
                   style={{ color: 'var(--text-primary)' }}>
-                  Passwort
+                  Password
                 </label>
                 <Link href="/reset-password" className="text-[12px] transition-colors"
                   style={{ color: 'var(--text-muted)' }}>
-                  Vergessen?
+                  Forgot?
                 </Link>
               </div>
               <div className="relative">
@@ -169,11 +169,11 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Anmelden...
+                  Signing in...
                 </span>
               ) : (
                 <>
-                  Anmelden
+                  Sign in
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
@@ -182,9 +182,9 @@ export default function LoginPage() {
 
           <div className="mt-8 pt-6 animate-in-delay-2" style={{ borderTop: '1px solid var(--border-color)' }}>
             <p className="text-[13.5px] text-center" style={{ color: 'var(--text-secondary)' }}>
-              Noch kein Konto?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/signup" className="font-bold transition-colors" style={{ color: 'var(--accent)' }}>
-                Kostenlos registrieren
+                Sign up for free
               </Link>
             </p>
           </div>

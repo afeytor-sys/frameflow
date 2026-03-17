@@ -29,7 +29,7 @@ export default function DeliveryChecklist({
   const [expanded, setExpanded] = useState(false)
 
   const items: CheckItem[] = [
-    { key: 'email',    label: 'E-Mail des Kunden eingetragen',  done: hasClientEmail,  hint: 'Gehe zu Kunden → E-Mail hinzufügen' },
+    { key: 'email',    label: 'Client email entered',  done: hasClientEmail,  hint: 'Go to Clients → Add email' },
     { key: 'date',     label: 'Shooting-Datum festgelegt',       done: hasShootDate,    hint: 'Datum im Projekt eintragen' },
     { key: 'contract', label: 'Vertrag erstellt',                done: hasContract,     hint: 'Vertrag-Tab → Neuen Vertrag erstellen' },
     { key: 'sent',     label: 'Vertrag an Kunden gesendet',      done: contractSent,    hint: 'Vertrag-Tab → An Kunden senden' },
@@ -45,7 +45,7 @@ export default function DeliveryChecklist({
     return (
       <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(42,155,104,0.08)', border: '1px solid rgba(42,155,104,0.20)' }}>
         <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#2A9B68' }} />
-        <p className="text-[13px] font-medium" style={{ color: '#2A9B68' }}>Portal bereit zum Versand — alles vollständig ✓</p>
+        <p className="text-[13px] font-medium" style={{ color: '#2A9B68' }}>Portal ready to send — everything completedig ✓</p>
       </div>
     )
   }

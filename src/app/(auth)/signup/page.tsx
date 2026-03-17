@@ -36,15 +36,13 @@ export default function SignupPage() {
 
     // Supabase returns success even for existing emails, but identities will be empty
     if (data?.user && data.user.identities && data.user.identities.length === 0) {
-      setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an oder setze dein Passwort zurück.')
+      setError('This email address is already registered. Please sign in or reset your password.')
       setLoading(false)
       return
     }
 
-    // If invite code provided, try to redeem it after signup
-    // (will be redeemed after email confirmation via onboarding)
+    // If invite code provided, store it to redeem after email confirmation
     if (inviteCode.trim()) {
-      // Store invite code in localStorage to redeem after email confirmation
       localStorage.setItem('pending_invite_code', inviteCode.trim().toUpperCase())
     }
 
@@ -68,9 +66,9 @@ export default function SignupPage() {
 
         <div className="space-y-8">
           {[
-            { num: '01', text: 'Konto erstellen — kostenlos, keine Kreditkarte' },
-            { num: '02', text: 'Ersten Kunden anlegen und Projekt starten' },
-            { num: '03', text: 'Link senden — Kunde erhält sofort sein Portal' },
+            { num: '01', text: 'Create account — free, no credit card required' },
+            { num: '02', text: 'Add your first client and start a project' },
+            { num: '03', text: 'Send the link — client gets their portal instantly' },
           ].map(({ num, text }) => (
             <div key={num} className="flex items-start gap-4">
               <span
@@ -85,7 +83,7 @@ export default function SignupPage() {
         </div>
 
         <p className="text-[#7A7670] text-[12px]">
-          Bereits über 200 Fotografen in Europa vertrauen Fotonizer.
+          Over 200 photographers across Europe trust Fotonizer.
         </p>
       </div>
 
@@ -112,16 +110,16 @@ export default function SignupPage() {
                 className="text-[#111110] font-semibold mb-2"
                 style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em' }}
               >
-                Fast geschafft!
+                Almost there!
               </h2>
               <p className="text-[#7A7670] text-[14px] leading-relaxed">
-                Wir haben dir eine Bestätigungs-E-Mail an <strong className="text-[#111110]">{email}</strong> gesendet.
-                Bitte klicke auf den Link, um dein Konto zu aktivieren.
+                We sent a confirmation email to <strong className="text-[#111110]">{email}</strong>.
+                Please click the link to activate your account.
               </p>
               {inviteCode.trim() && (
                 <div className="mt-4 px-4 py-3 rounded-xl bg-[#2D9E6B]/8 border border-[#2D9E6B]/20">
                   <p className="text-[13px] text-[#2D9E6B] font-medium">
-                    🎁 Einladungscode gespeichert — wird nach der Bestätigung aktiviert.
+                    🎁 Invite code saved — will be activated after confirmation.
                   </p>
                 </div>
               )}
@@ -133,29 +131,29 @@ export default function SignupPage() {
                   className="text-[#111110] font-semibold mb-2"
                   style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '28px', letterSpacing: '-0.03em' }}
                 >
-                  Konto erstellen
+                  Create account
                 </h1>
-                <p className="text-[#7A7670] text-[14px]">Kostenlos starten — keine Kreditkarte nötig.</p>
+                <p className="text-[#7A7670] text-[14px]">Start for free — no credit card required.</p>
               </div>
 
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
                   <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-                    E-Mail
+                    Email
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="max@studio.de"
+                    placeholder="max@studio.com"
                     className={inputClass}
                   />
                 </div>
 
                 <div>
                   <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-                    Passwort
+                    Password
                   </label>
                   <input
                     type="password"
@@ -163,7 +161,7 @@ export default function SignupPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    placeholder="Mindestens 8 Zeichen"
+                    placeholder="At least 8 characters"
                     className={inputClass}
                   />
                 </div>
@@ -176,26 +174,26 @@ export default function SignupPage() {
                     className="flex items-center gap-1.5 text-[13px] text-[#C8A882] hover:text-[#B8946E] font-medium transition-colors"
                   >
                     <Gift className="w-3.5 h-3.5" />
-                    Ich wurde eingeladen und habe einen Einladungscode
+                    I was invited and have an invite code
                   </button>
                 ) : (
                   <div>
                     <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-                      Einladungscode
+                      Invite code
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                        placeholder="z.B. FOTO-BETA-A1B2"
+                        placeholder="e.g. FOTO-BETA-A1B2"
                         className={inputClass + ' pr-10 font-mono tracking-widest'}
                         autoFocus
                       />
                       <Gift className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#C8A882]" />
                     </div>
                     <p className="text-[11px] text-[#7A7670] mt-1">
-                      🎁 Mit einem gültigen Code erhältst du bis zu 6 Monate gratis Pro.
+                      🎁 With a valid code you get up to 6 months of Pro for free.
                     </p>
                   </div>
                 )}
@@ -212,14 +210,14 @@ export default function SignupPage() {
                   className="w-full py-2.5 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                   style={{ letterSpacing: '0.01em' }}
                 >
-                  {loading ? 'Konto wird erstellt...' : 'Kostenlos registrieren'}
+                  {loading ? 'Creating account...' : 'Sign up for free'}
                 </button>
               </form>
 
               <p className="text-[14px] text-[#7A7670] text-center mt-8">
-                Bereits ein Konto?{' '}
+                Already have an account?{' '}
                 <Link href="/login" className="text-[#111110] font-semibold hover:underline">
-                  Anmelden
+                  Sign in
                 </Link>
               </p>
             </>

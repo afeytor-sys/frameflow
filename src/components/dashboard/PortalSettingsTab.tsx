@@ -44,17 +44,17 @@ const SECTION_CONFIG: {
   { key: 'timeline',   label: 'Zeitplan',       description: 'Tagesablauf / Timeline-Card',           icon: Clock,     color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
   { key: 'treffpunkt', label: 'Treffpunkt',     description: 'Mini-Karte mit Treffpunkt',             icon: MapPin,    color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
   { key: 'tips',       label: 'Shooting-Tipps', description: 'Tipps zu Outfit, Licht, Vorbereitung',  icon: Lightbulb, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
-  { key: 'weather',    label: 'Wetter-Widget',  description: 'Wettervorhersage für den Shooting-Tag', icon: CloudSun,  color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
-  { key: 'moodboard',      label: 'Moodboard',      description: 'Inspirationsboard für den Kunden',      icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
+  { key: 'weather',    label: 'Weather widget',  description: 'Weather forecast for the shoot day', icon: CloudSun,  color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
+  { key: 'moodboard',      label: 'Moodboard',      description: 'Inspiration board for the client',      icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
   { key: 'questionnaire',  label: 'Fragebogen',     description: 'Fragebogen-Card im Kundenportal',       icon: ClipboardList, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
 ]
 
 const MESSAGE_PRESETS = [
-  { emoji: '✨', label: 'Galerie in Bearbeitung', text: 'Deine Fotos sind in Bearbeitung! Ich gebe mir die größte Mühe, damit alles perfekt wird. Du erhältst eine Nachricht, sobald die Galerie fertig ist.' },
+  { emoji: '✨', label: 'Gallery in progress', text: 'Your photos are being edited! I am giving my best effort so everything turns out perfect. You will be notified once the gallery is ready.' },
   { emoji: '🎊', label: 'Galerie fertig', text: 'Deine Galerie ist fertig! Ich hoffe, du liebst deine Fotos genauso sehr wie ich. Schau sie dir an und markiere deine Favoriten!' },
   { emoji: '🎬', label: 'Video fertig', text: 'Dein Video ist fertig! Du kannst es jetzt in der Galerie herunterladen. Ich freue mich auf dein Feedback!' },
   { emoji: '📅', label: 'Shooting morgen', text: 'Dein Shooting ist morgen! Denk daran, dich gut auszuruhen und dein Outfit vorzubereiten. Ich freue mich auf euch!' },
-  { emoji: '📸', label: 'Shooting heute', text: 'Heute ist euer großer Tag! Ich bin aufgeregt und freue mich riesig auf das Shooting. Bis gleich!' },
+  { emoji: '📸', label: 'Shoot today', text: 'Today is your big day! I am excited and looking forwardig auf das Shooting. Bis gleich!' },
 ]
 
 interface PortalLink {
@@ -129,7 +129,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             Kundenportal konfigurieren
           </p>
           <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Wähle, welche Bereiche dein Kunde sieht — und schreibe eine persönliche Nachricht oder einen Update.
+            Choose which sections your client sees — and write a personal message or update.
           </p>
           {clientToken && (
             <a
@@ -140,7 +140,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
               style={{ color: 'var(--accent)' }}
             >
               <ExternalLink className="w-3 h-3" />
-              Portal in neuem Tab öffnen
+              Open portal in new tab
             </a>
           )}
 
@@ -270,7 +270,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          Diese Nachricht erscheint im Portal als persönliche Nachricht von dir. Leer lassen für automatische Nachricht.
+          This message appears in the portal as a personal message from you. Leave empty for automatic message.
         </p>
 
         {/* Presets */}
@@ -290,7 +290,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         <textarea
           value={message}
           onChange={e => setMessage(e.target.value)}
-          placeholder="z.B. Deine Galerie ist in Bearbeitung! Lieferung ca. 20. März 📸"
+          placeholder="e.g. Your gallery is being edited! Delivery approx. March 20 📸"
           rows={4}
           className="input-base w-full resize-none text-[13px]"
         />
@@ -312,7 +312,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             className="mt-2 text-[11px] transition-all hover:opacity-80"
             style={{ color: 'var(--text-muted)' }}
           >
-            × Nachricht löschen (automatisch)
+            × Delete message (automatic)
           </button>
         )}
       </div>
@@ -326,7 +326,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           <div className="flex items-center gap-2">
             <Link2 className="w-4 h-4" style={{ color: '#6366F1' }} />
             <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-              Links für den Kunden
+              Links for the client
             </span>
           </div>
           <button
@@ -335,12 +335,12 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             style={{ background: 'rgba(99,102,241,0.10)', color: '#6366F1', border: '1px solid rgba(99,102,241,0.25)' }}
           >
             <Plus className="w-3 h-3" />
-            Link hinzufügen
+            Add link
           </button>
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          Füge nützliche Links hinzu, die dein Kunde im Portal sehen soll — z.B. Pinterest-Board, WeTransfer, Dropbox, deine Website, etc.
+          Add useful links that your client should see in the portal — e.g. Pinterest board, WeTransfer, Dropbox, your website, etc.
         </p>
 
         {links.length === 0 ? (
@@ -350,7 +350,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             onClick={addLink}
           >
             <Link2 className="w-5 h-5 mb-2 opacity-40" style={{ color: '#6366F1' }} />
-            <p className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>Noch keine Links — klicke um einen hinzuzufügen</p>
+            <p className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>No links yet — click to add one</p>
           </div>
         ) : (
           <div className="space-y-2">
