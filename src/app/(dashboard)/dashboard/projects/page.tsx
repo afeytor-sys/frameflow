@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { FolderOpen, Plus, Trash2, Calendar, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Project {
   id: string
@@ -17,8 +18,8 @@ interface Project {
   client: { full_name: string } | { full_name: string }[] | null
 }
 
-const STATUS_CONFIG: Record<string, { bg: string; color: string; dot: string; label: string }> = {
-  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Draft' },
+const STATUS_CONFIG_DE: Record<string, { bg: string; color: string; dot: string; label: string }> = {
+  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Entwurf' },
   inquiry:   { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', dot: '#3B82F6', label: 'Anfrage' },
   booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Gebucht' },
   active:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Aktiv' },
@@ -27,6 +28,18 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string; dot: string; la
   delivered: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', dot: '#10B981', label: 'Geliefert' },
   completed: { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Abgeschlossen' },
   cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', dot: '#C43B2C', label: 'Storniert' },
+}
+
+const STATUS_CONFIG_EN: Record<string, { bg: string; color: string; dot: string; label: string }> = {
+  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Draft' },
+  inquiry:   { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', dot: '#3B82F6', label: 'Inquiry' },
+  booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Booked' },
+  active:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', dot: '#3DBA6F', label: 'Active' },
+  shooting:  { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C', dot: '#C4A47C', label: 'Shooting' },
+  editing:   { bg: 'rgba(139,92,246,0.12)',  color: '#8B5CF6', dot: '#8B5CF6', label: 'Editing' },
+  delivered: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', dot: '#10B981', label: 'Delivered' },
+  completed: { bg: 'rgba(100,116,139,0.10)', color: '#64748B', dot: '#94A3B8', label: 'Completed' },
+  cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', dot: '#C43B2C', label: 'Cancelled' },
 }
 
 const SHOOTING_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -87,6 +100,9 @@ export default function ProjectsPage() {
   const [dragging, setDragging] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
 
+  const locale = useLocale()
+  const de = locale === 'de'
+  const STATUS_CONFIG = de ? STATUS_CONFIG_DE : STATUS_CONFIG_EN
   const supabase = createClient()
 
   useEffect(() => {
@@ -229,10 +245,10 @@ export default function ProjectsPage() {
             className="font-black"
             style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
           >
-            Projekte
+            {de ? 'Projekte' : 'Projects'}
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {projects.length} {projects.length === 1 ? 'Project' : 'Projects'} · Manage your shoots and jobs
+            {projects.length} {projects.length === 1 ? (de ? 'Projekt' : 'Project') : (de ? 'Projekte' : 'Projects')} · {de ? 'Verwalte deine Shootings und Jobs' : 'Manage your shoots and jobs'}
           </p>
         </div>
 
@@ -365,7 +381,7 @@ export default function ProjectsPage() {
             style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
           >
             <Plus className="w-4 h-4" />
-            New project
+            {de ? 'Neues Projekt' : 'New project'}
           </Link>
         </div>
       </div>
@@ -734,10 +750,10 @@ export default function ProjectsPage() {
             className="font-black mb-2"
             style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
           >
-            No projects yet
+            {de ? 'Noch keine Projekte' : 'No projects yet'}
           </h3>
           <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-            Erstelle dein erstes Projekt und verwalte Vertrag, Galerie und Rechnung an einem Ort
+            {de ? 'Erstelle dein erstes Projekt und verwalte Vertrag, Galerie und Rechnung an einem Ort' : 'Create your first project and manage contracts, gallery and invoices in one place'}
           </p>
           <Link
             href="/dashboard/projects/new"
@@ -745,7 +761,7 @@ export default function ProjectsPage() {
             style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
           >
             <Plus className="w-4 h-4" />
-            Erstes Projekt erstellen
+            {de ? 'Erstes Projekt erstellen' : 'Create first project'}
           </Link>
         </div>
       )}
