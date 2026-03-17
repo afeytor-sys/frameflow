@@ -10,27 +10,27 @@ import toast from 'react-hot-toast'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 
 const PROJECT_TYPES = [
-  { value: 'wedding', label: 'Hochzeit' },
+  { value: 'wedding', label: 'Wedding' },
   { value: 'portrait', label: 'Portrait' },
   { value: 'event', label: 'Event' },
-  { value: 'commercial', label: 'Kommerziell' },
-  { value: 'realEstate', label: 'Immobilien' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'realEstate', label: 'Real Estate' },
   { value: 'fineArt', label: 'Fine Art' },
-  { value: 'newborn', label: 'Neugeborene' },
-  { value: 'family', label: 'Familie' },
-  { value: 'other', label: 'Sonstiges' },
+  { value: 'newborn', label: 'Newborn' },
+  { value: 'family', label: 'Family' },
+  { value: 'other', label: 'Other' },
 ]
 
 const SHOOTING_TYPES = [
-  { value: 'Hochzeit',   label: '💍 Hochzeit',   color: '#E879A0' },
+  { value: 'Wedding',    label: '💍 Wedding',    color: '#E879A0' },
   { value: 'Portrait',   label: '🧑 Portrait',   color: '#8B5CF6' },
   { value: 'Event',      label: '🎉 Event',      color: '#F59E0B' },
   { value: 'Commercial', label: '💼 Commercial', color: '#3B82F6' },
-  { value: 'Immobilien', label: '🏠 Immobilien', color: '#10B981' },
+  { value: 'Real Estate',label: '🏠 Real Estate',color: '#10B981' },
   { value: 'Fine Art',   label: '🎨 Fine Art',   color: '#C4A47C' },
   { value: 'Sport',      label: '⚽ Sport',      color: '#EF4444' },
   { value: 'Newborn',    label: '👶 Newborn',    color: '#F97316' },
-  { value: 'Familie',    label: '👨‍👩‍👧 Familie',   color: '#06B6D4' },
+  { value: 'Family',     label: '👨‍👩‍👧 Family',    color: '#06B6D4' },
 ]
 
 export default function NewProjectPage() {
@@ -70,7 +70,7 @@ export default function NewProjectPage() {
 
   const handleCreateClient = async () => {
     if (!newClient.full_name.trim()) {
-      toast.error('Name ist erforderlich')
+      toast.error('Name is required')
       return
     }
     setCreatingClient(true)
@@ -90,12 +90,12 @@ export default function NewProjectPage() {
       .single()
 
     if (error) {
-      toast.error('Error creating des Kunden')
+      toast.error('Error creating client')
       setCreatingClient(false)
       return
     }
 
-    toast.success(`${data.full_name} erstellt!`)
+    toast.success(`${data.full_name} created!`)
     await fetchClients()
     setForm((prev) => ({ ...prev, client_id: data.id }))
     setNewClient({ full_name: '', email: '', phone: '' })
@@ -106,7 +106,7 @@ export default function NewProjectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim() || !form.client_id) {
-      toast.error('Titel und Kunde sind erforderlich')
+      toast.error('Title and client are required')
       return
     }
 
@@ -134,12 +134,12 @@ export default function NewProjectPage() {
       .single()
 
     if (error) {
-      toast.error('Error creating des Projekts')
+      toast.error('Error creating project')
       setLoading(false)
       return
     }
 
-    toast.success('Projekt erstellt!')
+    toast.success('Project created!')
     router.push(`/dashboard/projects/${data.id}`)
   }
 
@@ -166,10 +166,10 @@ export default function NewProjectPage() {
             <Lock className="w-6 h-6" style={{ color: 'var(--accent)' }} />
           </div>
           <h2 className="font-black text-[18px] mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-            Projektlimit erreicht
+            Project limit reached
           </h2>
           <p className="text-[13.5px] mb-1" style={{ color: 'var(--text-muted)' }}>
-            Du hast <strong>{projectCount}</strong> von <strong>{limits.maxGalleries}</strong> Projekten im <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong>-Plan verwendet.
+            You have used <strong>{projectCount}</strong> of <strong>{limits.maxGalleries}</strong> projects on the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan.
           </p>
           <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
             Upgrade to Starter or Pro for more projects.
@@ -179,7 +179,7 @@ export default function NewProjectPage() {
               Back
             </Link>
             <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
-              Jetzt upgraden →
+              Upgrade now →
             </Link>
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function NewProjectPage() {
           >
             New project
           </h1>
-          <p className="text-[#7A7670] text-[13px]">Projekt erstellen und Kunden-Portal generieren</p>
+          <p className="text-[#7A7670] text-[13px]">Create project and generate client portal</p>
         </div>
       </div>
 
@@ -209,7 +209,7 @@ export default function NewProjectPage() {
         {/* Title */}
         <div>
           <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-            Projekttitel <span className="text-[#C94030]">*</span>
+            Project title <span className="text-[#C94030]">*</span>
           </label>
           <input
             type="text"
@@ -217,7 +217,7 @@ export default function NewProjectPage() {
             value={form.title}
             onChange={handleChange}
             required
-            placeholder="Hochzeit Anna & Max"
+            placeholder="Wedding Anna & Max"
             className={inputClass}
           />
         </div>
@@ -226,7 +226,7 @@ export default function NewProjectPage() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-[12px] font-semibold text-[#111110] uppercase tracking-wide">
-              Kunde <span className="text-[#C94030]">*</span>
+              Client <span className="text-[#C94030]">*</span>
             </label>
             <button
               type="button"
@@ -236,7 +236,7 @@ export default function NewProjectPage() {
               {showNewClient ? (
                 <><X className="w-3 h-3" /> Cancel</>
               ) : (
-                <><UserPlus className="w-3 h-3" /> Neuen Kunden erstellen</>
+                <><UserPlus className="w-3 h-3" /> Create new client</>
               )}
             </button>
           </div>
@@ -260,7 +260,7 @@ export default function NewProjectPage() {
           {/* Inline new client form */}
           {showNewClient && (
             <div className="rounded-lg border border-[#C8A882]/30 bg-[#C8A882]/5 p-4 space-y-3">
-              <p className="text-[12px] font-semibold text-[#7A7670] uppercase tracking-wide">Neuen Kunden anlegen</p>
+              <p className="text-[12px] font-semibold text-[#7A7670] uppercase tracking-wide">Add new client</p>
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">
@@ -314,11 +314,11 @@ export default function NewProjectPage() {
         {/* Date + Type */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Shooting-Datum</label>
+            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Shooting date</label>
             <input type="date" name="shoot_date" value={form.shoot_date} onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Projekt-Typ</label>
+            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Project type</label>
             <select name="project_type" value={form.project_type} onChange={handleChange} className={inputClass}>
               <option value="">Select...</option>
               {PROJECT_TYPES.map(({ value, label }) => (
@@ -331,7 +331,7 @@ export default function NewProjectPage() {
         {/* Shooting type — Art des Shootings */}
         <div>
           <label className="block text-[12px] font-semibold text-[#111110] mb-2 uppercase tracking-wide">
-            Art des Shootings
+            Shooting type
           </label>
           <div className="flex flex-wrap gap-2">
             {SHOOTING_TYPES.map(({ value, label, color }) => {
@@ -368,7 +368,7 @@ export default function NewProjectPage() {
             disabled={loading || showNewClient}
             className="flex-1 py-2.5 rounded-md bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold hover:bg-[#1E1E1C] transition-colors disabled:opacity-50"
           >
-            {loading ? 'Wird erstellt...' : 'Projekt erstellen'}
+            {loading ? 'Creating...' : 'Create project'}
           </button>
         </div>
       </form>
