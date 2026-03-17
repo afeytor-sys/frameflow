@@ -59,7 +59,7 @@ interface Props {
 const STATUS_CONFIG = {
   draft:   { label: 'Draft',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)', icon: FileText },
   sent:    { label: 'Sent',   color: '#CC8415', bg: 'rgba(204,132,21,0.10)',  icon: Send },
-  paid:    { label: 'Bezahlt',    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)', icon: CheckCircle2 },
+  paid:    { label: 'Paid',    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)', icon: CheckCircle2 },
   overdue: { label: 'Overdue', color: '#C43B2C', bg: 'rgba(196,59,44,0.10)',  icon: AlertCircle },
 }
 
@@ -245,7 +245,7 @@ function InvoicePreviewModal({
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.10)' }}>
                 <FileText className="w-4 h-4" style={{ color: '#F97316' }} />
               </div>
-              <span className="font-bold text-[15px] text-[#1A1A1A]">Rechnungsvorschau</span>
+              <span className="font-bold text-[15px] text-[#1A1A1A]">Invoice Preview</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -254,7 +254,7 @@ function InvoicePreviewModal({
                 style={{ background: '#1A1A1A' }}
               >
                 <Printer className="w-3.5 h-3.5" />
-                Drucken / PDF
+                Print / PDF
               </button>
               <button
                 onClick={onClose}
@@ -413,7 +413,7 @@ function InvoicePreviewModal({
               style={{ background: '#1A1A1A' }}
             >
               <Printer className="w-4 h-4" />
-              Drucken / Als PDF speichern
+              Print / Save as PDF
             </button>
             <button
               onClick={onClose}
@@ -484,7 +484,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   }
 
   const handleCreateProject = async () => {
-    if (!newProjectTitle.trim()) { toast.error('Bitte einen Projektnamen eingeben'); return }
+    if (!newProjectTitle.trim()) { toast.error('Please enter a project name'); return }
     setSavingProject(true)
     const { data, error } = await supabase
       .from('projects')
@@ -504,11 +504,11 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setNewProjectClientId('')
     setShowNewProject(false)
     setSavingProject(false)
-    toast.success(`Projekt "${newProject.title}" erstellt!`)
+    toast.success(`Project "${newProject.title}" created!`)
   }
 
   const handleCreateClient = async () => {
-    if (!newClientName.trim()) { toast.error('Bitte einen Namen eingeben'); return }
+    if (!newClientName.trim()) { toast.error('Please enter a name'); return }
     setSavingClient(true)
     const { data, error } = await supabase
       .from('clients')
@@ -528,7 +528,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setNewClientEmail('')
     setShowNewClient(false)
     setSavingClient(false)
-    toast.success(`Kunde "${newClient.full_name}" erstellt!`)
+    toast.success(`Client "${newClient.full_name}" created!`)
   }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
@@ -546,7 +546,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.project_id) { toast.error('Please select a project'); return }
-    if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
+    if (!form.amount) { toast.error('Please enter an amount'); return }
     setSaving(true)
 
     const net = parseFloat(form.amount.replace(',', '.'))
@@ -598,12 +598,12 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       if (json.error === 'Client has no email address') {
         toast.error('No client or email address found for this project.')
       } else {
-        toast.error('Error sending der Rechnung')
+        toast.error('Error sending invoice')
       }
       return false
     }
     setInvoices(prev => prev.map(i => i.id === invoiceId ? { ...i, status: 'sent' as const, sent_at: new Date().toISOString() } : i))
-    toast.success('Rechnung erfolgreich gesendet! 📧')
+    toast.success('Invoice sent successfully! 📧')
     return true
   }
 
@@ -617,7 +617,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const updateStatus = async (id: string, status: Invoice['status']) => {
     const { error } = await supabase.from('invoices').update({ status }).eq('id', id)
-    if (error) { toast.error('Fehler'); return }
+    if (error) { toast.error('Error updating status'); return }
     setInvoices(prev => prev.map(i => i.id === id ? { ...i, status } : i))
     setOpenMenu(null)
     toast.success(`Status: ${STATUS_CONFIG[status].label}`)
@@ -626,7 +626,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const deleteInvoice = async (id: string) => {
     if (!confirm('Delete invoice?')) return
     const { error } = await supabase.from('invoices').delete().eq('id', id)
-    if (error) { toast.error('Fehler'); return }
+    if (error) { toast.error('Error deleting invoice'); return }
     setInvoices(prev => prev.filter(i => i.id !== id))
     setOpenMenu(null)
     toast.success('Invoice deleted')
@@ -641,10 +641,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             className="font-black"
             style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
           >
-            Rechnungen
+            Invoices
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            Erstelle und verfolge deine Zahlungen
+            Create and track your payments
           </p>
         </div>
         <button onClick={() => setShowNew(true)}
@@ -664,8 +664,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       `}</style>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {([
-          { label: 'Bezahlt',       value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? 'Erfolgreich eingegangen' : 'Noch keine Zahlungen',   Icon: CheckCircle2, delay: 0 },
-          { label: 'Ausstehend',    value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? 'Warten auf Zahlung' : 'Keine offenen Rechnungen', Icon: Clock,        delay: 90 },
+          { label: 'Paid',          value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? 'Successfully received' : 'No payments yet',          Icon: CheckCircle2, delay: 0 },
+          { label: 'Pending',       value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? 'Waiting for payment' : 'No open invoices',         Icon: Clock,        delay: 90 },
           { label: 'Overdue',    value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? 'Follow up immediately!' : 'All good',  Icon: AlertCircle,  delay: 180 },
           { label: 'VAT paid', value: formatEur(totalMwst),   color: '#8B5CF6', desc: 'Estimated 19% VAT',                                               Icon: Percent,      delay: 270 },
         ] as const).map(({ label, value, color, desc, Icon, delay }) => (
@@ -718,7 +718,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               <FileText className="w-7 h-7" style={{ color: '#F97316' }} />
             </div>
             <h3 className="font-black mb-2" style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              Noch keine Rechnungen
+              No invoices yet
             </h3>
             <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
               Create your first invoice and keep track of your payments
@@ -727,7 +727,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
               style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
               <Plus className="w-4 h-4" />
-              Erste Rechnung erstellen
+              Create first invoice
             </button>
           </div>
         ) : (
@@ -788,13 +788,13 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     disabled={isSending}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold text-white flex-shrink-0 transition-all hover:opacity-88 disabled:opacity-50"
                     style={{ background: '#CC8415', boxShadow: '0 1px 6px rgba(204,132,21,0.25)' }}
-                    title={`An ${clientEmail} senden`}
+                    title={`Send to ${clientEmail}`}
                   >
                     {isSending
                       ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       : <Send className="w-3.5 h-3.5" />
                     }
-                    {isSending ? '...' : 'Senden'}
+                    {isSending ? '...' : 'Send'}
                   </button>
                 )}
 
@@ -803,7 +803,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   onClick={() => { setAutoPrint(false); setPreviewInvoice(inv) }}
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                   style={{ color: 'var(--text-muted)' }}
-                  title="Rechnung ansehen"
+                  title="View invoice"
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
@@ -815,7 +815,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   onClick={() => { setAutoPrint(true); setPreviewInvoice(inv) }}
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                   style={{ color: 'var(--text-muted)' }}
-                  title="Rechnung drucken / als PDF speichern"
+                  title="Print / save as PDF"
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
@@ -845,7 +845,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <Send className="w-3.5 h-3.5" style={{ color: '#CC8415' }} />
-                            An Kunden senden
+                            Send to client
                           </button>
                         )}
                         {/* Mark as paid — always visible (except already paid) */}
@@ -856,7 +856,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#2A9B68' }} />
-                            Als bezahlt markieren ✓
+                            Mark as paid ✓
                           </button>
                         )}
                         {/* Mark as overdue — for draft/sent/paid */}
@@ -1107,7 +1107,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   {saving ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <><Plus className="w-4 h-4" />Rechnung erstellen</>
+                    <><Plus className="w-4 h-4" />Create invoice</>
                   )}
                 </button>
               </div>
@@ -1134,10 +1134,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 </div>
                 <div>
                   <h2 className="font-black text-[15px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-                    Rechnung senden
+                    Send invoice
                   </h2>
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    {getClientEmail(createdInvoice.project) ? `An ${getClientEmail(createdInvoice.project)}` : 'Keine E-Mail hinterlegt'}
+                    {getClientEmail(createdInvoice.project) ? `To ${getClientEmail(createdInvoice.project)}` : 'No email address on file'}
                   </p>
                 </div>
               </div>
@@ -1220,7 +1220,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     : <Send className="w-4 h-4" />
                   }
-                  {sendingCreated ? 'Wird gesendet...' : 'Jetzt an Kunden senden'}
+                  {sendingCreated ? 'Sending...' : 'Send to client now'}
                 </button>
               ) : (
                 <div className="w-full py-2.5 px-4 rounded-xl text-[13px] text-center"
