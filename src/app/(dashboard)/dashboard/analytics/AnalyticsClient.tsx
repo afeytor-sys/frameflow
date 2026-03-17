@@ -5,6 +5,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import { TrendingUp, Users, FileText, Euro, CheckCircle2, ArrowUpRight } from 'lucide-react'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Invoice  { amount: number; status: string; created_at: string }
 interface Client   { created_at: string; status: string }
@@ -20,19 +21,116 @@ interface Props {
   galleries: Gallery[]
 }
 
-function formatEur(cents: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', currencyDisplay: 'symbol' }).format(cents / 100).replace('€', '€')
+// ─── Translations ─────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    title: 'Analytics',
+    subtitle: 'Overview of your studio growth',
+    totalRevenue: 'Total Revenue',
+    outstanding: 'Outstanding',
+    clients: 'Clients',
+    projects: 'Projects',
+    conversion: 'Conversion',
+    avgPerProject: 'Avg per Project',
+    paidInvoices: 'Paid invoices',
+    openInvoices: 'Open invoices',
+    allPaid: 'All paid ✓',
+    noRevenueYet: 'No revenue yet',
+    noClientsYet: 'No clients yet',
+    noProjectsYet: 'No projects yet',
+    noContracts: 'No contracts',
+    noDataYet: 'No data yet',
+    total: 'total',
+    contracts: 'contracts',
+    averageRevenue: 'Average revenue',
+    revenueChart: 'Revenue (€)',
+    revenueChartSub: 'Paid invoices — last 6 months',
+    noPaidInvoices: 'No paid invoices yet',
+    newClients: 'New Clients',
+    last6Months: 'Last 6 months',
+    projectsByType: 'Projects by Type',
+    distributionShooting: 'Distribution of shooting types',
+    contractStatus: 'Contract Status',
+    overviewContracts: 'Overview of all contracts',
+    noContractsYet: 'No contracts yet',
+    sectionContracts: 'Contracts',
+    sectionInvoices: 'Invoices',
+    sectionGalleries: 'Galleries & Projects',
+    activeGalleries: 'Active Galleries',
+    totalProjects: 'Total Projects',
+    conversionRate: 'Conversion Rate',
+    avgRevenueProject: 'Avg Revenue/Project',
+    paid: 'Paid',
+    sent: 'Sent',
+    overdue: 'Overdue',
+    draft: 'Draft',
+    viewed: 'Viewed',
+    signed: 'Signed',
+    revenue: 'Revenue',
+  },
+  de: {
+    title: 'Analytik',
+    subtitle: 'Übersicht deines Studio-Wachstums',
+    totalRevenue: 'Gesamtumsatz',
+    outstanding: 'Ausstehend',
+    clients: 'Kunden',
+    projects: 'Projekte',
+    conversion: 'Conversion',
+    avgPerProject: 'Ø pro Projekt',
+    paidInvoices: 'Bezahlte Rechnungen',
+    openInvoices: 'Offene Rechnungen',
+    allPaid: 'Alles bezahlt ✓',
+    noRevenueYet: 'Noch kein Umsatz',
+    noClientsYet: 'Noch keine Kunden',
+    noProjectsYet: 'Noch keine Projekte',
+    noContracts: 'Keine Verträge',
+    noDataYet: 'Noch keine Daten',
+    total: 'gesamt',
+    contracts: 'Verträge',
+    averageRevenue: 'Durchschnittlicher Umsatz',
+    revenueChart: 'Umsatz (€)',
+    revenueChartSub: 'Bezahlte Rechnungen — letzte 6 Monate',
+    noPaidInvoices: 'Noch keine bezahlten Rechnungen',
+    newClients: 'Neue Kunden',
+    last6Months: 'Letzte 6 Monate',
+    projectsByType: 'Projekte nach Typ',
+    distributionShooting: 'Verteilung der Shooting-Typen',
+    contractStatus: 'Vertragsstatus',
+    overviewContracts: 'Übersicht aller Verträge',
+    noContractsYet: 'Noch keine Verträge',
+    sectionContracts: 'Verträge',
+    sectionInvoices: 'Rechnungen',
+    sectionGalleries: 'Galerien & Projekte',
+    activeGalleries: 'Aktive Galerien',
+    totalProjects: 'Projekte gesamt',
+    conversionRate: 'Conversion-Rate',
+    avgRevenueProject: 'Ø Umsatz/Projekt',
+    paid: 'Bezahlt',
+    sent: 'Gesendet',
+    overdue: 'Überfällig',
+    draft: 'Entwurf',
+    viewed: 'Angesehen',
+    signed: 'Unterzeichnet',
+    revenue: 'Umsatz',
+  },
 }
 
-// Build last-N-months labels — always English
-function lastNMonths(n: number) {
+function formatEur(cents: number, locale: 'en' | 'de') {
+  if (locale === 'de') {
+    return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+  }
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', currencyDisplay: 'symbol' }).format(cents / 100)
+}
+
+// Build last-N-months labels — respects locale
+function lastNMonths(n: number, locale: 'en' | 'de') {
   const months: { key: string; label: string }[] = []
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(1)
     d.setMonth(d.getMonth() - i)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+    const label = d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { month: 'short', year: '2-digit' })
     months.push({ key, label })
   }
   return months
@@ -56,12 +154,17 @@ const CONTRACT_COLORS: Record<string, string> = {
   signed: '#10B981',
 }
 
-const CONTRACT_LABELS: Record<string, string> = {
-  draft: 'Draft', sent: 'Sent', viewed: 'Viewed', signed: 'Signed',
-}
-
 export default function AnalyticsClient({ invoices, clients, projects, contracts, galleries }: Props) {
-  const months = lastNMonths(6)
+  const locale = useLocale()
+  const t = T[locale]
+  const months = lastNMonths(6, locale)
+
+  const CONTRACT_LABELS: Record<string, string> = {
+    draft:  t.draft,
+    sent:   t.sent,
+    viewed: t.viewed,
+    signed: t.signed,
+  }
 
   // ── Revenue per month ──
   const revenueByMonth = months.map(({ key, label }) => {
@@ -80,8 +183,8 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
   // ── Projects by type ──
   const typeCount: Record<string, number> = {}
   projects.forEach(p => {
-    const t = p.project_type || 'other'
-    typeCount[t] = (typeCount[t] || 0) + 1
+    const tp = p.project_type || 'other'
+    typeCount[tp] = (typeCount[tp] || 0) + 1
   })
   const projectTypeData = Object.entries(typeCount).map(([name, value]) => ({ name, value }))
 
@@ -100,14 +203,43 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
   const activeGalleries = galleries.filter(g => g.status === 'active').length
   const avgRevenue = projects.length > 0 ? Math.round(totalRevenue / projects.length / 100) : 0
 
-  // KPI definitions — numeric ones get count-up, string ones display as-is
   const kpis = [
-    { label: 'Total Revenue',    display: formatEur(totalRevenue),    numericVal: null, description: totalRevenue > 0 ? 'Paid invoices' : 'No revenue yet',          icon: Euro,         color: '#10B981' },
-    { label: 'Outstanding',      display: formatEur(pendingRevenue),  numericVal: null, description: pendingRevenue > 0 ? 'Open invoices' : 'All paid ✓',             icon: TrendingUp,   color: '#F59E0B' },
-    { label: 'Clients',          display: String(clients.length),     numericVal: clients.length,   description: clients.length === 0 ? 'No clients yet' : `${clients.length} total`,   icon: Users,        color: '#3B82F6' },
-    { label: 'Projects',         display: String(projects.length),    numericVal: projects.length,  description: projects.length === 0 ? 'No projects yet' : `${projects.length} total`, icon: FileText,     color: '#C4A47C' },
-    { label: 'Conversion',       display: `${conversionRate}%`,       numericVal: null, description: contracts.length > 0 ? `${signedContracts} of ${contracts.length} contracts` : 'No contracts', icon: CheckCircle2, color: '#8B5CF6' },
-    { label: 'Avg per Project',  display: formatEur(avgRevenue * 100),numericVal: null, description: projects.length > 0 ? 'Average revenue' : 'No data yet',         icon: Euro,         color: '#EC4899' },
+    {
+      label: t.totalRevenue,
+      display: formatEur(totalRevenue, locale),
+      description: totalRevenue > 0 ? t.paidInvoices : t.noRevenueYet,
+      icon: Euro, color: '#10B981',
+    },
+    {
+      label: t.outstanding,
+      display: formatEur(pendingRevenue, locale),
+      description: pendingRevenue > 0 ? t.openInvoices : t.allPaid,
+      icon: TrendingUp, color: '#F59E0B',
+    },
+    {
+      label: t.clients,
+      display: String(clients.length),
+      description: clients.length === 0 ? t.noClientsYet : `${clients.length} ${t.total}`,
+      icon: Users, color: '#3B82F6',
+    },
+    {
+      label: t.projects,
+      display: String(projects.length),
+      description: projects.length === 0 ? t.noProjectsYet : `${projects.length} ${t.total}`,
+      icon: FileText, color: '#C4A47C',
+    },
+    {
+      label: t.conversion,
+      display: `${conversionRate}%`,
+      description: contracts.length > 0 ? `${signedContracts} ${locale === 'de' ? 'von' : 'of'} ${contracts.length} ${t.contracts}` : t.noContracts,
+      icon: CheckCircle2, color: '#8B5CF6',
+    },
+    {
+      label: t.avgPerProject,
+      display: formatEur(avgRevenue * 100, locale),
+      description: projects.length > 0 ? t.averageRevenue : t.noDataYet,
+      icon: Euro, color: '#EC4899',
+    },
   ]
 
   const tooltipStyle = {
@@ -127,14 +259,14 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="font-black"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
         >
-          Analytics
+          {t.title}
         </h1>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-          Overview of your studio growth
+          {t.subtitle}
         </p>
       </div>
 
-      {/* KPI Cards — identical style to dashboard AnimatedStatsLight */}
+      {/* KPI Cards */}
       <style>{`
         @keyframes statFadeUp {
           from { opacity: 0; transform: translateY(16px); }
@@ -165,12 +297,9 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
               e.currentTarget.style.borderColor = color + '20'
             }}
           >
-            {/* Top accent bar */}
             <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl" style={{ background: color, opacity: 0.7 }} />
-            {/* Subtle gradient tint */}
             <div className="absolute inset-0 rounded-2xl" style={{ background: `linear-gradient(135deg, ${color}12 0%, ${color}03 100%)`, opacity: 0.5 }} />
             <div className="relative z-10 p-4">
-              {/* Icon + ArrowUpRight row */}
               <div className="flex items-start justify-between mb-3">
                 <div
                   className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
@@ -185,18 +314,15 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                   <ArrowUpRight className="w-3 h-3" style={{ color }} />
                 </div>
               </div>
-              {/* Value */}
               <p
                 className="font-black tabular-nums leading-none mb-1 truncate"
                 style={{ fontSize: '20px', letterSpacing: '-0.03em', color }}
               >
                 {display}
               </p>
-              {/* Label */}
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: color + '99' }}>
                 {label}
               </p>
-              {/* Description */}
               <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                 {description}
               </p>
@@ -213,11 +339,11 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Revenue (€)</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Paid invoices — last 6 months</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{t.revenueChart}</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{t.revenueChartSub}</p>
           {revenueByMonth.every(d => d.value === 0) ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              No paid invoices yet
+              {t.noPaidInvoices}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -226,7 +352,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                 <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v) => [`€${v}`, 'Revenue']}
+                  formatter={(v) => [`€${v}`, t.revenue]}
                   cursor={{ fill: 'rgba(196,164,124,0.06)', radius: 8 }}
                 />
                 <Bar dataKey="value" fill="#C4A47C" radius={[6, 6, 0, 0]} />
@@ -240,11 +366,11 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>New Clients</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Last 6 months</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{t.newClients}</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{t.last6Months}</p>
           {clientsByMonth.every(d => d.value === 0) ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              No clients yet
+              {t.noClientsYet}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -253,7 +379,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                 <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v) => [v, 'Clients']}
+                  formatter={(v) => [v, t.clients]}
                   cursor={{ fill: 'rgba(59,130,246,0.06)', radius: 8 }}
                 />
                 <Bar dataKey="value" fill="#3B82F6" radius={[6, 6, 0, 0]} />
@@ -271,11 +397,11 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Projects by Type</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Distribution of shooting types</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{t.projectsByType}</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{t.distributionShooting}</p>
           {projectTypeData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              No projects yet
+              {t.noProjectsYet}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -310,11 +436,11 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>Contract Status</h2>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Overview of all contracts</p>
+          <h2 className="font-bold text-[14.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{t.contractStatus}</h2>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{t.overviewContracts}</p>
           {contractStatusData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              No contracts yet
+              {t.noContractsYet}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -355,7 +481,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
       >
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Contracts</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>{t.sectionContracts}</p>
           <div className="space-y-1.5">
             {Object.entries(CONTRACT_LABELS).map(([key, label]) => {
               const count = contracts.filter(c => c.status === key).length
@@ -373,13 +499,13 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </div>
 
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Invoices</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>{t.sectionInvoices}</p>
           <div className="space-y-1.5">
             {[
-              { key: 'paid',    label: 'Paid',    color: '#10B981' },
-              { key: 'sent',    label: 'Sent',    color: '#F59E0B' },
-              { key: 'overdue', label: 'Overdue', color: '#EF4444' },
-              { key: 'draft',   label: 'Draft',   color: '#6B7280' },
+              { key: 'paid',    label: t.paid,    color: '#10B981' },
+              { key: 'sent',    label: t.sent,    color: '#F59E0B' },
+              { key: 'overdue', label: t.overdue, color: '#EF4444' },
+              { key: 'draft',   label: t.draft,   color: '#6B7280' },
             ].map(({ key, label, color }) => {
               const count = invoices.filter(i => i.status === key).length
               const amount = invoices.filter(i => i.status === key).reduce((s, i) => s + i.amount, 0)
@@ -388,7 +514,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                   <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{label}</span>
                   <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{count}</span>
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatEur(amount)}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatEur(amount, locale)}</span>
                 </div>
               )
             })}
@@ -396,27 +522,27 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
         </div>
 
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>Galleries & Projects</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-2" style={{ color: 'var(--text-muted)' }}>{t.sectionGalleries}</p>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#10B981' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Active Galleries</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{t.activeGalleries}</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{activeGalleries}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#C4A47C' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Total Projects</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{t.totalProjects}</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{projects.length}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#8B5CF6' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Conversion Rate</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{t.conversionRate}</span>
               <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{conversionRate}%</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#EC4899' }} />
-              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>Avg Revenue/Project</span>
-              <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{formatEur(avgRevenue * 100)}</span>
+              <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{t.avgRevenueProject}</span>
+              <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{formatEur(avgRevenue * 100, locale)}</span>
             </div>
           </div>
         </div>
