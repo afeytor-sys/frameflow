@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CalendarDays, MapPin, Tag, FileText, Check, Loader2, Clock, Users, Euro, Timer, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Props {
   projectId: string
@@ -25,7 +26,99 @@ interface Props {
   }
 }
 
-const PROJECT_TYPES = [
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+const UI = {
+  en: {
+    shootDateLabel: 'Shooting Date & Time',
+    noDate: 'No date set',
+    today: 'Today!',
+    daysAgo: (n: number) => `${n} day${n !== 1 ? 's' : ''} ago`,
+    inDays: (n: number) => `in ${n} day${n !== 1 ? 's' : ''}`,
+    appearsInBookings: 'Appears in Bookings & Calendar',
+    locationLabel: 'Location',
+    noLocation: 'No location set',
+    meetingPointLabel: 'Meeting Point (Precise)',
+    meetingPointDesc: 'Add a Google Maps link or coordinates — shown to the client as an interactive map.',
+    openInMaps: 'Open in Maps',
+    shownOnMap: 'Shown as mini-map in client portal',
+    durationLabel: 'Duration',
+    personsLabel: 'Persons',
+    priceLabel: 'Fee',
+    shootingTypeLabel: 'Shooting Type',
+    statusLabel: 'Status',
+    notesLabel: 'Notes',
+    notesPlaceholder: 'Internal notes about the booking...',
+    customType: 'Custom',
+    customTypeTitle: 'Custom Type',
+    customStatus: 'Custom',
+    customStatusTitle: 'Custom Status',
+    preview: 'Preview:',
+    save: 'Save',
+    saving: 'Saving...',
+    saved: 'Saved!',
+    errorSaving: 'Error saving: ',
+    successSaved: 'Booking details saved!',
+    durationPlaceholder: 'e.g. 2h, 3 hrs',
+    personsPlaceholder: 'e.g. 2',
+    pricePlaceholder: 'e.g. 1,200 €',
+    customTypePlaceholder: 'e.g. Boudoir, Architecture...',
+    customStatusPlaceholder: 'e.g. Post-processing, Waiting...',
+    locationPlaceholder: 'e.g. Central Park, New York',
+    meetingPointPlaceholder: 'e.g. https://maps.google.com/?q=48.1351,11.5820 or 48.1351, 11.5820',
+  },
+  de: {
+    shootDateLabel: 'Shooting-Datum & Uhrzeit',
+    noDate: 'Noch kein Datum',
+    today: 'Heute!',
+    daysAgo: (n: number) => `vor ${n} Tag${n !== 1 ? 'en' : ''}`,
+    inDays: (n: number) => `in ${n} Tag${n !== 1 ? 'en' : ''}`,
+    appearsInBookings: 'Erscheint in Bookings & Kalender',
+    locationLabel: 'Ort / Location',
+    noLocation: 'Noch kein Ort',
+    meetingPointLabel: 'Treffpunkt (Präzise)',
+    meetingPointDesc: 'Google Maps-Link oder Koordinaten hinzufügen — wird dem Kunden als interaktive Karte angezeigt.',
+    openInMaps: 'In Maps öffnen',
+    shownOnMap: 'Wird als Mini-Karte im Kundenportal angezeigt',
+    durationLabel: 'Dauer',
+    personsLabel: 'Personen',
+    priceLabel: 'Honorar',
+    shootingTypeLabel: 'Shooting-Typ',
+    statusLabel: 'Status',
+    notesLabel: 'Notizen',
+    notesPlaceholder: 'Interne Notizen zum Booking...',
+    customType: 'Eigener',
+    customTypeTitle: 'Eigener Typ',
+    customStatus: 'Eigener',
+    customStatusTitle: 'Eigener Status',
+    preview: 'Vorschau:',
+    save: 'Speichern',
+    saving: 'Speichern...',
+    saved: 'Gespeichert!',
+    errorSaving: 'Fehler beim Speichern: ',
+    successSaved: 'Booking Details gespeichert!',
+    durationPlaceholder: 'z.B. 2h, 3 Std.',
+    personsPlaceholder: 'z.B. 2',
+    pricePlaceholder: 'z.B. 1.200 €',
+    customTypePlaceholder: 'z.B. Boudoir, Architektur...',
+    customStatusPlaceholder: 'z.B. Nachbearbeitung, Wartend...',
+    locationPlaceholder: 'z.B. Central Park, New York',
+    meetingPointPlaceholder: 'z.B. https://maps.google.com/?q=48.1351,11.5820 oder 48.1351, 11.5820',
+  },
+}
+
+// ─── Project types (bilingual) ────────────────────────────────────────────────
+const PROJECT_TYPES_EN = [
+  { value: 'wedding',    label: 'Wedding',    emoji: '💍' },
+  { value: 'portrait',  label: 'Portrait',   emoji: '🎭' },
+  { value: 'family',    label: 'Family',     emoji: '👨‍👩‍👧' },
+  { value: 'newborn',   label: 'Newborn',    emoji: '🍼' },
+  { value: 'event',     label: 'Event',      emoji: '🎉' },
+  { value: 'corporate', label: 'Corporate',  emoji: '💼' },
+  { value: 'product',   label: 'Product',    emoji: '📦' },
+  { value: 'other',     label: 'Other',      emoji: '✨' },
+]
+
+const PROJECT_TYPES_DE = [
   { value: 'wedding',    label: 'Hochzeit',   emoji: '💍' },
   { value: 'portrait',  label: 'Portrait',   emoji: '🎭' },
   { value: 'family',    label: 'Familie',    emoji: '👨‍👩‍👧' },
@@ -36,7 +129,18 @@ const PROJECT_TYPES = [
   { value: 'other',     label: 'Sonstiges',  emoji: '✨' },
 ]
 
-const STATUS_OPTIONS = [
+// ─── Status options (bilingual) ───────────────────────────────────────────────
+const STATUS_OPTIONS_EN = [
+  { value: 'inquiry',   label: 'Inquiry',    color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
+  { value: 'active',    label: 'Active',     color: '#3DBA6F', bg: 'rgba(61,186,111,0.10)' },
+  { value: 'shooting',  label: 'Shooting',   color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
+  { value: 'editing',   label: 'Editing',    color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
+  { value: 'delivered', label: 'Delivered',  color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
+  { value: 'completed', label: 'Completed',  color: '#64748B', bg: 'rgba(100,116,139,0.10)' },
+  { value: 'cancelled', label: 'Cancelled',  color: '#C43B2C', bg: 'rgba(196,59,44,0.10)' },
+]
+
+const STATUS_OPTIONS_DE = [
   { value: 'inquiry',   label: 'Anfrage',       color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
   { value: 'active',    label: 'Aktiv',         color: '#3DBA6F', bg: 'rgba(61,186,111,0.10)' },
   { value: 'shooting',  label: 'Shooting',      color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
@@ -58,14 +162,19 @@ function daysUntil(dateStr: string): number | null {
   return Math.ceil(diff / 86400000)
 }
 
-function formatDateDE(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export default function BookingDetailsTab({ projectId, initialData }: Props) {
-  const KNOWN_TYPES = PROJECT_TYPES.map(t => t.value)
+  const locale = useLocale()
+  const t = UI[locale]
+  const PROJECT_TYPES = locale === 'de' ? PROJECT_TYPES_DE : PROJECT_TYPES_EN
+  const STATUS_OPTIONS = locale === 'de' ? STATUS_OPTIONS_DE : STATUS_OPTIONS_EN
+
+  const KNOWN_TYPES = PROJECT_TYPES.map(tp => tp.value)
   const initType = initialData.project_type ?? ''
   const isCustomInit = initType !== '' && !KNOWN_TYPES.includes(initType)
 
@@ -97,7 +206,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
   const supabase = createClient()
   const days = shootDate ? daysUntil(shootDate) : null
   const currentStatus = STATUS_OPTIONS.find(s => s.value === status)
-  const currentType = PROJECT_TYPES.find(t => t.value === projectType)
+  const currentType = PROJECT_TYPES.find(tp => tp.value === projectType)
 
   // Determine active status display (custom or preset)
   const isCustomStatus = status === '__custom__'
@@ -132,9 +241,9 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       .eq('id', projectId)
 
     setSaving(false)
-    if (error) { toast.error('Error saving: ' + error.message); return }
+    if (error) { toast.error(t.errorSaving + error.message); return }
     setSaved(true)
-    toast.success('Booking Details gespeichert!')
+    toast.success(t.successSaved)
     setTimeout(() => setSaved(false), 2500)
   }
 
@@ -159,26 +268,26 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <CalendarDays className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Shooting-Datum & Uhrzeit
+              {t.shootDateLabel}
             </span>
           </div>
 
           {shootDate ? (
             <div className="mb-3">
               <p className="text-[22px] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-                {formatDateDE(shootDate)}{shootTime ? ` · ${shootTime} Uhr` : ''}
+                {formatDate(shootDate, locale)}{shootTime ? ` · ${shootTime}` : ''}
               </p>
               {days !== null && (
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Clock className="w-3 h-3" style={{ color: days <= 7 ? '#F97316' : 'var(--text-muted)' }} />
                   <span className="text-[12px] font-medium" style={{ color: days <= 7 ? '#F97316' : 'var(--text-muted)' }}>
-                    {days === 0 ? 'Heute!' : days < 0 ? `vor ${Math.abs(days)} Tagen` : `in ${days} Tagen`}
+                    {days === 0 ? t.today : days < 0 ? t.daysAgo(Math.abs(days)) : t.inDays(days)}
                   </span>
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>Noch kein Datum</p>
+            <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>{t.noDate}</p>
           )}
 
           <div className="grid grid-cols-2 gap-2">
@@ -194,13 +303,12 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               value={shootTime}
               onChange={e => setShootTime(e.target.value)}
               className="input-base w-full text-[13px]"
-              placeholder="Uhrzeit"
               style={{ colorScheme: 'light dark' }}
             />
           </div>
           {shootDate && (
             <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-              <Check className="w-3 h-3" />Erscheint in Bookings &amp; Kalender
+              <Check className="w-3 h-3" />{t.appearsInBookings}
             </p>
           )}
         </div>
@@ -222,7 +330,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <MapPin className="w-4 h-4" style={{ color: '#3B82F6' }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Ort / Location
+              {t.locationLabel}
             </span>
           </div>
 
@@ -231,20 +339,20 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               {location}
             </p>
           ) : (
-            <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>Noch kein Ort</p>
+            <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>{t.noLocation}</p>
           )}
 
           <input
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="e.g. Central Park, New York"
+            placeholder={t.locationPlaceholder}
             className="input-base w-full text-[13px]"
           />
         </div>
       </div>
 
-      {/* ── Treffpunkt card ── */}
+      {/* ── Meeting Point card ── */}
       <div
         className="rounded-2xl p-5 transition-all duration-300"
         style={{
@@ -262,7 +370,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           </div>
           <div className="flex-1">
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Meeting point (precise)
+              {t.meetingPointLabel}
             </span>
           </div>
           {meetingPoint && (
@@ -274,25 +382,25 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
             >
               <MapPin className="w-3 h-3" />
-              Open in Maps
+              {t.openInMaps}
             </a>
           )}
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          Add a Google Maps link or coordinates — shown to the client as an interactive map.
+          {t.meetingPointDesc}
         </p>
 
         <input
           type="text"
           value={meetingPoint}
           onChange={e => setMeetingPoint(e.target.value)}
-          placeholder="z.B. https://maps.google.com/?q=48.1351,11.5820 oder 48.1351, 11.5820"
+          placeholder={t.meetingPointPlaceholder}
           className="input-base w-full text-[13px]"
         />
         {meetingPoint && (
           <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#EC4899' }}>
-            <Check className="w-3 h-3" />Wird als Mini-Karte im Kundenportal angezeigt
+            <Check className="w-3 h-3" />{t.shownOnMap}
           </p>
         )}
       </div>
@@ -316,7 +424,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <Timer className="w-4 h-4" style={{ color: '#F97316' }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Dauer
+              {t.durationLabel}
             </span>
           </div>
           {duration && (
@@ -328,7 +436,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             type="text"
             value={duration}
             onChange={e => setDuration(e.target.value)}
-            placeholder="z.B. 2h, 3 Std."
+            placeholder={t.durationPlaceholder}
             className="input-base w-full text-[13px]"
           />
         </div>
@@ -350,7 +458,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <Users className="w-4 h-4" style={{ color: '#10B981' }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Personen
+              {t.personsLabel}
             </span>
           </div>
           {numPersons && (
@@ -362,7 +470,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             type="number"
             value={numPersons}
             onChange={e => setNumPersons(e.target.value)}
-            placeholder="z.B. 2"
+            placeholder={t.personsPlaceholder}
             min="1"
             className="input-base w-full text-[13px]"
           />
@@ -385,7 +493,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <Euro className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Honorar
+              {t.priceLabel}
             </span>
           </div>
           {price && (
@@ -397,7 +505,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             type="text"
             value={price}
             onChange={e => setPrice(e.target.value)}
-            placeholder="z.B. 1.200 €"
+            placeholder={t.pricePlaceholder}
             className="input-base w-full text-[13px]"
           />
         </div>
@@ -422,7 +530,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <Tag className="w-4 h-4" style={{ color: '#8B5CF6' }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Shooting-Typ
+              {t.shootingTypeLabel}
             </span>
           </div>
 
@@ -443,18 +551,18 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           </div>
 
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {PROJECT_TYPES.map(t => (
+            {PROJECT_TYPES.map(tp => (
               <button
-                key={t.value}
-                onClick={() => setProjectType(projectType === t.value ? '' : t.value)}
+                key={tp.value}
+                onClick={() => setProjectType(projectType === tp.value ? '' : tp.value)}
                 className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
                 style={{
-                  background: projectType === t.value ? 'rgba(139,92,246,0.12)' : 'var(--bg-hover)',
-                  color: projectType === t.value ? '#8B5CF6' : 'var(--text-muted)',
-                  border: projectType === t.value ? '1px solid rgba(139,92,246,0.30)' : '1px solid var(--border-color)',
+                  background: projectType === tp.value ? 'rgba(139,92,246,0.12)' : 'var(--bg-hover)',
+                  color: projectType === tp.value ? '#8B5CF6' : 'var(--text-muted)',
+                  border: projectType === tp.value ? '1px solid rgba(139,92,246,0.30)' : '1px solid var(--border-color)',
                 }}
               >
-                {t.label}
+                {tp.label}
               </button>
             ))}
             {/* Add custom type button */}
@@ -467,7 +575,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
                 border: showCustomTypeInput ? `1px solid ${customTypeColor}35` : '1px solid var(--border-color)',
               }}
             >
-              <Plus className="w-3 h-3" />Eigener
+              <Plus className="w-3 h-3" />{t.customType}
             </button>
           </div>
 
@@ -476,7 +584,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               type="text"
               value={customType}
               onChange={e => setCustomType(e.target.value)}
-              placeholder="z.B. Boudoir, Architektur..."
+              placeholder={t.customTypePlaceholder}
               className="input-base w-full mb-2 text-[13px]"
               autoFocus
             />
@@ -485,13 +593,13 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           {/* Custom type input with color picker */}
           {showCustomTypeInput && (
             <div className="mt-2 p-3 rounded-xl space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-              <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Eigener Typ</p>
+              <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.customTypeTitle}</p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={customTypeLabel}
                   onChange={e => setCustomTypeLabel(e.target.value)}
-                  placeholder="z.B. Boudoir, Architektur..."
+                  placeholder={t.customTypePlaceholder}
                   className="input-base flex-1 text-[12px]"
                 />
                 {customTypeLabel && (
@@ -518,7 +626,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               </div>
               {customTypeLabel && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Preview:</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.preview}</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
                     style={{ background: `${customTypeColor}18`, color: customTypeColor, border: `1px solid ${customTypeColor}35` }}>
                     ✦ {customTypeLabel}
@@ -546,7 +654,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               <span className="w-3 h-3 rounded-full" style={{ background: activeStatusColor }} />
             </div>
             <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              Status
+              {t.statusLabel}
             </span>
           </div>
 
@@ -600,19 +708,19 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               }}
             >
               {isCustomStatus && <span className="w-1.5 h-1.5 rounded-full" style={{ background: customStatusColor }} />}
-              <Plus className="w-3 h-3" />Eigener
+              <Plus className="w-3 h-3" />{t.customStatus}
             </button>
           </div>
 
           {/* Custom status input with color picker */}
           {(showCustomStatusInput || isCustomStatus) && (
             <div className="mt-2 p-3 rounded-xl space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-              <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Eigener Status</p>
+              <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.customStatusTitle}</p>
               <input
                 type="text"
                 value={customStatusLabel}
                 onChange={e => setCustomStatusLabel(e.target.value)}
-                placeholder="z.B. Nachbearbeitung, Wartend..."
+                placeholder={t.customStatusPlaceholder}
                 className="input-base w-full text-[12px]"
                 autoFocus={showCustomStatusInput}
               />
@@ -633,7 +741,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               </div>
               {customStatusLabel && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Preview:</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.preview}</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
                     style={{ background: `${customStatusColor}18`, color: customStatusColor, border: `1px solid ${customStatusColor}35` }}>
                     ● {customStatusLabel}
@@ -662,13 +770,13 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             <FileText className="w-4 h-4" style={{ color: '#10B981' }} />
           </div>
           <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-            Notizen
+            {t.notesLabel}
           </span>
         </div>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
-          placeholder="Interne Notizen zum Booking..."
+          placeholder={t.notesPlaceholder}
           rows={3}
           className="input-base w-full resize-none text-[13px]"
         />
@@ -683,11 +791,11 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           style={{ background: saved ? '#2A9B68' : 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}
         >
           {saving ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Saving...</>
+            <><Loader2 className="w-4 h-4 animate-spin" />{t.saving}</>
           ) : saved ? (
-            <><Check className="w-4 h-4" />Gespeichert!</>
+            <><Check className="w-4 h-4" />{t.saved}</>
           ) : (
-            'Save'
+            t.save
           )}
         </button>
       </div>
