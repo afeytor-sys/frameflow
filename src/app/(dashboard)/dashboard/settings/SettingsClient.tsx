@@ -31,9 +31,9 @@ const PHOTO_TYPES = [
 ]
 
 const TABS = [
-  { id: 'profile', label: 'Profil', icon: User },
+  { id: 'profile', label: 'Profile', icon: User },
   { id: 'studio', label: 'Studio', icon: Building2 },
-  { id: 'bank', label: 'Bankdaten', icon: CreditCard },
+  { id: 'bank', label: 'Bank details', icon: CreditCard },
   { id: 'branding', label: 'Branding', icon: Palette },
   { id: 'notifications', label: 'Benachrichtigungen', icon: Bell },
 ]
@@ -75,7 +75,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       .eq('id', userId)
     setSaving(false)
     if (error) toast.error('Error saving')
-    else toast.success('Profil gespeichert')
+    else toast.success('Profile saved')
   }
 
   const saveStudio = async () => {
@@ -102,7 +102,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       .eq('id', userId)
     setSaving(false)
     if (error) toast.error('Error saving')
-    else toast.success('Bankdaten gespeichert ✓')
+    else toast.success('Bank details saved ✓')
   }
 
   const uploadLogo = async (file: File) => {
@@ -118,8 +118,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">Einstellungen</h1>
-        <p className="text-sm text-[#6B6B6B] mt-1">Verwalte dein Profil und deine Studio-Einstellungen.</p>
+        <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">Settings</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1">Manage your profile and studio settings.</p>
       </div>
 
       {/* Tabs */}
@@ -147,7 +147,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       {/* Profile tab */}
       {activeTab === 'profile' && (
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
-          <h2 className="text-sm font-semibold text-[#1A1A1A]">Profil</h2>
+          <h2 className="text-sm font-semibold text-[#1A1A1A]">Profile</h2>
 
           <div>
             <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Full Name</label>
@@ -215,7 +215,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Profil speichern'}
+            {saving ? 'Saving...' : 'Save profile'}
           </button>
         </div>
       )}
@@ -278,7 +278,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
 
           <div>
             <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
-              Kontoinhaber <span className="text-[#E84C1A]">*</span>
+              Account holder <span className="text-[#E84C1A]">*</span>
             </label>
             <input
               type="text"
@@ -329,7 +329,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             <div className="p-4 rounded-lg border border-[#E8E8E4] bg-[#FAFAF8]">
               <p className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Preview auf Rechnung</p>
               <div className="space-y-1 text-sm">
-                {bankAccountHolder && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Kontoinhaber:</span> {bankAccountHolder}</p>}
+                {bankAccountHolder && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Account holder:</span> {bankAccountHolder}</p>}
                 {bankName && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Bank:</span> {bankName}</p>}
                 {bankIban && <p className="text-[#1A1A1A] font-mono"><span className="text-[#6B6B6B] font-sans">IBAN:</span> {bankIban}</p>}
                 {bankBic && <p className="text-[#1A1A1A] font-mono"><span className="text-[#6B6B6B] font-sans">BIC:</span> {bankBic}</p>}
@@ -342,7 +342,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Bankdaten speichern'}
+            {saving ? 'Saving...' : 'Save bank details'}
           </button>
         </div>
       )}
@@ -397,7 +397,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           {[
             'Vertrag unterschrieben',
             'Gallery viewed',
-            'Zahlung fehlgeschlagen',
+            'Payment failed',
             'Subscription changes',
           ].map(item => (
             <div key={item} className="flex items-center justify-between py-2 border-b border-[#E8E8E4] last:border-0">
