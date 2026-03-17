@@ -3,9 +3,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal, Trash2 } from 'lucide-react'
+import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal } from 'lucide-react'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Gallery {
   id: string
@@ -25,16 +26,102 @@ interface Project {
   client?: { full_name: string } | { full_name: string }[] | null
 }
 
-const SET_SUGGESTIONS = ['Getting Ready', 'Trauung', 'Feier', 'Portraits', 'Details', 'Highlights', 'Momente']
+const SET_SUGGESTIONS_DE = ['Getting Ready', 'Trauung', 'Feier', 'Portraits', 'Details', 'Highlights', 'Momente']
+const SET_SUGGESTIONS_EN = ['Getting Ready', 'Ceremony', 'Reception', 'Portraits', 'Details', 'Highlights', 'Moments']
+
+// ─── Translations ─────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    title: 'Galleries',
+    subtitle: (n: number) => `${n} ${n === 1 ? 'Gallery' : 'Galleries'} · Share your photos with clients`,
+    newGallery: '+ New gallery',
+    active: 'Active',
+    draft: 'Draft',
+    photos: (n: number) => `${n} Photos`,
+    noGalleries: 'No galleries yet',
+    noGalleriesDesc: 'Create your first gallery right here',
+    // Modal
+    modalTitle: 'Create new gallery',
+    modalDesc: 'Configure your gallery before uploading',
+    galleryName: 'Gallery name *',
+    galleryNamePlaceholder: 'e.g. Wedding Anna & Max',
+    password: 'Password (optional)',
+    passwordPlaceholder: 'No password',
+    project: 'Project *',
+    projectPlaceholder: 'Select project...',
+    noProject: 'No project found.',
+    noProjectLink: 'Create project →',
+    sets: 'Sets (optional)',
+    setsDesc: 'Divide your gallery into sections (e.g. Getting Ready, Ceremony)',
+    customSetPlaceholder: 'Custom set name...',
+    downloadEnabled: 'Allow download',
+    commentsEnabled: 'Allow comments',
+    tagsEnabled: 'Tag selection',
+    layout: 'Layout / Design',
+    cancel: 'Cancel',
+    createGallery: 'Create gallery',
+    // Toasts
+    errorTitle: 'Please enter a title',
+    errorProject: 'Please select a project',
+    errorCreating: 'Error creating gallery',
+    successCreated: 'Gallery created!',
+    errorNoToken: 'No client token found',
+    successLinkCopied: 'Gallery link copied!',
+    errorCopyFailed: 'Copy failed',
+    copyLinkTitle: 'Copy gallery link',
+  },
+  de: {
+    title: 'Galerien',
+    subtitle: (n: number) => `${n} ${n === 1 ? 'Galerie' : 'Galerien'} · Teile deine Fotos mit Kunden`,
+    newGallery: '+ Neue Galerie',
+    active: 'Aktiv',
+    draft: 'Entwurf',
+    photos: (n: number) => `${n} Fotos`,
+    noGalleries: 'Noch keine Galerien',
+    noGalleriesDesc: 'Erstelle deine erste Galerie direkt hier',
+    // Modal
+    modalTitle: 'Neue Galerie erstellen',
+    modalDesc: 'Konfiguriere deine Galerie vor dem Upload',
+    galleryName: 'Galerie-Name *',
+    galleryNamePlaceholder: 'z.B. Hochzeit Anna & Max',
+    password: 'Passwort (optional)',
+    passwordPlaceholder: 'Kein Passwort',
+    project: 'Projekt *',
+    projectPlaceholder: 'Projekt auswählen...',
+    noProject: 'Kein Projekt vorhanden.',
+    noProjectLink: 'Projekt erstellen →',
+    sets: 'Sets (optional)',
+    setsDesc: 'Teile deine Galerie in Abschnitte auf (z.B. Getting Ready, Trauung)',
+    customSetPlaceholder: 'Eigener Set-Name...',
+    downloadEnabled: 'Download erlauben',
+    commentsEnabled: 'Kommentare erlauben',
+    tagsEnabled: 'Tag Auswahl',
+    layout: 'Layout / Design',
+    cancel: 'Abbrechen',
+    createGallery: 'Galerie erstellen',
+    // Toasts
+    errorTitle: 'Bitte einen Titel eingeben',
+    errorProject: 'Bitte ein Projekt auswählen',
+    errorCreating: 'Fehler beim Erstellen',
+    successCreated: 'Galerie erstellt!',
+    errorNoToken: 'Kein Client-Token gefunden',
+    successLinkCopied: 'Galerie-Link kopiert!',
+    errorCopyFailed: 'Kopieren fehlgeschlagen',
+    copyLinkTitle: 'Galerie-Link kopieren',
+  },
+}
 
 export default function GalleriesPage() {
+  const locale = useLocale()
+  const t = T[locale]
+  const SET_SUGGESTIONS = locale === 'de' ? SET_SUGGESTIONS_DE : SET_SUGGESTIONS_EN
+
   const [galleries, setGalleries] = useState<Gallery[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [creating, setCreating] = useState(false)
 
-  // Modal form state
   const [form, setForm] = useState({
     title: '',
     password: '',
@@ -105,8 +192,8 @@ export default function GalleriesPage() {
   const removeSet = (name: string) => setSets(prev => prev.filter(s => s !== name))
 
   const handleCreate = async () => {
-    if (!form.title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (!form.project_id) { toast.error('Please select a project'); return }
+    if (!form.title.trim()) { toast.error(t.errorTitle); return }
+    if (!form.project_id) { toast.error(t.errorProject); return }
     setCreating(true)
 
     const { data: gallery, error } = await supabase
@@ -127,9 +214,8 @@ export default function GalleriesPage() {
       .select('id, title, status, view_count, download_count, project:projects(id, title, client_token, client:clients(full_name))')
       .single()
 
-    if (error) { toast.error('Error creating'); setCreating(false); return }
+    if (error) { toast.error(t.errorCreating); setCreating(false); return }
 
-    // Create sets
     if (sets.length > 0) {
       await Promise.all(sets.map((title, i) =>
         supabase.from('gallery_sections').insert({ gallery_id: gallery.id, title, display_order: i })
@@ -152,7 +238,7 @@ export default function GalleriesPage() {
     setGalleries(prev => [newGallery, ...prev])
     setShowModal(false)
     setCreating(false)
-    toast.success('Galerie erstellt!')
+    toast.success(t.successCreated)
   }
 
   if (loading) {
@@ -171,10 +257,10 @@ export default function GalleriesPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-black" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
-            Galerien
+            {t.title}
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {galleries.length} {galleries.length === 1 ? 'Galerie' : 'Galerien'} · Teile deine Fotos mit Kunden
+            {t.subtitle(galleries.length)}
           </p>
         </div>
         <button
@@ -183,7 +269,7 @@ export default function GalleriesPage() {
           style={{ background: '#10B981', boxShadow: '0 1px 8px rgba(16,185,129,0.30)' }}
         >
           <Plus className="w-4 h-4" />
-          New gallery
+          {t.newGallery}
         </button>
       </div>
 
@@ -197,9 +283,9 @@ export default function GalleriesPage() {
 
             const handleShare = (e: React.MouseEvent) => {
               e.preventDefault(); e.stopPropagation()
-              if (!gallery.client_token) { toast.error('Kein Client-Token gefunden'); return }
+              if (!gallery.client_token) { toast.error(t.errorNoToken); return }
               const url = `${window.location.origin}/client/${gallery.client_token}/gallery`
-              navigator.clipboard.writeText(url).then(() => toast.success('Galerie-Link kopiert!')).catch(() => toast.error('Kopieren fehlgeschlagen'))
+              navigator.clipboard.writeText(url).then(() => toast.success(t.successLinkCopied)).catch(() => toast.error(t.errorCopyFailed))
             }
 
             return (
@@ -224,18 +310,18 @@ export default function GalleriesPage() {
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
                         style={{ background: isActive ? 'rgba(16,185,129,0.85)' : 'rgba(107,114,128,0.70)', color: '#fff' }}>
                         <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                        {isActive ? 'Aktiv' : 'Draft'}
+                        {isActive ? t.active : t.draft}
                       </span>
                     </div>
                     {gallery.client_token && (
-                      <button onClick={handleShare} className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }} title="Galerie-Link kopieren">
+                      <button onClick={handleShare} className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }} title={t.copyLinkTitle}>
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                     {(gallery.photo_count || 0) > 0 && (
                       <div className="absolute bottom-2 right-2">
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.60)', color: 'rgba(255,255,255,0.95)' }}>
-                          {gallery.photo_count} Fotos
+                          {t.photos(gallery.photo_count!)}
                         </span>
                       </div>
                     )}
@@ -264,10 +350,10 @@ export default function GalleriesPage() {
           <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--bg-hover)' }}>
             <Images className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
           </div>
-          <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Galerien</h3>
-          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Erstelle deine erste Galerie direkt hier</p>
+          <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t.noGalleries}</h3>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{t.noGalleriesDesc}</p>
           <button onClick={openModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#10B981' }}>
-            <Plus className="w-3.5 h-3.5" />New gallery
+            <Plus className="w-3.5 h-3.5" />{t.newGallery}
           </button>
         </div>
       )}
@@ -279,8 +365,8 @@ export default function GalleriesPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>New gallery erstellen</h2>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Konfiguriere deine Galerie vor dem Upload</p>
+                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>{t.modalTitle}</h2>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.modalDesc}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
@@ -293,25 +379,25 @@ export default function GalleriesPage() {
               {/* Basic info */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Galerie-Name *</label>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.galleryName}</label>
                   <input
                     type="text"
                     value={form.title}
                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="z.B. Hochzeit Anna & Max"
+                    placeholder={t.galleryNamePlaceholder}
                     className="input-base w-full"
                     autoFocus
                   />
                 </div>
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    <Lock className="w-3 h-3 inline mr-1" />Passwort (optional)
+                    <Lock className="w-3 h-3 inline mr-1" />{t.password}
                   </label>
                   <input
                     type="password"
                     value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Kein Passwort"
+                    placeholder={t.passwordPlaceholder}
                     className="input-base w-full"
                   />
                 </div>
@@ -319,10 +405,10 @@ export default function GalleriesPage() {
 
               {/* Project */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Projekt *</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.project}</label>
                 {projects.length > 0 ? (
                   <select value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} className="input-base w-full">
-                    <option value="">Select project...</option>
+                    <option value="">{t.projectPlaceholder}</option>
                     {projects.map(p => {
                       const c = p.client
                       const cn = Array.isArray(c) ? c[0]?.full_name : c?.full_name
@@ -331,8 +417,8 @@ export default function GalleriesPage() {
                   </select>
                 ) : (
                   <div className="p-3 rounded-xl text-sm" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-                    Kein Projekt vorhanden.{' '}
-                    <a href="/dashboard/projects/new" className="font-medium" style={{ color: 'var(--accent)' }}>Projekt erstellen →</a>
+                    {t.noProject}{' '}
+                    <a href="/dashboard/projects/new" className="font-medium" style={{ color: 'var(--accent)' }}>{t.noProjectLink}</a>
                   </div>
                 )}
               </div>
@@ -340,11 +426,10 @@ export default function GalleriesPage() {
               {/* Sets */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  <GripHorizontal className="w-3 h-3 inline mr-1" />Sets (optional)
+                  <GripHorizontal className="w-3 h-3 inline mr-1" />{t.sets}
                 </label>
-                <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>Teile deine Galerie in Abschnitte auf (z.B. Getting Ready, Trauung)</p>
+                <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>{t.setsDesc}</p>
 
-                {/* Quick suggestions */}
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {SET_SUGGESTIONS.filter(s => !sets.includes(s)).map(s => (
                     <button key={s} onClick={() => addSet(s)} className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors"
@@ -356,14 +441,13 @@ export default function GalleriesPage() {
                   ))}
                 </div>
 
-                {/* Custom set input */}
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newSetName}
                     onChange={e => setNewSetName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSet() } }}
-                    placeholder="Eigener Set-Name..."
+                    placeholder={t.customSetPlaceholder}
                     className="input-base flex-1"
                   />
                   <button onClick={() => addSet()} disabled={!newSetName.trim()} className="px-3 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
@@ -372,7 +456,6 @@ export default function GalleriesPage() {
                   </button>
                 </div>
 
-                {/* Added sets */}
                 {sets.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {sets.map((s, i) => (
@@ -392,9 +475,9 @@ export default function GalleriesPage() {
               {/* Options */}
               <div className="flex items-center gap-5 flex-wrap">
                 {[
-                  { label: 'Download erlauben', key: 'download_enabled' as const, color: 'var(--accent)' },
-                  { label: 'Kommentare erlauben', key: 'comments_enabled' as const, color: 'var(--accent)' },
-                  { label: 'Tag Auswahl', key: 'tags_enabled' as const, color: '#22C55E' },
+                  { label: t.downloadEnabled, key: 'download_enabled' as const, color: 'var(--accent)' },
+                  { label: t.commentsEnabled, key: 'comments_enabled' as const, color: 'var(--accent)' },
+                  { label: t.tagsEnabled, key: 'tags_enabled' as const, color: '#22C55E' },
                 ].map(({ label, key, color }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <div onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))} className="relative cursor-pointer rounded-full"
@@ -409,7 +492,7 @@ export default function GalleriesPage() {
               {/* Design / Theme */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>
-                  <Sparkles className="w-3 h-3 inline mr-1" />Layout / Design
+                  <Sparkles className="w-3 h-3 inline mr-1" />{t.layout}
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {GALLERY_THEMES.map(theme => (
@@ -438,7 +521,7 @@ export default function GalleriesPage() {
 
             {/* Footer */}
             <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
+              <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">{t.cancel}</button>
               <button
                 onClick={handleCreate}
                 disabled={creating || !form.title.trim() || !form.project_id}
@@ -447,7 +530,7 @@ export default function GalleriesPage() {
               >
                 {creating
                   ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><Sparkles className="w-4 h-4" />Galerie erstellen</>
+                  : <><Sparkles className="w-4 h-4" />{t.createGallery}</>
                 }
               </button>
             </div>
