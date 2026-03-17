@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { useLocale } from '@/hooks/useLocale'
 
-const PROJECT_TYPES = [
+const PROJECT_TYPES_EN = [
   { value: 'wedding', label: 'Wedding' },
   { value: 'portrait', label: 'Portrait' },
   { value: 'event', label: 'Event' },
@@ -22,7 +22,19 @@ const PROJECT_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
-const SHOOTING_TYPES = [
+const PROJECT_TYPES_DE = [
+  { value: 'wedding', label: 'Hochzeit' },
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'event', label: 'Event' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'realEstate', label: 'Immobilien' },
+  { value: 'fineArt', label: 'Fine Art' },
+  { value: 'newborn', label: 'Newborn' },
+  { value: 'family', label: 'Familie' },
+  { value: 'other', label: 'Sonstiges' },
+]
+
+const SHOOTING_TYPES_EN = [
   { value: 'Wedding',    label: '💍 Wedding',    color: '#E879A0' },
   { value: 'Portrait',   label: '🧑 Portrait',   color: '#8B5CF6' },
   { value: 'Event',      label: '🎉 Event',      color: '#F59E0B' },
@@ -34,12 +46,101 @@ const SHOOTING_TYPES = [
   { value: 'Family',     label: '👨‍👩‍👧 Family',    color: '#06B6D4' },
 ]
 
+const SHOOTING_TYPES_DE = [
+  { value: 'Wedding',    label: '💍 Hochzeit',   color: '#E879A0' },
+  { value: 'Portrait',   label: '🧑 Portrait',   color: '#8B5CF6' },
+  { value: 'Event',      label: '🎉 Event',      color: '#F59E0B' },
+  { value: 'Commercial', label: '💼 Commercial', color: '#3B82F6' },
+  { value: 'Real Estate',label: '🏠 Immobilien', color: '#10B981' },
+  { value: 'Fine Art',   label: '🎨 Fine Art',   color: '#C4A47C' },
+  { value: 'Sport',      label: '⚽ Sport',      color: '#EF4444' },
+  { value: 'Newborn',    label: '👶 Newborn',    color: '#F97316' },
+  { value: 'Family',     label: '👨‍👩‍👧 Familie',   color: '#06B6D4' },
+]
+
+const T = {
+  en: {
+    title: 'New project',
+    subtitle: 'Create project and generate client portal',
+    projectTitle: 'Project title',
+    projectTitlePlaceholder: 'Wedding Anna & Max',
+    client: 'Client',
+    createNewClient: 'Create new client',
+    cancel: 'Cancel',
+    selectClient: 'Select client...',
+    addNewClient: 'Add new client',
+    name: 'Name',
+    namePlaceholder: 'Jane Smith',
+    email: 'E-Mail',
+    phone: 'Phone',
+    creating: 'Creating...',
+    createClientBtn: 'Create client & select',
+    shootingDate: 'Shooting date',
+    projectType: 'Project type',
+    select: 'Select...',
+    shootingType: 'Shooting type',
+    cancelBtn: 'Cancel',
+    createProject: 'Create project',
+    errorTitle: 'Title and client are required',
+    errorCreating: 'Error creating project',
+    successCreated: 'Project created!',
+    errorClientName: 'Name is required',
+    errorCreatingClient: 'Error creating client',
+    // Plan limit
+    limitTitle: 'Project limit reached',
+    limitDesc: (count: number, max: number, plan: string) =>
+      `You have used ${count} of ${max} projects on the ${plan} plan.`,
+    limitUpgrade: 'Upgrade to Starter or Pro for more projects.',
+    back: 'Back',
+    upgradeNow: 'Upgrade now →',
+  },
+  de: {
+    title: 'Neues Projekt',
+    subtitle: 'Projekt erstellen und Kundenportal generieren',
+    projectTitle: 'Projekttitel',
+    projectTitlePlaceholder: 'Hochzeit Anna & Max',
+    client: 'Kunde',
+    createNewClient: 'Neuen Kunden erstellen',
+    cancel: 'Abbrechen',
+    selectClient: 'Kunde auswählen...',
+    addNewClient: 'Neuen Kunden hinzufügen',
+    name: 'Name',
+    namePlaceholder: 'Jane Smith',
+    email: 'E-Mail',
+    phone: 'Telefon',
+    creating: 'Wird erstellt...',
+    createClientBtn: 'Kunde erstellen & auswählen',
+    shootingDate: 'Shooting-Datum',
+    projectType: 'Projekttyp',
+    select: 'Auswählen...',
+    shootingType: 'Shooting-Typ',
+    cancelBtn: 'Abbrechen',
+    createProject: 'Projekt erstellen',
+    errorTitle: 'Titel und Kunde sind erforderlich',
+    errorCreating: 'Fehler beim Erstellen des Projekts',
+    successCreated: 'Projekt erstellt!',
+    errorClientName: 'Name ist erforderlich',
+    errorCreatingClient: 'Fehler beim Erstellen des Kunden',
+    // Plan limit
+    limitTitle: 'Projektlimit erreicht',
+    limitDesc: (count: number, max: number, plan: string) =>
+      `Du hast ${count} von ${max} Projekten im ${plan}-Plan verwendet.`,
+    limitUpgrade: 'Upgrade auf Starter oder Pro für mehr Projekte.',
+    back: 'Zurück',
+    upgradeNow: 'Jetzt upgraden →',
+  },
+}
+
 export default function NewProjectPage() {
   const locale = useLocale()
+  const t = T[locale]
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedClient = searchParams.get('client')
   const { canCreateProject, projectCount, limits, plan, loading: limitsLoading } = usePlanLimits()
+
+  const PROJECT_TYPES = locale === 'de' ? PROJECT_TYPES_DE : PROJECT_TYPES_EN
+  const SHOOTING_TYPES = locale === 'de' ? SHOOTING_TYPES_DE : SHOOTING_TYPES_EN
 
   const [loading, setLoading] = useState(false)
   const [clients, setClients] = useState<{ id: string; full_name: string }[]>([])
@@ -72,7 +173,7 @@ export default function NewProjectPage() {
 
   const handleCreateClient = async () => {
     if (!newClient.full_name.trim()) {
-      toast.error('Name is required')
+      toast.error(t.errorClientName)
       return
     }
     setCreatingClient(true)
@@ -92,12 +193,12 @@ export default function NewProjectPage() {
       .single()
 
     if (error) {
-      toast.error('Error creating client')
+      toast.error(t.errorCreatingClient)
       setCreatingClient(false)
       return
     }
 
-    toast.success(`${data.full_name} created!`)
+    toast.success(`${data.full_name} ${locale === 'de' ? 'erstellt!' : 'created!'}`)
     await fetchClients()
     setForm((prev) => ({ ...prev, client_id: data.id }))
     setNewClient({ full_name: '', email: '', phone: '' })
@@ -108,7 +209,7 @@ export default function NewProjectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim() || !form.client_id) {
-      toast.error('Title and client are required')
+      toast.error(t.errorTitle)
       return
     }
 
@@ -136,12 +237,12 @@ export default function NewProjectPage() {
       .single()
 
     if (error) {
-      toast.error('Error creating project')
+      toast.error(t.errorCreating)
       setLoading(false)
       return
     }
 
-    toast.success('Project created!')
+    toast.success(t.successCreated)
     router.push(`/dashboard/projects/${data.id}`)
   }
 
@@ -160,7 +261,7 @@ export default function NewProjectPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <h1 className="font-semibold text-[#111110]" style={{ fontSize: '24px', letterSpacing: '-0.03em' }}>
-            New project
+            {t.title}
           </h1>
         </div>
         <div className="rounded-2xl p-10 text-center" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)' }}>
@@ -168,20 +269,20 @@ export default function NewProjectPage() {
             <Lock className="w-6 h-6" style={{ color: 'var(--accent)' }} />
           </div>
           <h2 className="font-black text-[18px] mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-            Project limit reached
+            {t.limitTitle}
           </h2>
           <p className="text-[13.5px] mb-1" style={{ color: 'var(--text-muted)' }}>
-            You have used <strong>{projectCount}</strong> of <strong>{limits.maxGalleries}</strong> projects on the <strong>{plan.charAt(0).toUpperCase() + plan.slice(1)}</strong> plan.
+            {t.limitDesc(projectCount, limits.maxGalleries ?? 0, plan.charAt(0).toUpperCase() + plan.slice(1))}
           </p>
           <p className="text-[13px] mb-6" style={{ color: 'var(--text-muted)' }}>
-            Upgrade to Starter or Pro for more projects.
+            {t.limitUpgrade}
           </p>
           <div className="flex gap-3 justify-center">
             <Link href="/dashboard/projects" className="px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
-              Back
+              {t.back}
             </Link>
             <Link href="/dashboard/billing" className="px-4 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90" style={{ background: 'var(--accent)' }}>
-              Upgrade now →
+              {t.upgradeNow}
             </Link>
           </div>
         </div>
@@ -200,9 +301,9 @@ export default function NewProjectPage() {
             className="font-semibold text-[#111110]"
             style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em' }}
           >
-            New project
+            {t.title}
           </h1>
-          <p className="text-[#7A7670] text-[13px]">Create project and generate client portal</p>
+          <p className="text-[#7A7670] text-[13px]">{t.subtitle}</p>
         </div>
       </div>
 
@@ -211,7 +312,7 @@ export default function NewProjectPage() {
         {/* Title */}
         <div>
           <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
-            Project title <span className="text-[#C94030]">*</span>
+            {t.projectTitle} <span className="text-[#C94030]">*</span>
           </label>
           <input
             type="text"
@@ -219,7 +320,7 @@ export default function NewProjectPage() {
             value={form.title}
             onChange={handleChange}
             required
-            placeholder="Wedding Anna & Max"
+            placeholder={t.projectTitlePlaceholder}
             className={inputClass}
           />
         </div>
@@ -228,7 +329,7 @@ export default function NewProjectPage() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-[12px] font-semibold text-[#111110] uppercase tracking-wide">
-              Client <span className="text-[#C94030]">*</span>
+              {t.client} <span className="text-[#C94030]">*</span>
             </label>
             <button
               type="button"
@@ -236,9 +337,9 @@ export default function NewProjectPage() {
               className="flex items-center gap-1 text-[12px] font-semibold text-[#C8A882] hover:text-[#B8966E] transition-colors"
             >
               {showNewClient ? (
-                <><X className="w-3 h-3" /> Cancel</>
+                <><X className="w-3 h-3" /> {t.cancel}</>
               ) : (
-                <><UserPlus className="w-3 h-3" /> Create new client</>
+                <><UserPlus className="w-3 h-3" /> {t.createNewClient}</>
               )}
             </button>
           </div>
@@ -252,7 +353,7 @@ export default function NewProjectPage() {
               required
               className={inputClass}
             >
-              <option value="">Select client...</option>
+              <option value="">{t.selectClient}</option>
               {clients.map(({ id, full_name }) => (
                 <option key={id} value={id}>{full_name}</option>
               ))}
@@ -262,24 +363,24 @@ export default function NewProjectPage() {
           {/* Inline new client form */}
           {showNewClient && (
             <div className="rounded-lg border border-[#C8A882]/30 bg-[#C8A882]/5 p-4 space-y-3">
-              <p className="text-[12px] font-semibold text-[#7A7670] uppercase tracking-wide">Add new client</p>
+              <p className="text-[12px] font-semibold text-[#7A7670] uppercase tracking-wide">{t.addNewClient}</p>
 
               <div>
                 <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">
-                  Name <span className="text-[#C94030]">*</span>
+                  {t.name} <span className="text-[#C94030]">*</span>
                 </label>
                 <input
                   type="text"
                   value={newClient.full_name}
                   onChange={(e) => setNewClient(p => ({ ...p, full_name: e.target.value }))}
-                  placeholder="Jane Smith"
+                  placeholder={t.namePlaceholder}
                   className={inputClass}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">E-Mail</label>
+                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">{t.email}</label>
                   <input
                     type="email"
                     value={newClient.email}
@@ -289,7 +390,7 @@ export default function NewProjectPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">{locale === 'en' ? 'Phone' : 'Telefon'}</label>
+                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">{t.phone}</label>
                   <input
                     type="tel"
                     value={newClient.phone}
@@ -307,7 +408,7 @@ export default function NewProjectPage() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                {creatingClient ? 'Creating...' : 'Create client & select'}
+                {creatingClient ? t.creating : t.createClientBtn}
               </button>
             </div>
           )}
@@ -316,13 +417,13 @@ export default function NewProjectPage() {
         {/* Date + Type */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Shooting date</label>
+            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">{t.shootingDate}</label>
             <input type="date" name="shoot_date" value={form.shoot_date} onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">Project type</label>
+            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">{t.projectType}</label>
             <select name="project_type" value={form.project_type} onChange={handleChange} className={inputClass}>
-              <option value="">Select...</option>
+              <option value="">{t.select}</option>
               {PROJECT_TYPES.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -330,10 +431,10 @@ export default function NewProjectPage() {
           </div>
         </div>
 
-        {/* Shooting type — Art des Shootings */}
+        {/* Shooting type */}
         <div>
           <label className="block text-[12px] font-semibold text-[#111110] mb-2 uppercase tracking-wide">
-            Shooting type
+            {t.shootingType}
           </label>
           <div className="flex flex-wrap gap-2">
             {SHOOTING_TYPES.map(({ value, label, color }) => {
@@ -363,14 +464,14 @@ export default function NewProjectPage() {
             href="/dashboard/projects"
             className="px-4 py-2.5 rounded-md border border-[#E4E1DC] text-[13px] font-semibold text-[#7A7670] hover:bg-[#F2F0EC] transition-colors"
           >
-            Cancel
+            {t.cancelBtn}
           </Link>
           <button
             type="submit"
             disabled={loading || showNewClient}
             className="flex-1 py-2.5 rounded-md bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold hover:bg-[#1E1E1C] transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Create project'}
+            {loading ? t.creating : t.createProject}
           </button>
         </div>
       </form>
