@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Users, FileText, Images, ArrowUpRight, CalendarDays } from 'lucide-react'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Stat {
   label: string
@@ -148,23 +149,30 @@ interface Props {
 }
 
 export default function AnimatedStatsLight({ activeClients, pendingContracts, activeGalleries, upcomingBookings }: Props) {
+  const locale = useLocale()
+  const de = locale === 'de'
+
   const stats: Stat[] = [
     {
-      label: 'Aktive Kunden',
+      label: de ? 'Aktive Kunden' : 'Active Clients',
       value: activeClients,
       icon: Users,
       href: '/dashboard/clients',
-      description: activeClients === 0 ? 'No clients yet' : `${activeClients} aktiv`,
+      description: activeClients === 0
+        ? (de ? 'Noch keine Kunden' : 'No clients yet')
+        : (de ? `${activeClients} aktiv` : `${activeClients} active`),
       accentColor: '#3B82F6',
       accentBg: 'rgba(59,130,246,0.08)',
       gradient: 'linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.03) 100%)',
     },
     {
-      label: 'Open contracts',
+      label: de ? 'Offene Verträge' : 'Open Contracts',
       value: pendingContracts,
       icon: FileText,
       href: '/dashboard/contracts',
-      description: pendingContracts === 0 ? 'Alles unterschrieben ✓' : 'Warten auf Signatur',
+      description: pendingContracts === 0
+        ? (de ? 'Alles unterschrieben ✓' : 'All signed ✓')
+        : (de ? 'Warten auf Signatur' : 'Awaiting signature'),
       accentColor: pendingContracts > 0 ? '#F59E0B' : '#10B981',
       accentBg: pendingContracts > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)',
       gradient: pendingContracts > 0
@@ -172,21 +180,25 @@ export default function AnimatedStatsLight({ activeClients, pendingContracts, ac
         : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
     },
     {
-      label: 'Aktive Galerien',
+      label: de ? 'Aktive Galerien' : 'Active Galleries',
       value: activeGalleries,
       icon: Images,
       href: '/dashboard/galleries',
-      description: activeGalleries === 0 ? 'Noch keine Galerien' : 'Galerien online',
+      description: activeGalleries === 0
+        ? (de ? 'Noch keine Galerien' : 'No galleries yet')
+        : (de ? 'Galerien online' : 'Galleries online'),
       accentColor: '#10B981',
       accentBg: 'rgba(16,185,129,0.08)',
       gradient: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
     },
     {
-      label: 'Upcoming Shootings',
+      label: de ? 'Bevorstehende Shootings' : 'Upcoming Shoots',
       value: upcomingBookings,
       icon: CalendarDays,
       href: '/dashboard/bookings',
-      description: upcomingBookings === 0 ? 'Keine geplant' : `${upcomingBookings} bevorstehend`,
+      description: upcomingBookings === 0
+        ? (de ? 'Keine geplant' : 'None scheduled')
+        : (de ? `${upcomingBookings} bevorstehend` : `${upcomingBookings} upcoming`),
       accentColor: '#EC4899',
       accentBg: 'rgba(236,72,153,0.08)',
       gradient: 'linear-gradient(135deg, rgba(236,72,153,0.08) 0%, rgba(236,72,153,0.03) 100%)',
