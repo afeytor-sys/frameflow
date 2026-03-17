@@ -105,7 +105,7 @@ export default function AGBPage() {
         </div>
 
         <div className="mt-8">
-          <a href="/" className="text-sm text-[#C8A882] hover:underline">← Zurück zur Startseite</a>
+          <a href="/" className="text-sm text-[#C8A882] hover:underline">← Back to home</a>
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import FAQAccordion from '@/components/marketing/FAQAccordion'
 // ── Translations ─────────────────────────────────────────────────────
 const T = {
   de: {
-    nav: { features: 'Features', pricing: 'Preise', faq: 'FAQ', signin: 'Anmelden', cta: 'Kostenlos starten' },
+    nav: { features: 'Features', pricing: 'Preise', faq: 'FAQ', blog: 'Blog', signin: 'Anmelden', cta: 'Kostenlos starten' },
     badge: 'Built by photographers, for photographers.',
     h1a: 'Fotonizer ist dein Fotostudio-Organizer.',
     h1b: 'Alles an einem Ort.',
@@ -56,6 +56,7 @@ const T = {
     footerLinks: [
       { href: '#features', label: 'Features' },
       { href: '#pricing', label: 'Preise' },
+      { href: '/blog', label: 'Blog' },
       { href: '/login', label: 'Anmelden' },
       { href: '/signup', label: 'Registrieren' },
       { href: '/impressum', label: 'Impressum' },
@@ -64,7 +65,7 @@ const T = {
     ],
   },
   en: {
-    nav: { features: 'Features', pricing: 'Pricing', faq: 'FAQ', signin: 'Sign in', cta: 'Start free' },
+    nav: { features: 'Features', pricing: 'Pricing', faq: 'FAQ', blog: 'Blog', signin: 'Sign in', cta: 'Start free' },
     badge: 'Built by photographers, for photographers.',
     h1a: 'Your photography studio.',
     h1b: 'All in one place.',
@@ -111,6 +112,7 @@ const T = {
     footerLinks: [
       { href: '#features', label: 'Features' },
       { href: '#pricing', label: 'Pricing' },
+      { href: '/blog', label: 'Blog' },
       { href: '/login', label: 'Sign in' },
       { href: '/signup', label: 'Sign up' },
       { href: '/impressum', label: 'Impressum' },
@@ -174,15 +176,15 @@ function DarkDashboard() {
             <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(196,164,124,0.2)' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: '#F0EDE8' }}>Fotonizer</span>
           </div>
-          {['Dashboard', 'Projekte', 'Kunden', 'Galerien', 'Verträge', 'Analytics'].map((label, i) => (
+          {['Dashboard', 'Projects', 'Clients', 'Galleries', 'Contracts', 'Analytics'].map((label, i) => (
             <div key={label} style={{ padding: '6px 8px', borderRadius: 7, marginBottom: 2, fontSize: 10, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? 'rgba(196,164,124,0.15)' : 'transparent', color: i === 0 ? '#C4A47C' : '#5A5A58' }}>{label}</div>
           ))}
         </div>
         <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#F0EDE8', marginBottom: 3 }}>Guten Morgen 👋</div>
-          <div style={{ fontSize: 9, color: '#5A5A58', marginBottom: 14 }}>Hier ist, was heute passiert</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#F0EDE8', marginBottom: 3 }}>Good morning 👋</div>
+          <div style={{ fontSize: 9, color: '#5A5A58', marginBottom: 14 }}>Here&apos;s what&apos;s happening today</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
-            {[{ v: '12', l: 'Projekte', c: '#3B82F6' }, { v: '3', l: 'Verträge', c: '#F59E0B' }, { v: '8', l: 'Galerien', c: '#10B981' }, { v: '€4.2k', l: 'Umsatz', c: '#C4A47C' }].map(({ v, l, c }) => (
+            {[{ v: '12', l: 'Projects', c: '#3B82F6' }, { v: '3', l: 'Contracts', c: '#F59E0B' }, { v: '8', l: 'Galleries', c: '#10B981' }, { v: '€4.2k', l: 'Revenue', c: '#C4A47C' }].map(({ v, l, c }) => (
               <div key={l} style={{ background: '#1C1C1A', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: c, marginBottom: 1 }}>{v}</div>
                 <div style={{ fontSize: 8, color: '#5A5A58' }}>{l}</div>
@@ -190,8 +192,8 @@ function DarkDashboard() {
             ))}
           </div>
           <div style={{ background: '#1C1C1A', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-            <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: '#F0EDE8' }}>Aktuelle Projekte</div>
-            {[{ n: 'Laura & Marc Hochzeit', d: '27. Mär', s: 'Aktiv', c: '#10B981' }, { n: 'Portrait — Anna K.', d: '3. Apr', s: 'Vertrag', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: '10. Apr', s: 'Galerie', c: '#3B82F6' }].map(({ n, d, s, c }) => (
+            <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: '#F0EDE8' }}>Recent Projects</div>
+            {[{ n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', c: '#10B981' }, { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Contract', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Gallery', c: '#3B82F6' }].map(({ n, d, s, c }) => (
               <div key={n} style={{ padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8' }}>{n}</div>
@@ -217,15 +219,15 @@ function LightDashboard() {
             <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(196,164,124,0.15)' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: '#1A1A18' }}>Fotonizer</span>
           </div>
-          {['Dashboard', 'Projekte', 'Kunden', 'Galerien', 'Verträge', 'Analytics'].map((label, i) => (
+          {['Dashboard', 'Projects', 'Clients', 'Galleries', 'Contracts', 'Analytics'].map((label, i) => (
             <div key={label} style={{ padding: '6px 8px', borderRadius: 7, marginBottom: 2, fontSize: 10, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? 'rgba(196,164,124,0.12)' : 'transparent', color: i === 0 ? '#A8845C' : '#A8A49E' }}>{label}</div>
           ))}
         </div>
         <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A18', marginBottom: 3 }}>Guten Morgen 👋</div>
-          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 14 }}>Hier ist, was heute passiert</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A18', marginBottom: 3 }}>Good morning 👋</div>
+          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 14 }}>Here&apos;s what&apos;s happening today</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
-            {[{ v: '12', l: 'Projekte', c: '#3B82F6' }, { v: '3', l: 'Verträge', c: '#F59E0B' }, { v: '8', l: 'Galerien', c: '#10B981' }, { v: '€4.2k', l: 'Umsatz', c: '#A8845C' }].map(({ v, l, c }) => (
+            {[{ v: '12', l: 'Projects', c: '#3B82F6' }, { v: '3', l: 'Contracts', c: '#F59E0B' }, { v: '8', l: 'Galleries', c: '#10B981' }, { v: '€4.2k', l: 'Revenue', c: '#A8845C' }].map(({ v, l, c }) => (
               <div key={l} style={{ background: '#FFFFFF', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: c, marginBottom: 1 }}>{v}</div>
                 <div style={{ fontSize: 8, color: '#A8A49E' }}>{l}</div>
@@ -233,8 +235,8 @@ function LightDashboard() {
             ))}
           </div>
           <div style={{ background: '#FFFFFF', borderRadius: 8, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-            <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: 9, fontWeight: 700, color: '#1A1A18' }}>Aktuelle Projekte</div>
-            {[{ n: 'Laura & Marc Hochzeit', d: '27. Mär', s: 'Aktiv', c: '#10B981' }, { n: 'Portrait — Anna K.', d: '3. Apr', s: 'Vertrag', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: '10. Apr', s: 'Galerie', c: '#3B82F6' }].map(({ n, d, s, c }) => (
+            <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: 9, fontWeight: 700, color: '#1A1A18' }}>Recent Projects</div>
+            {[{ n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', c: '#10B981' }, { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Contract', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Gallery', c: '#3B82F6' }].map(({ n, d, s, c }) => (
               <div key={n} style={{ padding: '6px 12px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 9, fontWeight: 600, color: '#2A2A28' }}>{n}</div>
@@ -256,16 +258,16 @@ function AnalyticsMockup() {
     <DarkBrowserFrame url="fotonizer.com/dashboard/analytics">
       <div style={{ background: '#141412', padding: '18px 18px 14px' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#F0EDE8', marginBottom: 2 }}>Analytics</div>
-        <div style={{ fontSize: 9, color: '#5A5A58', marginBottom: 14 }}>Überblick über dein Studio-Wachstum</div>
+        <div style={{ fontSize: 9, color: '#5A5A58', marginBottom: 14 }}>Overview of your studio growth</div>
         {/* Stat cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
           {[
-            { label: 'Gesamtumsatz', value: '€8.4k', sub: '+12% ↑', color: '#10B981', border: '#10B981' },
-            { label: 'Ausstehend', value: '€1.2k', sub: '3 Rechnungen', color: '#F59E0B', border: '#F59E0B' },
-            { label: 'Kunden', value: '24', sub: '+4 diesen Monat', color: '#3B82F6', border: '#3B82F6' },
-            { label: 'Projekte', value: '18', sub: '6 aktiv', color: '#C4A47C', border: '#C4A47C' },
-            { label: 'Konversion', value: '68%', sub: 'Anfragen → Buchung', color: '#A78BFA', border: '#A78BFA' },
-            { label: 'Ø pro Projekt', value: '€467', sub: 'Durchschnitt', color: '#F472B6', border: '#F472B6' },
+            { label: 'Total Revenue', value: '€8.4k', sub: '+12% ↑', color: '#10B981', border: '#10B981' },
+            { label: 'Pending', value: '€1.2k', sub: '3 invoices', color: '#F59E0B', border: '#F59E0B' },
+            { label: 'Clients', value: '24', sub: '+4 this month', color: '#3B82F6', border: '#3B82F6' },
+            { label: 'Projects', value: '18', sub: '6 active', color: '#C4A47C', border: '#C4A47C' },
+            { label: 'Conversion', value: '68%', sub: 'Leads → Bookings', color: '#A78BFA', border: '#A78BFA' },
+            { label: 'Avg per Project', value: '€467', sub: 'Average', color: '#F472B6', border: '#F472B6' },
           ].map(({ label, value, sub, color, border }) => (
             <div key={label} style={{ background: '#1C1C1A', borderRadius: 9, padding: '10px 11px', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${border}` }}>
               <div style={{ fontSize: 14, fontWeight: 800, color, marginBottom: 1 }}>{value}</div>
@@ -276,12 +278,12 @@ function AnalyticsMockup() {
         </div>
         {/* Mini bar chart */}
         <div style={{ background: '#1C1C1A', borderRadius: 9, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#D0CCC8', marginBottom: 10 }}>Umsatz — letzte 6 Monate</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#D0CCC8', marginBottom: 10 }}>Revenue — last 6 months</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 40 }}>
             {[55, 70, 45, 85, 65, 100].map((h, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                 <div style={{ width: '100%', height: `${h * 0.36}px`, borderRadius: '3px 3px 0 0', background: i === 5 ? '#C4A47C' : 'rgba(196,164,124,0.3)' }} />
-                <div style={{ fontSize: 7, color: '#5A5A58' }}>{['Okt', 'Nov', 'Dez', 'Jan', 'Feb', 'Mär'][i]}</div>
+                <div style={{ fontSize: 7, color: '#5A5A58' }}>{['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'][i]}</div>
               </div>
             ))}
           </div>
@@ -332,19 +334,19 @@ function PhonePortalMockup() {
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>🌙</div>
               </div>
               <div style={{ fontSize: 16, fontWeight: 300, color: '#F0EDE8', letterSpacing: '-0.02em' }}>Laura & Marc</div>
-              <div style={{ fontSize: 9, color: '#5A5A58', marginTop: 2 }}>27. März 2026 · Wien</div>
+              <div style={{ fontSize: 9, color: '#5A5A58', marginTop: 2 }}>Mar 27, 2026 · Vienna</div>
             </div>
 
             {/* Status chips */}
             <div style={{ padding: '10px 14px', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {[{ l: 'Vertrag ✓', c: '#10B981' }, { l: 'Galerie bereit', c: '#C4A47C' }, { l: 'Rechnung offen', c: '#F59E0B' }].map(({ l, c }) => (
+              {[{ l: 'Contract ✓', c: '#10B981' }, { l: 'Gallery ready', c: '#C4A47C' }, { l: 'Invoice open', c: '#F59E0B' }].map(({ l, c }) => (
                 <div key={l} style={{ fontSize: 8, fontWeight: 600, color: c, background: `${c}18`, padding: '3px 7px', borderRadius: 999, border: `1px solid ${c}30` }}>{l}</div>
               ))}
             </div>
 
             {/* Cards */}
             <div style={{ padding: '0 14px 10px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7 }}>
-              {[{ icon: '🖼️', l: 'Galerie', s: '248 Fotos', c: '#C4A47C' }, { icon: '✍️', l: 'Vertrag', s: 'Unterschrieben', c: '#10B981' }, { icon: '📅', l: 'Zeitplan', s: 'Ansehen', c: '#3B82F6' }].map(({ icon, l, s, c }) => (
+              {[{ icon: '🖼️', l: 'Gallery', s: '248 Photos', c: '#C4A47C' }, { icon: '✍️', l: 'Contract', s: 'Signed', c: '#10B981' }, { icon: '📅', l: 'Timeline', s: 'View', c: '#3B82F6' }].map(({ icon, l, s, c }) => (
                 <div key={l} style={{ background: '#1C1C1A', borderRadius: 9, padding: '10px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ fontSize: 14, marginBottom: 4 }}>{icon}</div>
                   <div style={{ fontSize: 9, fontWeight: 700, color: '#D0CCC8', marginBottom: 1 }}>{l}</div>
@@ -355,7 +357,7 @@ function PhonePortalMockup() {
 
             {/* Treffpunkt / Map section */}
             <div style={{ padding: '0 14px 10px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#D0CCC8', marginBottom: 8 }}>📍 Treffpunkt</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#D0CCC8', marginBottom: 8 }}>📍 Meeting Point</div>
               {/* Map placeholder */}
               <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 8 }}>
                 {/* Fake map */}
@@ -382,17 +384,17 @@ function PhonePortalMockup() {
                 </div>
               </div>
               <div style={{ background: '#1C1C1A', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8', marginBottom: 2 }}>Schloss Schönbrunn</div>
-                <div style={{ fontSize: 8, color: '#5A5A58' }}>Schönbrunner Schloßstraße 47, Wien</div>
-                <div style={{ fontSize: 8, color: '#C4A47C', marginTop: 4 }}>In Maps öffnen →</div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8', marginBottom: 2 }}>Schönbrunn Palace</div>
+                <div style={{ fontSize: 8, color: '#5A5A58' }}>Schönbrunner Schloßstraße 47, Vienna</div>
+                <div style={{ fontSize: 8, color: '#C4A47C', marginTop: 4 }}>Open in Maps →</div>
               </div>
             </div>
 
             {/* Message */}
             <div style={{ padding: '0 14px 10px' }}>
               <div style={{ background: '#1C1C1A', borderRadius: 9, padding: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#D0CCC8', marginBottom: 5 }}>Nachricht von Anna</div>
-                <div style={{ fontSize: 9, color: '#5A5A58', lineHeight: 1.5 }}>Hallo Laura & Marc! Eure Galerie ist fertig. Ich hoffe, ihr liebt die Bilder 🤍</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#D0CCC8', marginBottom: 5 }}>Message from Anna</div>
+                <div style={{ fontSize: 9, color: '#5A5A58', lineHeight: 1.5 }}>Hi Laura & Marc! Your gallery is ready. I hope you love the photos 🤍</div>
               </div>
             </div>
 
@@ -422,12 +424,12 @@ function BookingsMockup() {
   return (
     <DarkBrowserFrame url="fotonizer.com/dashboard/bookings">
       <div style={{ background: '#141412', padding: '16px', height: 240 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#F0EDE8', marginBottom: 12 }}>Kommende Sessions</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#F0EDE8', marginBottom: 12 }}>Upcoming Sessions</div>
         {[
-          { name: 'Laura & Marc', type: 'Hochzeit', date: '27. Mär', time: '10:00', color: '#C4A47C' },
-          { name: 'Anna K.', type: 'Portrait', date: '3. Apr', time: '14:00', color: '#3B82F6' },
-          { name: 'TechCorp', type: 'Commercial', date: '10. Apr', time: '09:00', color: '#10B981' },
-          { name: 'Familie Müller', type: 'Familie', date: '15. Apr', time: '16:00', color: '#F59E0B' },
+          { name: 'Laura & Marc', type: 'Wedding', date: 'Mar 27', time: '10:00', color: '#C4A47C' },
+          { name: 'Anna K.', type: 'Portrait', date: 'Apr 3', time: '14:00', color: '#3B82F6' },
+          { name: 'TechCorp', type: 'Commercial', date: 'Apr 10', time: '09:00', color: '#10B981' },
+          { name: 'Müller Family', type: 'Family', date: 'Apr 15', time: '16:00', color: '#F59E0B' },
         ].map(({ name, type, date, time, color }) => (
           <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#1C1C1A', borderRadius: 9, marginBottom: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ width: 3, height: 30, borderRadius: 2, background: color, flexShrink: 0 }} />
@@ -451,19 +453,19 @@ function ContractsMockup() {
   return (
     <LightBrowserFrame url="fotonizer.com/dashboard/contracts">
       <div style={{ background: '#F8F7F4', padding: '16px', height: 240 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 12 }}>Fotografievertrag</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 12 }}>Photography Contract</div>
         <div style={{ background: '#FFFFFF', borderRadius: 9, padding: '12px', border: '1px solid rgba(0,0,0,0.06)', marginBottom: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 5 }}>Kunde</div>
+          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 5 }}>Client</div>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#1A1A18', marginBottom: 8 }}>Laura & Marc Hoffmann</div>
           <div style={{ height: 1, background: 'rgba(0,0,0,0.06)', marginBottom: 8 }} />
-          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 4 }}>Vertragsbedingungen</div>
+          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 4 }}>Contract terms</div>
           {[80, 60, 90, 50].map((w, i) => (
             <div key={i} style={{ height: 6, background: 'rgba(0,0,0,0.06)', borderRadius: 3, marginBottom: 4, width: `${w}%` }} />
           ))}
         </div>
         <div style={{ display: 'flex', gap: 7 }}>
           <div style={{ flex: 1, padding: '7px 10px', background: '#A8845C', borderRadius: 7, fontSize: 10, fontWeight: 700, color: '#FFFFFF', textAlign: 'center' }}>
-            Vertrag unterschreiben ✓
+            Sign Contract ✓
           </div>
           <div style={{ padding: '7px 10px', background: 'rgba(0,0,0,0.05)', borderRadius: 7, fontSize: 10, color: '#A8A49E', textAlign: 'center' }}>
             PDF
@@ -476,7 +478,7 @@ function ContractsMockup() {
 
 // ── Main Page ─────────────────────────────────────────────────────────
 export default function HomePage() {
-  const [lang, setLang] = useState<'de' | 'en'>('de')
+  const [lang, setLang] = useState<'de' | 'en'>('en')
   const t = T[lang]
 
   return (
@@ -499,6 +501,7 @@ export default function HomePage() {
             {[{ href: '#features', label: t.nav.features }, { href: '#pricing', label: t.nav.pricing }, { href: '#faq', label: t.nav.faq }].map(({ href, label }) => (
               <a key={href} href={href} className="text-[13.5px] font-medium" style={{ color: 'var(--text-muted)' }}>{label}</a>
             ))}
+            <Link href="/blog" className="text-[13.5px] font-medium" style={{ color: 'var(--text-muted)' }}>{t.nav.blog}</Link>
           </div>
 
           <div className="flex items-center gap-3">

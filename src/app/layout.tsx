@@ -23,37 +23,48 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Fotonizer — Studio-Management für Fotografen',
+    default: 'Fotonizer — Photographer Studio Management Software',
     template: '%s | Fotonizer',
   },
   description:
-    'Buchungen, Verträge, Galerien und Kundenportale — alles in einer Plattform für professionelle Fotografen.',
-  keywords: ['Fotografie', 'Studio-Management', 'Kundenportal', 'Vertrag', 'Galerie', 'Hochzeitsfotograf'],
+    'The all-in-one photographer studio management software. Send photos to clients, manage contracts, client galleries and bookings. The Pixieset alternative built for Europe.',
+  keywords: [
+    'photographer studio management software',
+    'client gallery software photographers',
+    'photography contract software',
+    'pixieset alternative',
+    'honeybook for photographers europe',
+    'send photos to clients photographer',
+    'photography studio management',
+    'client portal photographer',
+    'photography booking software',
+    'digital contracts photographers',
+  ],
   authors: [{ name: 'Fotonizer' }],
   creator: 'Fotonizer',
   openGraph: {
     type: 'website',
-    locale: 'de_DE',
-    alternateLocale: 'en_US',
+    locale: 'en_US',
+    alternateLocale: 'de_DE',
     url: process.env.NEXT_PUBLIC_APP_URL,
     siteName: 'Fotonizer',
-    title: 'Fotonizer — Studio-Management für Fotografen',
+    title: 'Fotonizer — Photographer Studio Management Software',
     description:
-      'Buchungen, Verträge, Galerien und Kundenportale — alles in einer Plattform für professionelle Fotografen.',
+      'The all-in-one photographer studio management software. Send photos to clients, manage contracts, client galleries and bookings. The Pixieset alternative built for Europe.',
     images: [
       {
         url: `${process.env.NEXT_PUBLIC_APP_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'Fotonizer — Studio-Management für Fotografen',
+        alt: 'Fotonizer — Photographer Studio Management Software for client galleries, contracts and bookings',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Fotonizer — Studio-Management für Fotografen',
+    title: 'Fotonizer — Photographer Studio Management Software',
     description:
-      'Buchungen, Verträge, Galerien und Kundenportale — alles in einer Plattform für professionelle Fotografen.',
+      'The all-in-one photographer studio management software. Send photos to clients, manage contracts, client galleries and bookings. The Pixieset alternative built for Europe.',
     images: [`${process.env.NEXT_PUBLIC_APP_URL}/og-image.png`],
   },
   robots: { index: true, follow: true },
