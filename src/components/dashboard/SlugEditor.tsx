@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Link2, Check, X, Pencil, Copy, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Props {
   projectId: string
@@ -24,7 +25,28 @@ function toSlug(value: string) {
     .slice(0, 60)
 }
 
+const SLUG_UI = {
+  en: {
+    portalLink: 'Client Portal Link',
+    linkUpdated: 'Link updated!',
+    linkCopied: 'Link copied!',
+    copyFailed: 'Copy failed',
+    slugRemoved: 'Slug removed',
+    removeSlug: 'Remove slug',
+  },
+  de: {
+    portalLink: 'Kunden-Portal Link',
+    linkUpdated: 'Link aktualisiert!',
+    linkCopied: 'Link kopiert!',
+    copyFailed: 'Kopieren fehlgeschlagen',
+    slugRemoved: 'Slug entfernt',
+    removeSlug: 'Slug entfernen',
+  },
+}
+
 export default function SlugEditor({ projectId, currentSlug, clientToken, baseUrl }: Props) {
+  const locale = useLocale()
+  const ui = SLUG_UI[locale]
   const [slug, setSlug] = useState(currentSlug ?? '')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(currentSlug ?? '')
@@ -44,9 +66,9 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
         .update({ custom_slug: null })
         .eq('id', projectId)
       if (error) { toast.error('Error saving'); return }
-      setSlug('')
-      setEditing(false)
-      toast.success('Slug entfernt')
+    setSlug('')
+    setEditing(false)
+    toast.success(ui.slugRemoved)
       return
     }
 
@@ -70,13 +92,13 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
     setDraft(cleaned)
     setEditing(false)
     setSaving(false)
-    toast.success('Link aktualisiert!')
+    toast.success(ui.linkUpdated)
   }
 
   const copyLink = async () => {
     const ok = await navigator.clipboard.writeText(activeUrl).then(() => true).catch(() => false)
-    if (ok) toast.success('Link kopiert!')
-    else toast.error('Kopieren fehlgeschlagen')
+    if (ok) toast.success(ui.linkCopied)
+    else toast.error(ui.copyFailed)
   }
 
   return (
@@ -85,7 +107,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
             <Link2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Kunden-Portal Link</p>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{ui.portalLink}</p>
           </div>
 
           {editing ? (
@@ -141,7 +163,7 @@ export default function SlugEditor({ projectId, currentSlug, clientToken, baseUr
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ml-auto"
                     style={{ color: '#C43B2C' }}
                   >
-                    Slug entfernen
+                    {ui.removeSlug}
                   </button>
                 )}
               </div>

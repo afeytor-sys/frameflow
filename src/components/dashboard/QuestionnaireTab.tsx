@@ -6,6 +6,7 @@ import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTempl
 import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail, Sparkles, ClipboardCheck, BookmarkCheck, ChevronRight } from 'lucide-react'
 import EmailVorlagePicker from './EmailVorlagePicker'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Submission {
   id: string
@@ -45,7 +46,14 @@ const TYPE_LABELS: Record<string, string> = {
   yesno:    'Ja / Nein',
 }
 
+const QT_UI = {
+  en: { vorlage: 'Template', planen: 'Schedule' },
+  de: { vorlage: 'Vorlage',  planen: 'Planen'   },
+}
+
 export default function QuestionnaireTab({ projectId, photographerId, clientEmail, clientName, clientToken }: Props) {
+  const locale = useLocale()
+  const qt = QT_UI[locale]
   const supabase = createClient()
   const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null)
   const [submission, setSubmission] = useState<Submission | null>(null)
@@ -468,7 +476,7 @@ ${studio}`
             style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.22)' }}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Vorlage
+            {qt.vorlage}
           </button>
           {!questionnaire && (
             <button
@@ -589,7 +597,7 @@ ${studio}`
                       title="Versand planen"
                     >
                       <Calendar className="w-4 h-4" />
-                      Planen
+                      {qt.planen}
                     </button>
                   </div>
                 </div>
