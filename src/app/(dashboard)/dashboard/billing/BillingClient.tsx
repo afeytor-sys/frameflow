@@ -1,5 +1,8 @@
 'use client'
 
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
+
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { PLAN_DISPLAY, PLAN_LIMITS, type PlanKey } from '@/lib/stripe'
@@ -73,6 +76,8 @@ const FEATURES: FeatureRow[] = [
 ]
 
 export default function BillingClient({ plan, hasStripeCustomer }: Props) {
+  const locale = useLocale()
+  const tb = dashboardT(locale).settingsPage.billing
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
   const searchParams = useSearchParams()
@@ -91,10 +96,10 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
       if (data.url) {
         window.location.href = data.url
       } else {
-        toast.error('Error opening client portal')
+        toast.error(tb.errorPortal)
       }
     } catch {
-      toast.error('Error opening client portal')
+      toast.error(tb.errorPortal)
     } finally {
       setPortalLoading(false)
     }
@@ -107,10 +112,10 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
           className="font-black"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
         >
-          Abrechnung
+          {tb.title}
         </h1>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-          Manage your subscription and payment methods.
+          {tb.subtitle}
         </p>
       </div>
 
@@ -119,13 +124,13 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
         <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}>
           <Check className="w-5 h-5 flex-shrink-0" style={{ color: '#10B981' }} />
           <p className="text-[13px] font-bold" style={{ color: '#10B981' }}>
-            Upgrade successful! Your new plan is now active. 🎉
+            {tb.successMsg}
           </p>
         </div>
       )}
       {canceled && (
         <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.20)' }}>
-          <p className="text-[13px]" style={{ color: '#F59E0B' }}>Upgrade cancelled. You can upgrade at any time.</p>
+          <p className="text-[13px]" style={{ color: '#F59E0B' }}>{tb.cancelledMsg}</p>
         </div>
       )}
 
@@ -149,7 +154,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Current plan
+                  {tb.currentPlan}
                 </p>
                 <div className="flex items-center gap-2">
                   <h2
@@ -163,14 +168,14 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
                       className="px-2 py-0.5 rounded-full text-[10px] font-black"
                       style={{ background: colors.bg, color: colors.accent, border: `1px solid ${colors.border}` }}
                     >
-                      Aktiv
+                      {tb.active}
                     </span>
                   )}
                 </div>
                 <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {plan === 'free'
-                    ? 'Free · No credit card required'
-                    : `€${display.price}/month`}
+                    ? tb.free
+                    : `€${display.price}${tb.perMonth}`}
                 </p>
               </div>
             </div>
@@ -183,7 +188,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
                   style={{ background: 'var(--accent)' }}
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  Upgrade
+                  {tb.upgradeBtn}
                 </button>
               )}
               {hasStripeCustomer && (
@@ -194,7 +199,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  {portalLoading ? 'Weiterleitung...' : 'Abo verwalten'}
+                  {portalLoading ? tb.redirecting : tb.manageBtn}
                 </button>
               )}
             </div>
@@ -267,11 +272,11 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
               <CreditCard className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             </div>
             <h3 className="text-[13.5px] font-bold" style={{ color: 'var(--text-primary)' }}>
-              Payment method & invoices
+              {tb.paymentTitle}
             </h3>
           </div>
           <p className="text-[12.5px] mb-4" style={{ color: 'var(--text-muted)' }}>
-            Manage your payment method, download invoices and cancel your subscription in the Stripe customer portal.
+            {tb.paymentDesc}
           </p>
           <button
             onClick={openPortal}
@@ -280,7 +285,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            {portalLoading ? 'Redirecting...' : 'Open Stripe customer portal'}
+            {portalLoading ? tb.redirecting : tb.openPortal}
           </button>
         </div>
       )}
@@ -294,11 +299,11 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-4 h-4" style={{ color: '#C8A882' }} />
             <h3 className="font-black text-[15px] text-white" style={{ letterSpacing: '-0.03em' }}>
-              Ready for more?
+              {tb.ctaTitle}
             </h3>
           </div>
           <p className="text-[13px] mb-4" style={{ color: 'rgba(255,255,255,0.60)' }}>
-            Upgrade to Starter from €10/month and manage up to 10 clients with 15 GB storage.
+            {tb.ctaDesc}
           </p>
           <button
             onClick={() => setShowUpgrade(true)}
@@ -306,7 +311,7 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
             style={{ background: '#C8A882', color: '#1A1A1A' }}
           >
             <Zap className="w-3.5 h-3.5" />
-            Jetzt upgraden
+            {tb.ctaBtn}
           </button>
         </div>
       )}

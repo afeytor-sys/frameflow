@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EmailVorlagePicker from '@/components/dashboard/EmailVorlagePicker'
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
 
 interface Invoice {
   id: string
@@ -430,6 +432,8 @@ function InvoicePreviewModal({
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function InvoicesClient({ invoices: initial, projects, photographerId, photographer }: Props) {
+  const locale = useLocale()
+  const ti = dashboardT(locale).invoicesPage
   const [invoices, setInvoices] = useState<Invoice[]>(initial)
   const [projectList, setProjectList] = useState<Project[]>(projects)
   const [showNew, setShowNew] = useState(false)
@@ -484,7 +488,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   }
 
   const handleCreateProject = async () => {
-    if (!newProjectTitle.trim()) { toast.error('Please enter a project name'); return }
+    if (!newProjectTitle.trim()) { toast.error(ti.enterProjectName); return }
     setSavingProject(true)
     const { data, error } = await supabase
       .from('projects')
@@ -504,11 +508,11 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setNewProjectClientId('')
     setShowNewProject(false)
     setSavingProject(false)
-    toast.success(`Project "${newProject.title}" created!`)
+    toast.success(ti.projectCreated(newProject.title))
   }
 
   const handleCreateClient = async () => {
-    if (!newClientName.trim()) { toast.error('Please enter a name'); return }
+    if (!newClientName.trim()) { toast.error(ti.enterName); return }
     setSavingClient(true)
     const { data, error } = await supabase
       .from('clients')
@@ -528,7 +532,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setNewClientEmail('')
     setShowNewClient(false)
     setSavingClient(false)
-    toast.success(`Client "${newClient.full_name}" created!`)
+    toast.success(ti.clientCreated(newClient.full_name))
   }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
@@ -545,8 +549,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.project_id) { toast.error('Please select a project'); return }
-    if (!form.amount) { toast.error('Please enter an amount'); return }
+    if (!form.project_id) { toast.error(ti.selectProjectError); return }
+    if (!form.amount) { toast.error(ti.enterAmount); return }
     setSaving(true)
 
     const net = parseFloat(form.amount.replace(',', '.'))
@@ -596,14 +600,14 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     setSendingId(null)
     if (!res.ok) {
       if (json.error === 'Client has no email address') {
-        toast.error('No client or email address found for this project.')
+        toast.error(ti.noClientEmail)
       } else {
-        toast.error('Error sending invoice')
+        toast.error(ti.errorSend)
       }
       return false
     }
     setInvoices(prev => prev.map(i => i.id === invoiceId ? { ...i, status: 'sent' as const, sent_at: new Date().toISOString() } : i))
-    toast.success('Invoice sent successfully! 📧')
+    toast.success(ti.invoiceSent)
     return true
   }
 
@@ -617,19 +621,19 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const updateStatus = async (id: string, status: Invoice['status']) => {
     const { error } = await supabase.from('invoices').update({ status }).eq('id', id)
-    if (error) { toast.error('Error updating status'); return }
+    if (error) { toast.error(ti.errorStatus); return }
     setInvoices(prev => prev.map(i => i.id === id ? { ...i, status } : i))
     setOpenMenu(null)
-    toast.success(`Status: ${STATUS_CONFIG[status].label}`)
+    toast.success(ti.statusUpdated(STATUS_CONFIG[status].label))
   }
 
   const deleteInvoice = async (id: string) => {
-    if (!confirm('Delete invoice?')) return
+    if (!confirm(ti.deleteConfirm)) return
     const { error } = await supabase.from('invoices').delete().eq('id', id)
-    if (error) { toast.error('Error deleting invoice'); return }
+    if (error) { toast.error(ti.errorDelete); return }
     setInvoices(prev => prev.filter(i => i.id !== id))
     setOpenMenu(null)
-    toast.success('Invoice deleted')
+    toast.success(ti.deleted)
   }
 
   return (
@@ -641,17 +645,17 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             className="font-black"
             style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
           >
-            Invoices
+            {ti.title}
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            Create and track your payments
+            {ti.subtitle}
           </p>
         </div>
         <button onClick={() => setShowNew(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
           style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
           <Plus className="w-4 h-4" />
-          New invoice
+          {ti.newInvoice}
         </button>
       </div>
 
@@ -664,10 +668,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       `}</style>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {([
-          { label: 'Paid',          value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? 'Successfully received' : 'No payments yet',          Icon: CheckCircle2, delay: 0 },
-          { label: 'Pending',       value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? 'Waiting for payment' : 'No open invoices',         Icon: Clock,        delay: 90 },
-          { label: 'Overdue',    value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? 'Follow up immediately!' : 'All good',  Icon: AlertCircle,  delay: 180 },
-          { label: 'VAT paid', value: formatEur(totalMwst),   color: '#8B5CF6', desc: 'Estimated 19% VAT',                                               Icon: Percent,      delay: 270 },
+          { label: ti.stats.paid,    value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? ti.stats.paidDesc : ti.stats.paidDescEmpty,          Icon: CheckCircle2, delay: 0 },
+          { label: ti.stats.pending, value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? ti.stats.pendingDesc : ti.stats.pendingDescEmpty,  Icon: Clock,        delay: 90 },
+          { label: ti.stats.overdue, value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? ti.stats.overdueDesc : ti.stats.overdueDescEmpty,  Icon: AlertCircle,  delay: 180 },
+          { label: ti.stats.vat,     value: formatEur(totalMwst),    color: '#8B5CF6', desc: ti.stats.vatDesc,                                                     Icon: Percent,      delay: 270 },
         ] as const).map(({ label, value, color, desc, Icon, delay }) => (
           <div
             key={label}
@@ -718,16 +722,16 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               <FileText className="w-7 h-7" style={{ color: '#F97316' }} />
             </div>
             <h3 className="font-black mb-2" style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              No invoices yet
+              {ti.noInvoices}
             </h3>
             <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
-              Create your first invoice and keep track of your payments
+              {ti.noInvoicesDesc}
             </p>
             <button onClick={() => setShowNew(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
               style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
               <Plus className="w-4 h-4" />
-              Create first invoice
+              {ti.createFirst}
             </button>
           </div>
         ) : (
@@ -788,13 +792,13 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     disabled={isSending}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold text-white flex-shrink-0 transition-all hover:opacity-88 disabled:opacity-50"
                     style={{ background: '#CC8415', boxShadow: '0 1px 6px rgba(204,132,21,0.25)' }}
-                    title={`Send to ${clientEmail}`}
+                    title={`${ti.sendToClient} ${clientEmail}`}
                   >
                     {isSending
                       ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       : <Send className="w-3.5 h-3.5" />
                     }
-                    {isSending ? '...' : 'Send'}
+                    {isSending ? ti.sending : ti.send}
                   </button>
                 )}
 
@@ -803,7 +807,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   onClick={() => { setAutoPrint(false); setPreviewInvoice(inv) }}
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                   style={{ color: 'var(--text-muted)' }}
-                  title="View invoice"
+                  title={ti.viewInvoice}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
@@ -815,7 +819,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   onClick={() => { setAutoPrint(true); setPreviewInvoice(inv) }}
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                   style={{ color: 'var(--text-muted)' }}
-                  title="Print / save as PDF"
+                  title={ti.printPdf}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
                 >
@@ -845,7 +849,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <Send className="w-3.5 h-3.5" style={{ color: '#CC8415' }} />
-                            Send to client
+                            {ti.sendToClient}
                           </button>
                         )}
                         {/* Mark as paid — always visible (except already paid) */}
@@ -856,7 +860,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#2A9B68' }} />
-                            Mark as paid ✓
+                            {ti.markPaid}
                           </button>
                         )}
                         {/* Mark as overdue — for draft/sent/paid */}
@@ -867,7 +871,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <AlertCircle className="w-3.5 h-3.5" style={{ color: '#C43B2C' }} />
-                            Mark as overdue
+                            {ti.markOverdue}
                           </button>
                         )}
                         <div style={{ borderTop: '1px solid var(--border-color)' }} />
@@ -877,7 +881,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.06)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                           <Trash2 className="w-3.5 h-3.5" />
-                          Delete
+                          {ti.delete}
                         </button>
                       </div>
                     </>
@@ -907,7 +911,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
             <div className="flex items-center justify-between px-6 py-4"
               style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>New invoice</h2>
+              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{ti.modalTitle}</h2>
               <button onClick={() => setShowNew(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ color: 'var(--text-muted)' }}
@@ -932,7 +936,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     style={{ color: 'var(--accent)' }}
                   >
                     <FolderPlus className="w-3 h-3" />
-                    + New project
+                    {ti.newProject}
                   </button>
                 </div>
 
@@ -954,7 +958,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                         className="input-base flex-1 text-[13px]"
                         style={{ color: newProjectClientId ? 'var(--text-primary)' : 'var(--text-muted)' }}
                       >
-                        <option value="">Kein Kunde</option>
+                        <option value="">{ti.noClient}</option>
                         {clients.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
                       </select>
                       <button
@@ -997,7 +1001,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   className="input-base"
                   style={{ color: form.project_id ? 'var(--text-primary)' : 'var(--text-muted)' }}
                 >
-                  <option value="">Select project...</option>
+                        <option value="">{ti.selectProject}</option>
                   {projectList.map(p => {
                     const c = p.client
                     const clientName = Array.isArray(c) ? c[0]?.full_name : c?.full_name
@@ -1137,7 +1141,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     Send invoice
                   </h2>
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    {getClientEmail(createdInvoice.project) ? `To ${getClientEmail(createdInvoice.project)}` : 'No email address on file'}
+                    {getClientEmail(createdInvoice.project) ? `To ${getClientEmail(createdInvoice.project)}` : ti.noEmail}
                   </p>
                 </div>
               </div>
@@ -1220,12 +1224,12 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     : <Send className="w-4 h-4" />
                   }
-                  {sendingCreated ? 'Sending...' : 'Send to client now'}
+                  {sendingCreated ? ti.sendingBtn : ti.sendToClientNow}
                 </button>
               ) : (
                 <div className="w-full py-2.5 px-4 rounded-xl text-[13px] text-center"
                   style={{ background: 'rgba(196,59,44,0.08)', color: '#C43B2C', border: '1px solid rgba(196,59,44,0.20)' }}>
-                  ⚠️ No client or email address found for this project.
+                  {ti.noEmailWarning}
                 </div>
               )}
               <div className="flex gap-2">
@@ -1235,14 +1239,14 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)' }}
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  Preview
+                  {ti.preview}
                 </button>
                 <button
                   onClick={() => setCreatedInvoice(null)}
                   className="flex-1 py-2 rounded-xl text-[13px] font-medium transition-colors"
                   style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
                 >
-                  Later
+                  {ti.later}
                 </button>
               </div>
             </div>

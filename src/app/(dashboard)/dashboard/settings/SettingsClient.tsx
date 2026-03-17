@@ -1,5 +1,8 @@
 'use client'
 
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
+
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User, Building2, Palette, Bell, CreditCard } from 'lucide-react'
@@ -30,15 +33,9 @@ const PHOTO_TYPES = [
   'Hochzeit', 'Portrait', 'Event', 'Commercial', 'Immobilien', 'Fine Art', 'Sport', 'Newborn', 'Familie',
 ]
 
-const TABS = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'studio', label: 'Studio', icon: Building2 },
-  { id: 'bank', label: 'Bank details', icon: CreditCard },
-  { id: 'branding', label: 'Branding', icon: Palette },
-  { id: 'notifications', label: 'Benachrichtigungen', icon: Bell },
-]
-
 export default function SettingsClient({ photographer, userId }: Props) {
+  const locale = useLocale()
+  const ts = dashboardT(locale).settingsPage
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
 
@@ -74,8 +71,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
       .update({ full_name: fullName, language, photography_types: photoTypes })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error('Error saving')
-    else toast.success('Profile saved')
+    if (error) toast.error(ts.profile.error)
+    else toast.success(ts.profile.saved)
   }
 
   const saveStudio = async () => {
@@ -85,7 +82,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
       .update({ studio_name: studioName, logo_url: logoUrl || null })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error('Error saving')
+    if (error) toast.error(ts.profile.error)
     else toast.success('Studio settings saved')
   }
 
@@ -101,8 +98,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
       })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error('Error saving')
-    else toast.success('Bank details saved ✓')
+    if (error) toast.error(ts.bank.error)
+    else toast.success(ts.bank.saved)
   }
 
   const uploadLogo = async (file: File) => {
@@ -118,13 +115,19 @@ export default function SettingsClient({ photographer, userId }: Props) {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">Settings</h1>
-        <p className="text-sm text-[#6B6B6B] mt-1">Manage your profile and studio settings.</p>
+        <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">{ts.title}</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1">{ts.subtitle}</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-[#F0F0EC] rounded-xl p-1 flex-wrap">
-        {TABS.map(tab => {
+        {([
+          { id: 'profile', label: ts.tabs.profile, icon: User },
+          { id: 'studio', label: ts.tabs.studio, icon: Building2 },
+          { id: 'bank', label: ts.tabs.bank, icon: CreditCard },
+          { id: 'branding', label: ts.tabs.branding, icon: Palette },
+          { id: 'notifications', label: ts.tabs.notifications, icon: Bell },
+        ] as const).map(tab => {
           const Icon = tab.icon
           return (
             <button
@@ -147,10 +150,10 @@ export default function SettingsClient({ photographer, userId }: Props) {
       {/* Profile tab */}
       {activeTab === 'profile' && (
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
-          <h2 className="text-sm font-semibold text-[#1A1A1A]">Profile</h2>
+          <h2 className="text-sm font-semibold text-[#1A1A1A]">{ts.profile.title}</h2>
 
           <div>
-            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Full Name</label>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">{ts.profile.fullName}</label>
             <input
               type="text"
               value={fullName}
@@ -160,18 +163,18 @@ export default function SettingsClient({ photographer, userId }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">E-Mail</label>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">{ts.profile.email}</label>
             <input
               type="email"
               value={photographer?.email || ''}
               disabled
               className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm bg-[#FAFAF8] text-[#6B6B6B] cursor-not-allowed"
             />
-            <p className="text-xs text-[#6B6B6B] mt-1">Email cannot be changed.</p>
+            <p className="text-xs text-[#6B6B6B] mt-1">{ts.profile.emailHint}</p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#6B6B6B] mb-2">Sprache</label>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-2">{ts.profile.language}</label>
             <div className="flex gap-2">
               {[{ value: 'de', label: '🇩🇪 Deutsch' }, { value: 'en', label: '🇬🇧 English' }].map(lang => (
                 <button
@@ -191,7 +194,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#6B6B6B] mb-2">Fotografie-Typen</label>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-2">{ts.profile.photoTypes}</label>
             <div className="flex flex-wrap gap-2">
               {PHOTO_TYPES.map(type => (
                 <button
@@ -215,7 +218,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save profile'}
+            {saving ? ts.profile.saving : ts.profile.saveBtn}
           </button>
         </div>
       )}
@@ -263,22 +266,20 @@ export default function SettingsClient({ photographer, userId }: Props) {
       {activeTab === 'bank' && (
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
           <div>
-            <h2 className="text-sm font-semibold text-[#1A1A1A]">Bankverbindung</h2>
-            <p className="text-xs text-[#6B6B6B] mt-1">
-              This information appears on your invoices so clients can make payments.
-            </p>
+            <h2 className="text-sm font-semibold text-[#1A1A1A]">{ts.bank.title}</h2>
+            <p className="text-xs text-[#6B6B6B] mt-1">{ts.bank.subtitle}</p>
           </div>
 
           <div className="p-3 rounded-lg bg-[#F0F0EC] border border-[#E8E8E4] flex items-start gap-2">
             <CreditCard className="w-4 h-4 text-[#C8A882] flex-shrink-0 mt-0.5" />
             <p className="text-xs text-[#6B6B6B]">
-              Your bank details are <strong className="text-[#1A1A1A]">only shown on your invoices</strong> and never shared publicly.
+              {ts.bank.infoBox}
             </p>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
-              Account holder <span className="text-[#E84C1A]">*</span>
+              {ts.bank.accountHolder} <span className="text-[#E84C1A]">*</span>
             </label>
             <input
               type="text"
@@ -302,7 +303,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
 
           <div>
             <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
-              IBAN <span className="text-[#E84C1A]">*</span>
+              {ts.bank.iban} <span className="text-[#E84C1A]">*</span>
             </label>
             <input
               type="text"
@@ -327,10 +328,10 @@ export default function SettingsClient({ photographer, userId }: Props) {
           {/* Preview */}
           {(bankAccountHolder || bankIban) && (
             <div className="p-4 rounded-lg border border-[#E8E8E4] bg-[#FAFAF8]">
-              <p className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Preview auf Rechnung</p>
+              <p className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">{ts.bank.previewTitle}</p>
               <div className="space-y-1 text-sm">
-                {bankAccountHolder && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Account holder:</span> {bankAccountHolder}</p>}
-                {bankName && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">Bank:</span> {bankName}</p>}
+                {bankAccountHolder && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">{ts.bank.accountHolderLabel}</span> {bankAccountHolder}</p>}
+                {bankName && <p className="text-[#1A1A1A]"><span className="text-[#6B6B6B]">{ts.bank.bankLabel}</span> {bankName}</p>}
                 {bankIban && <p className="text-[#1A1A1A] font-mono"><span className="text-[#6B6B6B] font-sans">IBAN:</span> {bankIban}</p>}
                 {bankBic && <p className="text-[#1A1A1A] font-mono"><span className="text-[#6B6B6B] font-sans">BIC:</span> {bankBic}</p>}
               </div>
@@ -342,7 +343,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             disabled={saving}
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save bank details'}
+            {saving ? ts.bank.saving : ts.bank.saveBtn}
           </button>
         </div>
       )}
