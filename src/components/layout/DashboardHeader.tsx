@@ -17,13 +17,13 @@ export default function DashboardHeader({ photographer }: Props) {
   const { theme, toggleTheme } = useTheme()
 
   // Read current locale from cookie (client-side)
-  const [currentLocale, setCurrentLocale] = useState<string>('de')
+  const [currentLocale, setCurrentLocale] = useState<string>('en')
 
   useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)locale=([^;]*)/)
-    const cookieLocale = match ? match[1] : null
-    setCurrentLocale(cookieLocale || photographer.language || 'de')
-  }, [photographer.language])
+    // Always force English — the app is English-only now
+    document.cookie = `locale=en; path=/; max-age=31536000; SameSite=Lax`
+    setCurrentLocale('en')
+  }, [])
 
   const switchLanguage = async (lang: string) => {
     // Save cookie
