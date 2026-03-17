@@ -614,7 +614,7 @@ export default function ProjectsPage() {
                 return (
                   <div
                     key={project.id}
-                    className="group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                    className="group relative rounded-xl transition-all"
                     draggable
                     onDragStart={e => handleDragStart(e, index, project.id)}
                     onDragOver={e => handleDragOver(e, index, project.id)}
@@ -625,11 +625,16 @@ export default function ProjectsPage() {
                       border: `1px solid ${isOver ? 'var(--accent)' : 'var(--border-color)'}`,
                       opacity: isDragging ? 0.4 : 1,
                       borderTop: isOver ? `2px solid var(--accent)` : undefined,
+                      display: 'grid',
+                      gridTemplateColumns: '20px 10px 1fr 140px 160px 180px 120px 64px',
+                      alignItems: 'center',
+                      gap: '0 12px',
+                      padding: '10px 16px',
                     }}
                   >
                     {/* Drag handle */}
                     <div
-                      className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing flex-shrink-0"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <GripVertical className="w-4 h-4" />
@@ -637,39 +642,41 @@ export default function ProjectsPage() {
 
                     {/* Status dot */}
                     <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2 h-2 rounded-full"
                       style={{ background: sc.dot }}
                     />
 
                     {/* Title */}
                     <Link
                       href={`/dashboard/projects/${project.id}`}
-                      className="flex-1 min-w-0 font-bold text-[14px] hover:underline truncate"
+                      className="font-bold text-[14px] hover:underline truncate"
                       style={{ color: 'var(--text-primary)' }}
                     >
                       {project.title}
                     </Link>
 
-                    {/* Shooting type */}
-                    {stc && (
-                      <span
-                        className="flex-shrink-0 hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: stc.bg, color: stc.color }}
-                      >
-                        <Camera className="w-2.5 h-2.5" />
-                        {stc.label}
-                      </span>
-                    )}
+                    {/* Shooting type — fixed col */}
+                    <div className="flex items-center">
+                      {stc ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full truncate max-w-full"
+                          style={{ background: stc.bg, color: stc.color }}
+                        >
+                          <Camera className="w-2.5 h-2.5 flex-shrink-0" />
+                          {stc.label}
+                        </span>
+                      ) : <span />}
+                    </div>
 
-                    {/* Status — inline dropdown */}
-                    <div className="relative flex-shrink-0">
+                    {/* Status — fixed col, inline dropdown */}
+                    <div className="relative">
                       <button
                         onClick={e => openStatusDropdown(e, project.id)}
-                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
+                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80 w-full justify-start"
                         style={{ background: sc.bg, color: sc.color, border: 'none', cursor: 'pointer' }}
                       >
                         {sc.label}
-                        <ChevronDown className="w-2.5 h-2.5 opacity-70" />
+                        <ChevronDown className="w-2.5 h-2.5 opacity-70 ml-auto" />
                       </button>
                       {openStatusMenu === project.id && (
                         <div
@@ -706,24 +713,20 @@ export default function ProjectsPage() {
                       )}
                     </div>
 
-                    {/* Client */}
-                    {clientName && (
-                      <div className="flex-shrink-0 hidden md:flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                        <User className="w-3.5 h-3.5" />
-                        <span className="text-[12px]">{clientName}</span>
-                      </div>
-                    )}
+                    {/* Client — fixed col */}
+                    <div className="flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-muted)' }}>
+                      <User className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-[12px] truncate">{clientName || '—'}</span>
+                    </div>
 
-                    {/* Date */}
-                    {project.shoot_date && (
-                      <div className="flex-shrink-0 hidden lg:flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span className="text-[12px]">{formatDate(project.shoot_date, 'de')}</span>
-                      </div>
-                    )}
+                    {/* Date — fixed col */}
+                    <div className="flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                      <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-[12px]">{project.shoot_date ? formatDate(project.shoot_date, 'de') : '—'}</span>
+                    </div>
 
-                    {/* Open + Delete */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Actions — fixed col */}
+                    <div className="flex items-center gap-1 justify-end">
                       <Link
                         href={`/dashboard/projects/${project.id}`}
                         className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
