@@ -820,14 +820,14 @@ export default function ContractsClient({
         {contracts.length > 0 ? (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
             <div
-              className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] px-5 py-3"
-              style={{ borderBottom: '1px solid var(--border-color)' }}
+              className="grid px-5 py-3"
+              style={{ borderBottom: '1px solid var(--border-color)', gridTemplateColumns: '1fr 180px 130px 160px 100px 24px' }}
             >
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colContract}</span>
-              <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>{t.colClient}</span>
-              <span className="text-xs font-medium uppercase tracking-wide hidden md:block" style={{ color: 'var(--text-muted)' }}>{t.colStatus}</span>
-              <span className="text-xs font-medium uppercase tracking-wide hidden lg:block" style={{ color: 'var(--text-muted)' }}>{t.colCreated}</span>
-              <span className="hidden lg:block" />
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colClient}</span>
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colStatus}</span>
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colCreated}</span>
+              <span />
               <span />
             </div>
             {contracts.map((contract, i) => {
@@ -838,8 +838,9 @@ export default function ContractsClient({
                 <a
                   key={contract.id}
                   href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
-                  className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_160px_120px_auto] lg:grid-cols-[1fr_160px_140px_auto_120px_auto] items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
+                  className="grid items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
                   style={{
+                    gridTemplateColumns: '1fr 180px 130px 160px 100px 24px',
                     borderBottom: '1px solid var(--border-color)',
                     animation: 'fadeSlideUp 0.35s ease forwards',
                     animationDelay: `${i * 50}ms`,
@@ -854,13 +855,13 @@ export default function ContractsClient({
                     </div>
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
                   </div>
-                  <span className="text-sm hidden md:block" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
-                  <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit" style={{ background: sc.bg, color: sc.color }}>
+                  <span className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit" style={{ background: sc.bg, color: sc.color }}>
                     {STATUS_ICONS[contract.status]}
                     {STATUS_LABELS[contract.status]}
                   </span>
-                  <span className="text-xs hidden lg:block" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, locale)}</span>
-                  <div className="hidden lg:flex items-center">
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, locale)}</span>
+                  <div className="flex items-center">
                     {fullySignedByBoth && (
                       <button
                         onClick={(e) => handleDownloadPDF(e, contract)}
