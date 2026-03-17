@@ -8,6 +8,7 @@ import { cn, generateToken } from '@/lib/utils'
 import { ArrowLeft, Plus, X, UserPlus, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
+import { useLocale } from '@/hooks/useLocale'
 
 const PROJECT_TYPES = [
   { value: 'wedding', label: 'Wedding' },
@@ -34,6 +35,7 @@ const SHOOTING_TYPES = [
 ]
 
 export default function NewProjectPage() {
+  const locale = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedClient = searchParams.get('client')
@@ -287,7 +289,7 @@ export default function NewProjectPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">Telefon</label>
+                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">{locale === 'en' ? 'Phone' : 'Telefon'}</label>
                   <input
                     type="tel"
                     value={newClient.phone}

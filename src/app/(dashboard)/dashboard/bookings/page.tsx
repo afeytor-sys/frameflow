@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CalendarDays, List, MapPin, User, ChevronLeft, ChevronRight, Plus, X, Check, FolderOpen } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Booking {
   id: string
@@ -26,7 +27,18 @@ interface Project {
   title: string
 }
 
-const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
+const STATUS_COLORS_EN: Record<string, { bg: string; color: string; label: string }> = {
+  draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Draft' },
+  booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Booked' },
+  active:    { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Active' },
+  shooting:  { bg: 'rgba(196,164,124,0.12)', color: '#C4A47C', label: 'Shooting' },
+  editing:   { bg: 'rgba(139,92,246,0.12)',  color: '#8B5CF6', label: 'Editing' },
+  delivered: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', label: 'Delivered' },
+  completed: { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Completed' },
+  cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', label: 'Cancelled' },
+}
+
+const STATUS_COLORS_DE: Record<string, { bg: string; color: string; label: string }> = {
   draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Draft' },
   booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Gebucht' },
   active:    { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6', label: 'Aktiv' },
@@ -37,12 +49,118 @@ const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }
   cancelled: { bg: 'rgba(196,59,44,0.10)',   color: '#C43B2C', label: 'Storniert' },
 }
 
-const MONTHS_DE = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+const DAYS_EN = ['Mo','Tu','We','Th','Fr','Sa','Su']
 const DAYS_DE = ['Mo','Di','Mi','Do','Fr','Sa','So']
 
-function formatDateDE(dateStr: string) {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+const UI = {
+  en: {
+    title: 'Bookings',
+    upcoming: 'Upcoming',
+    past: 'Past',
+    upcomingCount: (u: number, p: number) => `${u} upcoming · ${p} past`,
+    newBooking: 'Booking',
+    listView: 'List',
+    calView: 'Calendar',
+    noBookings: 'No Bookings',
+    noBookingsDesc: 'Create your first booking right here',
+    createBooking: 'Create booking',
+    today: 'Today!',
+    inDays: (d: number) => `in ${d} ${d === 1 ? 'day' : 'days'}`,
+    more: (n: number) => `+${n} more`,
+    // Modal
+    modalTitle: 'New Booking',
+    modalDesc: 'Create a shoot appointment',
+    titleLabel: 'Title *',
+    titlePlaceholder: 'e.g. Wedding Anna & Max',
+    dateLabel: 'Date *',
+    statusLabel: 'Status',
+    locationLabel: 'Location (optional)',
+    locationPlaceholder: 'e.g. Central Park, New York',
+    clientLabel: 'Client (optional)',
+    noClient: 'No client',
+    newClient: 'New client',
+    clientPlaceholder: 'Client name...',
+    projectLabel: 'Project (optional)',
+    noProject: 'No project (create new)',
+    newProject: 'New project',
+    projectPlaceholder: 'Project name...',
+    noProjectsYet: 'No projects yet',
+    notesLabel: 'Notes (optional)',
+    notesPlaceholder: 'Special requests, notes...',
+    cancel: 'Cancel',
+    createBtn: 'Create booking',
+    // Status options
+    statusDraft: 'Draft',
+    statusBooked: 'Booked',
+    statusActive: 'Active',
+    statusShooting: 'Shooting',
+    statusEditing: 'Editing',
+    statusDelivered: 'Delivered',
+    statusCompleted: 'Completed',
+    statusCancelled: 'Cancelled',
+    // Toasts
+    toastClientCreated: (name: string) => `Client "${name}" created`,
+    toastProjectCreated: (name: string) => `Project "${name}" created`,
+    toastBookingSaved: 'Booking saved!',
+    toastBookingCreated: 'Booking created!',
+    toastTitleRequired: 'Please enter a title',
+    toastDateRequired: 'Please select a date',
+  },
+  de: {
+    title: 'Bookings',
+    upcoming: 'Bevorstehend',
+    past: 'Vergangen',
+    upcomingCount: (u: number, p: number) => `${u} bevorstehend · ${p} vergangen`,
+    newBooking: 'Booking',
+    listView: 'Liste',
+    calView: 'Kalender',
+    noBookings: 'Keine Bookings',
+    noBookingsDesc: 'Erstelle dein erstes Booking direkt hier',
+    createBooking: 'Booking erstellen',
+    today: 'Heute!',
+    inDays: (d: number) => `in ${d} ${d === 1 ? 'Tag' : 'Tagen'}`,
+    more: (n: number) => `+${n} mehr`,
+    // Modal
+    modalTitle: 'Neues Booking',
+    modalDesc: 'Shooting-Termin anlegen',
+    titleLabel: 'Titel *',
+    titlePlaceholder: 'z.B. Hochzeit Anna & Max',
+    dateLabel: 'Datum *',
+    statusLabel: 'Status',
+    locationLabel: 'Location (optional)',
+    locationPlaceholder: 'z.B. Schlosspark München',
+    clientLabel: 'Kunde (optional)',
+    noClient: 'Kein Kunde',
+    newClient: 'Neuer Kunde',
+    clientPlaceholder: 'Name des Kunden...',
+    projectLabel: 'Projekt (optional)',
+    noProject: 'Kein Projekt (neu erstellen)',
+    newProject: 'Neues Projekt',
+    projectPlaceholder: 'Projektname...',
+    noProjectsYet: 'Noch keine Projekte',
+    notesLabel: 'Notizen (optional)',
+    notesPlaceholder: 'Besondere Wünsche, Notizen...',
+    cancel: 'Abbrechen',
+    createBtn: 'Booking erstellen',
+    // Status options
+    statusDraft: 'Draft',
+    statusBooked: 'Gebucht',
+    statusActive: 'Aktiv',
+    statusShooting: 'Shooting',
+    statusEditing: 'Bearbeitung',
+    statusDelivered: 'Geliefert',
+    statusCompleted: 'Abgeschlossen',
+    statusCancelled: 'Storniert',
+    // Toasts
+    toastClientCreated: (name: string) => `Kunde "${name}" erstellt`,
+    toastProjectCreated: (name: string) => `Projekt "${name}" erstellt`,
+    toastBookingSaved: 'Booking gespeichert!',
+    toastBookingCreated: 'Booking erstellt!',
+    toastTitleRequired: 'Bitte einen Titel eingeben',
+    toastDateRequired: 'Bitte ein Datum auswählen',
+  },
 }
 
 function daysUntil(dateStr: string) {
@@ -52,6 +170,12 @@ function daysUntil(dateStr: string) {
 }
 
 export default function BookingsPage() {
+  const locale = useLocale()
+  const t = UI[locale]
+  const STATUS_COLORS = locale === 'en' ? STATUS_COLORS_EN : STATUS_COLORS_DE
+  const MONTHS = locale === 'en' ? MONTHS_EN : MONTHS_DE
+  const DAYS = locale === 'en' ? DAYS_EN : DAYS_DE
+
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'list' | 'calendar'>('list')
@@ -65,7 +189,6 @@ export default function BookingsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [photographerId, setPhotographerId] = useState<string | null>(null)
 
-  // Form state
   const [form, setForm] = useState({
     title: '',
     shoot_date: '',
@@ -76,12 +199,10 @@ export default function BookingsPage() {
     notes: '',
   })
 
-  // Inline "New client" state
   const [showNewClient, setShowNewClient] = useState(false)
   const [newClientName, setNewClientName] = useState('')
   const [creatingClient, setCreatingClient] = useState(false)
 
-  // Inline "New project" state
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectTitle, setNewProjectTitle] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
@@ -121,7 +242,6 @@ export default function BookingsPage() {
 
     if (!photographerId) return
 
-    // Load clients
     if (clients.length === 0) {
       const { data } = await supabase
         .from('clients')
@@ -131,7 +251,6 @@ export default function BookingsPage() {
       setClients((data || []) as Client[])
     }
 
-    // Load projects (without shoot_date — standalone projects)
     if (projects.length === 0) {
       const { data } = await supabase
         .from('projects')
@@ -143,7 +262,6 @@ export default function BookingsPage() {
     }
   }
 
-  // Create client inline
   const handleCreateClient = async () => {
     if (!newClientName.trim() || !photographerId) return
     setCreatingClient(true)
@@ -159,10 +277,9 @@ export default function BookingsPage() {
     setShowNewClient(false)
     setNewClientName('')
     setCreatingClient(false)
-    toast.success(`Kunde "${newClient.full_name}" erstellt`)
+    toast.success(t.toastClientCreated(newClient.full_name))
   }
 
-  // Create project inline
   const handleCreateProject = async () => {
     if (!newProjectTitle.trim() || !photographerId) return
     setCreatingProject(true)
@@ -184,21 +301,19 @@ export default function BookingsPage() {
     setShowNewProject(false)
     setNewProjectTitle('')
     setCreatingProject(false)
-    toast.success(`Projekt "${newProject.title}" erstellt`)
+    toast.success(t.toastProjectCreated(newProject.title))
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
-    if (!form.shoot_date) { toast.error('Please select a date'); return }
+    if (!form.title.trim()) { toast.error(t.toastTitleRequired); return }
+    if (!form.shoot_date) { toast.error(t.toastDateRequired); return }
     if (!photographerId) return
     setSaving(true)
 
-    // If a project was selected/created, update it with shoot_date; otherwise create new project
     let projectId = form.project_id
 
     if (projectId) {
-      // Update existing project with shoot_date if not set
       await supabase
         .from('projects')
         .update({
@@ -224,12 +339,11 @@ export default function BookingsPage() {
       })
       setShowModal(false)
       setSaving(false)
-      toast.success('Booking gespeichert!')
+      toast.success(t.toastBookingSaved)
       router.push(`/dashboard/projects/${projectId}`)
       return
     }
 
-    // Create new project as booking
     const { data, error } = await supabase
       .from('projects')
       .insert({
@@ -257,16 +371,14 @@ export default function BookingsPage() {
     setBookings(prev => [...prev, newBooking].sort((a, b) => a.shoot_date.localeCompare(b.shoot_date)))
     setShowModal(false)
     setSaving(false)
-    toast.success('Booking erstellt!')
+    toast.success(t.toastBookingCreated)
     router.push(`/dashboard/projects/${data.id}`)
   }
 
-  // Split into upcoming and past
   const today = new Date(); today.setHours(0,0,0,0)
   const upcoming = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') >= today)
   const past = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') < today)
 
-  // Calendar helpers
   const { year, month } = calMonth
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
@@ -296,10 +408,10 @@ export default function BookingsPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-black" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
-            Bookings
+            {t.title}
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            {upcoming.length} bevorstehend · {past.length} vergangen
+            {t.upcomingCount(upcoming.length, past.length)}
           </p>
         </div>
 
@@ -310,7 +422,7 @@ export default function BookingsPage() {
             style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.30)' }}
           >
             <Plus className="w-4 h-4" />
-            Booking
+            {t.newBooking}
           </button>
 
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
@@ -319,14 +431,14 @@ export default function BookingsPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
               style={{ background: view === 'list' ? 'var(--bg-active)' : 'transparent', color: view === 'list' ? 'var(--text-on-active)' : 'var(--text-muted)' }}
             >
-              <List className="w-3.5 h-3.5" />Liste
+              <List className="w-3.5 h-3.5" />{t.listView}
             </button>
             <button
               onClick={() => setView('calendar')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
               style={{ background: view === 'calendar' ? 'var(--bg-active)' : 'transparent', color: view === 'calendar' ? 'var(--text-on-active)' : 'var(--text-muted)' }}
             >
-              <CalendarDays className="w-3.5 h-3.5" />Kalender
+              <CalendarDays className="w-3.5 h-3.5" />{t.calView}
             </button>
           </div>
         </div>
@@ -341,10 +453,10 @@ export default function BookingsPage() {
               <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--bg-hover)' }}>
                 <CalendarDays className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
               </div>
-              <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>Keine Bookings</h3>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Erstelle dein erstes Booking direkt hier</p>
+              <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{t.noBookings}</h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{t.noBookingsDesc}</p>
               <button onClick={openModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#3B82F6' }}>
-                <Plus className="w-3.5 h-3.5" />Booking erstellen
+                <Plus className="w-3.5 h-3.5" />{t.createBooking}
               </button>
             </div>
           ) : (
@@ -358,7 +470,7 @@ export default function BookingsPage() {
 
               {upcoming.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>Bevorstehend</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>{t.upcoming}</p>
                   <div className="space-y-2">
                     {upcoming.map((b, i) => {
                       const days = daysUntil(b.shoot_date)
@@ -383,7 +495,7 @@ export default function BookingsPage() {
                             <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
                               style={{ background: st.color + '18', border: `1px solid ${st.color}25` }}>
                               <span className="text-[11px] font-bold uppercase" style={{ color: st.color }}>
-                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString('de-DE', { month: 'short' })}
+                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { month: 'short' })}
                               </span>
                               <span className="text-[22px] font-black leading-none" style={{ color: st.color }}>
                                 {new Date(b.shoot_date + 'T00:00:00').getDate()}
@@ -401,8 +513,8 @@ export default function BookingsPage() {
                             </div>
                             <div className="flex-shrink-0 text-right">
                               {isToday
-                                ? <span className="text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: st.color + '20', color: st.color }}>Heute!</span>
-                                : <span className="text-[12px] font-medium" style={{ color: st.color + 'CC' }}>in {days} {days === 1 ? 'Tag' : 'Tagen'}</span>
+                                ? <span className="text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: st.color + '20', color: st.color }}>{t.today}</span>
+                                : <span className="text-[12px] font-medium" style={{ color: st.color + 'CC' }}>{t.inDays(days)}</span>
                               }
                             </div>
                           </div>
@@ -415,7 +527,7 @@ export default function BookingsPage() {
 
               {past.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>Vergangen</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>{t.past}</p>
                   <div className="space-y-2">
                     {[...past].reverse().map((b, i) => {
                       const st = STATUS_COLORS[b.status] || STATUS_COLORS.booked
@@ -431,7 +543,7 @@ export default function BookingsPage() {
                             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderLeft: 'none', borderRadius: '0 16px 16px 0' }}>
                             <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
                               <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>
-                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString('de-DE', { month: 'short' })}
+                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { month: 'short' })}
                               </span>
                               <span className="text-[22px] font-black leading-none" style={{ color: 'var(--text-secondary)' }}>
                                 {new Date(b.shoot_date + 'T00:00:00').getDate()}
@@ -447,7 +559,9 @@ export default function BookingsPage() {
                                 {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
                               </div>
                             </div>
-                            <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{formatDateDE(b.shoot_date)}</span>
+                            <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                              {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
                           </div>
                         </Link>
                       )
@@ -467,13 +581,13 @@ export default function BookingsPage() {
             <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month - 1, 1); return { year: d.getFullYear(), month: d.getMonth() } })} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-hover)]">
               <ChevronLeft className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             </button>
-            <h2 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>{MONTHS_DE[month]} {year}</h2>
+            <h2 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>{MONTHS[month]} {year}</h2>
             <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month + 1, 1); return { year: d.getFullYear(), month: d.getMonth() } })} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-hover)]">
               <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             </button>
           </div>
           <div className="grid grid-cols-7 px-2 pt-2">
-            {DAYS_DE.map(d => <div key={d} className="text-center text-[11px] font-bold py-2" style={{ color: 'var(--text-muted)' }}>{d}</div>)}
+            {DAYS.map(d => <div key={d} className="text-center text-[11px] font-bold py-2" style={{ color: 'var(--text-muted)' }}>{d}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-px px-2 pb-3" style={{ background: 'var(--border-color)' }}>
             {Array.from({ length: totalCells }).map((_, i) => {
@@ -502,7 +616,7 @@ export default function BookingsPage() {
                             </Link>
                           )
                         })}
-                        {dayBookings.length > 2 && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>+{dayBookings.length - 2} mehr</span>}
+                        {dayBookings.length > 2 && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t.more(dayBookings.length - 2)}</span>}
                       </div>
                     </>
                   )}
@@ -528,8 +642,8 @@ export default function BookingsPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>Neues Booking</h2>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Shooting-Termin anlegen</p>
+                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>{t.modalTitle}</h2>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.modalDesc}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
@@ -542,51 +656,51 @@ export default function BookingsPage() {
             <form onSubmit={handleCreate} className="flex-1 overflow-y-auto p-6 space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Titel *</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.titleLabel}</label>
                 <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="z.B. Hochzeit Anna & Max" className="input-base w-full" autoFocus required />
+                  placeholder={t.titlePlaceholder} className="input-base w-full" autoFocus required />
               </div>
 
               {/* Date + Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Datum *</label>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.dateLabel}</label>
                   <input type="date" value={form.shoot_date} onChange={e => setForm(f => ({ ...f, shoot_date: e.target.value }))}
                     className="input-base w-full" required />
                 </div>
                 <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Status</label>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.statusLabel}</label>
                   <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="input-base w-full">
-                    <option value="draft">Draft</option>
-                    <option value="booked">Gebucht</option>
-                    <option value="active">Aktiv</option>
-                    <option value="shooting">Shooting</option>
-                    <option value="editing">Bearbeitung</option>
-                    <option value="delivered">Geliefert</option>
-                    <option value="completed">Abgeschlossen</option>
-                    <option value="cancelled">Storniert</option>
+                    <option value="draft">{t.statusDraft}</option>
+                    <option value="booked">{t.statusBooked}</option>
+                    <option value="active">{t.statusActive}</option>
+                    <option value="shooting">{t.statusShooting}</option>
+                    <option value="editing">{t.statusEditing}</option>
+                    <option value="delivered">{t.statusDelivered}</option>
+                    <option value="completed">{t.statusCompleted}</option>
+                    <option value="cancelled">{t.statusCancelled}</option>
                   </select>
                 </div>
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Location (optional)</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.locationLabel}</label>
                 <input type="text" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  placeholder="e.g. Central Park, New York" className="input-base w-full" />
+                  placeholder={t.locationPlaceholder} className="input-base w-full" />
               </div>
 
-              {/* ── KUNDE ── */}
+              {/* ── CLIENT ── */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                    <User className="w-3 h-3 inline mr-1" />Kunde (optional)
+                    <User className="w-3 h-3 inline mr-1" />{t.clientLabel}
                   </label>
                   {!showNewClient && (
                     <button type="button" onClick={() => { setShowNewClient(true); setNewClientName('') }}
                       className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg transition-colors"
                       style={{ color: 'var(--accent)', background: 'var(--accent-muted)' }}>
-                      <Plus className="w-3 h-3" />New client
+                      <Plus className="w-3 h-3" />{t.newClient}
                     </button>
                   )}
                 </div>
@@ -598,7 +712,7 @@ export default function BookingsPage() {
                       value={newClientName}
                       onChange={e => setNewClientName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateClient() } if (e.key === 'Escape') { setShowNewClient(false) } }}
-                      placeholder="Name des Kunden..."
+                      placeholder={t.clientPlaceholder}
                       className="input-base flex-1 py-1.5 text-[13px]"
                       autoFocus
                     />
@@ -615,23 +729,23 @@ export default function BookingsPage() {
                   </div>
                 ) : (
                   <select value={form.client_id} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} className="input-base w-full">
-                    <option value="">Kein Kunde</option>
+                    <option value="">{t.noClient}</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
                   </select>
                 )}
               </div>
 
-              {/* ── PROJEKT ── */}
+              {/* ── PROJECT ── */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                    <FolderOpen className="w-3 h-3 inline mr-1" />Projekt (optional)
+                    <FolderOpen className="w-3 h-3 inline mr-1" />{t.projectLabel}
                   </label>
                   {!showNewProject && (
                     <button type="button" onClick={() => { setShowNewProject(true); setNewProjectTitle('') }}
                       className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg transition-colors"
                       style={{ color: '#3B82F6', background: 'rgba(59,130,246,0.10)' }}>
-                      <Plus className="w-3 h-3" />New project
+                      <Plus className="w-3 h-3" />{t.newProject}
                     </button>
                   )}
                 </div>
@@ -643,7 +757,7 @@ export default function BookingsPage() {
                       value={newProjectTitle}
                       onChange={e => setNewProjectTitle(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateProject() } if (e.key === 'Escape') { setShowNewProject(false) } }}
-                      placeholder="Projektname..."
+                      placeholder={t.projectPlaceholder}
                       className="input-base flex-1 py-1.5 text-[13px]"
                       autoFocus
                     />
@@ -661,7 +775,7 @@ export default function BookingsPage() {
                 ) : projects.length === 0 ? (
                   <div className="p-3 rounded-xl text-[12px] flex items-center justify-between"
                     style={{ background: 'var(--bg-hover)', border: '1px dashed var(--border-color)', color: 'var(--text-muted)' }}>
-                    <span>No projects yet vorhanden</span>
+                    <span>{t.noProjectsYet}</span>
                     <button type="button" onClick={() => { setShowNewProject(true); setNewProjectTitle(form.title) }}
                       className="text-[11px] font-bold flex items-center gap-1"
                       style={{ color: '#3B82F6' }}>
@@ -670,7 +784,7 @@ export default function BookingsPage() {
                   </div>
                 ) : (
                   <select value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} className="input-base w-full">
-                    <option value="">Kein Projekt (neu erstellen)</option>
+                    <option value="">{t.noProject}</option>
                     {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
                   </select>
                 )}
@@ -678,20 +792,20 @@ export default function BookingsPage() {
 
               {/* Notes */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Notizen (optional)</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.notesLabel}</label>
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Special requests, notes..." rows={2} className="input-base w-full resize-none" />
+                  placeholder={t.notesPlaceholder} rows={2} className="input-base w-full resize-none" />
               </div>
 
               {/* Footer */}
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancel</button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">{t.cancel}</button>
                 <button type="submit" disabled={saving || !form.title.trim() || !form.shoot_date}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
                   style={{ background: '#3B82F6', boxShadow: '0 1px 8px rgba(59,130,246,0.25)' }}>
                   {saving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><CalendarDays className="w-4 h-4" />Booking erstellen</>
+                    : <><CalendarDays className="w-4 h-4" />{t.createBtn}</>
                   }
                 </button>
               </div>
