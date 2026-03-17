@@ -8,6 +8,8 @@ import {
   Link2, Plus, Trash2, GripVertical, ClipboardList,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
 
 type PortalSections = {
   contract: boolean
@@ -31,32 +33,6 @@ const DEFAULT_SECTIONS: PortalSections = {
   questionnaire: true,
 }
 
-const SECTION_CONFIG: {
-  key: keyof PortalSections
-  label: string
-  description: string
-  icon: React.ElementType
-  color: string
-  bg: string
-}[] = [
-  { key: 'contract',   label: 'Vertrag',       description: 'Vertragscard mit Unterschrift-Button',  icon: FileText,  color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
-  { key: 'gallery',    label: 'Galerie',        description: 'Galeriecard mit Foto-Anzahl',           icon: Images,    color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
-  { key: 'timeline',   label: 'Zeitplan',       description: 'Tagesablauf / Timeline-Card',           icon: Clock,     color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
-  { key: 'treffpunkt', label: 'Treffpunkt',     description: 'Mini-Karte mit Treffpunkt',             icon: MapPin,    color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
-  { key: 'tips',       label: 'Shooting-Tipps', description: 'Tipps zu Outfit, Licht, Vorbereitung',  icon: Lightbulb, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
-  { key: 'weather',    label: 'Weather widget',  description: 'Weather forecast for the shoot day', icon: CloudSun,  color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
-  { key: 'moodboard',      label: 'Moodboard',      description: 'Inspiration board for the client',      icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
-  { key: 'questionnaire',  label: 'Fragebogen',     description: 'Fragebogen-Card im Kundenportal',       icon: ClipboardList, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
-]
-
-const MESSAGE_PRESETS = [
-  { emoji: '✨', label: 'Gallery in progress', text: 'Your photos are being edited! I am giving my best effort so everything turns out perfect. You will be notified once the gallery is ready.' },
-  { emoji: '🎊', label: 'Galerie fertig', text: 'Deine Galerie ist fertig! Ich hoffe, du liebst deine Fotos genauso sehr wie ich. Schau sie dir an und markiere deine Favoriten!' },
-  { emoji: '🎬', label: 'Video fertig', text: 'Dein Video ist fertig! Du kannst es jetzt in der Galerie herunterladen. Ich freue mich auf dein Feedback!' },
-  { emoji: '📅', label: 'Shooting morgen', text: 'Dein Shooting ist morgen! Denk daran, dich gut auszuruhen und dein Outfit vorzubereiten. Ich freue mich auf euch!' },
-  { emoji: '📸', label: 'Shoot today', text: 'Today is your big day! I am excited and looking forwardig auf das Shooting. Bis gleich!' },
-]
-
 interface PortalLink {
   label: string
   url: string
@@ -69,11 +45,14 @@ interface Props {
   initialMessage: string | null
   initialPassword?: string | null
   initialLinks?: PortalLink[] | null
-  // kept for backwards compat but no longer used in UI
   initialStepsOverride?: Record<string, boolean> | null
 }
 
 export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword, initialLinks }: Props) {
+  const locale = useLocale()
+  const t = dashboardT(locale)
+  const tp = t.portal
+
   const [sections, setSections] = useState<PortalSections>({
     ...DEFAULT_SECTIONS,
     ...(initialSections ?? {}),
@@ -109,13 +88,32 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
       })
       .eq('id', projectId)
     setSaving(false)
-    if (error) { toast.error('Fehler: ' + error.message); return }
+    if (error) { toast.error(tp.toastError(error.message)); return }
     setSaved(true)
-    toast.success('Portal-Einstellungen gespeichert!')
+    toast.success(tp.toastSaved)
     setTimeout(() => setSaved(false), 2500)
   }
 
   const enabledCount = Object.values(sections).filter(Boolean).length
+
+  // Section config using translations
+  const SECTION_CONFIG: {
+    key: keyof PortalSections
+    label: string
+    description: string
+    icon: React.ElementType
+    color: string
+    bg: string
+  }[] = [
+    { key: 'contract',      label: tp.sections.contract,      description: tp.sections.contractDesc,      icon: FileText,     color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
+    { key: 'gallery',       label: tp.sections.gallery,       description: tp.sections.galleryDesc,       icon: Images,       color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
+    { key: 'timeline',      label: tp.sections.timeline,      description: tp.sections.timelineDesc,      icon: Clock,        color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
+    { key: 'treffpunkt',    label: tp.sections.treffpunkt,    description: tp.sections.treffpunktDesc,    icon: MapPin,       color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
+    { key: 'tips',          label: tp.sections.tips,          description: tp.sections.tipsDesc,          icon: Lightbulb,    color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
+    { key: 'weather',       label: tp.sections.weather,       description: tp.sections.weatherDesc,       icon: CloudSun,     color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
+    { key: 'moodboard',     label: tp.sections.moodboard,     description: tp.sections.moodboardDesc,     icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
+    { key: 'questionnaire', label: tp.sections.questionnaire, description: tp.sections.questionnaireDesc, icon: ClipboardList, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
+  ]
 
   return (
     <div className="space-y-5">
@@ -126,10 +124,10 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
-            Kundenportal konfigurieren
+            {tp.configureTitle}
           </p>
           <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Choose which sections your client sees — and write a personal message or update.
+            {tp.configureDesc}
           </p>
           {clientToken && (
             <a
@@ -140,21 +138,21 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
               style={{ color: 'var(--accent)' }}
             >
               <ExternalLink className="w-3 h-3" />
-              Open portal in new tab
+              {tp.openPortal}
             </a>
           )}
 
-          {/* Password — inside header card, below the link */}
+          {/* Password */}
           <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(196,164,124,0.20)' }}>
             <div className="flex items-center gap-2 mb-2">
               <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: portalPassword ? '#8B5CF6' : 'var(--text-muted)' }} />
               <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-                Portal-Passwort
+                {tp.portalPassword}
               </span>
               {portalPassword && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                   style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
-                  🔒 Aktiv
+                  🔒 {tp.active}
                 </span>
               )}
             </div>
@@ -163,7 +161,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
                 type={showPassword ? 'text' : 'password'}
                 value={portalPassword}
                 onChange={e => setPortalPassword(e.target.value)}
-                placeholder="z.B. Hochzeit2026 — leer = kein Schutz"
+                placeholder={tp.passwordPlaceholder}
                 className="input-base w-full pr-10"
               />
               <button
@@ -181,7 +179,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
                 className="mt-1.5 text-[11px] transition-all hover:opacity-80"
                 style={{ color: 'var(--text-muted)' }}
               >
-                × Passwort entfernen
+                {tp.removePassword}
               </button>
             )}
           </div>
@@ -197,12 +195,12 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-              Sichtbarkeit
+              {tp.visibility}
             </span>
           </div>
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-            {enabledCount} / {SECTION_CONFIG.length} aktiv
+            {tp.activeCount(enabledCount, SECTION_CONFIG.length)}
           </span>
         </div>
 
@@ -219,13 +217,10 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
                 }}
                 onClick={() => toggle(key)}
               >
-                {/* Icon */}
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ background: isOn ? bg : 'var(--bg-surface)', border: `1px solid ${isOn ? color + '30' : 'var(--border-color)'}` }}>
                   <Icon className="w-4 h-4" style={{ color: isOn ? color : 'var(--text-muted)' }} />
                 </div>
-
-                {/* Text */}
                 <div className="flex-1 min-w-0 pr-1">
                   <p className="text-[13px] font-bold" style={{ color: isOn ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                     {label}
@@ -234,8 +229,6 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
                     {description}
                   </p>
                 </div>
-
-                {/* Toggle */}
                 <div
                   className="relative flex-shrink-0 rounded-full transition-all duration-200"
                   style={{ width: '40px', height: '22px', background: isOn ? color : 'var(--border-strong)' }}
@@ -245,8 +238,6 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
                     style={{ left: isOn ? '20px' : '3px' }}
                   />
                 </div>
-
-                {/* Eye/EyeOff indicator */}
                 {isOn
                   ? <Eye className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
                   : <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
@@ -265,17 +256,17 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         <div className="flex items-center gap-2 mb-3">
           <MessageCircle className="w-4 h-4" style={{ color: 'var(--accent)' }} />
           <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-            Nachricht an den Kunden
+            {tp.messageTitle}
           </span>
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          This message appears in the portal as a personal message from you. Leave empty for automatic message.
+          {tp.messageDesc}
         </p>
 
         {/* Presets */}
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {MESSAGE_PRESETS.map(preset => (
+          {tp.presets.map(preset => (
             <button
               key={preset.label}
               onClick={() => setMessage(preset.text)}
@@ -290,7 +281,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         <textarea
           value={message}
           onChange={e => setMessage(e.target.value)}
-          placeholder="e.g. Your gallery is being edited! Delivery approx. March 20 📸"
+          placeholder={tp.messagePlaceholder}
           rows={4}
           className="input-base w-full resize-none text-[13px]"
         />
@@ -298,7 +289,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         {message && (
           <div className="mt-3 p-3 rounded-xl" style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.20)' }}>
             <p className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: 'var(--accent)' }}>
-              Vorschau im Portal
+              {tp.messagePreview}
             </p>
             <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               {message}
@@ -312,7 +303,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             className="mt-2 text-[11px] transition-all hover:opacity-80"
             style={{ color: 'var(--text-muted)' }}
           >
-            × Delete message (automatic)
+            {tp.deleteMessage}
           </button>
         )}
       </div>
@@ -326,7 +317,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           <div className="flex items-center gap-2">
             <Link2 className="w-4 h-4" style={{ color: '#6366F1' }} />
             <span className="text-[13px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
-              Links for the client
+              {tp.linksTitle}
             </span>
           </div>
           <button
@@ -335,12 +326,12 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             style={{ background: 'rgba(99,102,241,0.10)', color: '#6366F1', border: '1px solid rgba(99,102,241,0.25)' }}
           >
             <Plus className="w-3 h-3" />
-            Add link
+            {tp.addLink}
           </button>
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          Add useful links that your client should see in the portal — e.g. Pinterest board, WeTransfer, Dropbox, your website, etc.
+          {tp.linksDesc}
         </p>
 
         {links.length === 0 ? (
@@ -350,7 +341,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             onClick={addLink}
           >
             <Link2 className="w-5 h-5 mb-2 opacity-40" style={{ color: '#6366F1' }} />
-            <p className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>No links yet — click to add one</p>
+            <p className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>{tp.noLinks}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -361,7 +352,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
                   type="text"
                   value={link.label}
                   onChange={e => updateLink(i, 'label', e.target.value)}
-                  placeholder="Bezeichnung (z.B. Moodboard)"
+                  placeholder={tp.linkLabelPlaceholder}
                   className="input-base text-[12px] flex-shrink-0"
                   style={{ width: '140px' }}
                 />
@@ -394,11 +385,11 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           style={{ background: saved ? '#2A9B68' : 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}
         >
           {saving ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Speichern...</>
+            <><Loader2 className="w-4 h-4 animate-spin" />{tp.saving}</>
           ) : saved ? (
-            <><Check className="w-4 h-4" />Gespeichert!</>
+            <><Check className="w-4 h-4" />{tp.saved}</>
           ) : (
-            <><Eye className="w-4 h-4" />Portal speichern</>
+            <><Eye className="w-4 h-4" />{tp.savePortal}</>
           )}
         </button>
       </div>

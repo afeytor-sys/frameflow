@@ -2,6 +2,8 @@
 
 import { CheckCircle2, Circle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
 
 interface CheckItem {
   key: string
@@ -27,13 +29,15 @@ export default function DeliveryChecklist({
   hasClientEmail,
 }: Props) {
   const [expanded, setExpanded] = useState(false)
+  const locale = useLocale()
+  const t = dashboardT(locale)
 
   const items: CheckItem[] = [
-    { key: 'email',    label: 'Client email entered',  done: hasClientEmail,  hint: 'Go to Clients → Add email' },
-    { key: 'date',     label: 'Shooting-Datum festgelegt',       done: hasShootDate,    hint: 'Datum im Projekt eintragen' },
-    { key: 'contract', label: 'Vertrag erstellt',                done: hasContract,     hint: 'Vertrag-Tab → Neuen Vertrag erstellen' },
-    { key: 'sent',     label: 'Vertrag an Kunden gesendet',      done: contractSent,    hint: 'Vertrag-Tab → An Kunden senden' },
-    { key: 'photos',   label: 'Mindestens 1 Foto hochgeladen',   done: hasPhotos,       hint: 'Galerie-Tab → Fotos hochladen' },
+    { key: 'email',    label: t.checklist.items.email.label,    done: hasClientEmail,  hint: t.checklist.items.email.hint },
+    { key: 'date',     label: t.checklist.items.date.label,     done: hasShootDate,    hint: t.checklist.items.date.hint },
+    { key: 'contract', label: t.checklist.items.contract.label, done: hasContract,     hint: t.checklist.items.contract.hint },
+    { key: 'sent',     label: t.checklist.items.sent.label,     done: contractSent,    hint: t.checklist.items.sent.hint },
+    { key: 'photos',   label: t.checklist.items.photos.label,   done: hasPhotos,       hint: t.checklist.items.photos.hint },
   ]
 
   const doneCount = items.filter(i => i.done).length
@@ -45,7 +49,7 @@ export default function DeliveryChecklist({
     return (
       <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(42,155,104,0.08)', border: '1px solid rgba(42,155,104,0.20)' }}>
         <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#2A9B68' }} />
-        <p className="text-[13px] font-medium" style={{ color: '#2A9B68' }}>Portal ready to send — everything completedig ✓</p>
+        <p className="text-[13px] font-medium" style={{ color: '#2A9B68' }}>{t.checklist.allDone}</p>
       </div>
     )
   }
@@ -63,7 +67,7 @@ export default function DeliveryChecklist({
         <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#CC8415' }} />
         <div className="flex-1 text-left">
           <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Portal-Checkliste — {doneCount}/{total} erledigt
+            {t.checklist.title(doneCount, total)}
           </p>
           {/* Progress bar */}
           <div className="mt-1.5 h-1 rounded-full overflow-hidden w-48" style={{ background: 'var(--border-color)' }}>

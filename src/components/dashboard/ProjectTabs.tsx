@@ -13,6 +13,8 @@ import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import UpgradeModal from './UpgradeModal'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
+import { dashboardT } from '@/lib/dashboardTranslations'
 
 type Photo = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number; is_favorite: boolean }
 
@@ -65,75 +67,14 @@ interface Props {
   photographerName?: string | null
 }
 
-const TABS = [
-  {
-    key: 'contract',
-    label: 'Vertrag',
-    icon: FileText,
-    color: '#3B82F6',
-    bg: 'rgba(59,130,246,0.10)',
-    desc: (contracts: Contract[], _galleries: GalleryItem[], _project: Props['project']) =>
-      contracts.length > 0 ? `${contracts.length} Vertrag${contracts.length > 1 ? 'e' : ''}` : 'Kein Vertrag',
-  },
-  {
-    key: 'gallery',
-    label: 'Galerie',
-    icon: Images,
-    color: '#10B981',
-    bg: 'rgba(16,185,129,0.10)',
-    desc: (_c: Contract[], galleries: GalleryItem[], _project: Props['project']) => {
-      const total = galleries.reduce((s, g) => s + (g.photos?.length ?? 0), 0)
-      return galleries.length > 0
-        ? `${galleries.length} Galerie${galleries.length > 1 ? 'n' : ''}${total > 0 ? ` · ${total} Fotos` : ''}`
-        : 'Keine Galerie'
-    },
-  },
-  {
-    key: 'booking',
-    label: 'Booking Details',
-    icon: CalendarDays,
-    color: '#C4A47C',
-    bg: 'rgba(196,164,124,0.12)',
-    desc: (_c: Contract[], _g: GalleryItem[], project: Props['project']) => {
-      const parts: string[] = []
-      if (project.shoot_date) {
-        const d = new Date(project.shoot_date as string)
-        parts.push(d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }))
-      }
-      if (project.location) parts.push(project.location as string)
-      return parts.length > 0 ? parts.join(' · ') : 'Kein Datum'
-    },
-  },
-  {
-    key: 'invoice',
-    label: 'Rechnung',
-    icon: Receipt,
-    color: '#F97316',
-    bg: 'rgba(249,115,22,0.10)',
-    desc: () => 'Rechnungen verwalten',
-  },
-  {
-    key: 'portal',
-    label: 'Portal',
-    icon: Eye,
-    color: '#8B5CF6',
-    bg: 'rgba(139,92,246,0.10)',
-    desc: () => 'Sichtbarkeit & Nachricht',
-  },
-  {
-    key: 'questionnaire',
-    label: 'Fragebogen',
-    icon: ClipboardList,
-    color: '#8B5CF6',
-    bg: 'rgba(139,92,246,0.10)',
-    desc: () => 'Fragen an Kunden senden',
-  },
-]
+// TABS is now built inside the component using translations
 
 const MWST_RATE = 0.19
-const SET_SUGGESTIONS = ['Getting Ready', 'Trauung', 'Feier', 'Portraits', 'Details', 'Highlights', 'Momente']
+const SET_SUGGESTIONS = ['Getting Ready', 'Ceremony', 'Reception', 'Portraits', 'Details', 'Highlights', 'Moments']
 
 export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [], photographerName }: Props) {
+  const locale = useLocale()
+  const t = dashboardT(locale)
   const [activeTab, setActiveTab] = useState('contract')
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
@@ -192,8 +133,73 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
   const removeSet = (name: string) => setSets(prev => prev.filter(s => s !== name))
 
+  const TABS = [
+    {
+      key: 'contract',
+      label: t.tabs.contract,
+      icon: FileText,
+      color: '#3B82F6',
+      bg: 'rgba(59,130,246,0.10)',
+      desc: (contracts: Contract[], _galleries: GalleryItem[], _project: Props['project']) =>
+        contracts.length > 0 ? t.tabDesc.contract(contracts.length) : t.tabDesc.noContract,
+    },
+    {
+      key: 'gallery',
+      label: t.tabs.gallery,
+      icon: Images,
+      color: '#10B981',
+      bg: 'rgba(16,185,129,0.10)',
+      desc: (_c: Contract[], galleries: GalleryItem[], _project: Props['project']) => {
+        const total = galleries.reduce((s, g) => s + (g.photos?.length ?? 0), 0)
+        return galleries.length > 0
+          ? t.tabDesc.gallery(galleries.length, total)
+          : t.tabDesc.noGallery
+      },
+    },
+    {
+      key: 'booking',
+      label: t.tabs.booking,
+      icon: CalendarDays,
+      color: '#C4A47C',
+      bg: 'rgba(196,164,124,0.12)',
+      desc: (_c: Contract[], _g: GalleryItem[], project: Props['project']) => {
+        const parts: string[] = []
+        if (project.shoot_date) {
+          const d = new Date(project.shoot_date as string)
+          parts.push(d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }))
+        }
+        if (project.location) parts.push(project.location as string)
+        return parts.length > 0 ? parts.join(' · ') : t.tabDesc.noDate
+      },
+    },
+    {
+      key: 'invoice',
+      label: t.tabs.invoice,
+      icon: Receipt,
+      color: '#F97316',
+      bg: 'rgba(249,115,22,0.10)',
+      desc: () => t.tabDesc.manageInvoices,
+    },
+    {
+      key: 'portal',
+      label: t.tabs.portal,
+      icon: Eye,
+      color: '#8B5CF6',
+      bg: 'rgba(139,92,246,0.10)',
+      desc: () => t.tabDesc.visibilityMsg,
+    },
+    {
+      key: 'questionnaire',
+      label: t.tabs.questionnaire,
+      icon: ClipboardList,
+      color: '#8B5CF6',
+      bg: 'rgba(139,92,246,0.10)',
+      desc: () => t.tabDesc.sendQuestions,
+    },
+  ]
+
   const createGallery = async () => {
-    if (!createForm.title.trim()) { toast.error('Bitte einen Titel eingeben'); return }
+    if (!createForm.title.trim()) { toast.error(t.gallery.toastTitleRequired); return }
     setCreatingGallery(true)
 
     const { data, error } = await supabase
@@ -215,7 +221,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       .select()
       .single()
 
-    if (error) { toast.error('Fehler beim Erstellen'); setCreatingGallery(false); return }
+    if (error) { toast.error(t.gallery.toastCreateError); setCreatingGallery(false); return }
 
     // Create sets
     if (sets.length > 0) {
@@ -242,7 +248,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     setSelectedGalleryId(newGallery.id)
     setCreatingGallery(false)
     setShowCreateModal(false)
-    toast.success('Galerie erstellt!')
+    toast.success(t.gallery.toastCreated)
   }
 
   const startRenaming = (g: GalleryItem) => {
@@ -253,10 +259,10 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const saveRename = async (id: string) => {
     if (!editingTitle.trim()) { setEditingTitleId(null); return }
     const { error } = await supabase.from('galleries').update({ title: editingTitle.trim() }).eq('id', id)
-    if (error) { toast.error('Fehler beim Umbenennen'); return }
+    if (error) { toast.error(t.gallery.toastRenameError); return }
     setGalleries(prev => prev.map(g => g.id === id ? { ...g, title: editingTitle.trim() } : g))
     setEditingTitleId(null)
-    toast.success('Galerie umbenannt')
+    toast.success(t.gallery.toastRenamed)
   }
 
   const deleteGallery = async (id: string) => {
@@ -270,8 +276,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const shareGallery = async (_g: GalleryItem) => {
     const url = `${project.client_url}/gallery`
     const ok = await navigator.clipboard.writeText(url).then(() => true).catch(() => false)
-    if (ok) toast.success('Link kopiert!')
-    else toast.error('Kopieren fehlgeschlagen')
+    if (ok) toast.success(t.gallery.toastLinkCopied)
+    else toast.error(t.gallery.toastCopyFailed)
   }
 
   // ── Gallery list view ──────────────────────────────────────────────────────
@@ -279,7 +285,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-[14px]" style={{ color: 'var(--text-primary)' }}>
-          Galerien ({galleries.length})
+          {t.gallery.title(galleries.length)}
         </h3>
         <button
           onClick={openCreateModal}
@@ -287,20 +293,20 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           style={{ background: 'var(--accent)' }}
         >
           <Plus className="w-3.5 h-3.5" />
-          Neue Galerie
+          {t.gallery.newGallery}
         </button>
       </div>
 
       {galleries.length === 0 ? (
         <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
           <Images className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
-          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No gallery for this project yet</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>{t.gallery.noGallery}</p>
           <button
             onClick={openCreateModal}
             className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
             style={{ background: 'var(--accent)' }}
           >
-            Erste Galerie erstellen
+            {t.gallery.createFirst}
           </button>
         </div>
       ) : (
@@ -376,18 +382,18 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: isActive ? '#3DBA6F' : 'var(--text-muted)' }}>
                             <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: isActive ? '#3DBA6F' : 'var(--text-muted)' }} />
-                            {isActive ? 'Aktiv' : 'Entwurf'}
+                            {isActive ? t.gallery.active : t.gallery.draft}
                           </span>
                           {photoCount > 0 && (
                             <>
                               <span style={{ color: 'var(--border-strong)' }}>·</span>
-                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{photoCount} Fotos</span>
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.gallery.photos(photoCount)}</span>
                             </>
                           )}
                           {g.view_count > 0 && (
                             <>
                               <span style={{ color: 'var(--border-strong)' }}>·</span>
-                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{g.view_count} Aufrufe</span>
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.gallery.views(g.view_count)}</span>
                             </>
                           )}
                         </div>
@@ -435,8 +441,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>Neue Galerie erstellen</h2>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Konfiguriere deine Galerie vor dem Upload</p>
+                <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>{t.gallery.createTitle}</h2>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.gallery.createSubtitle}</p>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -455,26 +461,26 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Galerie-Name *
+                    {t.gallery.galleryName}
                   </label>
                   <input
                     type="text"
                     value={createForm.title}
                     onChange={e => setCreateForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="z.B. Hochzeit Anna & Max"
+                    placeholder={t.gallery.galleryNamePlaceholder}
                     className="input-base w-full"
                     autoFocus
                   />
                 </div>
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    <Lock className="w-3 h-3 inline mr-1" />Passwort (optional)
+                    <Lock className="w-3 h-3 inline mr-1" />{t.gallery.password}
                   </label>
                   <input
                     type="password"
                     value={createForm.password}
                     onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Kein Passwort"
+                    placeholder={t.gallery.noPassword}
                     className="input-base w-full"
                   />
                 </div>
@@ -483,14 +489,14 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               {/* Project — pre-filled, read-only */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  Projekt *
+                  Project *
                 </label>
                 <div className="input-base w-full flex items-center justify-between" style={{ opacity: 0.7 }}>
                   <span style={{ color: 'var(--text-primary)' }}>
                     {project.title}{client?.full_name ? ` — ${client.full_name}` : ''}
                   </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                    Aktuelles Projekt
+                    {t.gallery.currentProject}
                   </span>
                 </div>
               </div>
@@ -498,10 +504,10 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               {/* Sets */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  <GripHorizontal className="w-3 h-3 inline mr-1" />Sets (optional)
+                  <GripHorizontal className="w-3 h-3 inline mr-1" />{t.gallery.sets}
                 </label>
                 <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Teile deine Galerie in Abschnitte auf (z.B. Getting Ready, Trauung)
+                  {t.gallery.setsHint}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {SET_SUGGESTIONS.filter(s => !sets.includes(s)).map(s => (
@@ -520,7 +526,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     value={newSetName}
                     onChange={e => setNewSetName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSet() } }}
-                    placeholder="Eigener Set-Name..."
+                    placeholder={t.gallery.customSetPlaceholder}
                     className="input-base flex-1"
                   />
                   <button onClick={() => addSet()} disabled={!newSetName.trim()}
@@ -548,9 +554,9 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               {/* Toggles */}
               <div className="flex items-center gap-5 flex-wrap">
                 {[
-                  { label: 'Download erlauben', key: 'download_enabled' as const, color: 'var(--accent)' },
-                  { label: 'Kommentare erlauben', key: 'comments_enabled' as const, color: 'var(--accent)' },
-                  { label: 'Tag Auswahl', key: 'tags_enabled' as const, color: '#22C55E' },
+                  { label: t.gallery.allowDownload, key: 'download_enabled' as const, color: 'var(--accent)' },
+                  { label: t.gallery.allowComments, key: 'comments_enabled' as const, color: 'var(--accent)' },
+                  { label: t.gallery.tagSelection, key: 'tags_enabled' as const, color: '#22C55E' },
                 ].map(({ label, key, color }) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <div
@@ -603,7 +609,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
             {/* Footer */}
             <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">Abbrechen</button>
+              <button onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">{t.gallery.cancel}</button>
               <button
                 onClick={createGallery}
                 disabled={creatingGallery || !createForm.title.trim()}
@@ -612,7 +618,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               >
                 {creatingGallery
                   ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><Sparkles className="w-4 h-4" />Galerie erstellen</>
+                  : <><Sparkles className="w-4 h-4" />{t.gallery.create}</>
                 }
               </button>
             </div>
@@ -684,7 +690,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    Alle Galerien
+                    {t.gallery.allGalleries}
                   </button>
                   <GalleryTab
                     projectId={project.id}
@@ -820,6 +826,9 @@ interface InvoiceTabProps {
 
 function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clientEmail, form, setForm, saving, setSaving, created, setCreated, invoices, setInvoices, invoicesLoaded, setInvoicesLoaded }: InvoiceTabProps) {
   const supabase = createClient()
+  const locale = useLocale()
+  const ti = dashboardT(locale)
+  const inv_t = ti.invoice
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
@@ -846,35 +855,35 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
     new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
 
   const statusLabel = (s: string) => {
-    if (s === 'paid') return { label: 'Bezahlt', color: '#3DBA6F', bg: 'rgba(61,186,111,0.10)' }
-    if (s === 'sent') return { label: 'Gesendet', color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' }
-    return { label: 'Entwurf', color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' }
+    if (s === 'paid') return { label: inv_t.status.paid, color: '#3DBA6F', bg: 'rgba(61,186,111,0.10)' }
+    if (s === 'sent') return { label: inv_t.status.sent, color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' }
+    return { label: inv_t.status.draft, color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' }
   }
 
   const handleSend = async (inv: ProjectInvoice) => {
-    if (!clientEmail) { toast.error('Kein Client-E-Mail gefunden'); return }
+    if (!clientEmail) { toast.error(inv_t.toastNoEmail); return }
     setSendingId(inv.id)
     const res = await fetch('/api/invoices/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invoiceId: inv.id, clientEmail, clientName }),
     })
-    if (!res.ok) { toast.error('Fehler beim Senden'); setSendingId(null); return }
+    if (!res.ok) { toast.error(inv_t.toastSendError); setSendingId(null); return }
     setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'sent' } : i))
     setSendingId(null)
-    toast.success(`Rechnung an ${clientEmail} gesendet!`)
+    toast.success(inv_t.toastSent(clientEmail))
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.amount) { toast.error('Bitte einen Betrag eingeben'); return }
+    if (!form.amount) { toast.error(inv_t.toastAmountRequired); return }
     setSaving(true)
 
     const amountCents = Math.round(gross * 100)
     const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`
     const descParts: string[] = []
     if (form.description) descParts.push(form.description)
-    if (form.include_mwst) descParts.push(`inkl. 19% MwSt (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
+    if (form.include_mwst) descParts.push(`incl. 19% VAT (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
     const finalDescription = descParts.join(' · ') || null
 
     const { data, error } = await supabase.from('invoices').insert({
@@ -889,7 +898,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
       notes: form.notes.trim() || null,
     }).select('id, invoice_number, amount, currency, status, description, due_date, created_at').single()
 
-    if (error) { console.error('Invoice error:', error); toast.error(`Fehler: ${error.message}`); setSaving(false); return }
+    if (error) { console.error('Invoice error:', error); toast.error(inv_t.toastError(error.message)); setSaving(false); return }
 
     // Add to list immediately
     if (data) setInvoices(prev => [data as ProjectInvoice, ...prev])
@@ -897,7 +906,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
     setCreated(true)
     setShowForm(false)
     setForm({ amount: '', description: '', due_date: '', include_mwst: false, notes: '' })
-    toast.success('Rechnung erstellt!')
+    toast.success(inv_t.toastCreated)
   }
 
   return (
@@ -909,7 +918,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
             <Receipt className="w-5 h-5" style={{ color: '#F97316' }} />
           </div>
           <div>
-            <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Rechnungen</h3>
+            <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{inv_t.title}</h3>
             <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{projectTitle}{clientName ? ` · ${clientName}` : ''}</p>
           </div>
         </div>
@@ -919,7 +928,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
           style={{ background: '#F97316' }}
         >
           <Plus className="w-4 h-4" />
-          Neue Rechnung
+          {inv_t.newInvoice}
         </button>
       </div>
 
@@ -930,7 +939,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
           <div className="p-5">
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Betrag (€) *</label>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{inv_t.amount}</label>
                 <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
                   <span className="flex-shrink-0 px-3 text-[14px] font-bold select-none" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
                   <input type="text" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required placeholder="0,00"
@@ -945,7 +954,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                     <Percent className="w-3.5 h-3.5" style={{ color: form.include_mwst ? 'var(--accent)' : 'var(--text-muted)' }} />
                   </div>
                   <div>
-                    <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>MwSt 19%</p>
+                    <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{inv_t.vat}</p>
                     {form.include_mwst && net > 0 && (
                       <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                         {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)} + {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(mwst)} = <strong style={{ color: 'var(--accent)' }}>{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(gross)}</strong>
@@ -961,9 +970,9 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{inv_t.description}</label>
                   <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="z.B. Hochzeitsfotografie" className="input-base w-full" />
+                    placeholder={inv_t.descriptionPlaceholder} className="input-base w-full" />
                 </div>
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -976,36 +985,36 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
               {/* Notes / Anmerkungen */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  Anmerkungen (intern)
+                  {inv_t.notes}
                 </label>
                 <textarea
                   value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="z.B. Bankverbindung, Zahlungshinweise, interne Notizen..."
+                  placeholder={inv_t.notesPlaceholder}
                   rows={3}
                   className="input-base w-full resize-none text-[13px]"
                 />
                 <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Only visible to you — does not appear on the invoice
+                  {inv_t.notesHint}
                 </p>
               </div>
 
               {net > 0 && (
                 <div className="p-3 rounded-xl" style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)' }}>
-                  <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#F97316' }}>Vorschau</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: '#F97316' }}>{inv_t.preview}</p>
                   <p className="text-[22px] font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
                     {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(gross)}
                   </p>
-                  {form.include_mwst && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>inkl. 19% MwSt</p>}
+                  {form.include_mwst && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{inv_t.inclVat}</p>}
                 </div>
               )}
 
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">Abbrechen</button>
+                <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">{inv_t.cancel}</button>
                 <button type="submit" disabled={saving || !form.amount}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
                   style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.25)' }}>
-                  {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Plus className="w-4 h-4" />Rechnung erstellen</>}
+                  {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Plus className="w-4 h-4" />{inv_t.createInvoice}</>}
                 </button>
               </div>
             </form>
@@ -1022,15 +1031,15 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
       ) : invoices.length === 0 && !showForm ? (
         <div className="text-center py-14 rounded-2xl" style={{ border: '2px dashed var(--border-color)' }}>
           <Receipt className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
-          <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>Noch keine Rechnung</p>
-          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>Create the first invoice for this project</p>
+          <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>{inv_t.noInvoices}</p>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{inv_t.noInvoicesDesc}</p>
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white mx-auto transition-all hover:opacity-90"
             style={{ background: '#F97316' }}
           >
             <Plus className="w-4 h-4" />
-            Rechnung erstellen
+            {inv_t.createInvoice}
           </button>
         </div>
       ) : (
@@ -1086,7 +1095,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                     >
                       {isSending
                         ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        : <><Send className="w-3.5 h-3.5" />Senden</>
+                        : <><Send className="w-3.5 h-3.5" />{inv_t.send}</>
                       }
                     </button>
                   )}
@@ -1094,7 +1103,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                     href="/dashboard/invoices"
                     className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
                     style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
-                    title="Alle Rechnungen"
+                    title={inv_t.allInvoices}
                   >
                     <Printer className="w-3.5 h-3.5" />
                   </a>
