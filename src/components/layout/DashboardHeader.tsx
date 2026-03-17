@@ -42,7 +42,7 @@ export default function DashboardHeader({ photographer }: Props) {
       const supabase = createClient()
       await supabase
         .from('photographers')
-        .update({ language: lang })
+        .update({ language: lang, locale: lang })
         .eq('id', photographer.id)
     } catch {
       // non-critical

@@ -10,21 +10,197 @@ import {
 import WeatherWidget from '@/components/client-portal/WeatherWidget'
 import MoodBoard from '@/components/client-portal/MoodBoard'
 
+// ── Portal translations ──────────────────────────────────────────────────────
+type Locale = 'de' | 'en'
+
+const PT = {
+  de: {
+    hello: (name: string) => `Hallo, ${name} 👋`,
+    shootToday: 'Dein Shooting ist heute! 📸',
+    shootDone: (date: string) => `Shooting war am ${date}`,
+    shootIn: (days: number) => `Shooting in ${days} ${days === 1 ? 'Tag' : 'Tagen'}`,
+    photosReady: 'Deine Fotos sind fertig! 🎉',
+    messageFrom: (studio: string) => `Nachricht von ${studio}`,
+    projectOverview: 'Projektübersicht',
+    nextSteps: 'Nächste Schritte',
+    currentStep: 'Aktueller Schritt',
+    steps: {
+      booking: 'Buchung bestätigt',
+      contract: 'Vertrag unterschrieben',
+      questionnaire: 'Fragebogen ausgefüllt',
+      shooting: 'Shooting-Tag',
+      gallery: 'Galerie-Lieferung',
+    },
+    contract: {
+      title: 'Vertrag',
+      signed: 'Unterschrieben ✓',
+      viewed: 'Angesehen — bitte unterschreiben',
+      ready: 'Bereit zur Unterschrift',
+      pending: 'Ausstehend',
+      signNow: 'Jetzt unterschreiben',
+    },
+    questionnaire: {
+      title: 'Fragebogen',
+      completed: 'Ausgefüllt ✓ — Antworten ansehen',
+      pending: 'Bitte ausfüllen — hilft bei der Vorbereitung',
+      pendingBadge: 'Ausstehend',
+      fillNow: 'Jetzt ausfüllen',
+      viewAnswers: 'Antworten ansehen',
+    },
+    timeline: {
+      title: 'Zeitplan',
+      entries: (n: number) => `${n} ${n === 1 ? 'Eintrag' : 'Einträge'}`,
+    },
+    gallery: {
+      title: 'Galerie',
+      photos: (n: number) => `${n} ${n === 1 ? 'Foto' : 'Fotos'} bereit`,
+      available: 'Galerie verfügbar',
+      viewFavs: 'Fotos ansehen & Favoriten markieren',
+      views: (n: number) => `👁 ${n} Aufrufe`,
+      downloads: (n: number) => `⬇️ ${n} Downloads`,
+    },
+    treffpunkt: {
+      title: 'Treffpunkt',
+      subtitle: 'Euer genauer Treffpunkt',
+      openMaps: 'In Maps öffnen',
+      routeMaps: 'Route in Google Maps anzeigen →',
+    },
+    links: {
+      title: 'Links',
+      subtitle: 'Von deinem Fotografen',
+    },
+    moodboard: {
+      title: 'Moodboard',
+      desc: 'Teile Inspirationen, Referenzbilder oder Links mit deinem Fotografen — zeige deinen Stil und deine Wünsche.',
+    },
+    tips: {
+      title: 'Tipps für dein Shooting',
+      items: [
+        { title: 'Was anziehen?', text: 'Wähle Farben, die sich ergänzen. Vermeide große Logos oder Muster.' },
+        { title: 'Beste Uhrzeit', text: 'Die goldene Stunde — kurz nach Sonnenaufgang oder vor Sonnenuntergang.' },
+        { title: 'Vorbereitung', text: 'Entspann dich! Authentische Momente entstehen, wenn du dich wohlfühlst.' },
+        { title: 'Location-Tipps', text: 'Wähle einen Ort, der dir bedeutsam ist — das sieht man auf den Fotos.' },
+      ],
+    },
+    empty: {
+      text: 'Dein Fotograf bereitet noch alles vor.',
+      sub: 'Schau bald wieder vorbei!',
+    },
+    nextStepsCta: {
+      contract: 'Jetzt unterschreiben',
+      moodboard: 'Inspirationen hinzufügen',
+      prepare: 'Tipps ansehen',
+      gallery: 'Fotos ansehen',
+    },
+    messages: {
+      welcome: (name: string) => ({ emoji: '👋', title: `Willkommen in deinem Portal, ${name}!`, text: 'Hier findest du alles rund um dein Shooting. Melde dich gerne, wenn du Fragen hast.' }),
+      soon: (days: number) => ({ emoji: '🎉', title: 'Dein Shooting steht bevor!', text: `Nur noch ${days === 0 ? 'heute' : `${days} ${days === 1 ? 'Tag' : 'Tage'}`} bis zu deinem großen Tag! Vergiss nicht, dein Moodboard zu erstellen und dich vorzubereiten.` }),
+      editing: { emoji: '✨', title: 'Wir bearbeiten eure Fotos!', text: 'Das Shooting war wunderschön! Ich bearbeite gerade eure Fotos. Du wirst benachrichtigt, sobald die Galerie fertig ist.' },
+      delivered: { emoji: '🎊', title: 'Eure Galerie ist fertig!', text: 'Ich hoffe, ihr liebt eure Fotos genauso sehr wie ich es tue! Schaut euch die Galerie an und markiert eure Favoriten.' },
+    },
+  },
+  en: {
+    hello: (name: string) => `Hello, ${name} 👋`,
+    shootToday: 'Your shoot is today! 📸',
+    shootDone: (date: string) => `Shoot was on ${date}`,
+    shootIn: (days: number) => `Shoot in ${days} ${days === 1 ? 'day' : 'days'}`,
+    photosReady: 'Your photos are ready! 🎉',
+    messageFrom: (studio: string) => `Message from ${studio}`,
+    projectOverview: 'Project Overview',
+    nextSteps: 'Next Steps',
+    currentStep: 'Current step',
+    steps: {
+      booking: 'Booking confirmed',
+      contract: 'Contract signed',
+      questionnaire: 'Questionnaire completed',
+      shooting: 'Shooting day',
+      gallery: 'Gallery delivery',
+    },
+    contract: {
+      title: 'Contract',
+      signed: 'Signed ✓',
+      viewed: 'Viewed — please sign',
+      ready: 'Ready to sign',
+      pending: 'Pending',
+      signNow: 'Sign now',
+    },
+    questionnaire: {
+      title: 'Questionnaire',
+      completed: 'Completed ✓ — View answers',
+      pending: 'Please fill out — helps with preparation',
+      pendingBadge: 'Pending',
+      fillNow: 'Fill out now',
+      viewAnswers: 'View answers',
+    },
+    timeline: {
+      title: 'Timeline',
+      entries: (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`,
+    },
+    gallery: {
+      title: 'Gallery',
+      photos: (n: number) => `${n} ${n === 1 ? 'photo' : 'photos'} ready`,
+      available: 'Gallery available',
+      viewFavs: 'View photos & mark favorites',
+      views: (n: number) => `👁 ${n} views`,
+      downloads: (n: number) => `⬇️ ${n} downloads`,
+    },
+    treffpunkt: {
+      title: 'Meeting Point',
+      subtitle: 'Your exact meeting point',
+      openMaps: 'Open in Maps',
+      routeMaps: 'Show route in Google Maps →',
+    },
+    links: {
+      title: 'Links',
+      subtitle: 'From your photographer',
+    },
+    moodboard: {
+      title: 'Moodboard',
+      desc: 'Share inspirations, reference images or links with your photographer — show your style and wishes.',
+    },
+    tips: {
+      title: 'Tips for your shoot',
+      items: [
+        { title: 'What to wear?', text: 'Choose colors that complement each other. Avoid large logos or patterns.' },
+        { title: 'Best time of day', text: 'The golden hour — shortly after sunrise or before sunset.' },
+        { title: 'Preparation', text: 'Relax! Authentic moments happen when you feel comfortable.' },
+        { title: 'Location tips', text: 'Choose a place that is meaningful to you — it shows in the photos.' },
+      ],
+    },
+    empty: {
+      text: 'Your photographer is still preparing everything.',
+      sub: 'Check back soon!',
+    },
+    nextStepsCta: {
+      contract: 'Sign now',
+      moodboard: 'Add inspirations',
+      prepare: 'View tips',
+      gallery: 'View photos',
+    },
+    messages: {
+      welcome: (name: string) => ({ emoji: '👋', title: `Welcome to your portal, ${name}!`, text: "Here you'll find everything about your shoot. Feel free to reach out if you have any questions." }),
+      soon: (days: number) => ({ emoji: '🎉', title: 'Your shoot is coming up!', text: `Only ${days === 0 ? 'today' : `${days} ${days === 1 ? 'day' : 'days'}`} until your big day! Don't forget to create your moodboard and get prepared.` }),
+      editing: { emoji: '✨', title: "We're editing your photos!", text: 'The shoot was wonderful! I am currently editing your photos. You will be notified once the gallery is ready.' },
+      delivered: { emoji: '🎊', title: 'Your gallery is ready!', text: "I hope you love your photos as much as I do! Check out the gallery and mark your favorites." },
+    },
+  },
+}
+
 export default async function ClientPortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const supabase = createServiceClient()
 
-  // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
+  // Support both custom slugs and raw client_token UUIDs
   let { data: project } = await supabase
     .from('projects')
-    .select('*, client:clients(full_name, email), photographer:photographers(studio_name, full_name, logo_url, plan)')
+    .select('*, client:clients(full_name, email), photographer:photographers(studio_name, full_name, logo_url, plan, locale)')
     .eq('custom_slug', token)
     .single()
 
   if (!project) {
     const { data: byToken } = await supabase
       .from('projects')
-      .select('*, client:clients(full_name, email), photographer:photographers(studio_name, full_name, logo_url, plan)')
+      .select('*, client:clients(full_name, email), photographer:photographers(studio_name, full_name, logo_url, plan, locale)')
       .eq('client_token', token)
       .single()
     project = byToken
@@ -34,8 +210,16 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
   const client = project.client as { full_name: string; email?: string }
   const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as {
-    studio_name: string | null; full_name: string; logo_url: string | null; plan: string
+    studio_name: string | null; full_name: string; logo_url: string | null; plan: string; locale?: string | null
   } | null
+
+  // ── Resolve portal locale: project override → photographer locale → 'de' ──
+  const portalLocale: Locale = (
+    (project as { portal_locale?: string | null }).portal_locale ||
+    photographer?.locale ||
+    'de'
+  ) as Locale
+  const t = PT[portalLocale] ?? PT.de
 
   const [
     { data: contracts },
@@ -64,7 +248,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const portalLinks = ((project as { portal_links?: { label: string; url: string }[] | null }).portal_links ?? []).filter(l => l.url?.trim())
 
   // Portal visibility settings
-  // moodboard defaults to FALSE (opt-in), all others default to TRUE
   const rawSections = (project as { portal_sections?: Record<string, boolean> | null }).portal_sections
   const show = {
     contract:      rawSections?.contract      !== false,
@@ -79,18 +262,17 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const customMessage: string | null = (project as { portal_message?: string | null }).portal_message ?? null
   const stepsOverride = (project as { project_steps_override?: Record<string, boolean> | null }).project_steps_override ?? null
 
-  // Build Google Maps URL from meeting_point (link, coordinates, or address)
   function getMapsUrl(mp: string): string {
     if (mp.startsWith('http')) return mp
     return `https://maps.google.com/?q=${encodeURIComponent(mp)}`
   }
-  // Build embed URL for iframe preview
   function getEmbedUrl(mp: string): string {
     const q = mp.startsWith('http')
       ? (() => { try { const u = new URL(mp); return u.searchParams.get('q') || mp } catch { return mp } })()
       : mp
     return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&output=embed&z=16`
   }
+
   const isDelivered = project.status === 'delivered' || project.status === 'completed'
   const isPostShooting = project.status === 'editing' || isDelivered
   const firstName = client.full_name.split(' ')[0]
@@ -98,113 +280,34 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const contractSigned = latestContract?.status === 'signed'
   const timelineEvents = (timeline?.events as { id: string; time: string; title: string; phase: string }[]) || []
   const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
+  const dateLocale = portalLocale === 'de' ? 'de' : 'en'
 
-  // Project overview steps — auto-detection + manual override
+  // Project overview steps
   const projectSteps = [
-    {
-      key: 'booking',
-      label: 'Booking confirmed',
-      done: true,
-      icon: '📅',
-    },
-    {
-      key: 'contract',
-      label: 'Vertrag unterschrieben',
-      done: contractSigned || stepsOverride?.contract === true,
-      icon: '✍️',
-    },
-    ...(questionnaire ? [{
-      key: 'questionnaire',
-      label: 'Questionnaire completed',
-      done: questionnaireSubmitted,
-      icon: '📋',
-    }] : []),
-    {
-      key: 'shooting',
-      label: 'Shooting Tag',
-      done: isPostShooting || (days !== null && days < 0) || stepsOverride?.shooting === true,
-      icon: '📸',
-    },
-    {
-      key: 'gallery',
-      label: 'Galerie Lieferung',
-      done: !!gallery || stepsOverride?.gallery === true,
-      icon: '🖼️',
-    },
+    { key: 'booking',       label: t.steps.booking,       done: true,                                                                icon: '📅' },
+    { key: 'contract',      label: t.steps.contract,      done: contractSigned || stepsOverride?.contract === true,                  icon: '✍️' },
+    ...(questionnaire ? [{ key: 'questionnaire', label: t.steps.questionnaire, done: questionnaireSubmitted,                         icon: '📋' }] : []),
+    { key: 'shooting',      label: t.steps.shooting,      done: isPostShooting || (days !== null && days < 0) || stepsOverride?.shooting === true, icon: '📸' },
+    { key: 'gallery',       label: t.steps.gallery,       done: !!gallery || stepsOverride?.gallery === true,                        icon: '🖼️' },
   ]
   const currentStepIdx = projectSteps.filter(s => s.done).length - 1
 
   // Next steps
   const nextSteps = [
-    {
-      key: 'contract',
-      label: 'Vertrag unterschreiben',
-      done: contractSigned,
-      show: !!latestContract,
-      href: `/client/${token}/contract`,
-      cta: 'Jetzt unterschreiben',
-    },
-    {
-      key: 'moodboard',
-      label: 'Moodboard erstellen',
-      done: false,
-      show: show.moodboard && !isPostShooting,
-      href: undefined,
-      cta: 'Add inspirations',
-    },
-    {
-      key: 'prepare',
-      label: 'Shooting vorbereiten',
-      done: isPostShooting,
-      show: days !== null && days <= 14 && days >= 0,
-      href: undefined,
-      cta: 'Tipps ansehen',
-    },
-    {
-      key: 'gallery',
-      label: 'Galerie ansehen',
-      done: false,
-      show: !!gallery,
-      href: `/client/${token}/gallery`,
-      cta: 'Fotos ansehen',
-    },
+    { key: 'contract',  label: t.contract.title,       done: contractSigned,  show: !!latestContract,                       href: `/client/${token}/contract`,     cta: t.nextStepsCta.contract },
+    { key: 'moodboard', label: t.moodboard.title,      done: false,           show: show.moodboard && !isPostShooting,      href: undefined,                       cta: t.nextStepsCta.moodboard },
+    { key: 'prepare',   label: t.tips.title,           done: isPostShooting,  show: days !== null && days <= 14 && days >= 0, href: undefined,                     cta: t.nextStepsCta.prepare },
+    { key: 'gallery',   label: t.gallery.title,        done: false,           show: !!gallery,                              href: `/client/${token}/gallery`,      cta: t.nextStepsCta.gallery },
   ].filter(s => s.show)
 
-  // Projekt Timeline events (derived from data)
-  const allTimelineEvents = [
-    { label: 'Booking confirmed', done: true, show: true, date: project.created_at ? new Date(project.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }) : null },
-    { label: 'Vertrag gesendet', done: latestContract?.status === 'sent' || latestContract?.status === 'viewed' || contractSigned, show: !!latestContract, date: null },
-    { label: 'Vertrag unterschrieben', done: contractSigned, show: !!latestContract, date: null },
-    { label: 'Shooting geplant', done: !!project.shoot_date, show: true, date: project.shoot_date ? formatDate(project.shoot_date, 'de') : null },
-    { label: 'Shooting stattgefunden', done: isPostShooting || (days !== null && days < 0), show: !!project.shoot_date, date: null },
-    { label: 'Gallery available', done: !!gallery, show: true, date: null },
-  ]
-  const derivedTimeline = allTimelineEvents.filter(e => e.show)
-
-  // Nachrichten message based on status
-  let photographerMessage = {
-    emoji: '👋',
-    title: `Willkommen in deinem Portal, ${firstName}!`,
-    text: `Welcome! Here you'll find everything about your shoot. Feel free to reach out if you have any questions.`,
-  }
+  // Photographer message
+  let photographerMessage = t.messages.welcome(firstName)
   if (days !== null && days <= 7 && days >= 0 && !isPostShooting) {
-    photographerMessage = {
-      emoji: '🎉',
-      title: 'Your shoot is coming up!',
-      text: `Only ${days === 0 ? 'today' : `${days} ${days === 1 ? 'day' : 'days'}`} until your big day! Don't forget to create your moodboard and get prepared.`,
-    }
+    photographerMessage = t.messages.soon(days)
   } else if (project.status === 'editing') {
-    photographerMessage = {
-      emoji: '✨',
-      title: 'Wir bearbeiten eure Fotos!',
-      text: 'The shoot was wonderful! I am currently editing your photos. You will be notified once the gallery is ready.',
-    }
+    photographerMessage = t.messages.editing
   } else if (isDelivered && gallery) {
-    photographerMessage = {
-      emoji: '🎊',
-      title: 'Eure Galerie ist fertig!',
-      text: 'Ich hoffe, ihr liebt eure Fotos genauso sehr wie ich es tue! Schaut euch die Galerie an und markiert eure Favoriten.',
-    }
+    photographerMessage = t.messages.delivered
   }
 
   return (
@@ -227,10 +330,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
         {/* ── GREETING + COUNTDOWN ── */}
         <div className="animate-in-delay-1">
           <h1 className="font-black mb-3" style={{ fontSize: 'clamp(2rem, 6vw, 2.8rem)', letterSpacing: '-0.035em', lineHeight: 1.05, color: 'var(--text-primary)' }}>
-            Hallo, {firstName} 👋
+            {t.hello(firstName)}
           </h1>
 
-          {/* Shoot date pill */}
           {project.shoot_date && (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[19px] font-semibold mb-3"
               style={{
@@ -238,21 +340,20 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 color: isDelivered ? '#2A9B68' : days === 0 ? '#C43B2C' : 'var(--accent)',
               }}>
               <Calendar className="w-3.5 h-3.5" />
-              {isDelivered ? 'Deine Fotos sind fertig! 🎉'
-                : days === 0 ? 'Dein Shooting ist heute! 📸'
-                : days !== null && days < 0 ? `Shooting war am ${formatDate(project.shoot_date, 'de')}`
-                : `Shooting in ${days} ${days === 1 ? 'Tag' : 'Tagen'}`}
+              {isDelivered ? t.photosReady
+                : days === 0 ? t.shootToday
+                : days !== null && days < 0 ? t.shootDone(formatDate(project.shoot_date, dateLocale))
+                : t.shootIn(days!)}
             </div>
           )}
 
           <p className="text-[17px]" style={{ color: 'var(--text-secondary)' }}>
             {project.title}
             {project.shoot_date && (
-              <span style={{ color: 'var(--text-muted)' }}> · {formatDate(project.shoot_date, 'de')}</span>
+              <span style={{ color: 'var(--text-muted)' }}> · {formatDate(project.shoot_date, dateLocale)}</span>
             )}
           </p>
 
-          {/* Weather */}
           {show.weather && project.shoot_date && !isDelivered && days !== null && days >= 0 && days <= 30 && (
             <div className="mt-4">
               <WeatherWidget date={project.shoot_date} location={project.location || 'Deutschland'} />
@@ -260,7 +361,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           )}
         </div>
 
-        {/* ── NACHRICHTEN VOM FOTOGRAFEN ── */}
+        {/* ── MESSAGE FROM PHOTOGRAPHER ── */}
         <div className="rounded-2xl p-5 animate-in-delay-1"
           style={{
             background: 'linear-gradient(135deg, var(--accent-muted) 0%, var(--card-bg) 100%)',
@@ -276,11 +377,11 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               <div className="flex items-center gap-1.5 mb-1">
                 <MessageCircle className="w-3 h-3" style={{ color: 'var(--accent)' }} />
                 <p className="text-[19px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--accent)' }}>
-                  Nachricht von {studioName}
+                  {t.messageFrom(studioName)}
                 </p>
               </div>
               <p className="font-bold text-[17px] mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                {customMessage ? `Nachricht von ${studioName}` : photographerMessage.title}
+                {customMessage ? t.messageFrom(studioName) : photographerMessage.title}
               </p>
               <p className="text-[19px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 {customMessage ?? photographerMessage.text}
@@ -295,22 +396,17 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             <h2 className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              Project Overview
+              {t.projectOverview}
             </h2>
           </div>
-
-          {/* Steps */}
           <div className="relative">
-            {/* Connector line */}
             <div className="absolute left-4 top-5 bottom-5 w-0.5" style={{ background: 'var(--border-color)' }} />
-
             <div className="space-y-3">
               {projectSteps.map((step, i) => {
                 const isActive = i === currentStepIdx + 1 && !step.done
                 const isPast = step.done
                 return (
                   <div key={step.key} className="flex items-center gap-3 relative">
-                    {/* Dot */}
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-[17px]"
                       style={{
                         background: isPast ? 'rgba(42,155,104,0.12)' : isActive ? 'var(--accent-muted)' : 'var(--bg-hover)',
@@ -325,7 +421,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                         {step.label}
                       </p>
                       {isActive && (
-                        <p className="text-[17px] mt-0.5" style={{ color: 'var(--accent)' }}>Aktueller Schritt</p>
+                        <p className="text-[17px] mt-0.5" style={{ color: 'var(--accent)' }}>{t.currentStep}</p>
                       )}
                     </div>
                     {isPast && <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#2A9B68' }} />}
@@ -343,7 +439,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             <div className="flex items-center gap-2 mb-4">
               <Star className="w-4 h-4" style={{ color: 'var(--accent)' }} />
               <h2 className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                Next Steps
+                {t.nextSteps}
               </h2>
             </div>
             <div className="space-y-2.5">
@@ -395,11 +491,11 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       : <PenLine className="w-5 h-5" style={{ color: 'var(--accent)' }} />}
                   </div>
                   <div>
-                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Vertrag</p>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.contract.title}</p>
                     <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {contractSigned ? 'Signed ✓'
-                        : latestContract.status === 'viewed' ? 'Viewed — bitte unterschreiben'
-                        : 'Bereit zur Unterschrift'}
+                      {contractSigned ? t.contract.signed
+                        : latestContract.status === 'viewed' ? t.contract.viewed
+                        : t.contract.ready}
                     </p>
                   </div>
                 </div>
@@ -407,13 +503,12 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   {!contractSigned && (
                     <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
                       style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                      Ausstehend
+                      {t.contract.pending}
                     </span>
                   )}
                   <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
                 </div>
               </div>
-
               {!contractSigned && (
                 <>
                   <div className="mt-4">
@@ -434,7 +529,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
                     <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: 'var(--accent)' }}>
                       <PenLine className="w-3.5 h-3.5" />
-                      Jetzt unterschreiben
+                      {t.contract.signNow}
                       <ArrowRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
@@ -457,8 +552,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     <MapPin className="w-4.5 h-4.5" style={{ color: '#EC4899', width: '18px', height: '18px' }} />
                   </div>
                   <div>
-                    <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Treffpunkt</p>
-                    <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Euer genauer Treffpunkt</p>
+                    <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.treffpunkt.title}</p>
+                    <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>{t.treffpunkt.subtitle}</p>
                   </div>
                 </div>
                 <a
@@ -469,11 +564,10 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  Open in Maps
+                  {t.treffpunkt.openMaps}
                 </a>
               </div>
             </div>
-            {/* Map embed */}
             <div className="relative overflow-hidden" style={{ height: '200px' }}>
               <iframe
                 src={getEmbedUrl(meetingPoint)}
@@ -483,7 +577,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 allowFullScreen={false}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Treffpunkt Karte"
+                title={t.treffpunkt.title}
               />
             </div>
             <div className="px-5 py-3">
@@ -495,13 +589,13 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 style={{ color: '#EC4899' }}
               >
                 <MapPin className="w-3.5 h-3.5" />
-                Route in Google Maps anzeigen →
+                {t.treffpunkt.routeMaps}
               </a>
             </div>
           </div>
         )}
 
-        {/* ── FRAGEBOGEN CARD ── */}
+        {/* ── QUESTIONNAIRE CARD ── */}
         {show.questionnaire && questionnaire && (
           <Link href={`/client/${token}/questionnaire`}
             className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
@@ -517,11 +611,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                       : <ClipboardList className="w-5 h-5" style={{ color: '#8B5CF6' }} />}
                   </div>
                   <div>
-                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Fragebogen</p>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.questionnaire.title}</p>
                     <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {questionnaireSubmitted
-                        ? 'Completed ✓ — View answers'
-                        : 'Please fill out — helps with preparation'}
+                      {questionnaireSubmitted ? t.questionnaire.completed : t.questionnaire.pending}
                     </p>
                   </div>
                 </div>
@@ -529,7 +621,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   {!questionnaireSubmitted && (
                     <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
                       style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6' }}>
-                      Ausstehend
+                      {t.questionnaire.pendingBadge}
                     </span>
                   )}
                   <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
@@ -539,7 +631,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 <div className="flex items-center gap-1.5 text-[15.5px] font-bold"
                   style={{ color: questionnaireSubmitted ? '#2A9B68' : '#8B5CF6' }}>
                   <ClipboardList className="w-3.5 h-3.5" />
-                  {questionnaireSubmitted ? 'View answers' : 'Fill out now'}
+                  {questionnaireSubmitted ? t.questionnaire.viewAnswers : t.questionnaire.fillNow}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
@@ -561,9 +653,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     <Clock className="w-5 h-5" style={{ color: '#6B7280' }} />
                   </div>
                   <div>
-                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Zeitplan</p>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.timeline.title}</p>
                     <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {timelineEvents.length} {timelineEvents.length === 1 ? 'entry' : 'entries'}
+                      {t.timeline.entries(timelineEvents.length)}
                     </p>
                   </div>
                 </div>
@@ -585,8 +677,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   <Link2 className="w-4.5 h-4.5" style={{ color: '#6366F1', width: '18px', height: '18px' }} />
                 </div>
                 <div>
-                  <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Links</p>
-                  <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Von deinem Fotografen</p>
+                  <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.links.title}</p>
+                  <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>{t.links.subtitle}</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -628,9 +720,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                     <Images className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                   </div>
                   <div>
-                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Galerie</p>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.gallery.title}</p>
                     <p className="text-[19px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {photoCount > 0 ? `${photoCount} ${photoCount === 1 ? 'photo' : 'photos'} bereit` : 'Gallery available'}
+                      {photoCount > 0 ? t.gallery.photos(photoCount) : t.gallery.available}
                     </p>
                   </div>
                 </div>
@@ -638,25 +730,23 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   {photoCount > 0 && (
                     <span className="text-[17px] font-bold px-2.5 py-1 rounded-full"
                       style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                      {photoCount} Fotos
+                      {photoCount} {portalLocale === 'de' ? 'Fotos' : 'Photos'}
                     </span>
                   )}
                   <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
                 </div>
               </div>
-
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: 'var(--accent)' }}>
                   <Heart className="w-3.5 h-3.5" />
-                  Fotos ansehen & Favoriten markieren
+                  {t.gallery.viewFavs}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
-
               {(gallery.view_count > 0 || gallery.download_count > 0) && (
                 <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  {gallery.view_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>👁 {gallery.view_count} Aufrufe</span>}
-                  {gallery.download_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>⬇️ {gallery.download_count} Downloads</span>}
+                  {gallery.view_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>{t.gallery.views(gallery.view_count)}</span>}
+                  {gallery.download_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>{t.gallery.downloads(gallery.download_count)}</span>}
                 </div>
               )}
             </div>
@@ -669,11 +759,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             <div className="mb-3">
               <div className="flex items-center gap-2 mb-1">
                 <Heart className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Moodboard</h2>
+                <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{t.moodboard.title}</h2>
               </div>
-              <p className="text-[19px]" style={{ color: 'var(--text-secondary)' }}>
-                Share inspirations, reference images or links with your photographer — show your style and wishes.
-              </p>
+              <p className="text-[19px]" style={{ color: 'var(--text-secondary)' }}>{t.moodboard.desc}</p>
             </div>
             <MoodBoard projectId={project.id} token={token} />
           </div>
@@ -685,26 +773,29 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
             <div className="flex items-center gap-2 mb-3">
               <Camera className="w-4 h-4" style={{ color: 'var(--accent)' }} />
               <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                Tips for your shoot
+                {t.tips.title}
               </h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { icon: <Shirt className="w-5 h-5" />, title: 'What to wear?', text: 'Choose colors that complement each other. Avoid large logos or patterns.' },
-                { icon: <Sun className="w-5 h-5" />, title: 'Beste Uhrzeit', text: 'Die goldene Stunde — kurz nach Sonnenaufgang oder vor Sonnenuntergang.' },
-                { icon: <Sparkles className="w-5 h-5" />, title: 'Preparation', text: 'Relax! Authentic moments happen when you feel comfortable.' },
-                { icon: <MapPin className="w-5 h-5" />, title: 'Location tips', text: 'Choose a place that is meaningful to you — it shows in the photos.' },
-              ].map((tip, i) => (
-                <div key={i} className="rounded-xl p-4"
-                  style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2.5"
-                    style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                    {tip.icon}
+              {t.tips.items.map((tip, i) => {
+                const icons = [
+                  <Shirt key="shirt" className="w-5 h-5" />,
+                  <Sun key="sun" className="w-5 h-5" />,
+                  <Sparkles key="sparkles" className="w-5 h-5" />,
+                  <MapPin key="mappin" className="w-5 h-5" />,
+                ]
+                return (
+                  <div key={i} className="rounded-xl p-4"
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2.5"
+                      style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
+                      {icons[i]}
+                    </div>
+                    <p className="font-bold text-[15.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
+                    <p className="text-[17.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tip.text}</p>
                   </div>
-                  <p className="font-bold text-[15.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
-                  <p className="text-[17.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tip.text}</p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -717,8 +808,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               style={{ background: 'var(--bg-hover)' }}>
               <FileText className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
-            <p className="text-[16.5px]" style={{ color: 'var(--text-secondary)' }}>Your photographer bereitet noch alles vor.</p>
-            <p className="text-[18px] mt-1" style={{ color: 'var(--text-muted)' }}>Schau bald wieder vorbei!</p>
+            <p className="text-[16.5px]" style={{ color: 'var(--text-secondary)' }}>{t.empty.text}</p>
+            <p className="text-[18px] mt-1" style={{ color: 'var(--text-muted)' }}>{t.empty.sub}</p>
           </div>
         )}
 

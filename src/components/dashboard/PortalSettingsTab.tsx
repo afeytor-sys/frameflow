@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
   Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock,
-  Link2, Plus, Trash2, GripVertical, ClipboardList,
+  Link2, Plus, Trash2, GripVertical, ClipboardList, Globe,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -46,9 +46,10 @@ interface Props {
   initialPassword?: string | null
   initialLinks?: PortalLink[] | null
   initialStepsOverride?: Record<string, boolean> | null
+  initialPortalLocale?: string | null
 }
 
-export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword, initialLinks }: Props) {
+export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword, initialLinks, initialPortalLocale }: Props) {
   const locale = useLocale()
   const t = dashboardT(locale)
   const tp = t.portal
@@ -61,6 +62,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
   const [portalPassword, setPortalPassword] = useState(initialPassword ?? '')
   const [showPassword, setShowPassword] = useState(false)
   const [links, setLinks] = useState<PortalLink[]>(initialLinks ?? [])
+  const [portalLocale, setPortalLocale] = useState<string>(initialPortalLocale ?? 'de')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -85,6 +87,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
         portal_message: message || null,
         portal_password: portalPassword.trim() || null,
         portal_links: cleanLinks,
+        portal_locale: portalLocale,
       })
       .eq('id', projectId)
     setSaving(false)
@@ -141,6 +144,44 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
               {tp.openPortal}
             </a>
           )}
+
+          {/* Portal Language */}
+          <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(196,164,124,0.20)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+              <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+                {locale === 'de' ? 'Portal-Sprache' : 'Portal Language'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              {[
+                { code: 'de', label: '🇩🇪 Deutsch' },
+                { code: 'en', label: '🇬🇧 English' },
+              ].map(({ code, label }) => {
+                const isActive = portalLocale === code
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setPortalLocale(code)}
+                    className="flex-1 py-1.5 rounded-lg text-[12px] font-bold transition-all"
+                    style={{
+                      background: isActive ? 'rgba(196,164,124,0.18)' : 'var(--bg-hover)',
+                      color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                      border: `1px solid ${isActive ? 'rgba(196,164,124,0.40)' : 'var(--border-color)'}`,
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+              {locale === 'de'
+                ? 'Sprache des Kundenportals. Standard: Deutsch.'
+                : 'Language shown to the client in their portal. Default: German.'}
+            </p>
+          </div>
 
           {/* Password */}
           <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(196,164,124,0.20)' }}>
