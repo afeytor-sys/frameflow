@@ -405,18 +405,19 @@ export default function ProjectsPage() {
           {/* ── GRID VIEW ── */}
           {viewMode === 'grid' && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {projects.map((project, index) => {
+              {displayedProjects.map((project, index) => {
                 const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
                 const stc = getShootingTypeConfig(project.shooting_type, locale)
                 const clientName = getClientName(project.client)
                 const isDragging = dragging === project.id
                 const isOver = dragOver === project.id
+                const canDrag = sortBy === 'manual' && !filterType
 
                 return (
                   <div
                     key={project.id}
                     className="relative group"
-                    draggable
+                    draggable={canDrag}
                     onDragStart={e => handleDragStart(e, index, project.id)}
                     onDragOver={e => handleDragOver(e, index, project.id)}
                     onDrop={e => handleDrop(e, index)}
@@ -604,18 +605,19 @@ export default function ProjectsPage() {
           {/* ── LIST VIEW ── */}
           {viewMode === 'list' && (
             <div className="space-y-1.5">
-              {projects.map((project, index) => {
+              {displayedProjects.map((project, index) => {
                 const sc = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft
                 const stc = getShootingTypeConfig(project.shooting_type, locale)
                 const clientName = getClientName(project.client)
                 const isDragging = dragging === project.id
                 const isOver = dragOver === project.id
+                const canDrag = sortBy === 'manual' && !filterType
 
                 return (
                   <div
                     key={project.id}
                     className="group relative rounded-xl transition-all"
-                    draggable
+                    draggable={canDrag}
                     onDragStart={e => handleDragStart(e, index, project.id)}
                     onDragOver={e => handleDragOver(e, index, project.id)}
                     onDrop={e => handleDrop(e, index)}
