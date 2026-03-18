@@ -69,6 +69,7 @@ interface Props {
   projectId: string
   photographerId: string
   clientUrl: string
+  publicGalleryUrl?: string
   gallery: Gallery | null
   photos: Photo[]
   showWatermark: boolean
@@ -150,7 +151,7 @@ function SortablePhoto({
   )
 }
 
-export default function GalleryTab({ projectId, photographerId, clientUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached }: Props) {
+export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [sections, setSections] = useState<Section[]>([])
@@ -373,9 +374,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   }
 
   const shareGallery = async () => {
-    const url = `${clientUrl}/gallery`
-    const ok = await copyToClipboard(url)
-    if (ok) toast.success('Link kopiert!')
+    const url = publicGalleryUrl || `${clientUrl}/gallery`
+    const text = gallery?.password ? `${url}\n\nPassword: ${gallery.password}` : url
+    const ok = await copyToClipboard(text)
+    if (ok) toast.success(gallery?.password ? 'Link + Password kopiert!' : 'Link kopiert!')
   }
 
   // Section management

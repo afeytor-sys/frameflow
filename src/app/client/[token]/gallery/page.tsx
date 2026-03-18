@@ -33,7 +33,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   // Fetch all galleries for this project, prefer active ones with photos
   const { data: allGalleries, error: galleryError } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark')
+    .select('id, title, description, status, download_enabled, watermark, design_theme')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -97,61 +97,23 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   const heroPhoto = sortedPhotos[0] ?? null
   const heroUrl = heroPhoto?.storage_url ?? null
 
-  const theme = getTheme('classic-white')
+  const theme = getTheme((gallery as { design_theme?: string | null }).design_theme || 'classic-white')
 
   // Format shoot date
   const shootDate = (project as { shoot_date?: string | null }).shoot_date
-  const location = (project as { location?: string | null }).location
   const formattedDate = shootDate
     ? new Date(shootDate).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
 
-  const studioName = photographer?.studio_name || photographer?.full_name || null
-  const displayName = client?.full_name || project.title
-  const gallerySubtitle = gallery.title && gallery.title !== project.title ? gallery.title : null
+  const heroTitle = gallery.title || project.title
 
   return (
     <div style={{ minHeight: '100vh', background: '#F8F7F4', fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
       {/* ── HERO HEADER ── */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: 'clamp(560px, 70vw, 780px)',
-          overflow: 'hidden',
-          background: '#1A1A18',
-        }}
-      >
-        {/* Background photo — full brightness, no overlay */}
-        {heroUrl && (
-          <img
-            src={heroUrl}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center 30%',
-            }}
-          />
-        )}
-
-        {/* Subtle vignette only at the very bottom for text legibility */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '200px',
-          background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.52))',
-          zIndex: 1,
-        }} />
-
-        {/* Back link — top left */}
+      <div style={{ position: 'relative' }}>
+        {/* Back link — top left, over the photo */}
         <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10 }}>
           <Link
             href={`/client/${token}`}
@@ -168,7 +130,6 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
               padding: '6px 14px',
               borderRadius: '999px',
               border: '1px solid rgba(255,255,255,0.15)',
-              transition: 'all 0.2s',
             }}
           >
             <ArrowLeft style={{ width: 14, height: 14 }} />
@@ -176,41 +137,54 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           </Link>
         </div>
 
-        {/* Hero text — centered at bottom, minimal */}
+        {/* Hero photo — full width, no overlay, no gradient */}
+        {heroUrl && (
+          <div style={{
+            width: '100%',
+            height: 'clamp(480px, 65vw, 720px)',
+            overflow: 'hidden',
+            background: '#1A1A18',
+          }}>
+            <img
+              src={heroUrl}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center 30%',
+                display: 'block',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Text block — below the photo, clean white background */}
         <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: '0 clamp(20px, 5vw, 64px) 44px',
-          zIndex: 3,
+          background: '#F8F7F4',
+          padding: '28px clamp(20px, 5vw, 64px) 20px',
           textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          borderBottom: '1px solid #E8E4DC',
         }}>
-          {/* Gallery / client name */}
           <h1 style={{
-            color: '#FFFFFF',
+            color: '#111110',
             fontFamily: theme.fontFamily,
-            fontSize: 'clamp(1.75rem, 4.5vw, 3rem)',
-            fontWeight: theme.headerStyle === 'bold' ? 700 : 300,
+            fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
+            fontWeight: theme.headerStyle === 'bold' ? 700 : 400,
             letterSpacing: '-0.02em',
             lineHeight: 1.1,
-            marginBottom: formattedDate ? 8 : 0,
-            textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+            margin: 0,
           }}>
-            {displayName}
+            {heroTitle}
           </h1>
-
-          {/* Date — small, subtle */}
           {formattedDate && (
             <p style={{
-              color: 'rgba(255,255,255,0.65)',
-              fontSize: '0.8125rem',
+              color: '#9A9690',
+              fontSize: '0.75rem',
               fontWeight: 400,
-              letterSpacing: '0.04em',
-              textShadow: '0 1px 6px rgba(0,0,0,0.4)',
+              letterSpacing: '0.06em',
+              marginTop: 6,
+              textTransform: 'uppercase',
             }}>
               {formattedDate}
             </p>

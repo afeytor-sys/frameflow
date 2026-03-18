@@ -230,7 +230,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     { data: questionnaireSubmission },
   ] = await Promise.all([
     supabase.from('contracts').select('id, title, status').eq('project_id', project.id),
-    supabase.from('galleries').select('id, status, view_count, download_count').eq('project_id', project.id).eq('status', 'active').single(),
+    supabase.from('galleries').select('id, status, view_count, download_count, password').eq('project_id', project.id).eq('status', 'active').single(),
     supabase.from('timelines').select('id, events').eq('project_id', project.id).single(),
     supabase.from('questionnaires').select('id, sent_at').eq('project_id', project.id).order('created_at', { ascending: false }).limit(1).single(),
     supabase.from('questionnaire_submissions').select('id').eq('project_id', project.id).limit(1).single(),
@@ -760,7 +760,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               </p>
               <GalleryShareButton
                 galleryUrl={publicGalleryUrl}
-                portalPassword={portalPassword}
+                galleryPassword={(gallery as { password?: string | null }).password ?? null}
               />
             </div>
           </div>

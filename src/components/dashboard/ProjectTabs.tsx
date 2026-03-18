@@ -285,10 +285,13 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     toast.success('Gallery deleted')
   }
 
-  const shareGallery = async (_g: GalleryItem) => {
-    const url = `${project.client_url}/gallery`
-    const ok = await navigator.clipboard.writeText(url).then(() => true).catch(() => false)
-    if (ok) toast.success(t.gallery.toastLinkCopied)
+  const shareGallery = async (g: GalleryItem) => {
+    const token = (project.client_token as string | null) ?? project.client_url.split('/client/')[1]
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frameflow.app'
+    const url = `${baseUrl}/gallery/${token}`
+    const text = g.password ? `${url}\n\nPassword: ${g.password}` : url
+    const ok = await navigator.clipboard.writeText(text).then(() => true).catch(() => false)
+    if (ok) toast.success(g.password ? 'Link + Password kopiert!' : t.gallery.toastLinkCopied)
     else toast.error(t.gallery.toastCopyFailed)
   }
 

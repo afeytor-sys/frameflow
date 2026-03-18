@@ -405,25 +405,25 @@ export default function GalleryViewer({
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
       {/* Zoom icon */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="w-11 h-11 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
-          <ZoomIn className="w-5 h-5 text-white" />
+        <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
+          <ZoomIn className="w-6 h-6 text-white" />
         </div>
       </div>
       {/* Top-right actions */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => toggleFavorite(photo.id)}
-          className={cn('w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
+          className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
         >
-          <Heart className={cn('w-4.5 h-4.5', photo.is_favorite && 'fill-white')} style={{ width: 18, height: 18 }} />
+          <Heart className={cn('w-5 h-5', photo.is_favorite && 'fill-white')} style={{ width: 20, height: 20 }} />
         </button>
         <div className="relative">
           <button
             onClick={(e) => { e.stopPropagation(); setShowTagMenu(showTagMenu === photo.id ? null : photo.id) }}
-            className={cn('w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
+            className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
             style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
           >
-            <span className="text-[11px] font-bold text-white">●</span>
+            <span className="text-[13px] font-bold text-white">●</span>
           </button>
           {showTagMenu === photo.id && (
             <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
@@ -443,8 +443,8 @@ export default function GalleryViewer({
           )}
         </div>
         {downloadEnabled && (
-          <button onClick={() => downloadPhoto(photo)} className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg">
-            <Download style={{ width: 18, height: 18 }} />
+          <button onClick={() => downloadPhoto(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg">
+            <Download style={{ width: 20, height: 20 }} />
           </button>
         )}
       </div>

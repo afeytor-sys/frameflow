@@ -32,7 +32,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark')
+    .select('id, title, description, status, download_enabled, watermark, design_theme')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -75,56 +75,22 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Hero image
   const heroUrl = sortedPhotos[0]?.storage_url ?? null
 
-  const theme = getTheme('classic-white')
+  const theme = getTheme((gallery as { design_theme?: string | null }).design_theme || 'classic-white')
 
   const shootDate = (project as { shoot_date?: string | null }).shoot_date
   const formattedDate = shootDate
     ? new Date(shootDate).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
 
-  const displayName = client?.full_name || project.title
+  const heroTitle = gallery.title || project.title
 
   return (
     <div style={{ minHeight: '100vh', background: '#F8F7F4', fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
       {/* ── HERO HEADER — no back button ── */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: 'clamp(560px, 70vw, 780px)',
-          overflow: 'hidden',
-          background: '#1A1A18',
-        }}
-      >
-        {heroUrl && (
-          <img
-            src={heroUrl}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center 30%',
-            }}
-          />
-        )}
-
-        {/* Subtle vignette at bottom */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '200px',
-          background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.52))',
-          zIndex: 1,
-        }} />
-
-        {/* Studio branding — top left (subtle) */}
+      <div style={{ position: 'relative' }}>
+        {/* Studio branding — top left, over the photo */}
         {photographer && (
           <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
             {photographer.logo_url ? (
@@ -134,45 +100,60 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
                 {(photographer.studio_name || photographer.full_name)[0]}
               </div>
             )}
-            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8125rem', fontWeight: 500, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8125rem', fontWeight: 500, background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.15)' }}>
               {photographer.studio_name || photographer.full_name}
             </span>
           </div>
         )}
 
-        {/* Hero text — centered at bottom */}
+        {/* Hero photo — full width, no overlay, no gradient */}
+        {heroUrl && (
+          <div style={{
+            width: '100%',
+            height: 'clamp(480px, 65vw, 720px)',
+            overflow: 'hidden',
+            background: '#1A1A18',
+          }}>
+            <img
+              src={heroUrl}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center 30%',
+                display: 'block',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Text block — below the photo, clean background */}
         <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: '0 clamp(20px, 5vw, 64px) 44px',
-          zIndex: 3,
+          background: '#F8F7F4',
+          padding: '28px clamp(20px, 5vw, 64px) 20px',
           textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          borderBottom: '1px solid #E8E4DC',
         }}>
           <h1 style={{
-            color: '#FFFFFF',
+            color: '#111110',
             fontFamily: theme.fontFamily,
-            fontSize: 'clamp(1.75rem, 4.5vw, 3rem)',
-            fontWeight: theme.headerStyle === 'bold' ? 700 : 300,
+            fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
+            fontWeight: theme.headerStyle === 'bold' ? 700 : 400,
             letterSpacing: '-0.02em',
             lineHeight: 1.1,
-            marginBottom: formattedDate ? 8 : 0,
-            textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+            margin: 0,
           }}>
-            {displayName}
+            {heroTitle}
           </h1>
-
           {formattedDate && (
             <p style={{
-              color: 'rgba(255,255,255,0.65)',
-              fontSize: '0.8125rem',
+              color: '#9A9690',
+              fontSize: '0.75rem',
               fontWeight: 400,
-              letterSpacing: '0.04em',
-              textShadow: '0 1px 6px rgba(0,0,0,0.4)',
+              letterSpacing: '0.06em',
+              marginTop: 6,
+              textTransform: 'uppercase',
             }}>
               {formattedDate}
             </p>

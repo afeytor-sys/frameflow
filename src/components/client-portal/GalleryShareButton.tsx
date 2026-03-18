@@ -6,10 +6,10 @@ import { Share2, Copy, Check, X } from 'lucide-react'
 
 interface Props {
   galleryUrl: string
-  portalPassword: string | null
+  galleryPassword: string | null
 }
 
-export default function GalleryShareButton({ galleryUrl, portalPassword }: Props) {
+export default function GalleryShareButton({ galleryUrl, galleryPassword }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -17,8 +17,8 @@ export default function GalleryShareButton({ galleryUrl, portalPassword }: Props
   useEffect(() => { setMounted(true) }, [])
 
   const handleCopy = async () => {
-    const text = portalPassword
-      ? `${galleryUrl}\n\nPassword: ${portalPassword}`
+    const text = galleryPassword
+      ? `${galleryUrl}\n\nPassword: ${galleryPassword}`
       : galleryUrl
     try {
       await navigator.clipboard.writeText(text)
@@ -76,14 +76,14 @@ export default function GalleryShareButton({ galleryUrl, portalPassword }: Props
             </p>
           </div>
 
-          {/* Password (if set) */}
-          {portalPassword && (
+          {/* Gallery password (if set) */}
+          {galleryPassword && (
             <div className="rounded-xl p-3.5 space-y-1" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
               <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 🔑 Password
               </p>
               <p className="text-[15px] font-mono font-bold tracking-widest" style={{ color: 'var(--text-primary)' }}>
-                {portalPassword}
+                {galleryPassword}
               </p>
             </div>
           )}
@@ -97,7 +97,7 @@ export default function GalleryShareButton({ galleryUrl, portalPassword }: Props
             {copied ? (
               <><Check className="w-4 h-4" />Kopiert!</>
             ) : (
-              <><Copy className="w-4 h-4" />{portalPassword ? 'Link + Password kopieren' : 'Link kopieren'}</>
+              <><Copy className="w-4 h-4" />{galleryPassword ? 'Link + Password kopieren' : 'Link kopieren'}</>
             )}
           </button>
         </div>
