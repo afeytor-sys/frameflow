@@ -7,6 +7,7 @@ import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHori
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
+import GalleryShareModal from '@/components/dashboard/GalleryShareModal'
 
 interface Gallery {
   id: string
@@ -21,9 +22,11 @@ interface Gallery {
   project?: { id: string; title: string; client?: { full_name: string } | { full_name: string }[] | null } | null
 }
 
-interface ShareModal {
+interface ShareModalState {
+  galleryId: string
   url: string
   password: string | null
+  title: string
 }
 
 interface Project {
@@ -141,8 +144,7 @@ export default function GalleriesPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [shareModal, setShareModal] = useState<ShareModal | null>(null)
-  const [shareCopied, setShareCopied] = useState(false)
+  const [shareModal, setShareModal] = useState<ShareModalState | null>(null)
 
   const [form, setForm] = useState({
     title: '',
@@ -306,9 +308,8 @@ export default function GalleriesPage() {
             const handleShare = (e: React.MouseEvent) => {
               e.preventDefault(); e.stopPropagation()
               if (!gallery.client_token) { toast.error(t.errorNoToken); return }
-              const url = `${window.location.origin}/client/${gallery.client_token}/gallery`
-              setShareCopied(false)
-              setShareModal({ url, password: gallery.password || null })
+              const url = `${window.location.origin}/gallery/${gallery.client_token}`
+              setShareModal({ galleryId: gallery.id, url, password: gallery.password || null, title: gallery.title })
             }
 
             return (
@@ -382,74 +383,14 @@ export default function GalleriesPage() {
       )}
 
       {/* ── Share Modal ── */}
-      {shareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
-          onClick={() => setShareModal(null)}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
-            onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
-                  <Share2 className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                </div>
-                <h3 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>{t.shareModalTitle}</h3>
-              </div>
-              <button onClick={() => setShareModal(null)} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              {/* Link row */}
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.shareLink}</p>
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                  <span className="flex-1 text-[12px] truncate font-mono" style={{ color: 'var(--text-secondary)' }}>{shareModal.url}</span>
-                </div>
-              </div>
-
-              {/* Password row */}
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  <Lock className="w-3 h-3 inline mr-1" />{t.sharePassword}
-                </p>
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                  {shareModal.password ? (
-                    <span className="flex-1 text-[13px] font-mono font-semibold tracking-widest" style={{ color: 'var(--text-primary)' }}>{shareModal.password}</span>
-                  ) : (
-                    <span className="flex-1 text-[12px] italic" style={{ color: 'var(--text-muted)' }}>{t.shareNoPassword}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Copy button */}
-              <button
-                onClick={() => {
-                  const text = shareModal.password
-                    ? `${shareModal.url}\n\n🔒 ${t.sharePassword}: ${shareModal.password}`
-                    : shareModal.url
-                  navigator.clipboard.writeText(text).then(() => {
-                    setShareCopied(true)
-                    setTimeout(() => setShareCopied(false), 2000)
-                  }).catch(() => toast.error(t.errorCopyFailed))
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ background: shareCopied ? '#10B981' : 'var(--accent)', boxShadow: shareCopied ? '0 1px 8px rgba(16,185,129,0.30)' : '0 1px 8px rgba(196,164,124,0.25)' }}
-              >
-                {shareCopied ? (
-                  <><Check className="w-4 h-4" />{t.shareCopied}</>
-                ) : (
-                  <><Share2 className="w-4 h-4" />{t.shareCopyLink}</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <GalleryShareModal
+        open={!!shareModal}
+        onClose={() => setShareModal(null)}
+        galleryTitle={shareModal?.title || ''}
+        galleryUrl={shareModal?.url || ''}
+        galleryPassword={shareModal?.password || null}
+        galleryId={shareModal?.galleryId}
+      />
 
       {/* ── Create Gallery Modal ── */}
       {showModal && (
