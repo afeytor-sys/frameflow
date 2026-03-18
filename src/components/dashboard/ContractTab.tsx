@@ -552,28 +552,22 @@ export default function ContractTab({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Datum *</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                    <input
-                      type="date"
-                      value={scheduleDate}
-                      onChange={e => setScheduleDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="input-base w-full pl-9"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={e => setScheduleDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="input-base w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Uhrzeit</label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                    <input
-                      type="time"
-                      value={scheduleTime}
-                      onChange={e => setScheduleTime(e.target.value)}
-                      className="input-base w-full pl-9"
-                    />
-                  </div>
+                  <input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={e => setScheduleTime(e.target.value)}
+                    className="input-base w-full"
+                  />
                 </div>
               </div>
               {scheduleDate && (
