@@ -10,7 +10,7 @@ import ContractPDFDownload from './ContractPDFDownload'
 import SignatureCanvas from 'react-signature-canvas'
 import {
   FileText, Plus, Send, Download, Check, Trash2,
-  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2, Mail,
+  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2, Mail, Calendar, Clock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EmailVorlagePicker from './EmailVorlagePicker'
@@ -238,9 +238,17 @@ export default function ContractTab({
 
   // Send email modal
   const [showSendModal, setShowSendModal] = useState(false)
+  const [sendMode, setSendMode] = useState<'send' | 'schedule'>('send')
   const [pendingSendContract, setPendingSendContract] = useState<Contract | null>(null)
   const [sendSubject, setSendSubject] = useState('')
   const [sendMessage, setSendMessage] = useState('')
+
+  // Schedule state
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('09:00')
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null)
+  const [scheduledEmailId, setScheduledEmailId] = useState<string | null>(null)
+  const [scheduling, setScheduling] = useState(false)
 
   // Save as template modal
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
@@ -398,6 +406,73 @@ export default function ContractTab({
     setSavingTemplate(false)
   }
 
+  // ── Handle contract schedule ──
+  const handleContractSchedule = async () => {
+    if (!pendingSendContract || !clientEmail) return
+    if (!scheduleDate) { toast.error('Please select a date'); return }
+    setScheduling(true)
+    const dt = new Date(`${scheduleDate}T${scheduleTime}:00`)
+    if (dt <= new Date()) { toast.error('Das Datum muss in der Zukunft liegen'); setScheduling(false); return }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fotonizer.com'
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F7F4; margin: 0; padding: 40px 20px;">
+  <div style="max-width: 520px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.08);">
+    <div style="background: #1A1A18; padding: 24px 32px;">
+      <p style="color: #C4A47C; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0;">Fotonizer</p>
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="font-size: 20px; font-weight: 700; color: #1A1A18; margin: 0 0 8px;">${sendSubject}</h2>
+      <div style="color: #4A4845; font-size: 15px; line-height: 1.7; white-space: pre-wrap; margin-bottom: 24px;">${sendMessage}</div>
+      <a href="${appUrl}/client/contract/${pendingSendContract.id}" style="display: inline-block; background: #8B5CF6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 600;">📄 Vertrag unterschreiben →</a>
+    </div>
+  </div>
+</body>
+</html>`
+
+    const res = await fetch('/api/emails/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId,
+        toEmail: clientEmail,
+        toName: clientName,
+        subject: sendSubject,
+        htmlBody,
+        plainBody: sendMessage,
+        type: 'contract',
+        referenceId: pendingSendContract.id,
+        scheduledAt: dt.toISOString(),
+      }),
+    })
+
+    if (!res.ok) {
+      const err = await res.json()
+      toast.error(err.error || 'Fehler beim Planen')
+      setScheduling(false)
+      return
+    }
+
+    const data = await res.json()
+    setScheduledAt(dt.toISOString())
+    setScheduledEmailId(data.scheduledEmail?.id || null)
+    setShowSendModal(false)
+    setScheduling(false)
+    toast.success(`📅 Vertrag geplant für ${dt.toLocaleDateString('de-DE')} um ${scheduleTime} Uhr`)
+  }
+
+  const cancelContractSchedule = async () => {
+    if (scheduledEmailId) {
+      await fetch(`/api/emails/schedule?id=${scheduledEmailId}`, { method: 'DELETE' })
+    }
+    setScheduledAt(null)
+    setScheduledEmailId(null)
+    toast('Geplanter Versand abgebrochen', { icon: '🗑️' })
+  }
+
   // ── Send email modal ──
   const sendModal = showSendModal && pendingSendContract ? (
     <div
@@ -417,7 +492,9 @@ export default function ContractTab({
               <Mail className="w-4 h-4" style={{ color: '#8B5CF6' }} />
             </div>
             <div>
-              <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Send contract</h3>
+              <h3 className="font-black text-[15px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                {sendMode === 'send' ? 'Send contract' : 'Schedule contract'}
+              </h3>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>To {clientEmail}</p>
             </div>
           </div>
@@ -459,7 +536,7 @@ export default function ContractTab({
             <textarea
               value={sendMessage}
               onChange={e => setSendMessage(e.target.value)}
-              rows={8}
+              rows={7}
               className="input-base w-full resize-none"
               style={{ fontFamily: 'inherit', lineHeight: '1.6' }}
               placeholder="Your message to the client..."
@@ -468,20 +545,72 @@ export default function ContractTab({
               The signature link will be automatically added to the email.
             </p>
           </div>
+          {/* Schedule date/time — only in schedule mode */}
+          {sendMode === 'schedule' && (
+            <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.18)' }}>
+              <p className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: '#8B5CF6' }}>Versandzeitpunkt</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Datum *</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                    <input
+                      type="date"
+                      value={scheduleDate}
+                      onChange={e => setScheduleDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="input-base w-full pl-9"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Uhrzeit</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                    <input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={e => setScheduleTime(e.target.value)}
+                      className="input-base w-full pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+              {scheduleDate && (
+                <p className="text-[12px] font-medium" style={{ color: '#8B5CF6' }}>
+                  📅 Wird gesendet am {new Date(`${scheduleDate}T${scheduleTime}:00`).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} um {scheduleTime} Uhr
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
           <button onClick={() => setShowSendModal(false)} className="btn-secondary flex-1">Cancel</button>
-          <button
-            onClick={() => { handleSend(pendingSendContract); setShowSendModal(false) }}
-            disabled={sending}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-            style={{ background: '#8B5CF6' }}
-          >
-            {sending
-              ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><Send className="w-4 h-4" />Send now</>
-            }
-          </button>
+          {sendMode === 'send' ? (
+            <button
+              onClick={() => { handleSend(pendingSendContract); setShowSendModal(false) }}
+              disabled={sending}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+              style={{ background: '#8B5CF6' }}
+            >
+              {sending
+                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <><Send className="w-4 h-4" />Send now</>
+              }
+            </button>
+          ) : (
+            <button
+              onClick={handleContractSchedule}
+              disabled={scheduling || !scheduleDate}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+              style={{ background: '#8B5CF6' }}
+            >
+              {scheduling
+                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <><Calendar className="w-4 h-4" />Planen</>
+              }
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -612,6 +741,7 @@ export default function ContractTab({
                 <button
                   onClick={() => {
                     setPendingSendContract(activeContract)
+                    setSendMode('send')
                     setSendSubject(`📄 ${activeContract.title}`)
                     setSendMessage(`Hello ${clientName?.split(' ')[0] || ''},\n\nplease sign the attached contract via the following link.\n\nThank you!\n${photographerName || ''}`)
                     setShowSendModal(true)
@@ -625,6 +755,41 @@ export default function ContractTab({
                   <Send className="w-3.5 h-3.5" />
                   Send to client
                 </button>
+                {/* Schedule button */}
+                {!scheduledAt && (
+                  <button
+                    onClick={() => {
+                      setPendingSendContract(activeContract)
+                      setSendMode('schedule')
+                      setSendSubject(`📄 ${activeContract.title}`)
+                      setSendMessage(`Hello ${clientName?.split(' ')[0] || ''},\n\nplease sign the attached contract via the following link.\n\nThank you!\n${photographerName || ''}`)
+                      const tomorrow = new Date()
+                      tomorrow.setDate(tomorrow.getDate() + 1)
+                      setScheduleDate(tomorrow.toISOString().split('T')[0])
+                      setScheduleTime('09:00')
+                      setShowSendModal(true)
+                    }}
+                    disabled={!clientEmail}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                    style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.25)' }}
+                    title="Versand planen"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    Planen
+                  </button>
+                )}
+                {/* Scheduled badge */}
+                {scheduledAt && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.20)' }}>
+                    <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                    <span className="text-[11.5px] font-bold" style={{ color: '#8B5CF6' }}>
+                      {new Date(scheduledAt).toLocaleDateString('de-DE')}
+                    </span>
+                    <button onClick={cancelContractSchedule} className="w-4 h-4 flex items-center justify-center" style={{ color: '#8B5CF6' }}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </>
             )}
             {activeContract.status === 'sent' && (

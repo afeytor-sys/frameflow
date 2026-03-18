@@ -66,6 +66,7 @@ export default function QuestionnaireTab({ projectId, photographerId, clientEmai
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('09:00')
   const [scheduledAt, setScheduledAt] = useState<string | null>(null)
+  const [scheduledEmailId, setScheduledEmailId] = useState<string | null>(null)
   const [scheduling, setScheduling] = useState(false)
 
   // Email compose modal state
@@ -240,15 +241,68 @@ ${studio}`
     setScheduling(true)
     const dt = new Date(`${scheduleDate}T${scheduleTime}:00`)
     if (dt <= new Date()) { toast.error('Das Datum muss in der Zukunft liegen'); setScheduling(false); return }
+
+    // Build the email HTML (same as sendQuestionnaire would send)
+    const portalUrl = clientToken
+      ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://fotonizer.com'}/client/${clientToken}/questionnaire`
+      : null
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F7F4; margin: 0; padding: 40px 20px;">
+  <div style="max-width: 520px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.08);">
+    <div style="background: #1A1A18; padding: 24px 32px;">
+      <p style="color: #C4A47C; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0;">Fotonizer</p>
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="font-size: 20px; font-weight: 700; color: #1A1A18; margin: 0 0 8px;">${emailSubject}</h2>
+      <div style="color: #4A4845; font-size: 15px; line-height: 1.7; white-space: pre-wrap; margin-bottom: 24px;">${emailMessage}</div>
+      ${portalUrl ? `<a href="${portalUrl}" style="display: inline-block; background: #8B5CF6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 600;">📋 Fragebogen öffnen →</a>` : ''}
+    </div>
+  </div>
+</body>
+</html>`
+
+    const res = await fetch('/api/emails/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId,
+        toEmail: clientEmail,
+        toName: clientName,
+        subject: emailSubject,
+        htmlBody,
+        plainBody: emailMessage,
+        type: 'questionnaire',
+        referenceId: questionnaire.id,
+        scheduledAt: dt.toISOString(),
+      }),
+    })
+
+    if (!res.ok) {
+      const err = await res.json()
+      toast.error(err.error || 'Fehler beim Planen')
+      setScheduling(false)
+      return
+    }
+
+    const data = await res.json()
     setScheduledAt(dt.toISOString())
+    setScheduledEmailId(data.scheduledEmail?.id || null)
     setShowEmailModal(false)
     setShowScheduleModal(false)
     setScheduling(false)
-    toast.success(`Questionnaire scheduled for ${dt.toLocaleDateString('en-US')} at ${scheduleTime}`)
+    toast.success(`📅 Geplant für ${dt.toLocaleDateString('de-DE')} um ${scheduleTime} Uhr`)
   }
 
-  const cancelSchedule = () => {
+  const cancelSchedule = async () => {
+    if (scheduledEmailId) {
+      await fetch(`/api/emails/schedule?id=${scheduledEmailId}`, { method: 'DELETE' })
+    }
     setScheduledAt(null)
+    setScheduledEmailId(null)
     toast('Geplanter Versand abgebrochen', { icon: '🗑️' })
   }
 
