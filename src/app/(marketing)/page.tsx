@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Star, Zap, Shield, Globe, Camera, Users } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Star, Zap, Shield, Globe, Camera, Users, Menu, X } from 'lucide-react'
 import PricingSection from '@/components/marketing/PricingSection'
 import FAQAccordion from '@/components/marketing/FAQAccordion'
 
@@ -479,13 +479,14 @@ function ContractsMockup() {
 // ── Main Page ─────────────────────────────────────────────────────────
 export default function HomePage() {
   const [lang, setLang] = useState<'de' | 'en'>('en')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const t = T[lang]
 
   return (
     <div style={{ background: 'var(--bg-page)', color: 'var(--text-primary)', minHeight: '100vh' }}>
 
       {/* ── NAVBAR ── */}
-      <nav style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+      <nav style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)', position: 'relative', zIndex: 50 }}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
@@ -497,6 +498,7 @@ export default function HomePage() {
             <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Fotonizer</span>
           </Link>
 
+          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-6">
             {[{ href: '#features', label: t.nav.features }, { href: '#pricing', label: t.nav.pricing }, { href: '#faq', label: t.nav.faq }].map(({ href, label }) => (
               <a key={href} href={href} className="text-[13.5px] font-medium" style={{ color: 'var(--text-muted)' }}>{label}</a>
@@ -504,20 +506,92 @@ export default function HomePage() {
             <Link href="/blog" className="text-[13.5px] font-medium" style={{ color: 'var(--text-muted)' }}>{t.nav.blog}</Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Desktop right actions */}
+          <div className="hidden sm:flex items-center gap-3">
             <button onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold"
               style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', cursor: 'pointer' }}>
               <span style={{ opacity: lang === 'de' ? 1 : 0.4 }}>DE</span>
               <span style={{ color: 'var(--border-color)' }}>|</span>
               <span style={{ opacity: lang === 'en' ? 1 : 0.4 }}>EN</span>
             </button>
-            <Link href="/login" className="text-[13.5px] font-semibold hidden sm:block" style={{ color: 'var(--text-secondary)' }}>{t.nav.signin}</Link>
+            <Link href="/login" className="text-[13.5px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{t.nav.signin}</Link>
             <Link href="/signup" className="btn-shimmer flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13.5px] font-bold text-white" style={{ background: 'var(--accent)' }}>
               {t.nav.cta}<ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+
+          {/* Mobile: CTA + hamburger */}
+          <div className="flex sm:hidden items-center gap-2">
+            <Link href="/signup" className="btn-shimmer flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white" style={{ background: 'var(--accent)' }}>
+              {t.nav.cta}
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg"
+              style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', cursor: 'pointer' }}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+            <div className="px-6 py-4 flex flex-col gap-1">
+              {/* Nav links */}
+              {[
+                { href: '#features', label: t.nav.features },
+                { href: '#pricing', label: t.nav.pricing },
+                { href: '#faq', label: t.nav.faq },
+                { href: '/blog', label: t.nav.blog },
+              ].map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2.5 text-[15px] font-medium"
+                  style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)' }}
+                >
+                  {label}
+                </a>
+              ))}
+
+              {/* Auth links */}
+              <div className="pt-3 flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 rounded-xl text-[14px] font-semibold text-center"
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                >
+                  {t.nav.signin}
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="btn-shimmer w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[14px] font-bold text-white"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {t.nav.cta}<ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* Language toggle */}
+              <div className="pt-2 flex justify-center">
+                <button onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold"
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  <span style={{ opacity: lang === 'de' ? 1 : 0.4 }}>DE</span>
+                  <span style={{ color: 'var(--border-color)' }}>|</span>
+                  <span style={{ opacity: lang === 'en' ? 1 : 0.4 }}>EN</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ── */}

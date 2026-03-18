@@ -15,18 +15,62 @@ export default function UpdatePasswordPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Wait for the session to be established from the recovery link
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setReady(true)
+    const init = async () => {
+      // Check for token_hash in URL (new Supabase PKCE / email link flow)
+      const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
+      const searchParams = new URLSearchParams(window.location.search)
+
+      const tokenHash = searchParams.get('token_hash') || hashParams.get('token_hash')
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      const type = searchParams.get('type') || hashParams.get('type')
+
+      // Case 1: token_hash in URL (email link with PKCE)
+      if (tokenHash && (type === 'recovery' || type === 'email')) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        })
+        if (!error) {
+          setReady(true)
+          // Clean up URL
+          window.history.replaceState({}, '', '/update-password')
+          return
+        }
       }
-    })
-    // Also check if already signed in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
-    })
-    return () => subscription.unsubscribe()
+
+      // Case 2: access_token in hash (old implicit flow)
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        if (!error) {
+          setReady(true)
+          window.history.replaceState({}, '', '/update-password')
+          return
+        }
+      }
+
+      // Case 3: already have a valid session (e.g. came from auth/callback)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setReady(true)
+        return
+      }
+
+      // Case 4: listen for PASSWORD_RECOVERY event
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+          setReady(true)
+        }
+      })
+
+      return () => subscription.unsubscribe()
+    }
+
+    init()
   }, [supabase])
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -48,7 +92,7 @@ export default function UpdatePasswordPage() {
       setLoading(false)
     } else {
       setSuccess(true)
-      setTimeout(() => router.push('/dashboard'), 2500)
+      setTimeout(() => { window.location.href = '/dashboard' }, 2500)
     }
   }
 
@@ -90,19 +134,20 @@ export default function UpdatePasswordPage() {
                 className="text-[#111110] font-semibold mb-2"
                 style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '28px', letterSpacing: '-0.03em' }}
               >
-              New password
-            </h1>
-            <p className="text-[#7A7670] text-[14px]">
-              Enter your new password.
+                New password
+              </h1>
+              <p className="text-[#7A7670] text-[14px]">
+                Enter your new password.
               </p>
             </div>
 
             {!ready ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
                 <svg className="animate-spin h-6 w-6 text-[#C8A882]" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
+                <p className="text-[13px] text-[#7A7670]">Verifying your reset link…</p>
               </div>
             ) : (
               <form onSubmit={handleUpdate} className="space-y-4">
@@ -149,7 +194,7 @@ export default function UpdatePasswordPage() {
                   className="w-full py-2.5 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                   style={{ letterSpacing: '0.01em' }}
                 >
-                  {loading ? 'Saving...' : 'Update password'}
+                  {loading ? 'Saving…' : 'Update password'}
                 </button>
               </form>
             )}
