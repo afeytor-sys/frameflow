@@ -19,6 +19,13 @@ export interface Photographer {
   stripe_sub_id: string | null
   language: Language
   onboarding_completed: boolean
+  // migration 016: bank details
+  bank_account_holder: string | null
+  bank_name: string | null
+  bank_iban: string | null
+  bank_bic: string | null
+  // migration 025: storage usage
+  storage_used_bytes: number
   created_at: string
 }
 
@@ -33,22 +40,56 @@ export interface Client {
   project_type: string | null
   notes: string | null
   status: ClientStatus
+  // migration 020: address fields
+  address_street: string | null
+  address_city: string | null
+  address_zip: string | null
+  address_country: string | null
   created_at: string
 }
 
 export interface Project {
   id: string
-  client_id: string
+  client_id: string | null
   photographer_id: string
   title: string
   shoot_date: string | null
   project_type: string | null
-  status: ProjectStatus
+  shooting_type_sort: number | null
+  status: string
   client_token: string
   client_url: string
+  custom_slug: string | null
+  // booking fields
+  location: string | null
+  notes: string | null
+  shoot_time: string | null
+  shoot_duration: string | null
+  num_persons: number | null
+  price: string | null
+  meeting_point: string | null
+  // extra booking fields
+  custom_type_label: string | null
+  custom_type_color: string | null
+  custom_status_label: string | null
+  custom_status_color: string | null
+  // portal settings
+  portal_sections: Record<string, boolean> | null
+  portal_message: string | null
+  portal_password: string | null
+  portal_links: PortalLink[]
+  project_steps_override: string[] | null
+  portal_locale: string | null
+  // internal notes
+  internal_notes: string | null
   created_at: string
   // Joined
   client?: Client
+}
+
+export interface PortalLink {
+  label: string
+  url: string
 }
 
 export interface Contract {
@@ -64,21 +105,37 @@ export interface Contract {
   signature_data: string | null
   ip_address: string | null
   pdf_url: string | null
+  // migration 011: photographer signature
+  photographer_signature_data: string | null
+  photographer_signed_at: string | null
+  // migration 021: client fields
+  client_name: string | null
+  client_email: string | null
+  client_address: string | null
   created_at: string
 }
 
 export interface Gallery {
   id: string
   project_id: string
+  photographer_id: string
   title: string
   description: string | null
   status: GalleryStatus
+  // migration 035: gallery password
   password: string | null
   watermark: boolean
   download_enabled: boolean
+  // migration 003
+  comments_enabled: boolean
+  design_theme: string
+  // migration 004
+  tags_enabled: string[]
   expires_at: string | null
   view_count: number
   download_count: number
+  // migration 033: favorite list name
+  favorite_list_name: string | null
   created_at: string
   // Joined
   photos?: Photo[]
@@ -87,6 +144,8 @@ export interface Gallery {
 export interface Photo {
   id: string
   gallery_id: string
+  section_id: string | null
+  photographer_id: string | null
   filename: string
   storage_url: string
   thumbnail_url: string | null
@@ -95,7 +154,16 @@ export interface Photo {
   height: number | null
   is_favorite: boolean
   display_order: number
+  tag: string | null
   uploaded_at: string
+}
+
+export interface GallerySection {
+  id: string
+  gallery_id: string
+  title: string
+  display_order: number
+  created_at: string
 }
 
 export interface TimelineEvent {
@@ -120,12 +188,102 @@ export interface Timeline {
 export interface Invoice {
   id: string
   project_id: string
+  photographer_id: string
+  invoice_number: string | null
   amount: number
   currency: string
   status: InvoiceStatus
+  description: string | null
   due_date: string | null
+  // migration 023: notes
+  notes: string | null
   stripe_invoice_id: string | null
   created_at: string
+}
+
+export interface QuestionnaireTemplate {
+  id: string
+  photographer_id: string
+  name: string
+  description: string | null
+  questions: QuestionnaireQuestion[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Questionnaire {
+  id: string
+  project_id: string
+  photographer_id: string
+  title: string
+  questions: QuestionnaireQuestion[]
+  answers: Record<string, string>
+  status: 'draft' | 'sent' | 'submitted'
+  sent_at: string | null
+  submitted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface QuestionnaireQuestion {
+  id: string
+  type: 'text' | 'textarea' | 'select' | 'multiselect' | 'date' | 'number'
+  label: string
+  required: boolean
+  options?: string[]
+}
+
+export interface EmailTemplate {
+  id: string
+  photographer_id: string
+  name: string
+  subject: string
+  body: string
+  category: 'invoice' | 'gallery' | 'questionnaire' | 'contract' | 'general'
+  created_at: string
+  updated_at: string
+}
+
+export interface Notification {
+  id: string
+  photographer_id: string
+  type: 'contract_signed' | 'questionnaire_filled' | 'gallery_viewed' | 'portal_opened' | 'contract_sent' | 'gallery_delivered' | 'photo_downloaded' | 'gallery_downloaded' | 'favorite_marked'
+  title_de: string
+  title_en: string
+  body_de: string | null
+  body_en: string | null
+  project_id: string | null
+  client_name: string | null
+  read: boolean
+  created_at: string
+}
+
+export interface AutomationSettings {
+  id: string
+  photographer_id: string
+  // Email automations
+  email_portal_created: boolean
+  email_contract_sent: boolean
+  email_gallery_delivered: boolean
+  // Reminders
+  reminder_7d: boolean
+  reminder_1d: boolean
+  // Notification preferences (migration 034)
+  notify_inapp_contract_signed: boolean
+  notify_email_contract_signed: boolean
+  notify_inapp_gallery_viewed: boolean
+  notify_email_gallery_viewed: boolean
+  notify_inapp_questionnaire: boolean
+  notify_email_questionnaire: boolean
+  notify_inapp_photo_downloaded: boolean
+  notify_email_photo_downloaded: boolean
+  notify_inapp_gallery_downloaded: boolean
+  notify_email_gallery_downloaded: boolean
+  notify_inapp_favorite_marked: boolean
+  notify_email_favorite_marked: boolean
+  notify_email_shoot_reminder_photographer: boolean
+  created_at: string
+  updated_at: string
 }
 
 // Plan limits

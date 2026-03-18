@@ -1,5 +1,5 @@
 -- ============================================================
--- FrameFlow — Supabase Database Schema (up to migration 032)
+-- FrameFlow — Supabase Database Schema (up to migration 035)
 -- Run this in the Supabase SQL Editor for a fresh install.
 -- For existing installs, run the individual migration files.
 -- ============================================================
@@ -36,6 +36,7 @@ CREATE TABLE photographers (
   language              language_type NOT NULL DEFAULT 'de',
   onboarding_completed  boolean NOT NULL DEFAULT false,
   -- migration 016: bank details
+  bank_account_holder   text,
   bank_name             text,
   bank_iban             text,
   bank_bic              text,
@@ -110,6 +111,10 @@ CREATE TABLE projects (
   portal_links          jsonb DEFAULT '[]'::jsonb,
   -- migration 024: steps override
   project_steps_override jsonb,
+  -- migration 029: portal locale
+  portal_locale         text,
+  -- migration 031: internal notes
+  internal_notes        text,
   created_at            timestamptz NOT NULL DEFAULT now()
 );
 
@@ -165,6 +170,7 @@ CREATE TABLE galleries (
   title            text NOT NULL DEFAULT 'Galerie',
   description      text,
   status           gallery_status NOT NULL DEFAULT 'draft',
+  -- migration 035: gallery password
   password         text,
   watermark        boolean NOT NULL DEFAULT true,
   download_enabled boolean NOT NULL DEFAULT true,
@@ -176,6 +182,8 @@ CREATE TABLE galleries (
   expires_at       timestamptz,
   view_count       integer NOT NULL DEFAULT 0,
   download_count   integer NOT NULL DEFAULT 0,
+  -- migration 033: favorite list name
+  favorite_list_name text DEFAULT NULL,
   created_at       timestamptz NOT NULL DEFAULT now()
 );
 
@@ -352,19 +360,34 @@ CREATE TABLE notifications (
 );
 
 -- ============================================================
--- AUTOMATION SETTINGS (migration 030)
+-- AUTOMATION SETTINGS (migration 030 + 032 + 034)
 -- ============================================================
 
 CREATE TABLE automation_settings (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   photographer_id uuid NOT NULL UNIQUE REFERENCES photographers(id) ON DELETE CASCADE,
-  -- Email automations
+  -- Email automations (migration 030)
   email_portal_created    boolean DEFAULT true,
   email_contract_sent     boolean DEFAULT true,
   email_gallery_delivered boolean DEFAULT true,
-  -- Reminders
+  -- Reminders (migration 030)
   reminder_7d boolean DEFAULT true,
   reminder_1d boolean DEFAULT true,
+  -- Notification preferences (migration 034)
+  -- Controls what the PHOTOGRAPHER receives (in-app + email)
+  notify_inapp_contract_signed            boolean DEFAULT true,
+  notify_email_contract_signed            boolean DEFAULT true,
+  notify_inapp_gallery_viewed             boolean DEFAULT true,
+  notify_email_gallery_viewed             boolean DEFAULT false,
+  notify_inapp_questionnaire              boolean DEFAULT true,
+  notify_email_questionnaire              boolean DEFAULT true,
+  notify_inapp_photo_downloaded           boolean DEFAULT true,
+  notify_email_photo_downloaded           boolean DEFAULT false,
+  notify_inapp_gallery_downloaded         boolean DEFAULT true,
+  notify_email_gallery_downloaded         boolean DEFAULT true,
+  notify_inapp_favorite_marked            boolean DEFAULT true,
+  notify_email_favorite_marked            boolean DEFAULT false,
+  notify_email_shoot_reminder_photographer boolean DEFAULT true,
   created_at  timestamptz DEFAULT now(),
   updated_at  timestamptz DEFAULT now()
 );
@@ -859,4 +882,8 @@ CREATE TRIGGER update_questionnaires_updated_at
 
 CREATE TRIGGER update_email_templates_updated_at
   BEFORE UPDATE ON email_templates
+  FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_automation_settings_updated_at
+  BEFORE UPDATE ON automation_settings
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
