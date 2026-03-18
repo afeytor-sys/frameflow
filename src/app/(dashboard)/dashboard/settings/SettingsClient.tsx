@@ -64,6 +64,24 @@ export default function SettingsClient({ photographer, userId }: Props) {
   })
   const [autoLoaded, setAutoLoaded] = useState(false)
 
+  // Notification settings (in-app + email for photographer)
+  const [notifSettings, setNotifSettings] = useState({
+    notify_inapp_contract_signed: true,
+    notify_email_contract_signed: true,
+    notify_inapp_gallery_viewed: true,
+    notify_email_gallery_viewed: false,
+    notify_inapp_questionnaire: true,
+    notify_email_questionnaire: true,
+    notify_inapp_photo_downloaded: true,
+    notify_email_photo_downloaded: false,
+    notify_inapp_gallery_downloaded: true,
+    notify_email_gallery_downloaded: true,
+    notify_inapp_favorite_marked: true,
+    notify_email_favorite_marked: false,
+    notify_email_shoot_reminder_photographer: true,
+  })
+  const [notifLoaded, setNotifLoaded] = useState(false)
+
   const supabase = createClient()
   useEffect(() => {
     supabase
@@ -80,8 +98,24 @@ export default function SettingsClient({ photographer, userId }: Props) {
             reminder_7d: data.reminder_7d ?? true,
             reminder_1d: data.reminder_1d ?? true,
           })
+          setNotifSettings({
+            notify_inapp_contract_signed: data.notify_inapp_contract_signed ?? true,
+            notify_email_contract_signed: data.notify_email_contract_signed ?? true,
+            notify_inapp_gallery_viewed: data.notify_inapp_gallery_viewed ?? true,
+            notify_email_gallery_viewed: data.notify_email_gallery_viewed ?? false,
+            notify_inapp_questionnaire: data.notify_inapp_questionnaire ?? true,
+            notify_email_questionnaire: data.notify_email_questionnaire ?? true,
+            notify_inapp_photo_downloaded: data.notify_inapp_photo_downloaded ?? true,
+            notify_email_photo_downloaded: data.notify_email_photo_downloaded ?? false,
+            notify_inapp_gallery_downloaded: data.notify_inapp_gallery_downloaded ?? true,
+            notify_email_gallery_downloaded: data.notify_email_gallery_downloaded ?? true,
+            notify_inapp_favorite_marked: data.notify_inapp_favorite_marked ?? true,
+            notify_email_favorite_marked: data.notify_email_favorite_marked ?? false,
+            notify_email_shoot_reminder_photographer: data.notify_email_shoot_reminder_photographer ?? true,
+          })
         }
         setAutoLoaded(true)
+        setNotifLoaded(true)
       })
   }, [userId])
 
@@ -520,24 +554,139 @@ export default function SettingsClient({ photographer, userId }: Props) {
 
       {/* Notifications tab */}
       {activeTab === 'notifications' && (
-        <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-[#1A1A1A]">{isDE ? 'Benachrichtigungen' : 'Notifications'}</h2>
-          <p className="text-xs text-[#6B6B6B]">
-            {isDE ? 'In-App Benachrichtigungen erscheinen im Glocken-Symbol oben rechts.' : 'In-app notifications appear in the bell icon at the top right.'}
-          </p>
-          {[
-            { de: 'Vertrag unterschrieben', en: 'Contract signed' },
-            { de: 'Galerie angesehen', en: 'Gallery viewed' },
-            { de: 'Fragebogen ausgefüllt', en: 'Questionnaire filled' },
-            { de: 'Erinnerung gesendet', en: 'Reminder sent' },
-          ].map(item => (
-            <div key={item.de} className="flex items-center justify-between py-2 border-b border-[#E8E8E4] last:border-0">
-              <span className="text-sm text-[#1A1A1A]">{isDE ? item.de : item.en}</span>
-              <div className="w-9 h-5 rounded-full bg-[#3DBA6F] relative">
-                <div className="absolute top-0.5 left-4 w-4 h-4 bg-white rounded-full shadow" />
-              </div>
+        <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-[#1A1A1A]">{isDE ? 'Benachrichtigungen' : 'Notifications'}</h2>
+            <p className="text-xs text-[#6B6B6B] mt-1">
+              {isDE ? 'Wähle für jedes Ereignis, ob du eine In-App- und/oder E-Mail-Benachrichtigung erhalten möchtest.' : 'Choose for each event whether you want an in-app and/or email notification.'}
+            </p>
+          </div>
+
+          {!notifLoaded ? (
+            <div className="py-4 text-center">
+              <div className="w-4 h-4 border-2 border-[#E8E8E4] border-t-[#C8A882] rounded-full animate-spin mx-auto" />
             </div>
-          ))}
+          ) : (
+            <>
+              {/* Column headers */}
+              <div className="flex items-center justify-end gap-4 pr-1 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] w-14 text-center">
+                  {isDE ? 'In-App' : 'In-App'}
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] w-14 text-center">
+                  E-Mail
+                </span>
+              </div>
+
+              {/* Client activity section */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] mb-2">
+                  {isDE ? 'Kunden-Aktivität' : 'Client Activity'}
+                </p>
+                {([
+                  {
+                    labelDE: 'Vertrag unterschrieben', labelEN: 'Contract signed',
+                    inappKey: 'notify_inapp_contract_signed', emailKey: 'notify_email_contract_signed',
+                  },
+                  {
+                    labelDE: 'Galerie angesehen', labelEN: 'Gallery viewed',
+                    inappKey: 'notify_inapp_gallery_viewed', emailKey: 'notify_email_gallery_viewed',
+                  },
+                  {
+                    labelDE: 'Fragebogen ausgefüllt', labelEN: 'Questionnaire filled',
+                    inappKey: 'notify_inapp_questionnaire', emailKey: 'notify_email_questionnaire',
+                  },
+                  {
+                    labelDE: 'Foto heruntergeladen', labelEN: 'Photo downloaded',
+                    inappKey: 'notify_inapp_photo_downloaded', emailKey: 'notify_email_photo_downloaded',
+                  },
+                  {
+                    labelDE: 'Galerie heruntergeladen', labelEN: 'Gallery downloaded',
+                    inappKey: 'notify_inapp_gallery_downloaded', emailKey: 'notify_email_gallery_downloaded',
+                  },
+                  {
+                    labelDE: 'Favorit markiert', labelEN: 'Favorite marked',
+                    inappKey: 'notify_inapp_favorite_marked', emailKey: 'notify_email_favorite_marked',
+                  },
+                ] as const).map(item => {
+                  const label = isDE ? item.labelDE : item.labelEN
+                  const inappOn = notifSettings[item.inappKey]
+                  const emailOn = notifSettings[item.emailKey]
+                  return (
+                    <div key={item.inappKey} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
+                      <span className="text-sm text-[#1A1A1A] flex-1">{label}</span>
+                      <div className="flex items-center gap-4">
+                        {/* In-App toggle */}
+                        <button
+                          onClick={() => setNotifSettings(prev => ({ ...prev, [item.inappKey]: !prev[item.inappKey] }))}
+                          className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', inappOn ? 'bg-[#3DBA6F]' : 'bg-[#E8E8E4]')}
+                        >
+                          <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', inappOn ? 'left-4' : 'left-0.5')} />
+                        </button>
+                        {/* Email toggle */}
+                        <button
+                          onClick={() => setNotifSettings(prev => ({ ...prev, [item.emailKey]: !prev[item.emailKey] }))}
+                          className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', emailOn ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]')}
+                        >
+                          <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', emailOn ? 'left-4' : 'left-0.5')} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Shooting reminders section */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] mb-2">
+                  {isDE ? 'Shooting-Erinnerungen (für dich)' : 'Shoot Reminders (for you)'}
+                </p>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
+                  <div>
+                    <p className="text-sm text-[#1A1A1A]">{isDE ? '1 Tag vorher — E-Mail an dich' : '1 day before — Email to you'}</p>
+                    <p className="text-xs text-[#6B6B6B] mt-0.5">{isDE ? 'Du erhältst eine Erinnerung am Tag vor dem Shooting' : 'You receive a reminder the day before the shoot'}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-9" /> {/* spacer for in-app column */}
+                    <button
+                      onClick={() => setNotifSettings(prev => ({ ...prev, notify_email_shoot_reminder_photographer: !prev.notify_email_shoot_reminder_photographer }))}
+                      className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', notifSettings.notify_email_shoot_reminder_photographer ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]')}
+                    >
+                      <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', notifSettings.notify_email_shoot_reminder_photographer ? 'left-4' : 'left-0.5')} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-[#3DBA6F]" />
+                  <span className="text-[11px] text-[#6B6B6B]">{isDE ? 'In-App (Glocke)' : 'In-App (bell)'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-[#C8A882]" />
+                  <span className="text-[11px] text-[#6B6B6B]">{isDE ? 'E-Mail an dich' : 'Email to you'}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  setSaving(true)
+                  const { error } = await supabase
+                    .from('automation_settings')
+                    .upsert({ photographer_id: userId, ...notifSettings, updated_at: new Date().toISOString() }, { onConflict: 'photographer_id' })
+                  setSaving(false)
+                  if (error) toast.error(isDE ? 'Fehler beim Speichern' : 'Failed to save')
+                  else toast.success(isDE ? 'Gespeichert' : 'Saved')
+                }}
+                disabled={saving}
+                className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+              >
+                {saving ? (isDE ? 'Speichern...' : 'Saving...') : (isDE ? 'Speichern' : 'Save')}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

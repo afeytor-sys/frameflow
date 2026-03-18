@@ -177,6 +177,53 @@ export async function GET(request: NextRequest) {
         client_name: client.full_name,
       })
 
+      // ── Email reminder to photographer (if enabled) ──────────────
+      const { data: notifSettings } = await supabase
+        .from('automation_settings')
+        .select('notify_email_shoot_reminder_photographer')
+        .eq('photographer_id', photographer.id)
+        .single()
+
+      const sendToPhotographer = notifSettings?.notify_email_shoot_reminder_photographer ?? true
+
+      if (sendToPhotographer && photographer?.email) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fotonizer.com'
+        const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
+        await resend.emails.send({
+          from: `Fotonizer <noreply@fotonizer.com>`,
+          to: photographer.email,
+          subject: `📅 Morgen: Shooting mit ${client.full_name}`,
+          html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F7F4; margin: 0; padding: 40px 20px;">
+  <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.08);">
+    <div style="background: #1A1A18; padding: 24px 32px;">
+      <p style="color: #C4A47C; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0;">Fotonizer</p>
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="font-size: 20px; font-weight: 700; color: #1A1A18; margin: 0 0 8px; letter-spacing: -0.02em;">📅 Shooting morgen</h2>
+      <p style="color: #7A7670; font-size: 14px; margin: 0 0 20px;">Erinnerung für dich, ${studioName}</p>
+      <div style="background: #F8F7F4; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <p style="margin: 0 0 8px; font-size: 14px; color: #7A7670;">Kunde</p>
+        <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #1A1A18;">${client.full_name}</p>
+        <p style="margin: 0 0 8px; font-size: 14px; color: #7A7670;">Projekt</p>
+        <p style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #1A1A18;">${project.title}</p>
+        <p style="margin: 0 0 8px; font-size: 14px; color: #7A7670;">Datum</p>
+        <p style="margin: 0; font-size: 16px; font-weight: 700; color: #C4A47C;">${shootDateFormatted}</p>
+      </div>
+      <a href="${appUrl}/dashboard/projects/${project.id}" style="display: inline-block; background: #1A1A18; color: white; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600;">Projekt öffnen →</a>
+    </div>
+    <div style="padding: 16px 32px; border-top: 1px solid #F0EDE8;">
+      <p style="color: #B0ACA6; font-size: 12px; margin: 0;">Du erhältst diese E-Mail als Shooting-Erinnerung. <a href="${appUrl}/dashboard/settings" style="color: #C4A47C;">Einstellungen ändern</a></p>
+    </div>
+  </div>
+</body>
+</html>`.trim(),
+        }).catch(() => {})
+      }
+
       sent1d++
     } catch (e) {
       errors.push(`1d project ${project.id}: ${e}`)

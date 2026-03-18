@@ -41,6 +41,24 @@ interface Props {
   isPublic?: boolean
 }
 
+// ── Notify photographer helper ───────────────────────────────────────────────
+async function notifyPhotographer(
+  galleryId: string,
+  type: 'photo_downloaded' | 'gallery_downloaded' | 'favorite_marked',
+  clientName: string,
+  photoName?: string
+) {
+  try {
+    await fetch(`/api/galleries/${galleryId}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, clientName, photoName }),
+    })
+  } catch {
+    // silent — never block the user action
+  }
+}
+
 const TAG_CONFIG = {
   green:  { label: 'Auswahl',    bg: '#22C55E', ring: '#16A34A' },
   yellow: { label: 'Vielleicht', bg: '#EAB308', ring: '#CA8A04' },
@@ -298,6 +316,9 @@ export default function GalleryViewer({
     if (error) {
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: !newValue } : p))
       toast.error('Error saving')
+    } else if (newValue && !isPublic) {
+      // Notify photographer when a favorite is marked (fire & forget)
+      notifyPhotographer(galleryId, 'favorite_marked', clientName)
     }
   }
 
@@ -325,6 +346,8 @@ export default function GalleryViewer({
       a.href = url; a.download = photo.filename; a.click()
       URL.revokeObjectURL(url)
       try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
+      // Notify photographer (fire & forget)
+      if (!isPublic) notifyPhotographer(galleryId, 'photo_downloaded', clientName, photo.filename)
     } catch { toast.error('Download fehlgeschlagen') }
   }
 
@@ -348,6 +371,8 @@ export default function GalleryViewer({
       a.href = url; a.download = `${galleryTitle || clientName || 'Galerie'}.zip`; a.click()
       URL.revokeObjectURL(url)
       try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
+      // Notify photographer (fire & forget)
+      if (!isPublic) notifyPhotographer(galleryId, 'gallery_downloaded', clientName)
       toast.success(`${total} Fotos heruntergeladen!`)
     } catch { toast.error('Download fehlgeschlagen') }
     finally { setDownloadingAll(false); setDownloadProgress(0) }
