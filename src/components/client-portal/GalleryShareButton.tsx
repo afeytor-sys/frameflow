@@ -11,15 +11,29 @@ interface Props {
 
 export default function GalleryShareButton({ galleryUrl, galleryPassword }: Props) {
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedAll, setCopiedAll] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
 
-  const handleCopy = async () => {
-    const text = galleryPassword
-      ? `${galleryUrl}\n\nPassword: ${galleryPassword}`
-      : galleryUrl
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(galleryUrl)
+    } catch {
+      const el = document.createElement('textarea')
+      el.value = galleryUrl
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 2000)
+  }
+
+  const handleCopyAll = async () => {
+    const text = `${galleryUrl}\n\nPassword: ${galleryPassword}`
     try {
       await navigator.clipboard.writeText(text)
     } catch {
@@ -30,8 +44,8 @@ export default function GalleryShareButton({ galleryUrl, galleryPassword }: Prop
       document.execCommand('copy')
       document.body.removeChild(el)
     }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopiedAll(true)
+    setTimeout(() => setCopiedAll(false), 2000)
   }
 
   const modal = open && mounted ? createPortal(
@@ -67,39 +81,59 @@ export default function GalleryShareButton({ galleryUrl, galleryPassword }: Prop
 
         <div className="px-5 pb-5 space-y-3">
           {/* Gallery link */}
-          <div className="rounded-xl p-3.5 space-y-1" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
-            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              🔗 Link da galeria
-            </p>
-            <p className="text-[13px] font-medium break-all" style={{ color: 'var(--text-primary)' }}>
-              {galleryUrl}
-            </p>
+          <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
+            <div className="px-3.5 pt-3 pb-2 space-y-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                🔗 Link da galeria
+              </p>
+              <p className="text-[13px] font-medium break-all" style={{ color: 'var(--text-primary)' }}>
+                {galleryUrl}
+              </p>
+            </div>
+            {/* Copy link button inline */}
+            <button
+              onClick={handleCopyLink}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] font-bold transition-all"
+              style={{
+                background: copiedLink ? 'rgba(42,155,104,0.12)' : 'var(--bg-hover)',
+                color: copiedLink ? '#2A9B68' : 'var(--text-primary)',
+                borderTop: '1px solid var(--border-color)',
+              }}
+            >
+              {copiedLink ? (
+                <><Check className="w-3.5 h-3.5" />Link kopiert!</>
+              ) : (
+                <><Copy className="w-3.5 h-3.5" />Link kopieren</>
+              )}
+            </button>
           </div>
 
           {/* Gallery password (if set) */}
           {galleryPassword && (
-            <div className="rounded-xl p-3.5 space-y-1" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
-              <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                🔑 Password
-              </p>
-              <p className="text-[15px] font-mono font-bold tracking-widest" style={{ color: 'var(--text-primary)' }}>
-                {galleryPassword}
-              </p>
-            </div>
-          )}
+            <>
+              <div className="rounded-xl p-3.5 space-y-1" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
+                <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  🔑 Password
+                </p>
+                <p className="text-[15px] font-mono font-bold tracking-widest" style={{ color: 'var(--text-primary)' }}>
+                  {galleryPassword}
+                </p>
+              </div>
 
-          {/* Copy button */}
-          <button
-            onClick={handleCopy}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white transition-all"
-            style={{ background: copied ? '#2A9B68' : 'var(--text-primary)' }}
-          >
-            {copied ? (
-              <><Check className="w-4 h-4" />Kopiert!</>
-            ) : (
-              <><Copy className="w-4 h-4" />{galleryPassword ? 'Link + Password kopieren' : 'Link kopieren'}</>
-            )}
-          </button>
+              {/* Copy link + password together */}
+              <button
+                onClick={handleCopyAll}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white transition-all"
+                style={{ background: copiedAll ? '#2A9B68' : 'var(--text-primary)' }}
+              >
+                {copiedAll ? (
+                  <><Check className="w-4 h-4" />Kopiert!</>
+                ) : (
+                  <><Copy className="w-4 h-4" />Link + Password kopieren</>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>,
