@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import WeatherWidget from '@/components/client-portal/WeatherWidget'
 import MoodBoard from '@/components/client-portal/MoodBoard'
+import GalleryShareButton from '@/components/client-portal/GalleryShareButton'
 
 // ── Portal translations ──────────────────────────────────────────────────────
 type Locale = 'de' | 'en'
@@ -245,6 +246,9 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
   const days = project.shoot_date ? daysUntil(project.shoot_date) : null
   const meetingPoint: string | null = (project as { meeting_point?: string | null }).meeting_point ?? null
+  const portalPassword: string | null = (project as { portal_password?: string | null }).portal_password ?? null
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frameflow.app'
+  const publicGalleryUrl = `${baseUrl}/gallery/${token}`
   const portalLinks = ((project as { portal_links?: { label: string; url: string }[] | null }).portal_links ?? []).filter(l => l.url?.trim())
 
   // Portal visibility settings
@@ -708,11 +712,10 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
         {/* ── GALLERY CARD ── */}
         {show.gallery && gallery && (
-          <Link href={`/client/${token}/gallery`}
-            className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
+          <div className="rounded-2xl overflow-hidden animate-in-delay-2"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
             <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, var(--accent), #E8C89C)' }} />
-            <div className="p-5">
+            <Link href={`/client/${token}/gallery`} className="group block p-5 hover:opacity-95 transition-opacity">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3.5">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -749,8 +752,18 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                   {gallery.download_count > 0 && <span className="text-[18px]" style={{ color: 'var(--text-muted)' }}>{t.gallery.downloads(gallery.download_count)}</span>}
                 </div>
               )}
+            </Link>
+            {/* Share button — outside the Link to avoid nested navigation */}
+            <div className="px-5 pb-4 pt-0 flex items-center justify-between" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                Teile die Galerie mit Gästen & Familie
+              </p>
+              <GalleryShareButton
+                galleryUrl={publicGalleryUrl}
+                portalPassword={portalPassword}
+              />
             </div>
-          </Link>
+          </div>
         )}
 
         {/* ── MOODBOARD ── */}

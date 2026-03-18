@@ -1,5 +1,5 @@
 -- ============================================================
--- FrameFlow — Supabase Database Schema (up to migration 028)
+-- FrameFlow — Supabase Database Schema (up to migration 032)
 -- Run this in the Supabase SQL Editor for a fresh install.
 -- For existing installs, run the individual migration files.
 -- ============================================================
@@ -334,6 +334,42 @@ CREATE TABLE email_templates (
 );
 
 -- ============================================================
+-- NOTIFICATIONS (migration 030)
+-- ============================================================
+
+CREATE TABLE notifications (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  photographer_id uuid NOT NULL REFERENCES photographers(id) ON DELETE CASCADE,
+  type            text NOT NULL, -- 'contract_signed' | 'questionnaire_filled' | 'gallery_viewed' | 'portal_opened' | 'contract_sent' | 'gallery_delivered'
+  title_de        text NOT NULL,
+  title_en        text NOT NULL,
+  body_de         text,
+  body_en         text,
+  project_id      uuid REFERENCES projects(id) ON DELETE CASCADE,
+  client_name     text,
+  read            boolean DEFAULT false,
+  created_at      timestamptz DEFAULT now()
+);
+
+-- ============================================================
+-- AUTOMATION SETTINGS (migration 030)
+-- ============================================================
+
+CREATE TABLE automation_settings (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  photographer_id uuid NOT NULL UNIQUE REFERENCES photographers(id) ON DELETE CASCADE,
+  -- Email automations
+  email_portal_created    boolean DEFAULT true,
+  email_contract_sent     boolean DEFAULT true,
+  email_gallery_delivered boolean DEFAULT true,
+  -- Reminders
+  reminder_7d boolean DEFAULT true,
+  reminder_1d boolean DEFAULT true,
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
+);
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 
@@ -360,6 +396,8 @@ CREATE INDEX idx_questionnaire_templates_photographer_id ON questionnaire_templa
 CREATE INDEX idx_questionnaires_project_id ON questionnaires(project_id);
 CREATE INDEX idx_questionnaires_photographer_id ON questionnaires(photographer_id);
 CREATE INDEX idx_email_templates_photographer_id ON email_templates(photographer_id);
+CREATE INDEX idx_notifications_photographer_id ON notifications(photographer_id);
+CREATE INDEX idx_notifications_read ON notifications(photographer_id, read);
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)
@@ -381,6 +419,8 @@ ALTER TABLE questionnaire_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questionnaires ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invite_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_settings ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- PHOTOGRAPHERS POLICIES
@@ -741,6 +781,22 @@ CREATE POLICY "email_templates_update_own"
 
 CREATE POLICY "email_templates_delete_own"
   ON email_templates FOR DELETE USING (photographer_id = auth.uid());
+
+-- ============================================================
+-- NOTIFICATIONS POLICIES (migration 030)
+-- ============================================================
+
+CREATE POLICY "photographers can manage own notifications"
+  ON notifications FOR ALL
+  USING (photographer_id = auth.uid());
+
+-- ============================================================
+-- AUTOMATION SETTINGS POLICIES (migration 030)
+-- ============================================================
+
+CREATE POLICY "photographers can manage own automation_settings"
+  ON automation_settings FOR ALL
+  USING (photographer_id = auth.uid());
 
 -- ============================================================
 -- STORAGE BUCKETS

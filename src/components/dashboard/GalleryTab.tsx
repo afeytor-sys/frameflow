@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2 } from 'lucide-react'
 import { cn, copyToClipboard } from '@/lib/utils'
 import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
@@ -169,6 +169,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
   const [creating, setCreating] = useState(false)
   // Shift-click selection
   const lastSelectedRef = useRef<string | null>(null)
+  // Client favorites list
+  const [favoriteListName, setFavoriteListName] = useState<string | null>(null)
+  const [downloadingFavorites, setDownloadingFavorites] = useState(false)
+  const [favDownloadProgress, setFavDownloadProgress] = useState(0)
 
   // Settings form state
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
@@ -193,7 +197,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
 
   const supabase = createClient()
 
-  // Load sections
+  // Load sections + favorite list name
   useEffect(() => {
     if (!gallery) return
     supabase
@@ -204,7 +208,50 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
       .then(({ data }) => {
         if (data) setSections(data)
       })
+    supabase
+      .from('galleries')
+      .select('favorite_list_name')
+      .eq('id', gallery.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.favorite_list_name) setFavoriteListName(data.favorite_list_name)
+      })
   }, [gallery?.id])
+
+  // Download favorites as ZIP
+  const downloadFavorites = async () => {
+    const favoritePhotos = photos.filter(p => p.is_favorite)
+    if (favoritePhotos.length === 0) return
+    setDownloadingFavorites(true)
+    setFavDownloadProgress(0)
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      const total = favoritePhotos.length
+      let done = 0
+      for (let i = 0; i < favoritePhotos.length; i += 5) {
+        const batch = favoritePhotos.slice(i, i + 5)
+        await Promise.all(batch.map(async (photo) => {
+          try { const r = await fetch(photo.storage_url); zip.file(photo.filename, await r.blob()) } catch {}
+          done++
+          setFavDownloadProgress(Math.round((done / total) * 100))
+        }))
+      }
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${favoriteListName || 'Favoriten'}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`${total} Favoriten heruntergeladen!`)
+    } catch {
+      toast.error('Download fehlgeschlagen')
+    } finally {
+      setDownloadingFavorites(false)
+      setFavDownloadProgress(0)
+    }
+  }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
@@ -720,6 +767,61 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, galle
           </button>
         </div>
       )}
+
+      {/* ── Client Favorites List ── */}
+      {(() => {
+        const favoritePhotos = photos.filter(p => p.is_favorite)
+        if (favoritePhotos.length === 0) return null
+        return (
+          <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center">
+                  <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {favoriteListName || 'Favoritenliste des Kunden'}
+                  </p>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {favoritePhotos.length} {favoritePhotos.length === 1 ? 'Foto' : 'Fotos'} ausgewählt
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={downloadFavorites}
+                disabled={downloadingFavorites}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg text-white disabled:opacity-50 transition-all"
+                style={{ background: '#111110' }}
+              >
+                {downloadingFavorites
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{favDownloadProgress > 0 ? `${favDownloadProgress}%` : '...'}</>
+                  : <><Download className="w-3.5 h-3.5" />ZIP herunterladen</>
+                }
+              </button>
+            </div>
+            {/* Download progress bar */}
+            {downloadingFavorites && favDownloadProgress > 0 && (
+              <div className="w-full rounded-full h-1 overflow-hidden" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${favDownloadProgress}%`, background: '#EF4444' }} />
+              </div>
+            )}
+            {/* Thumbnails */}
+            <div className="flex flex-wrap gap-1.5">
+              {favoritePhotos.slice(0, 12).map(photo => (
+                <div key={photo.id} className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
+                  <img src={photo.thumbnail_url || photo.storage_url} alt={photo.filename} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+              ))}
+              {favoritePhotos.length > 12 && (
+                <div className="w-[52px] h-[52px] rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                  +{favoritePhotos.length - 12}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Photo grid — grouped by sections */}
       {photos.length === 0 ? (

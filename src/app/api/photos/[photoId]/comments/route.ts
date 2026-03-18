@@ -34,12 +34,12 @@ export async function POST(
 
   const supabase = await createClient()
 
-  // Validate token belongs to this project
+  // Validate token belongs to this project (supports both client_token UUID and custom_slug)
   const { data: project } = await supabase
     .from('projects')
     .select('id')
     .eq('id', project_id)
-    .eq('client_token', token)
+    .or(`client_token.eq.${token},custom_slug.eq.${token}`)
     .single()
 
   if (!project) {

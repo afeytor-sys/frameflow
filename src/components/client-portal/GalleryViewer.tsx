@@ -37,6 +37,8 @@ interface Props {
   token: string
   theme?: GalleryTheme
   photoCount?: number
+  /** Public gallery mode: hides favorites, comments, tags */
+  isPublic?: boolean
 }
 
 const TAG_CONFIG = {
@@ -52,26 +54,19 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
 ]
 
 // ── Supabase Image Transform helper ─────────────────────────────────
-// Converts a Supabase storage URL to use the image transform API
-// which serves resized/compressed images via CDN
 function getOptimizedUrl(url: string, width: number, quality = 75): string {
   if (!url) return url
-  // Already a transform URL or external URL — return as-is
   if (url.includes('/render/image/') || !url.includes('/storage/v1/object/')) return url
-  // Convert: /storage/v1/object/public/bucket/path → /storage/v1/render/image/public/bucket/path
   return url
     .replace('/storage/v1/object/', '/storage/v1/render/image/')
     + `?width=${width}&quality=${quality}&resize=contain`
 }
 
-// Thumbnail for grid view (small, fast)
 function getThumbnailUrl(photo: Photo): string {
-  // Use existing thumbnail if available, otherwise generate via transform
   const base = photo.thumbnail_url || photo.storage_url
   return getOptimizedUrl(base, 600, 75)
 }
 
-// Medium size for lightbox (good quality, not full res)
 function getLightboxUrl(photo: Photo): string {
   return getOptimizedUrl(photo.storage_url, 1600, 85)
 }
@@ -83,14 +78,12 @@ function LazyImage({ src, alt, className, onLoad }: { src: string; alt: string; 
   const imgRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
-    // Reset state when src changes
     setLoaded(false)
     setError(false)
   }, [src])
 
   return (
     <div className={cn('relative', className)}>
-      {/* Skeleton shimmer */}
       {!loaded && !error && (
         <div className="absolute inset-0 bg-white/5 animate-pulse rounded-sm" />
       )}
@@ -123,6 +116,7 @@ export default function GalleryViewer({
   token,
   theme,
   photoCount,
+  isPublic = false,
 }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -135,7 +129,7 @@ export default function GalleryViewer({
 
   // Layout & size controls
   const [layout, setLayout] = useState<GalleryLayout>('masonry')
-  const [imageSize, setImageSize] = useState(3) // 1–5 scale
+  const [imageSize, setImageSize] = useState(3)
   const [showControls, setShowControls] = useState(false)
 
   // Presentation mode
@@ -146,7 +140,30 @@ export default function GalleryViewer({
   const presentTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const SLIDE_DURATION = 4000
 
+  // Favorite list name modal
+  const [showFavoriteNameModal, setShowFavoriteNameModal] = useState(false)
+  const [favoriteListName, setFavoriteListName] = useState<string | null>(null)
+  const [favoriteNameInput, setFavoriteNameInput] = useState('')
+  const [savingFavoriteName, setSavingFavoriteName] = useState(false)
+  // Track if we've already asked for a name this session
+  const hasAskedForNameRef = useRef(false)
+
   const supabase = createClient()
+
+  // Load existing favorite list name from gallery
+  useEffect(() => {
+    supabase
+      .from('galleries')
+      .select('favorite_list_name')
+      .eq('id', galleryId)
+      .single()
+      .then(({ data }) => {
+        if (data?.favorite_list_name) {
+          setFavoriteListName(data.favorite_list_name)
+          hasAskedForNameRef.current = true
+        }
+      })
+  }, [galleryId])
 
   const favoriteCount = photos.filter((p) => p.is_favorite).length
   const tagCounts = {
@@ -180,7 +197,6 @@ export default function GalleryViewer({
     localStorage.setItem(`ff-gallery-size-${galleryId}`, String(s))
   }
 
-  // Grid columns based on imageSize — S(1)=many cols=small, XL(5)=few cols=large
   const gridCols = {
     1: 'grid-cols-6',
     2: 'grid-cols-5',
@@ -189,7 +205,6 @@ export default function GalleryViewer({
     5: 'grid-cols-2',
   }[imageSize] || 'grid-cols-4'
 
-  // Masonry columns based on imageSize — S(1)=many cols=small, XL(5)=few cols=large
   const masonryCols = {
     1: 'columns-3 sm:columns-5 lg:columns-6',
     2: 'columns-3 sm:columns-4 lg:columns-5',
@@ -198,7 +213,6 @@ export default function GalleryViewer({
     5: 'columns-2',
   }[imageSize] || 'columns-2 sm:columns-3 lg:columns-4'
 
-  // Columns layout — S(1)=small height, XL(5)=large height
   const columnHeight = {
     1: 'h-48',
     2: 'h-56',
@@ -228,10 +242,10 @@ export default function GalleryViewer({
 
   // ── Body scroll lock ─────────────────────────────────────────────
   useEffect(() => {
-    const locked = lightboxIndex !== null || presentMode
+    const locked = lightboxIndex !== null || presentMode || showFavoriteNameModal
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [lightboxIndex, presentMode])
+  }, [lightboxIndex, presentMode, showFavoriteNameModal])
 
   // ── Slideshow auto-advance ───────────────────────────────────────
   useEffect(() => {
@@ -251,12 +265,35 @@ export default function GalleryViewer({
   const exitPresent = () => { setPresentMode(false); setPresentPlaying(true); if (presentTimer.current) clearInterval(presentTimer.current) }
   const startPresent = () => { setPresentIndex(0); setPresentLoaded(false); setPresentPlaying(true); setPresentMode(true) }
 
+  // ── Save favorite list name ──────────────────────────────────────
+  const saveFavoriteListName = async (name: string) => {
+    setSavingFavoriteName(true)
+    const trimmed = name.trim() || 'Os meus favoritos'
+    const { error } = await supabase
+      .from('galleries')
+      .update({ favorite_list_name: trimmed })
+      .eq('id', galleryId)
+    if (!error) {
+      setFavoriteListName(trimmed)
+      hasAskedForNameRef.current = true
+    }
+    setSavingFavoriteName(false)
+    setShowFavoriteNameModal(false)
+  }
+
   // ── Toggle favorite ──────────────────────────────────────────────
   const toggleFavorite = async (photoId: string) => {
     const photo = photos.find((p) => p.id === photoId)
     if (!photo) return
     const newValue = !photo.is_favorite
     setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: newValue } : p))
+
+    // If this is the first favorite and we haven't asked for a name yet, show modal
+    const currentFavCount = photos.filter((p) => p.is_favorite).length
+    if (newValue && currentFavCount === 0 && !hasAskedForNameRef.current) {
+      setShowFavoriteNameModal(true)
+    }
+
     const { error } = await supabase.from('photos').update({ is_favorite: newValue }).eq('id', photoId)
     if (error) {
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: !newValue } : p))
@@ -279,7 +316,6 @@ export default function GalleryViewer({
   }
 
   // ── Download ─────────────────────────────────────────────────────
-  // Always download original (not optimized) for downloads
   const downloadPhoto = async (photo: Photo) => {
     try {
       const response = await fetch(photo.storage_url)
@@ -344,25 +380,25 @@ export default function GalleryViewer({
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
       {/* Zoom icon */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="w-10 h-10 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
-          <ZoomIn className="w-4 h-4 text-white" />
+        <div className="w-11 h-11 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
+          <ZoomIn className="w-5 h-5 text-white" />
         </div>
       </div>
       {/* Top-right actions */}
       <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => toggleFavorite(photo.id)}
-          className={cn('w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
+          className={cn('w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
         >
-          <Heart className={cn('w-3.5 h-3.5', photo.is_favorite && 'fill-white')} />
+          <Heart className={cn('w-4.5 h-4.5', photo.is_favorite && 'fill-white')} style={{ width: 18, height: 18 }} />
         </button>
         <div className="relative">
           <button
             onClick={(e) => { e.stopPropagation(); setShowTagMenu(showTagMenu === photo.id ? null : photo.id) }}
-            className={cn('w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
+            className={cn('w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
             style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
           >
-            <span className="text-[10px] font-bold text-white">●</span>
+            <span className="text-[11px] font-bold text-white">●</span>
           </button>
           {showTagMenu === photo.id && (
             <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
@@ -382,8 +418,8 @@ export default function GalleryViewer({
           )}
         </div>
         {downloadEnabled && (
-          <button onClick={() => downloadPhoto(photo)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg">
-            <Download className="w-3.5 h-3.5" />
+          <button onClick={() => downloadPhoto(photo)} className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg">
+            <Download style={{ width: 18, height: 18 }} />
           </button>
         )}
       </div>
@@ -424,6 +460,51 @@ export default function GalleryViewer({
 
   return (
     <>
+      {/* ── Favorite List Name Modal ── */}
+      {showFavoriteNameModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 pt-6 pb-2">
+              <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-4">
+                <Heart className="w-6 h-6 text-rose-500 fill-rose-500" />
+              </div>
+              <h3 className="text-[17px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
+                Deine Favoritenliste
+              </h3>
+              <p className="text-[13px] text-[#7A7670] mb-5">
+                Gib deiner Favoritenliste einen Namen, damit dein Fotograf sie leicht erkennen kann.
+              </p>
+              <input
+                autoFocus
+                value={favoriteNameInput}
+                onChange={e => setFavoriteNameInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveFavoriteListName(favoriteNameInput) }}
+                placeholder="z.B. Meine Auswahl, Hochzeitsfotos…"
+                className="w-full px-4 py-3 text-[14px] border border-[#E8E4DC] rounded-xl focus:outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/15 transition-all"
+                maxLength={80}
+              />
+            </div>
+            <div className="flex gap-2 px-6 py-4">
+              <button
+                onClick={() => saveFavoriteListName(favoriteNameInput || 'Meine Favoriten')}
+                disabled={savingFavoriteName}
+                className="flex-1 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50 transition-all"
+                style={{ background: '#111110' }}
+              >
+                {savingFavoriteName ? 'Speichern…' : 'Speichern'}
+              </button>
+              <button
+                onClick={() => { hasAskedForNameRef.current = true; setShowFavoriteNameModal(false) }}
+                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                style={{ background: '#F5F4F1', color: '#7A7670' }}
+              >
+                Überspringen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Toolbar ── */}
       <div
         className="flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-3 rounded-2xl sticky top-4 z-20"
@@ -436,7 +517,6 @@ export default function GalleryViewer({
       >
         {/* Left: photo count + filters */}
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Photo count — natural language */}
           <span
             className="text-[13px] font-semibold hidden sm:block"
             style={{ color: tbTextHover, letterSpacing: '-0.01em' }}
@@ -446,77 +526,81 @@ export default function GalleryViewer({
 
           <div className="hidden sm:block w-px h-4" style={{ background: tbBorder }} />
 
-          {/* Favorites filter */}
-          <button
-            onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
-            style={{
-              background: filterTag === 'favorite' ? '#EF444415' : 'transparent',
-              color: filterTag === 'favorite' ? '#EF4444' : tbText,
-              border: `1px solid ${filterTag === 'favorite' ? '#EF444430' : tbBorder}`,
-            }}
-          >
-            <Heart className={cn('w-3 h-3', filterTag === 'favorite' && 'fill-current')} />
-            {favoriteCount > 0 ? `${favoriteCount} Favoriten` : 'Favoriten'}
-          </button>
-
-          {/* Tags toggle button */}
-          <div className="relative">
+          {/* Favorites filter — hidden in public mode */}
+          {!isPublic && (
             <button
-              onClick={() => setShowTagFilters(!showTagFilters)}
+              onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
               style={{
-                background: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C15' : 'transparent',
-                color: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C' : tbText,
-                border: `1px solid ${showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C30' : tbBorder}`,
+                background: filterTag === 'favorite' ? '#EF444415' : 'transparent',
+                color: filterTag === 'favorite' ? '#EF4444' : tbText,
+                border: `1px solid ${filterTag === 'favorite' ? '#EF444430' : tbBorder}`,
               }}
             >
-              {filterTag && filterTag !== 'favorite' ? (
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: TAG_CONFIG[filterTag as keyof typeof TAG_CONFIG].bg }} />
-              ) : (
-                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M1 3h10M3 6h6M5 9h2" strokeLinecap="round" />
-                </svg>
-              )}
-              Tags
+              <Heart className={cn('w-3.5 h-3.5', filterTag === 'favorite' && 'fill-current')} />
+              {favoriteCount > 0 ? `${favoriteCount} Favoriten` : 'Favoriten'}
             </button>
-            {showTagFilters && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowTagFilters(false)} />
-                <div className="absolute left-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden min-w-[150px]"
-                  style={{ background: '#FFFFFF', border: '1px solid #E8E4DC', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-                  {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => {
-                    const count = tagCounts[tag]
-                    return (
+          )}
+
+          {/* Tags toggle button — hidden in public mode */}
+          {!isPublic && (
+            <div className="relative">
+              <button
+                onClick={() => setShowTagFilters(!showTagFilters)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                style={{
+                  background: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C15' : 'transparent',
+                  color: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C' : tbText,
+                  border: `1px solid ${showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C30' : tbBorder}`,
+                }}
+              >
+                {filterTag && filterTag !== 'favorite' ? (
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: TAG_CONFIG[filterTag as keyof typeof TAG_CONFIG].bg }} />
+                ) : (
+                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M1 3h10M3 6h6M5 9h2" strokeLinecap="round" />
+                  </svg>
+                )}
+                Tags
+              </button>
+              {showTagFilters && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowTagFilters(false)} />
+                  <div className="absolute left-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden min-w-[150px]"
+                    style={{ background: '#FFFFFF', border: '1px solid #E8E4DC', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+                    {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => {
+                      const count = tagCounts[tag]
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => { setFilterTag(filterTag === tag ? null : tag); setShowTagFilters(false) }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors"
+                          style={{
+                            color: filterTag === tag ? '#111110' : '#7A7670',
+                            background: filterTag === tag ? `${cfg.bg}15` : 'transparent',
+                          }}
+                        >
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
+                          <span className="flex-1 text-left">{cfg.label}</span>
+                          <span className="text-[11px]" style={{ color: '#B0ACA6' }}>{count}</span>
+                          {filterTag === tag && <span style={{ color: cfg.bg }} className="text-[10px]">✓</span>}
+                        </button>
+                      )
+                    })}
+                    {filterTag && filterTag !== 'favorite' && (
                       <button
-                        key={tag}
-                        onClick={() => { setFilterTag(filterTag === tag ? null : tag); setShowTagFilters(false) }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors"
-                        style={{
-                          color: filterTag === tag ? '#111110' : '#7A7670',
-                          background: filterTag === tag ? `${cfg.bg}15` : 'transparent',
-                        }}
+                        onClick={() => { setFilterTag(null); setShowTagFilters(false) }}
+                        className="w-full px-3 py-2 text-[11px] transition-colors border-t text-left"
+                        style={{ color: '#B0ACA6', borderColor: '#E8E4DC' }}
                       >
-                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
-                        <span className="flex-1 text-left">{cfg.label}</span>
-                        <span className="text-[11px]" style={{ color: '#B0ACA6' }}>{count}</span>
-                        {filterTag === tag && <span style={{ color: cfg.bg }} className="text-[10px]">✓</span>}
+                        Filter entfernen
                       </button>
-                    )
-                  })}
-                  {filterTag && filterTag !== 'favorite' && (
-                    <button
-                      onClick={() => { setFilterTag(null); setShowTagFilters(false) }}
-                      className="w-full px-3 py-2 text-[11px] transition-colors border-t text-left"
-                      style={{ color: '#B0ACA6', borderColor: '#E8E4DC' }}
-                    >
-                      Filter entfernen
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {filterTag && filterTag !== 'favorite' && (
             <button onClick={() => setFilterTag(null)} className="text-[11px] transition-colors px-2" style={{ color: tbText }}>
@@ -534,14 +618,14 @@ export default function GalleryViewer({
                 key={key}
                 onClick={() => setLayoutPersist(key)}
                 title={label}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
                 style={{
                   background: layout === key ? '#FFFFFF' : 'transparent',
                   color: layout === key ? '#111110' : tbText,
                   boxShadow: layout === key ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                 }}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4" />
               </button>
             ))}
           </div>
@@ -557,7 +641,7 @@ export default function GalleryViewer({
                 border: `1px solid ${showControls ? '#C4A47C30' : tbBorder}`,
               }}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="w-4 h-4" />
             </button>
             {showControls && (
               <>
@@ -608,7 +692,7 @@ export default function GalleryViewer({
             onMouseEnter={e => { e.currentTarget.style.color = tbTextHover; e.currentTarget.style.borderColor = '#C4A47C50' }}
             onMouseLeave={e => { e.currentTarget.style.color = tbText; e.currentTarget.style.borderColor = tbBorder }}
           >
-            <Maximize2 className="w-3.5 h-3.5" />
+            <Maximize2 className="w-4 h-4" />
             <span className="hidden sm:inline">Slideshow</span>
           </button>
 
@@ -621,8 +705,8 @@ export default function GalleryViewer({
               style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
             >
               {downloadingAll
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</>
-                : <><Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Alle ({photos.length})</span><span className="sm:hidden"><Download className="w-3.5 h-3.5" /></span></>
+                ? <><Loader2 className="w-4 h-4 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</>
+                : <><Download className="w-4 h-4" /><span className="hidden sm:inline">Alle ({photos.length})</span><span className="sm:hidden"><Download className="w-4 h-4" /></span></>
               }
             </button>
           )}
@@ -673,7 +757,7 @@ export default function GalleryViewer({
             <div className="flex items-center gap-2">
               {downloadEnabled && (
                 <button onClick={() => downloadPhoto(currentPhoto)} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm transition-all">
-                  <Download className="w-3.5 h-3.5" /> Download
+                  <Download className="w-4 h-4" /> Download
                 </button>
               )}
               <button onClick={closeLightbox} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">

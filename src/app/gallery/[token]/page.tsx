@@ -1,15 +1,14 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Images, Download, Heart, Share2 } from 'lucide-react'
+import { Images } from 'lucide-react'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
 
-export default async function ClientGalleryPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function PublicGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const supabase = createServiceClient()
 
-  // Support both custom slugs (e.g. "elisa") and raw client_token UUIDs
+  // Support both custom slugs and raw client_token UUIDs
   let { data: project } = await supabase
     .from('projects')
     .select('id, title, photographer_id, shoot_date, location, photographer:photographers(studio_name, full_name, logo_url), client:clients(full_name)')
@@ -27,24 +26,18 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
 
   if (!project) notFound()
 
-  const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { plan: string; studio_name: string | null; full_name: string; logo_url: string | null } | null
+  const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string; logo_url: string | null } | null
   const client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string } | null
 
-  // Fetch all galleries for this project, prefer active ones with photos
-  const { data: allGalleries, error: galleryError } = await supabase
+  // Fetch active gallery with photos
+  const { data: allGalleries } = await supabase
     .from('galleries')
     .select('id, title, description, status, download_enabled, watermark')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
-  if (galleryError) {
-    console.error('Gallery query error:', galleryError.message, galleryError.code)
-  }
-
-  // Pick the best gallery: first active, then any with photos, then most recent
   let gallery = null
   if (allGalleries && allGalleries.length > 0) {
-    // Check each gallery for photos, starting with active ones
     const sorted = [
       ...allGalleries.filter(g => g.status === 'active'),
       ...allGalleries.filter(g => g.status !== 'active'),
@@ -54,26 +47,19 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
         .from('photos')
         .select('id', { count: 'exact', head: true })
         .eq('gallery_id', g.id)
-      if ((count ?? 0) > 0) {
-        gallery = g
-        break
-      }
+      if ((count ?? 0) > 0) { gallery = g; break }
     }
-    // Fallback: just use the most recent gallery even if empty
     if (!gallery) gallery = allGalleries[0]
   }
 
   if (!gallery) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-          <Images style={{ width: 28, height: 28, color: 'var(--text-muted)' }} />
+      <div style={{ minHeight: '100vh', background: '#F8F7F4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Images style={{ width: 28, height: 28, color: '#B0ACA6' }} />
         </div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 24 }}>Your photographer will upload your photos soon.</p>
-        <Link href={`/client/${token}`} style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <ArrowLeft style={{ width: 16, height: 16 }} /> Back to portal
-        </Link>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: '#111110', letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
+        <p style={{ color: '#7A7670', fontSize: '0.875rem' }}>Die Fotos werden bald verfügbar sein.</p>
       </div>
     )
   }
@@ -84,37 +70,25 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
-  const { data: sections } = await supabase
-    .from('gallery_sections')
-    .select('id, title, display_order')
-    .eq('gallery_id', gallery.id)
-    .order('display_order', { ascending: true })
-
   const sortedPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-  const gallerySections = sections || []
 
-  // Hero image: first photo of the gallery
-  const heroPhoto = sortedPhotos[0] ?? null
-  const heroUrl = heroPhoto?.storage_url ?? null
+  // Hero image
+  const heroUrl = sortedPhotos[0]?.storage_url ?? null
 
   const theme = getTheme('classic-white')
 
-  // Format shoot date
   const shootDate = (project as { shoot_date?: string | null }).shoot_date
-  const location = (project as { location?: string | null }).location
   const formattedDate = shootDate
     ? new Date(shootDate).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
 
-  const studioName = photographer?.studio_name || photographer?.full_name || null
   const displayName = client?.full_name || project.title
-  const gallerySubtitle = gallery.title && gallery.title !== project.title ? gallery.title : null
 
   return (
     <div style={{ minHeight: '100vh', background: '#F8F7F4', fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
-      {/* ── HERO HEADER ── */}
+      {/* ── HERO HEADER — no back button ── */}
       <div
         style={{
           position: 'relative',
@@ -124,7 +98,6 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           background: '#1A1A18',
         }}
       >
-        {/* Background photo — full brightness, no overlay */}
         {heroUrl && (
           <img
             src={heroUrl}
@@ -140,7 +113,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           />
         )}
 
-        {/* Subtle vignette only at the very bottom for text legibility */}
+        {/* Subtle vignette at bottom */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -151,32 +124,23 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           zIndex: 1,
         }} />
 
-        {/* Back link — top left */}
-        <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10 }}>
-          <Link
-            href={`/client/${token}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              color: 'rgba(255,255,255,0.85)',
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              textDecoration: 'none',
-              background: 'rgba(0,0,0,0.28)',
-              backdropFilter: 'blur(8px)',
-              padding: '6px 14px',
-              borderRadius: '999px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              transition: 'all 0.2s',
-            }}
-          >
-            <ArrowLeft style={{ width: 14, height: 14 }} />
-            Back to portal
-          </Link>
-        </div>
+        {/* Studio branding — top left (subtle) */}
+        {photographer && (
+          <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {photographer.logo_url ? (
+              <img src={photographer.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.3)' }} />
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                {(photographer.studio_name || photographer.full_name)[0]}
+              </div>
+            )}
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8125rem', fontWeight: 500, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+              {photographer.studio_name || photographer.full_name}
+            </span>
+          </div>
+        )}
 
-        {/* Hero text — centered at bottom, minimal */}
+        {/* Hero text — centered at bottom */}
         <div style={{
           position: 'absolute',
           bottom: 0,
@@ -189,7 +153,6 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           flexDirection: 'column',
           alignItems: 'center',
         }}>
-          {/* Gallery / client name */}
           <h1 style={{
             color: '#FFFFFF',
             fontFamily: theme.fontFamily,
@@ -203,7 +166,6 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             {displayName}
           </h1>
 
-          {/* Date — small, subtle */}
           {formattedDate && (
             <p style={{
               color: 'rgba(255,255,255,0.65)',
@@ -233,11 +195,12 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             clientName={client?.full_name || ''}
             initialPhotos={sortedPhotos}
             downloadEnabled={gallery.download_enabled}
-            commentsEnabled={true}
+            commentsEnabled={false}
             showWatermark={false}
             token={token}
             theme={theme}
             photoCount={sortedPhotos.length}
+            isPublic={true}
           />
         )}
       </div>
