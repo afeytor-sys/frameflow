@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Mail,
   Kanban,
+  Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -64,6 +65,9 @@ export default function DashboardSidebar({ photographer }: Props) {
     { key: 'email-vorlagen', href: '/dashboard/email-vorlagen', icon: Mail,          label: s.emailTemplates, plans: null,             activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)' },
     { key: 'pipeline',       href: '/dashboard/pipeline',    icon: Kanban,          label: locale === 'de' ? 'Pipeline' : 'Pipeline', plans: null, activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)' },
     { key: 'analytics',      href: '/dashboard/analytics',   icon: BarChart2,       label: s.analytics,      plans: ['pro', 'studio'], activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)' },
+    ...(photographer.id === '3f3a14b9-3bb2-40fa-b0eb-5fea92f67429' ? [
+      { key: 'admin', href: '/dashboard/admin', icon: Shield, label: 'Admin', plans: null as null, activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)' },
+    ] : []),
   ]
 
   const bottomItems = [
