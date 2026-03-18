@@ -7,6 +7,7 @@ import { Globe, ChevronDown, Sun, Moon } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import WeatherWidget from '@/components/dashboard/WeatherWidget'
 import { createClient } from '@/lib/supabase/client'
+import NotificationBell from '@/components/layout/NotificationBell'
 
 interface Props {
   photographer: Photographer
@@ -64,6 +65,9 @@ export default function DashboardHeader({ photographer }: Props) {
 
       {/* Right side controls */}
       <div className="flex items-center gap-2">
+        {/* Notification bell */}
+        <NotificationBell />
+
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}

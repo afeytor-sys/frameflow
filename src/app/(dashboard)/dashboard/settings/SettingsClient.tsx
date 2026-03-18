@@ -3,9 +3,9 @@
 import { useLocale } from '@/hooks/useLocale'
 import { dashboardT } from '@/lib/dashboardTranslations'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User, Building2, Palette, Bell, CreditCard } from 'lucide-react'
+import { User, Building2, Palette, Bell, CreditCard, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -54,7 +54,49 @@ export default function SettingsClient({ photographer, userId }: Props) {
   const [bankIban, setBankIban] = useState(photographer?.bank_iban || '')
   const [bankBic, setBankBic] = useState(photographer?.bank_bic || '')
 
+  // Automation settings
+  const [autoSettings, setAutoSettings] = useState({
+    email_portal_created: true,
+    email_contract_sent: true,
+    email_gallery_delivered: true,
+    reminder_7d: true,
+    reminder_1d: true,
+  })
+  const [autoLoaded, setAutoLoaded] = useState(false)
+
   const supabase = createClient()
+  useEffect(() => {
+    supabase
+      .from('automation_settings')
+      .select('*')
+      .eq('photographer_id', userId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setAutoSettings({
+            email_portal_created: data.email_portal_created ?? true,
+            email_contract_sent: data.email_contract_sent ?? true,
+            email_gallery_delivered: data.email_gallery_delivered ?? true,
+            reminder_7d: data.reminder_7d ?? true,
+            reminder_1d: data.reminder_1d ?? true,
+          })
+        }
+        setAutoLoaded(true)
+      })
+  }, [userId])
+
+  const saveAutoSettings = async () => {
+    setSaving(true)
+    const { error } = await supabase
+      .from('automation_settings')
+      .upsert({ photographer_id: userId, ...autoSettings, updated_at: new Date().toISOString() }, { onConflict: 'photographer_id' })
+    setSaving(false)
+    if (error) toast.error(isDE ? 'Fehler beim Speichern' : 'Failed to save')
+    else toast.success(isDE ? 'Gespeichert' : 'Saved')
+  }
+
+  const isDE = locale === 'de'
+
   const plan = photographer?.plan || 'free'
   const isPaidPlan = ['starter', 'pro', 'studio'].includes(plan)
 
@@ -126,7 +168,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
           { id: 'studio', label: ts.tabs.studio, icon: Building2 },
           { id: 'bank', label: ts.tabs.bank, icon: CreditCard },
           { id: 'branding', label: ts.tabs.branding, icon: Palette },
-          { id: 'notifications', label: ts.tabs.notifications, icon: Bell },
+          { id: 'automations', label: isDE ? 'Automationen' : 'Automations', icon: Zap },
+        { id: 'notifications', label: ts.tabs.notifications, icon: Bell },
         ] as const).map(tab => {
           const Icon = tab.icon
           return (
@@ -388,29 +431,113 @@ export default function SettingsClient({ photographer, userId }: Props) {
         </div>
       )}
 
+      {/* Automations tab */}
+      {activeTab === 'automations' && (
+        <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-[#1A1A1A]">{isDE ? 'E-Mail Automationen' : 'Email Automations'}</h2>
+            <p className="text-xs text-[#6B6B6B] mt-1">
+              {isDE ? 'Automatische E-Mails an deine Kunden — in ihrer Sprache (DE/EN).' : 'Automatic emails to your clients — in their language (DE/EN).'}
+            </p>
+          </div>
+
+          {!autoLoaded ? (
+            <div className="py-4 text-center">
+              <div className="w-4 h-4 border-2 border-[#E8E8E4] border-t-[#C8A882] rounded-full animate-spin mx-auto" />
+            </div>
+          ) : (
+            <>
+              {/* Email automations */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] mb-2">
+                  {isDE ? 'E-Mails' : 'Emails'}
+                </p>
+                {([
+                  { key: 'email_portal_created', labelDE: 'Portal erstellt', labelEN: 'Portal created', descDE: 'Wenn ein neues Kunden-Portal erstellt wird', descEN: 'When a new client portal is created' },
+                  { key: 'email_contract_sent', labelDE: 'Vertrag gesendet', labelEN: 'Contract sent', descDE: 'Wenn ein Vertrag an den Kunden gesendet wird', descEN: 'When a contract is sent to the client' },
+                  { key: 'email_gallery_delivered', labelDE: 'Galerie geliefert', labelEN: 'Gallery delivered', descDE: 'Wenn die Galerie für den Kunden freigegeben wird', descEN: 'When the gallery is delivered to the client' },
+                ] as const).map(item => {
+                  const label = isDE ? item.labelDE : item.labelEN
+                  const desc = isDE ? item.descDE : item.descEN
+                  const enabled = autoSettings[item.key]
+                  return (
+                    <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
+                      <div>
+                        <p className="text-sm font-medium text-[#1A1A1A]">{label}</p>
+                        <p className="text-xs text-[#6B6B6B] mt-0.5">{desc}</p>
+                      </div>
+                      <button
+                        onClick={() => setAutoSettings(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                        className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', enabled ? 'bg-[#3DBA6F]' : 'bg-[#E8E8E4]')}
+                      >
+                        <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', enabled ? 'left-4' : 'left-0.5')} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Reminder automations */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] mb-2">
+                  {isDE ? 'Shooting-Erinnerungen' : 'Shoot Reminders'}
+                </p>
+                {([
+                  { key: 'reminder_7d', labelDE: '7 Tage vorher', labelEN: '7 days before', descDE: 'Erinnerung 7 Tage vor dem Shooting', descEN: 'Reminder 7 days before the shoot' },
+                  { key: 'reminder_1d', labelDE: '1 Tag vorher', labelEN: '1 day before', descDE: 'Erinnerung 1 Tag vor dem Shooting', descEN: 'Reminder 1 day before the shoot' },
+                ] as const).map(item => {
+                  const label = isDE ? item.labelDE : item.labelEN
+                  const desc = isDE ? item.descDE : item.descEN
+                  const enabled = autoSettings[item.key]
+                  return (
+                    <div key={item.key} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
+                      <div>
+                        <p className="text-sm font-medium text-[#1A1A1A]">{label}</p>
+                        <p className="text-xs text-[#6B6B6B] mt-0.5">{desc}</p>
+                      </div>
+                      <button
+                        onClick={() => setAutoSettings(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                        className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', enabled ? 'bg-[#3DBA6F]' : 'bg-[#E8E8E4]')}
+                      >
+                        <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', enabled ? 'left-4' : 'left-0.5')} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={saveAutoSettings}
+                disabled={saving}
+                className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+              >
+                {saving ? (isDE ? 'Speichern...' : 'Saving...') : (isDE ? 'Speichern' : 'Save')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Notifications tab */}
       {activeTab === 'notifications' && (
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-[#1A1A1A]">Benachrichtigungen</h2>
+          <h2 className="text-sm font-semibold text-[#1A1A1A]">{isDE ? 'Benachrichtigungen' : 'Notifications'}</h2>
           <p className="text-xs text-[#6B6B6B]">
-            Email notifications are automatically sent for:
+            {isDE ? 'In-App Benachrichtigungen erscheinen im Glocken-Symbol oben rechts.' : 'In-app notifications appear in the bell icon at the top right.'}
           </p>
           {[
-            'Vertrag unterschrieben',
-            'Gallery viewed',
-            'Payment failed',
-            'Subscription changes',
+            { de: 'Vertrag unterschrieben', en: 'Contract signed' },
+            { de: 'Galerie angesehen', en: 'Gallery viewed' },
+            { de: 'Fragebogen ausgefüllt', en: 'Questionnaire filled' },
+            { de: 'Erinnerung gesendet', en: 'Reminder sent' },
           ].map(item => (
-            <div key={item} className="flex items-center justify-between py-2 border-b border-[#E8E8E4] last:border-0">
-              <span className="text-sm text-[#1A1A1A]">{item}</span>
+            <div key={item.de} className="flex items-center justify-between py-2 border-b border-[#E8E8E4] last:border-0">
+              <span className="text-sm text-[#1A1A1A]">{isDE ? item.de : item.en}</span>
               <div className="w-9 h-5 rounded-full bg-[#3DBA6F] relative">
                 <div className="absolute top-0.5 left-4 w-4 h-4 bg-white rounded-full shadow" />
               </div>
             </div>
           ))}
-          <p className="text-xs text-[#6B6B6B] pt-2">
-            Granulare Benachrichtigungseinstellungen folgen in einem Update.
-          </p>
         </div>
       )}
     </div>

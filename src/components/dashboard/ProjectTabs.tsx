@@ -8,6 +8,7 @@ import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
 import PortalSettingsTab from './PortalSettingsTab'
 import QuestionnaireTab from './QuestionnaireTab'
+import InternalNotesTab from './InternalNotesTab'
 import type { Contract, Plan } from '@/types/database'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
@@ -58,6 +59,7 @@ interface Props {
     portal_password?: string | null
     portal_links?: { label: string; url: string }[] | null
     project_steps_override?: Record<string, boolean> | null
+    internal_notes?: string | null
     [key: string]: unknown
   }
   contracts: Contract[]
@@ -195,6 +197,16 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       color: '#8B5CF6',
       bg: 'rgba(139,92,246,0.10)',
       desc: () => t.tabDesc.sendQuestions,
+    },
+    {
+      key: 'notes',
+      label: locale === 'de' ? 'Notizen' : 'Notes',
+      icon: FileText,
+      color: '#F59E0B',
+      bg: 'rgba(245,158,11,0.10)',
+      desc: () => project.internal_notes
+        ? (locale === 'de' ? 'Interne Notizen vorhanden' : 'Internal notes saved')
+        : (locale === 'de' ? 'Keine Notizen' : 'No notes yet'),
     },
   ]
 
@@ -786,6 +798,13 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               clientEmail={(project.client as { email?: string } | null)?.email}
               clientName={(project.client as { full_name?: string } | null)?.full_name}
               clientToken={(project.client_token as string | null) ?? null}
+            />
+          )}
+
+          {activeTab === 'notes' && (
+            <InternalNotesTab
+              projectId={project.id}
+              initialNotes={(project.internal_notes as string | null) ?? null}
             />
           )}
         </div>
