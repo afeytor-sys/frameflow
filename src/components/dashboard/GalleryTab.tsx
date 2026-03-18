@@ -20,8 +20,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2 } from 'lucide-react'
-import { cn, copyToClipboard } from '@/lib/utils'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Copy, Mail, Send } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 
@@ -186,10 +186,6 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   // Tags enabled: default all enabled if not set
   const defaultTags = gallery?.tags_enabled ?? ['green', 'yellow', 'red']
   const [enabledTags, setEnabledTags] = useState<string[]>(defaultTags)
-
-  const toggleTag = (tag: string) => {
-    setEnabledTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  }
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -373,12 +369,72 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     toast.success(newStatus === 'active' ? 'Galerie aktiviert' : 'Galerie deaktiviert')
   }
 
-  const shareGallery = async () => {
-    const url = publicGalleryUrl || `${clientUrl}/gallery`
-    const text = gallery?.password ? `${url}\n\nPassword: ${gallery.password}` : url
-    const ok = await copyToClipboard(text)
-    if (ok) toast.success(gallery?.password ? 'Link + Password kopiert!' : 'Link kopiert!')
+  // ── Share Modal state ──────────────────────────────────────────────────────
+  const [shareModal, setShareModal] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedPassword, setCopiedPassword] = useState(false)
+  const [shareEmail, setShareEmail] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+
+  const getGalleryUrl = () => {
+    if (publicGalleryUrl) return publicGalleryUrl
+    // Extract token from clientUrl: /client/[token]
+    const token = clientUrl.split('/client/')[1]?.split('/')[0]
+    return token ? `${window.location.origin}/gallery/${token}` : `${clientUrl}/gallery`
   }
+
+  const openShareModal = () => {
+    setCopiedLink(false)
+    setCopiedPassword(false)
+    setEmailSent(false)
+    setShareModal(true)
+  }
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(getGalleryUrl()).then(() => {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    })
+  }
+
+  const copySharePassword = () => {
+    if (!gallery?.password) return
+    navigator.clipboard.writeText(gallery.password).then(() => {
+      setCopiedPassword(true)
+      setTimeout(() => setCopiedPassword(false), 2000)
+    })
+  }
+
+  const sendShareEmail = async () => {
+    if (!gallery || !shareEmail.trim()) return
+    setSendingEmail(true)
+    try {
+      const res = await fetch(`/api/galleries/${gallery.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientEmail: shareEmail.trim(),
+          galleryUrl: getGalleryUrl(),
+          password: gallery.password,
+          galleryTitle: gallery.title,
+        }),
+      })
+      if (res.ok) {
+        setEmailSent(true)
+        toast.success('E-Mail gesendet!')
+        setTimeout(() => setEmailSent(false), 3000)
+      } else {
+        toast.error('Fehler beim Senden')
+      }
+    } catch {
+      toast.error('Fehler beim Senden')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const shareGallery = () => openShareModal()
 
   // Section management
   const addSection = async (customTitle?: string) => {
@@ -511,6 +567,127 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
   return (
     <div className="space-y-4">
+      {/* ── Share Gallery Modal ──────────────────────────────────────────── */}
+      {shareModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setShareModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
+                  <Share2 className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                </div>
+                <h3 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                  {gallery.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShareModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Link row */}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Link</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center px-3 py-2.5 rounded-xl min-w-0" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <span className="text-[12px] truncate font-mono" style={{ color: 'var(--text-secondary)' }}>{getGalleryUrl()}</span>
+                  </div>
+                  <button
+                    onClick={copyShareLink}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                    style={{
+                      background: copiedLink ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover)',
+                      border: `1px solid ${copiedLink ? 'rgba(16,185,129,0.30)' : 'var(--border-color)'}`,
+                      color: copiedLink ? '#10B981' : 'var(--text-primary)',
+                    }}
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Password row */}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <Lock className="w-3 h-3 inline mr-1" />Passwort
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center px-3 py-2.5 rounded-xl min-w-0" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    {gallery.password ? (
+                      <span className="text-[13px] font-mono font-semibold tracking-widest" style={{ color: 'var(--text-primary)' }}>{gallery.password}</span>
+                    ) : (
+                      <span className="text-[12px] italic" style={{ color: 'var(--text-muted)' }}>Kein Passwort</span>
+                    )}
+                  </div>
+                  {gallery.password && (
+                    <button
+                      onClick={copySharePassword}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                      style={{
+                        background: copiedPassword ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover)',
+                        border: `1px solid ${copiedPassword ? 'rgba(16,185,129,0.30)' : 'var(--border-color)'}`,
+                        color: copiedPassword ? '#10B981' : 'var(--text-primary)',
+                      }}
+                    >
+                      {copiedPassword ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Email row */}
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <Mail className="w-3 h-3 inline mr-1" />Per E-Mail senden
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={shareEmail}
+                    onChange={e => setShareEmail(e.target.value)}
+                    placeholder="kunde@email.com"
+                    className="input-base flex-1 text-[13px]"
+                    style={{ padding: '10px 12px' }}
+                  />
+                  <button
+                    onClick={sendShareEmail}
+                    disabled={sendingEmail || !shareEmail.trim()}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                    style={{
+                      background: emailSent ? '#10B981' : 'var(--accent)',
+                      boxShadow: emailSent ? '0 1px 8px rgba(16,185,129,0.25)' : '0 1px 8px rgba(196,164,124,0.20)',
+                    }}
+                  >
+                    {sendingEmail
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : emailSent
+                        ? <Check className="w-3.5 h-3.5" />
+                        : <Send className="w-3.5 h-3.5" />
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

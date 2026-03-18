@@ -1,5 +1,5 @@
 -- ============================================================
--- FrameFlow — Supabase Database Schema (up to migration 035)
+-- FrameFlow — Supabase Database Schema (up to migration 038)
 -- Run this in the Supabase SQL Editor for a fresh install.
 -- For existing installs, run the individual migration files.
 -- ============================================================
@@ -33,7 +33,11 @@ CREATE TABLE photographers (
   plan                  plan_type NOT NULL DEFAULT 'free',
   stripe_customer_id    text,
   stripe_sub_id         text,
+  stripe_sub_status     text DEFAULT NULL,
+  trial_ends_at         timestamptz DEFAULT NULL,
   language              language_type NOT NULL DEFAULT 'de',
+  -- migration 038: locale for portal language
+  locale                text DEFAULT 'de',
   onboarding_completed  boolean NOT NULL DEFAULT false,
   -- migration 016: bank details
   bank_account_holder   text,
@@ -115,6 +119,10 @@ CREATE TABLE projects (
   portal_locale         text,
   -- migration 031: internal notes
   internal_notes        text,
+  -- migration 036: reminder tracking
+  reminder_7d_sent      boolean DEFAULT false,
+  reminder_1d_sent      boolean DEFAULT false,
+  reminders_disabled    boolean DEFAULT false,
   created_at            timestamptz NOT NULL DEFAULT now()
 );
 
@@ -313,6 +321,21 @@ CREATE TABLE questionnaires (
 );
 
 -- ============================================================
+-- QUESTIONNAIRE SUBMISSIONS (migration 038)
+-- Tracks client submissions separately from the questionnaire itself
+-- ============================================================
+
+CREATE TABLE questionnaire_submissions (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id       uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  questionnaire_id uuid REFERENCES questionnaires(id) ON DELETE SET NULL,
+  photographer_id  uuid NOT NULL REFERENCES photographers(id) ON DELETE CASCADE,
+  answers          jsonb NOT NULL DEFAULT '{}'::jsonb,
+  submitted_at     timestamptz DEFAULT now(),
+  created_at       timestamptz DEFAULT now()
+);
+
+-- ============================================================
 -- INVITE CODES (migration 015)
 -- ============================================================
 
@@ -418,6 +441,8 @@ CREATE INDEX idx_invoices_photographer_id ON invoices(photographer_id);
 CREATE INDEX idx_questionnaire_templates_photographer_id ON questionnaire_templates(photographer_id);
 CREATE INDEX idx_questionnaires_project_id ON questionnaires(project_id);
 CREATE INDEX idx_questionnaires_photographer_id ON questionnaires(photographer_id);
+CREATE INDEX idx_questionnaire_submissions_project_id ON questionnaire_submissions(project_id);
+CREATE INDEX idx_questionnaire_submissions_photographer_id ON questionnaire_submissions(photographer_id);
 CREATE INDEX idx_email_templates_photographer_id ON email_templates(photographer_id);
 CREATE INDEX idx_notifications_photographer_id ON notifications(photographer_id);
 CREATE INDEX idx_notifications_read ON notifications(photographer_id, read);
@@ -440,6 +465,7 @@ ALTER TABLE timelines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questionnaire_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questionnaires ENABLE ROW LEVEL SECURITY;
+ALTER TABLE questionnaire_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invite_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -458,6 +484,11 @@ CREATE POLICY "photographers_insert_own"
 CREATE POLICY "photographers_update_own"
   ON photographers FOR UPDATE
   USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+-- Admin can read all photographers (migration 037)
+CREATE POLICY "Admin can read all photographers"
+  ON photographers FOR SELECT
+  USING (auth.uid() = '3f3a14b9-3bb2-40fa-b0eb-5fea92f67429'::uuid);
 
 -- ============================================================
 -- CLIENTS POLICIES
@@ -777,6 +808,23 @@ CREATE POLICY "questionnaires_select_public"
 
 CREATE POLICY "questionnaires_update_public"
   ON questionnaires FOR UPDATE USING (true);
+
+-- ============================================================
+-- QUESTIONNAIRE SUBMISSIONS POLICIES (migration 038)
+-- ============================================================
+
+CREATE POLICY "questionnaire_submissions_select_own"
+  ON questionnaire_submissions FOR SELECT
+  USING (photographer_id = auth.uid());
+
+-- Public can insert + read submissions (client portal)
+CREATE POLICY "questionnaire_submissions_insert_public"
+  ON questionnaire_submissions FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "questionnaire_submissions_select_public"
+  ON questionnaire_submissions FOR SELECT
+  USING (true);
 
 -- ============================================================
 -- INVITE CODES POLICIES

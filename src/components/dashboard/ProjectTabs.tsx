@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer, Copy, Mail, Loader2 } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import BookingDetailsTab from './BookingDetailsTab'
@@ -285,15 +285,72 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     toast.success('Gallery deleted')
   }
 
-  const shareGallery = async (g: GalleryItem) => {
+  // ── Share Modal state ──────────────────────────────────────────────────────
+  const [shareModal, setShareModal] = useState<{ galleryId: string; url: string; password: string | null } | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedPassword, setCopiedPassword] = useState(false)
+  const [shareEmail, setShareEmail] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+
+  const openShareModal = (g: GalleryItem) => {
     const token = (project.client_token as string | null) ?? project.client_url.split('/client/')[1]
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frameflow.app'
-    const url = `${baseUrl}/gallery/${token}`
-    const text = g.password ? `${url}\n\nPassword: ${g.password}` : url
-    const ok = await navigator.clipboard.writeText(text).then(() => true).catch(() => false)
-    if (ok) toast.success(g.password ? 'Link + Password kopiert!' : t.gallery.toastLinkCopied)
-    else toast.error(t.gallery.toastCopyFailed)
+    const url = `${window.location.origin}/gallery/${token}`
+    setShareEmail((project.client as { email?: string } | null)?.email || '')
+    setCopiedLink(false)
+    setCopiedPassword(false)
+    setEmailSent(false)
+    setShareModal({ galleryId: g.id, url, password: g.password || null })
   }
+
+  const copyShareLink = () => {
+    if (!shareModal) return
+    navigator.clipboard.writeText(shareModal.url).then(() => {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    })
+  }
+
+  const copySharePassword = () => {
+    if (!shareModal?.password) return
+    navigator.clipboard.writeText(shareModal.password).then(() => {
+      setCopiedPassword(true)
+      setTimeout(() => setCopiedPassword(false), 2000)
+    })
+  }
+
+  const sendShareEmail = async () => {
+    if (!shareModal || !shareEmail.trim()) return
+    setSendingEmail(true)
+    try {
+      const res = await fetch(`/api/galleries/${shareModal.galleryId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientEmail: shareEmail.trim(),
+          clientName: (project.client as { full_name?: string } | null)?.full_name,
+          galleryUrl: shareModal.url,
+          password: shareModal.password,
+          galleryTitle: galleries.find(g => g.id === shareModal.galleryId)?.title,
+          studioName: photographerName,
+        }),
+      })
+      if (res.ok) {
+        setEmailSent(true)
+        toast.success('E-Mail gesendet!')
+        setTimeout(() => setEmailSent(false), 3000)
+      } else {
+        toast.error('Fehler beim Senden')
+      }
+    } catch {
+      toast.error('Fehler beim Senden')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  // Keep old shareGallery for backward compat (now opens modal)
+  const shareGallery = (g: GalleryItem) => openShareModal(g)
 
   // ── Gallery list view ──────────────────────────────────────────────────────
   const GalleryListView = () => (
@@ -440,6 +497,127 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         onClose={() => setShowUpgradeModal(false)}
         currentPlan={planLimits.plan}
       />
+
+      {/* ── Share Gallery Modal ──────────────────────────────────────────── */}
+      {shareModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setShareModal(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
+                  <Share2 className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                </div>
+                <h3 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                  {galleries.find(g => g.id === shareModal.galleryId)?.title || 'Galerie teilen'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShareModal(null)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Link row */}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Link</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center px-3 py-2.5 rounded-xl min-w-0" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <span className="text-[12px] truncate font-mono" style={{ color: 'var(--text-secondary)' }}>{shareModal.url}</span>
+                  </div>
+                  <button
+                    onClick={copyShareLink}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                    style={{
+                      background: copiedLink ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover)',
+                      border: `1px solid ${copiedLink ? 'rgba(16,185,129,0.30)' : 'var(--border-color)'}`,
+                      color: copiedLink ? '#10B981' : 'var(--text-primary)',
+                    }}
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Password row */}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <Lock className="w-3 h-3 inline mr-1" />Passwort
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center px-3 py-2.5 rounded-xl min-w-0" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    {shareModal.password ? (
+                      <span className="text-[13px] font-mono font-semibold tracking-widest" style={{ color: 'var(--text-primary)' }}>{shareModal.password}</span>
+                    ) : (
+                      <span className="text-[12px] italic" style={{ color: 'var(--text-muted)' }}>Kein Passwort</span>
+                    )}
+                  </div>
+                  {shareModal.password && (
+                    <button
+                      onClick={copySharePassword}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                      style={{
+                        background: copiedPassword ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover)',
+                        border: `1px solid ${copiedPassword ? 'rgba(16,185,129,0.30)' : 'var(--border-color)'}`,
+                        color: copiedPassword ? '#10B981' : 'var(--text-primary)',
+                      }}
+                    >
+                      {copiedPassword ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Email row */}
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <Mail className="w-3 h-3 inline mr-1" />Per E-Mail senden
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={shareEmail}
+                    onChange={e => setShareEmail(e.target.value)}
+                    placeholder="kunde@email.com"
+                    className="input-base flex-1 text-[13px]"
+                    style={{ padding: '10px 12px' }}
+                  />
+                  <button
+                    onClick={sendShareEmail}
+                    disabled={sendingEmail || !shareEmail.trim()}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
+                    style={{
+                      background: emailSent ? '#10B981' : 'var(--accent)',
+                      boxShadow: emailSent ? '0 1px 8px rgba(16,185,129,0.25)' : '0 1px 8px rgba(196,164,124,0.20)',
+                    }}
+                  >
+                    {sendingEmail
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : emailSent
+                        ? <Check className="w-3.5 h-3.5" />
+                        : <Send className="w-3.5 h-3.5" />
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Full Create Gallery Modal ────────────────────────────────────── */}
       {showCreateModal && (

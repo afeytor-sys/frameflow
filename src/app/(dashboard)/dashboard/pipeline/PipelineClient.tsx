@@ -107,7 +107,7 @@ export default function PipelineClient({ projects: initialProjects }: Props) {
               key={col.id}
               className="flex-shrink-0 flex flex-col rounded-2xl transition-all"
               style={{
-                width: '220px',
+                width: '280px',
                 background: isOver ? col.bg : 'var(--bg-surface)',
                 border: `1px solid ${isOver ? col.color + '40' : 'var(--border-color)'}`,
                 transition: 'all 0.15s ease',

@@ -245,7 +245,18 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   }
 
   const days = project.shoot_date ? daysUntil(project.shoot_date) : null
-  const meetingPoint: string | null = (project as { meeting_point?: string | null }).meeting_point ?? null
+  // Parse meeting_point: supports legacy string OR JSON array
+  type MeetingLocation = { label: string; url: string }
+  function parseMeetingLocations(raw: string | null): MeetingLocation[] {
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed.filter((l: MeetingLocation) => l.url?.trim())
+    } catch {}
+    return [{ label: '', url: raw }]
+  }
+  const meetingLocations = parseMeetingLocations((project as { meeting_point?: string | null }).meeting_point ?? null)
+  const meetingPoint: string | null = meetingLocations.length > 0 ? meetingLocations[0].url : null
   const portalPassword: string | null = (project as { portal_password?: string | null }).portal_password ?? null
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frameflow.app'
   const publicGalleryUrl = `${baseUrl}/gallery/${token}`
@@ -543,58 +554,80 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
           </Link>
         )}
 
-        {/* ── TREFFPUNKT MAP CARD ── */}
-        {show.treffpunkt && meetingPoint && (
+        {/* ── TREFFPUNKT MAP CARD(S) ── */}
+        {show.treffpunkt && meetingLocations.length > 0 && (
           <div className="rounded-2xl overflow-hidden animate-in-delay-2"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
             <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #EC4899, #F472B6)' }} />
             <div className="p-5 pb-3">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(236,72,153,0.10)' }}>
-                    <MapPin className="w-4.5 h-4.5" style={{ color: '#EC4899', width: '18px', height: '18px' }} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.treffpunkt.title}</p>
-                    <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>{t.treffpunkt.subtitle}</p>
-                  </div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(236,72,153,0.10)' }}>
+                  <MapPin className="w-4.5 h-4.5" style={{ color: '#EC4899', width: '18px', height: '18px' }} />
                 </div>
-                <a
-                  href={getMapsUrl(meetingPoint)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-bold flex-shrink-0 transition-all hover:opacity-80"
-                  style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
-                >
-                  <MapPin className="w-3.5 h-3.5" />
-                  {t.treffpunkt.openMaps}
-                </a>
+                <div>
+                  <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t.treffpunkt.title}</p>
+                  <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>{t.treffpunkt.subtitle}</p>
+                </div>
               </div>
-            </div>
-            <div className="relative overflow-hidden" style={{ height: '200px' }}>
-              <iframe
-                src={getEmbedUrl(meetingPoint)}
-                width="100%"
-                height="200"
-                style={{ border: 0, display: 'block' }}
-                allowFullScreen={false}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title={t.treffpunkt.title}
-              />
-            </div>
-            <div className="px-5 py-3">
-              <a
-                href={getMapsUrl(meetingPoint)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[14px] font-bold transition-all hover:opacity-80"
-                style={{ color: '#EC4899' }}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                {t.treffpunkt.routeMaps}
-              </a>
+
+              {/* Multiple locations */}
+              <div className="space-y-4">
+                {meetingLocations.map((loc, idx) => (
+                  <div key={idx}>
+                    {/* Location label + open button */}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                          style={{ background: 'rgba(236,72,153,0.15)', color: '#EC4899' }}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                          {loc.label || t.treffpunkt.title}
+                        </span>
+                      </div>
+                      <a
+                        href={getMapsUrl(loc.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[12px] font-bold flex-shrink-0 transition-all hover:opacity-80"
+                        style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
+                      >
+                        <MapPin className="w-3 h-3" />
+                        {t.treffpunkt.openMaps}
+                      </a>
+                    </div>
+                    {/* Map embed */}
+                    <div className="rounded-xl overflow-hidden" style={{ height: '160px' }}>
+                      <iframe
+                        src={getEmbedUrl(loc.url)}
+                        width="100%"
+                        height="160"
+                        style={{ border: 0, display: 'block' }}
+                        allowFullScreen={false}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title={loc.label || t.treffpunkt.title}
+                      />
+                    </div>
+                    {/* Route link */}
+                    <a
+                      href={getMapsUrl(loc.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-[13px] font-bold mt-2 transition-all hover:opacity-80"
+                      style={{ color: '#EC4899' }}
+                    >
+                      <MapPin className="w-3 h-3" />
+                      {t.treffpunkt.routeMaps}
+                    </a>
+                    {/* Divider between locations */}
+                    {idx < meetingLocations.length - 1 && (
+                      <div className="mt-4" style={{ borderTop: '1px solid var(--card-border)' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

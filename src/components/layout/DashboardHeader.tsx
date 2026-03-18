@@ -60,11 +60,14 @@ export default function DashboardHeader({ photographer }: Props) {
         borderBottom: '1px solid var(--border-color)',
       }}
     >
-      {/* Weather widget — left side */}
-      <WeatherWidget />
+      {/* Left spacer — keeps controls on the right */}
+      <div />
 
       {/* Right side controls */}
       <div className="flex items-center gap-2">
+        {/* Weather widget */}
+        <WeatherWidget />
+
         {/* Notification bell */}
         <NotificationBell />
 

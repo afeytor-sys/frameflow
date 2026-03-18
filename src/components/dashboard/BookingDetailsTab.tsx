@@ -178,10 +178,22 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
   const initType = initialData.project_type ?? ''
   const isCustomInit = initType !== '' && !KNOWN_TYPES.includes(initType)
 
+  // ── Parse meeting_point: supports legacy string OR JSON array ──────────────
+  type MeetingLocation = { label: string; url: string }
+  function parseMeetingPoint(raw: string | null): MeetingLocation[] {
+    if (!raw) return [{ label: '', url: '' }]
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed.length > 0 ? parsed : [{ label: '', url: '' }]
+    } catch {}
+    // Legacy plain string → convert to first entry
+    return [{ label: '', url: raw }]
+  }
+
   const [shootDate, setShootDate] = useState(initialData.shoot_date?.slice(0, 10) ?? '')
   const [shootTime, setShootTime] = useState(initialData.shoot_time ?? '')
   const [location, setLocation] = useState(initialData.location ?? '')
-  const [meetingPoint, setMeetingPoint] = useState(initialData.meeting_point ?? '')
+  const [meetingLocations, setMeetingLocations] = useState<MeetingLocation[]>(() => parseMeetingPoint(initialData.meeting_point))
   const [projectType, setProjectType] = useState(isCustomInit ? 'other' : initType)
   const [customType, setCustomType] = useState(isCustomInit ? initType : '')
   const [notes, setNotes] = useState(initialData.notes ?? '')
@@ -220,13 +232,17 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       ? (customType.trim() || 'other')
       : (projectType || null)
 
+    // Serialize meeting locations — filter out empty entries
+    const validLocations = meetingLocations.filter(l => l.url.trim())
+    const meetingPointJson = validLocations.length > 0 ? JSON.stringify(validLocations) : null
+
     const { error } = await supabase
       .from('projects')
       .update({
         shoot_date: shootDate || null,
         shoot_time: shootTime || null,
         location: location || null,
-        meeting_point: meetingPoint || null,
+        meeting_point: meetingPointJson,
         project_type: finalType,
         notes: notes || null,
         status,
@@ -363,46 +379,93 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           animationDelay: '90ms',
         }}
       >
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-1">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: 'rgba(236,72,153,0.10)' }}>
             <MapPin className="w-4 h-4" style={{ color: '#EC4899' }} />
           </div>
-          <div className="flex-1">
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.meetingPointLabel}
-            </span>
-          </div>
-          {meetingPoint && (
-            <a
-              href={meetingPoint.startsWith('http') ? meetingPoint : `https://maps.google.com/?q=${encodeURIComponent(meetingPoint)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all hover:opacity-80"
-              style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
-            >
-              <MapPin className="w-3 h-3" />
-              {t.openInMaps}
-            </a>
-          )}
+          <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
+            {t.meetingPointLabel}
+          </span>
         </div>
 
         <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
           {t.meetingPointDesc}
         </p>
 
-        <input
-          type="text"
-          value={meetingPoint}
-          onChange={e => setMeetingPoint(e.target.value)}
-          placeholder={t.meetingPointPlaceholder}
-          className="input-base w-full text-[13px]"
-        />
-        {meetingPoint && (
-          <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#EC4899' }}>
-            <Check className="w-3 h-3" />{t.shownOnMap}
-          </p>
-        )}
+        {/* Dynamic location list */}
+        <div className="space-y-2 mb-2">
+          {meetingLocations.map((loc, idx) => (
+            <div key={idx} className="rounded-xl p-3 space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wide flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(236,72,153,0.15)', color: '#EC4899' }}>
+                  {idx + 1}
+                </span>
+                <input
+                  type="text"
+                  value={loc.label}
+                  onChange={e => {
+                    const updated = [...meetingLocations]
+                    updated[idx] = { ...updated[idx], label: e.target.value }
+                    setMeetingLocations(updated)
+                  }}
+                  placeholder={locale === 'de' ? 'z.B. Getting Ready, Zeremonie, Party...' : 'e.g. Getting Ready, Ceremony, Party...'}
+                  className="input-base flex-1 text-[12px]"
+                />
+                {meetingLocations.length > 1 && (
+                  <button
+                    onClick={() => setMeetingLocations(meetingLocations.filter((_, i) => i !== idx))}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all hover:opacity-70"
+                    style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={loc.url}
+                  onChange={e => {
+                    const updated = [...meetingLocations]
+                    updated[idx] = { ...updated[idx], url: e.target.value }
+                    setMeetingLocations(updated)
+                  }}
+                  placeholder={t.meetingPointPlaceholder}
+                  className="input-base flex-1 text-[12px]"
+                />
+                {loc.url && (
+                  <a
+                    href={loc.url.startsWith('http') ? loc.url : `https://maps.google.com/?q=${encodeURIComponent(loc.url)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 flex-shrink-0 transition-all hover:opacity-80"
+                    style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
+                  >
+                    <MapPin className="w-3 h-3" />
+                    {t.openInMaps}
+                  </a>
+                )}
+              </div>
+              {loc.url && (
+                <p className="text-[11px] flex items-center gap-1" style={{ color: '#EC4899' }}>
+                  <Check className="w-3 h-3" />{t.shownOnMap}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add location button */}
+        <button
+          onClick={() => setMeetingLocations([...meetingLocations, { label: '', url: '' }])}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all hover:opacity-80 w-full justify-center"
+          style={{ background: 'rgba(236,72,153,0.08)', color: '#EC4899', border: '1px dashed rgba(236,72,153,0.30)' }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {locale === 'de' ? '+ Location hinzufügen' : '+ Add location'}
+        </button>
       </div>
 
       {/* ── Row 2: Duration + Persons + Price ── */}
