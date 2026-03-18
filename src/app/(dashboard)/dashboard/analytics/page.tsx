@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import AnalyticsClient from './AnalyticsClient'
 
 export const metadata = { title: 'Analytics' }
@@ -8,6 +9,11 @@ export default async function AnalyticsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Read locale from cookie server-side to avoid hydration mismatch
+  const cookieStore = await cookies()
+  const localeCookie = cookieStore.get('locale')?.value
+  const locale = localeCookie === 'de' ? 'de' : 'en'
 
   const { data: photographer } = await supabase
     .from('photographers')
@@ -61,6 +67,7 @@ export default async function AnalyticsPage() {
         projects={projects ?? []}
         contracts={contracts ?? []}
         galleries={galleries ?? []}
+        initialLocale={locale}
       />
     </div>
   )

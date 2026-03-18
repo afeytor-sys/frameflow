@@ -14,11 +14,12 @@ interface Contract { status: string; created_at: string }
 interface Gallery  { status: string; created_at: string }
 
 interface Props {
-  invoices:  Invoice[]
-  clients:   Client[]
-  projects:  Project[]
-  contracts: Contract[]
-  galleries: Gallery[]
+  invoices:      Invoice[]
+  clients:       Client[]
+  projects:      Project[]
+  contracts:     Contract[]
+  galleries:     Gallery[]
+  initialLocale?: 'en' | 'de'
 }
 
 // ─── Translations ─────────────────────────────────────────────────────────────
@@ -154,8 +155,9 @@ const CONTRACT_COLORS: Record<string, string> = {
   signed: '#10B981',
 }
 
-export default function AnalyticsClient({ invoices, clients, projects, contracts, galleries }: Props) {
-  const locale = useLocale()
+export default function AnalyticsClient({ invoices, clients, projects, contracts, galleries, initialLocale }: Props) {
+  const hookLocale = useLocale()
+  const locale = initialLocale ?? hookLocale
   const t = T[locale]
   const months = lastNMonths(6, locale)
 
