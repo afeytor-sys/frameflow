@@ -108,7 +108,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   const heroTitle = gallery.title || project.title
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8F7F4', fontFamily: theme.fontFamily }}>
+    <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
       {/* ── HERO HEADER ── */}
@@ -159,15 +159,15 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           </div>
         )}
 
-        {/* Text block — below the photo, clean white background */}
+        {/* Text block — below the photo, themed background */}
         <div style={{
-          background: '#F8F7F4',
+          background: theme.bg,
           padding: '28px clamp(20px, 5vw, 64px) 20px',
           textAlign: 'center',
-          borderBottom: '1px solid #E8E4DC',
+          borderBottom: `1px solid ${theme.border}`,
         }}>
           <h1 style={{
-            color: '#111110',
+            color: theme.text,
             fontFamily: theme.fontFamily,
             fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
             fontWeight: theme.headerStyle === 'bold' ? 700 : 400,
@@ -179,7 +179,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           </h1>
           {formattedDate && (
             <p style={{
-              color: '#9A9690',
+              color: theme.textMuted,
               fontSize: '0.75rem',
               fontWeight: 400,
               letterSpacing: '0.06em',
@@ -196,8 +196,8 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 16px 64px' }}>
         {sortedPhotos.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '96px 0' }}>
-            <Images style={{ width: 40, height: 40, color: '#B0ACA6', margin: '0 auto 16px', opacity: 0.4 }} />
-            <p style={{ color: '#B0ACA6', fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
+            <Images style={{ width: 40, height: 40, color: theme.textMuted, margin: '0 auto 16px', opacity: 0.4 }} />
+            <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
           </div>
         ) : (
           <GalleryViewer

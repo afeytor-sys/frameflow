@@ -53,13 +53,14 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   }
 
   if (!gallery) {
+    const emptyTheme = getTheme('classic-white')
     return (
-      <div style={{ minHeight: '100vh', background: '#F8F7F4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-          <Images style={{ width: 28, height: 28, color: '#B0ACA6' }} />
+      <div style={{ minHeight: '100vh', background: emptyTheme.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: emptyTheme.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Images style={{ width: 28, height: 28, color: emptyTheme.textMuted }} />
         </div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: '#111110', letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
-        <p style={{ color: '#7A7670', fontSize: '0.875rem' }}>Die Fotos werden bald verfügbar sein.</p>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: emptyTheme.text, letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
+        <p style={{ color: emptyTheme.textMuted, fontSize: '0.875rem' }}>Die Fotos werden bald verfügbar sein.</p>
       </div>
     )
   }
@@ -85,7 +86,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   const heroTitle = gallery.title || project.title
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8F7F4', fontFamily: theme.fontFamily }}>
+    <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
       {/* ── HERO HEADER — no back button ── */}
@@ -128,15 +129,15 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           </div>
         )}
 
-        {/* Text block — below the photo, clean background */}
+        {/* Text block — below the photo, themed background */}
         <div style={{
-          background: '#F8F7F4',
+          background: theme.bg,
           padding: '28px clamp(20px, 5vw, 64px) 20px',
           textAlign: 'center',
-          borderBottom: '1px solid #E8E4DC',
+          borderBottom: `1px solid ${theme.border}`,
         }}>
           <h1 style={{
-            color: '#111110',
+            color: theme.text,
             fontFamily: theme.fontFamily,
             fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
             fontWeight: theme.headerStyle === 'bold' ? 700 : 400,
@@ -148,7 +149,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           </h1>
           {formattedDate && (
             <p style={{
-              color: '#9A9690',
+              color: theme.textMuted,
               fontSize: '0.75rem',
               fontWeight: 400,
               letterSpacing: '0.06em',
@@ -165,8 +166,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 16px 64px' }}>
         {sortedPhotos.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '96px 0' }}>
-            <Images style={{ width: 40, height: 40, color: '#B0ACA6', margin: '0 auto 16px', opacity: 0.4 }} />
-            <p style={{ color: '#B0ACA6', fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
+            <Images style={{ width: 40, height: 40, color: theme.textMuted, margin: '0 auto 16px', opacity: 0.4 }} />
+            <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
           </div>
         ) : (
           <GalleryViewer
