@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Images } from 'lucide-react'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
+import GalleryPasswordGate from './GalleryPasswordGate'
 
 export default async function PublicGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -32,7 +33,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -85,7 +86,9 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
   const heroTitle = gallery.title || project.title
 
-  return (
+  const galleryPassword = (gallery as { password?: string | null }).password ?? null
+
+  const pageContent = (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
@@ -188,4 +191,14 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
       </div>
     </div>
   )
+
+  if (galleryPassword) {
+    return (
+      <GalleryPasswordGate password={galleryPassword}>
+        {pageContent}
+      </GalleryPasswordGate>
+    )
+  }
+
+  return pageContent
 }
