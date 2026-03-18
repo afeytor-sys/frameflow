@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Share2, Copy, Check, X, Lock, Mail, Send, Loader2, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
 
 interface Props {
   open: boolean
@@ -14,6 +15,7 @@ interface Props {
   galleryId?: string | null
   studioName?: string
   clientName?: string
+  clientEmail?: string | null
 }
 
 export default function GalleryShareModal({
@@ -25,6 +27,7 @@ export default function GalleryShareModal({
   galleryId,
   studioName,
   clientName,
+  clientEmail,
 }: Props) {
   const [mounted, setMounted] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
@@ -45,8 +48,33 @@ export default function GalleryShareModal({
       setCopiedPassword(false)
       setShowEmailModal(false)
       setEmailSent(false)
+      // Pre-fill with passed email or fetch from DB
+      if (clientEmail) {
+        setShareEmail(clientEmail)
+      } else {
+        setShareEmail('')
+      }
     }
-  }, [open])
+  }, [open, clientEmail])
+
+  // Fetch client email from gallery → project → client when galleryId is available
+  useEffect(() => {
+    if (!open || !galleryId || clientEmail) return
+    const supabase = createClient()
+    supabase
+      .from('galleries')
+      .select('project:projects(client:clients(email))')
+      .eq('id', galleryId)
+      .single()
+      .then(({ data }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const proj = data?.project as any
+        const client = Array.isArray(proj?.client) ? proj.client[0] : proj?.client
+        if (client?.email) {
+          setShareEmail(client.email)
+        }
+      })
+  }, [open, galleryId, clientEmail])
 
   const copyLink = async () => {
     try {
