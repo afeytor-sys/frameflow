@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer, Copy, Mail, Loader2 } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer, Mail, LayoutDashboard, ExternalLink, MapPin, Heart, User, ChevronRight } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import GalleryShareModal from './GalleryShareModal'
@@ -48,6 +48,17 @@ interface MessageTemplate {
   text: string
 }
 
+interface ProjectInvoiceInitial {
+  id: string
+  invoice_number: string
+  amount: number
+  currency: string
+  status: string
+  description: string | null
+  due_date: string | null
+  created_at: string
+}
+
 interface Props {
   project: {
     id: string
@@ -71,10 +82,13 @@ interface Props {
   }
   contracts: Contract[]
   galleries: GalleryItem[]
+  invoicesInitial?: ProjectInvoiceInitial[]
   plan: Plan
   userTemplates?: UserTemplate[]
   photographerName?: string | null
   photographerMessageTemplates?: MessageTemplate[] | null
+  clientUrl?: string | null
+  hasTimeline?: boolean
 }
 
 // TABS is now built inside the component using translations
@@ -82,10 +96,10 @@ interface Props {
 const MWST_RATE = 0.19
 const SET_SUGGESTIONS = ['Getting Ready', 'Ceremony', 'Reception', 'Portraits', 'Details', 'Highlights', 'Moments']
 
-export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [], photographerName, photographerMessageTemplates }: Props) {
+export default function ProjectTabs({ project, contracts, galleries: initialGalleries, invoicesInitial = [], plan, userTemplates = [], photographerName, photographerMessageTemplates, clientUrl, hasTimeline = false }: Props) {
   const locale = useLocale()
   const t = dashboardT(locale)
-  const [activeTab, setActiveTab] = useState('contract')
+  const [activeTab, setActiveTab] = useState('overview')
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
   const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
 
@@ -144,6 +158,14 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const removeSet = (name: string) => setSets(prev => prev.filter(s => s !== name))
 
   const TABS = [
+    {
+      key: 'overview',
+      label: locale === 'de' ? 'Übersicht' : 'Overview',
+      icon: LayoutDashboard,
+      color: '#C4A47C',
+      bg: 'rgba(196,164,124,0.12)',
+      desc: () => locale === 'de' ? 'Alle Infos auf einen Blick' : 'All info at a glance',
+    },
     {
       key: 'contract',
       label: t.tabs.contract,
