@@ -545,7 +545,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
       {/* Charts row 2 */}
       <div className="grid lg:grid-cols-2 gap-5">
 
-        {/* Project types pie */}
+        {/* Project types — vertical list */}
         <div
           className="rounded-2xl p-6"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
@@ -557,30 +557,37 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
               {t.noProjectsYet}
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={projectTypeData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={85}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {projectTypeData.map((entry, i) => (
-                    <Cell key={entry.name} fill={PIE_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(v, name) => [v, name]}
-                />
-                <Legend
-                  formatter={(value) => <span style={{ color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'capitalize' }}>{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {[...projectTypeData]
+                .sort((a, b) => b.value - a.value)
+                .map((entry, i) => {
+                  const total = projectTypeData.reduce((s, d) => s + d.value, 0)
+                  const pct = Math.round((entry.value / total) * 100)
+                  const color = PIE_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]
+                  return (
+                    <div key={entry.name}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                          <span className="text-[13px] font-medium truncate capitalize" style={{ color: 'var(--text-primary)' }}>
+                            {entry.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                          <span className="text-[12px] font-bold" style={{ color }}>{entry.value}</span>
+                          <span className="text-[11px] w-8 text-right" style={{ color: 'var(--text-muted)' }}>{pct}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: color }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
           )}
         </div>
 
