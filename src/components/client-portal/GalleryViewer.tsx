@@ -378,8 +378,8 @@ export default function GalleryViewer({
       a.href = url; a.download = photo.filename; a.click()
       URL.revokeObjectURL(url)
       try { await supabase.rpc('increment_photo_download_count', { gallery_id: galleryId }) } catch {}
-      // Notify photographer (fire & forget)
-      if (!isPublic) notifyPhotographer(galleryId, 'photo_downloaded', clientName, photo.filename)
+      // Notify photographer (fire & forget) — always notify, even for public galleries
+      notifyPhotographer(galleryId, 'photo_downloaded', clientName || 'Visitante', photo.filename)
     } catch { toast.error('Download fehlgeschlagen') }
   }
 
@@ -403,8 +403,8 @@ export default function GalleryViewer({
       a.href = url; a.download = `${galleryTitle || clientName || 'Galerie'}.zip`; a.click()
       URL.revokeObjectURL(url)
       try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
-      // Notify photographer (fire & forget)
-      if (!isPublic) notifyPhotographer(galleryId, 'gallery_downloaded', clientName)
+      // Notify photographer (fire & forget) — always notify, even for public galleries
+      notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
       toast.success(`${total} Fotos heruntergeladen!`)
     } catch { toast.error('Download fehlgeschlagen') }
     finally { setDownloadingAll(false); setDownloadProgress(0) }

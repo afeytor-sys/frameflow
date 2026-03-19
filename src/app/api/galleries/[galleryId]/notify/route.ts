@@ -170,7 +170,7 @@ export async function POST(
 
   // ── Create in-app notification ───────────────────────────────────────────
   if (inappEnabled) {
-    const { error: insertError } = await supabase.from('notifications').insert({
+    const insertPayload = {
       photographer_id: photographerId,
       type: cfg.notifType,
       title_de: cfg.titleDE,
@@ -179,10 +179,20 @@ export async function POST(
       body_en: cfg.bodyEN,
       project_id: project.id,
       client_name: resolvedClientName,
-    })
+    }
+    console.log('[notify] Inserting notification:', JSON.stringify(insertPayload))
+    const { error: insertError, data: insertData } = await supabase.from('notifications').insert(insertPayload).select('id').single()
     if (insertError) {
-      console.error('[notify] Failed to insert notification:', insertError.message, insertError.code, insertError.details)
+      console.error('[notify] ❌ Failed to insert notification:', {
+        message: insertError.message,
+        code: insertError.code,
+        details: insertError.details,
+        hint: insertError.hint,
+        photographerId,
+        type: cfg.notifType,
+      })
     } else {
+      console.log('[notify] ✅ Notification inserted:', insertData?.id)
       // Only set throttle after successful insert
       setThrottle(throttleKey)
     }
