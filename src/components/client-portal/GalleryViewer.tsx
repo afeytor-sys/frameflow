@@ -82,7 +82,7 @@ function getOptimizedUrl(url: string, width: number, quality = 75): string {
 
 function getThumbnailUrl(photo: Photo): string {
   const base = photo.thumbnail_url || photo.storage_url
-  return getOptimizedUrl(base, 600, 75)
+  return getOptimizedUrl(base, 400, 75)
 }
 
 function getLightboxUrl(photo: Photo): string {
@@ -90,7 +90,11 @@ function getLightboxUrl(photo: Photo): string {
 }
 
 // ── Lazy image component with skeleton ──────────────────────────────
-function LazyImage({ src, alt, className, onLoad }: { src: string; alt: string; className?: string; onLoad?: () => void }) {
+function LazyImage({
+  src, alt, className, onLoad, priority = false,
+}: {
+  src: string; alt: string; className?: string; onLoad?: () => void; priority?: boolean
+}) {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -103,14 +107,15 @@ function LazyImage({ src, alt, className, onLoad }: { src: string; alt: string; 
   return (
     <div className={cn('relative', className)}>
       {!loaded && !error && (
-        <div className="absolute inset-0 bg-white/5 animate-pulse rounded-sm" />
+        <div className="absolute inset-0 bg-white/8 animate-pulse rounded-sm" />
       )}
       <img
         ref={imgRef}
         src={src}
         alt={alt}
-        loading="lazy"
-        decoding="async"
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        fetchPriority={priority ? 'high' : 'low'}
         className={cn(
           'w-full h-full object-cover transition-opacity duration-300',
           loaded ? 'opacity-100' : 'opacity-0',
@@ -400,6 +405,7 @@ export default function GalleryViewer({
         src={getThumbnailUrl(photo)}
         alt={photo.filename}
         className="w-full h-full photo-img-hover"
+        priority={index < 8}
       />
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
@@ -443,7 +449,7 @@ export default function GalleryViewer({
           )}
         </div>
         {downloadEnabled && (
-          <button onClick={() => downloadPhoto(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-all shadow-lg">
+          <button onClick={() => downloadPhoto(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-lg">
             <Download style={{ width: 20, height: 20 }} />
           </button>
         )}
