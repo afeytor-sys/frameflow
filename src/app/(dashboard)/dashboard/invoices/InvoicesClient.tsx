@@ -852,6 +852,17 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             {ti.sendToClient}
                           </button>
                         )}
+                        {/* Mark as pending — only for draft */}
+                        {inv.status === 'draft' && (
+                          <button onClick={() => updateStatus(inv.id, 'sent')}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors"
+                            style={{ color: 'var(--text-primary)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            <Clock className="w-3.5 h-3.5" style={{ color: '#CC8415' }} />
+                            Mark as Pending
+                          </button>
+                        )}
                         {/* Mark as paid — always visible (except already paid) */}
                         {inv.status !== 'paid' && (
                           <button onClick={() => updateStatus(inv.id, 'paid')}
