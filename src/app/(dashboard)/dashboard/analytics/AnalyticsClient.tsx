@@ -9,7 +9,7 @@ import { useLocale } from '@/hooks/useLocale'
 
 interface Invoice  { amount: number; status: string; created_at: string }
 interface Client   { created_at: string; status: string }
-interface Project  { created_at: string; status: string; project_type: string | null; shoot_date?: string | null }
+interface Project  { created_at: string; status: string; project_type: string | null; shoot_date?: string | null; shooting_type?: string | null }
 interface Contract { status: string; created_at: string }
 interface Gallery  { status: string; created_at: string }
 
@@ -207,9 +207,10 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
   })
 
   // ── Projects by type ──
+  // Use shooting_type (which contains the real label for custom types) with fallback to project_type
   const typeCount: Record<string, number> = {}
   projects.forEach(p => {
-    const tp = p.project_type || 'other'
+    const tp = p.shooting_type || p.project_type || 'other'
     typeCount[tp] = (typeCount[tp] || 0) + 1
   })
   const projectTypeData = Object.entries(typeCount).map(([name, value]) => ({ name, value }))
