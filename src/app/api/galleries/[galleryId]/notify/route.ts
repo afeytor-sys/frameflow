@@ -14,7 +14,7 @@ export async function POST(
   const { galleryId } = await params
   const body = await request.json().catch(() => ({}))
   const { type, clientName, photoName } = body as {
-    type: 'photo_downloaded' | 'gallery_downloaded' | 'favorite_marked'
+    type: 'photo_downloaded' | 'gallery_downloaded' | 'favorite_marked' | 'gallery_viewed'
     clientName?: string
     photoName?: string
   }
@@ -106,6 +106,17 @@ export async function POST(
       bodyEN: `${resolvedClientName} marked a photo in "${project.title}" as favorite.`,
       emailSubject: `❤️ Neuer Favorit — ${resolvedClientName}`,
       emailBody: `<p>${resolvedClientName} hat ein Foto in der Galerie <strong>${project.title}</strong> als Favorit markiert.</p>`,
+    },
+    gallery_viewed: {
+      inappKey: 'notify_inapp_gallery_viewed',
+      emailKey: 'notify_email_gallery_viewed',
+      notifType: 'gallery_viewed',
+      titleDE: `Galerie geöffnet: ${resolvedClientName}`,
+      titleEN: `Gallery viewed: ${resolvedClientName}`,
+      bodyDE: `${resolvedClientName} hat die Galerie "${project.title}" geöffnet.`,
+      bodyEN: `${resolvedClientName} opened the gallery "${project.title}".`,
+      emailSubject: `👁️ Galerie geöffnet — ${resolvedClientName}`,
+      emailBody: `<p>${resolvedClientName} hat die Galerie <strong>${project.title}</strong> geöffnet.</p>`,
     },
   }
 

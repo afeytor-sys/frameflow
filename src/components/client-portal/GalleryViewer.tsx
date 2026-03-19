@@ -185,6 +185,21 @@ export default function GalleryViewer({
 
   const supabase = createClient()
 
+  // ── Track gallery view on mount ──────────────────────────────────
+  useEffect(() => {
+    // Increment view count (fire & forget)
+    void supabase.rpc('increment_view_count', { gallery_id: galleryId })
+    // Notify photographer of gallery view (fire & forget, only for client portal not public)
+    if (!isPublic) {
+      fetch(`/api/galleries/${galleryId}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'gallery_viewed', clientName }),
+      }).catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [galleryId])
+
   // Load existing favorite list name from gallery
   useEffect(() => {
     supabase
