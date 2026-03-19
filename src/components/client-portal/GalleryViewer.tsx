@@ -89,29 +89,41 @@ function getLightboxUrl(photo: Photo): string {
   return getOptimizedUrl(photo.storage_url, 1600, 85)
 }
 
-// ── Lazy image component with skeleton ──────────────────────────────
+// ── Lazy image component with skeleton + fallback ────────────────────
 function LazyImage({
-  src, alt, className, onLoad, priority = false,
+  src, fallbackSrc, alt, className, onLoad, priority = false,
 }: {
-  src: string; alt: string; className?: string; onLoad?: () => void; priority?: boolean
+  src: string; fallbackSrc?: string; alt: string; className?: string; onLoad?: () => void; priority?: boolean
 }) {
   const [loaded, setLoaded] = useState(false)
-  const [error, setError] = useState(false)
+  const [currentSrc, setCurrentSrc] = useState(src)
+  const [triedFallback, setTriedFallback] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     setLoaded(false)
-    setError(false)
+    setCurrentSrc(src)
+    setTriedFallback(false)
   }, [src])
+
+  const handleError = () => {
+    // If optimized URL fails and we have a fallback, try the original
+    if (!triedFallback && fallbackSrc && currentSrc !== fallbackSrc) {
+      setTriedFallback(true)
+      setCurrentSrc(fallbackSrc)
+    } else {
+      setLoaded(true) // show broken state
+    }
+  }
 
   return (
     <div className={cn('relative', className)}>
-      {!loaded && !error && (
+      {!loaded && (
         <div className="absolute inset-0 bg-white/8 animate-pulse rounded-sm" />
       )}
       <img
         ref={imgRef}
-        src={src}
+        src={currentSrc}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
@@ -122,7 +134,7 @@ function LazyImage({
           className
         )}
         onLoad={() => { setLoaded(true); onLoad?.() }}
-        onError={() => { setError(true); setLoaded(true) }}
+        onError={handleError}
       />
     </div>
   )
@@ -403,6 +415,7 @@ export default function GalleryViewer({
     >
       <LazyImage
         src={getThumbnailUrl(photo)}
+        fallbackSrc={photo.thumbnail_url || photo.storage_url}
         alt={photo.filename}
         className="w-full h-full photo-img-hover"
         priority={index < 8}
