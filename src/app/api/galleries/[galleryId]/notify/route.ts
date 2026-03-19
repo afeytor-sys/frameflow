@@ -30,7 +30,10 @@ export async function POST(
     .eq('id', galleryId)
     .single()
 
-  if (!gallery) return NextResponse.json({ ok: false })
+  if (!gallery) {
+    console.error('[notify] Gallery not found:', galleryId)
+    return NextResponse.json({ ok: false })
+  }
 
   const { data: project } = await supabase
     .from('projects')
@@ -115,7 +118,7 @@ export async function POST(
 
   // ── Create in-app notification ───────────────────────────────────────────
   if (inappEnabled) {
-    await supabase.from('notifications').insert({
+    const { error: insertError } = await supabase.from('notifications').insert({
       photographer_id: photographerId,
       type: cfg.notifType,
       title_de: cfg.titleDE,
@@ -125,6 +128,9 @@ export async function POST(
       project_id: project.id,
       client_name: resolvedClientName,
     })
+    if (insertError) {
+      console.error('[notify] Failed to insert notification:', insertError.message, insertError.code)
+    }
   }
 
   // ── Send email to photographer ───────────────────────────────────────────

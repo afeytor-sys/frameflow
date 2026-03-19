@@ -26,6 +26,9 @@ const TYPE_ICONS: Record<string, string> = {
   contract_sent: '📄',
   gallery_delivered: '🖼️',
   reminder_sent: '⏰',
+  photo_downloaded: '📥',
+  gallery_downloaded: '📦',
+  favorite_marked: '❤️',
 }
 
 function timeAgo(dateStr: string, locale: string): string {
