@@ -59,7 +59,7 @@ interface Props {
 }
 
 const STATUS_CONFIG = {
-  draft:   { label: 'Draft',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)', icon: FileText },
+  draft:   { label: 'Not sent', color: '#6B7280', bg: 'rgba(107,114,128,0.10)', icon: FileText },
   sent:    { label: 'Sent',   color: '#CC8415', bg: 'rgba(204,132,21,0.10)',  icon: Send },
   paid:    { label: 'Paid',    color: '#2A9B68', bg: 'rgba(42,155,104,0.10)', icon: CheckCircle2 },
   overdue: { label: 'Overdue', color: '#C43B2C', bg: 'rgba(196,59,44,0.10)',  icon: AlertCircle },
@@ -536,7 +536,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
-  const totalPending = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + i.amount, 0)
+  const totalPending = invoices.filter(i => i.status === 'sent' || i.status === 'draft').reduce((s, i) => s + i.amount, 0)
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.amount, 0)
   // Only sum MwSt for paid invoices that explicitly include 19% MwSt (detected via description)
   const totalMwst = invoices
@@ -570,7 +570,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         photographer_id: photographerId,
         amount: amountCents,
         currency: 'eur',
-        status: 'sent',
+        status: 'draft',
         description: finalDescription,
         due_date: form.due_date || null,
         invoice_number: invoiceNumber,
@@ -850,17 +850,6 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                             <Send className="w-3.5 h-3.5" style={{ color: '#CC8415' }} />
                             {ti.sendToClient}
-                          </button>
-                        )}
-                        {/* Mark as pending — only for draft */}
-                        {inv.status === 'draft' && (
-                          <button onClick={() => updateStatus(inv.id, 'sent')}
-                            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] transition-colors"
-                            style={{ color: 'var(--text-primary)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                            <Clock className="w-3.5 h-3.5" style={{ color: '#CC8415' }} />
-                            Mark as Pending
                           </button>
                         )}
                         {/* Mark as paid — always visible (except already paid) */}
