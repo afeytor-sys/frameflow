@@ -4,9 +4,40 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// In-memory throttle: prevent duplicate in-app notifications for the same
+// photographer + type + gallery within a short window.
+// Key: `${photographerId}:${type}:${galleryId}` → timestamp of last insert
+const throttleCache = new Map<string, number>()
+
+// Throttle windows (ms)
+const THROTTLE_MS: Record<string, number> = {
+  photo_downloaded:   5 * 60 * 1000, // 5 min — avoid spam when client downloads many photos
+  gallery_viewed:     10 * 60 * 1000, // 10 min — avoid repeated view pings
+  gallery_downloaded: 0,              // always notify
+  favorite_marked:    0,              // always notify
+}
+
+function isThrottled(key: string, windowMs: number): boolean {
+  if (windowMs <= 0) return false
+  const last = throttleCache.get(key)
+  if (!last) return false
+  return Date.now() - last < windowMs
+}
+
+function setThrottle(key: string): void {
+  throttleCache.set(key, Date.now())
+  // Clean up old entries every 100 inserts to avoid memory leak
+  if (throttleCache.size > 500) {
+    const cutoff = Date.now() - 15 * 60 * 1000
+    for (const [k, v] of throttleCache.entries()) {
+      if (v < cutoff) throttleCache.delete(k)
+    }
+  }
+}
+
 // POST /api/galleries/[galleryId]/notify
 // Called from client-side when a client downloads a photo, downloads the gallery, or marks a favorite
-// Body: { type: 'photo_downloaded' | 'gallery_downloaded' | 'favorite_marked', clientName?: string, photoName?: string }
+// Body: { type: 'photo_downloaded' | 'gallery_downloaded' | 'favorite_marked' | 'gallery_viewed', clientName?: string, photoName?: string }
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ galleryId: string }> }
@@ -44,7 +75,16 @@ export async function POST(
   if (!project) return NextResponse.json({ ok: false })
 
   const photographerId = project.photographer_id
-  const resolvedClientName = clientName || (Array.isArray(project.client) ? project.client[0]?.full_name : (project.client as { full_name: string } | null)?.full_name) || 'Client'
+  const resolvedClientName = clientName
+    || (Array.isArray(project.client) ? project.client[0]?.full_name : (project.client as { full_name: string } | null)?.full_name)
+    || 'Client'
+
+  // ── Throttle check ───────────────────────────────────────────────────────
+  const throttleKey = `${photographerId}:${type}:${galleryId}`
+  const windowMs = THROTTLE_MS[type] ?? 0
+  if (isThrottled(throttleKey, windowMs)) {
+    return NextResponse.json({ ok: true, throttled: true })
+  }
 
   // Get notification settings
   const { data: settings } = await supabase
@@ -60,7 +100,7 @@ export async function POST(
     .eq('id', photographerId)
     .single()
 
-  // ── Determine notification config based on type ──────────────────────────
+  // ── Notification config ──────────────────────────────────────────────────
   type NotifConfig = {
     inappKey: string
     emailKey: string
@@ -123,9 +163,10 @@ export async function POST(
   const cfg = configs[type]
   if (!cfg) return NextResponse.json({ ok: false })
 
-  // Default to true if no settings row
+  // Default to true for in-app, false for email (except gallery_downloaded which defaults true)
+  const defaultEmail = type === 'gallery_downloaded' ? true : false
   const inappEnabled = settings ? (settings[cfg.inappKey] ?? true) : true
-  const emailEnabled = settings ? (settings[cfg.emailKey] ?? false) : false
+  const emailEnabled = settings ? (settings[cfg.emailKey] ?? defaultEmail) : defaultEmail
 
   // ── Create in-app notification ───────────────────────────────────────────
   if (inappEnabled) {
@@ -140,7 +181,10 @@ export async function POST(
       client_name: resolvedClientName,
     })
     if (insertError) {
-      console.error('[notify] Failed to insert notification:', insertError.message, insertError.code)
+      console.error('[notify] Failed to insert notification:', insertError.message, insertError.code, insertError.details)
+    } else {
+      // Only set throttle after successful insert
+      setThrottle(throttleKey)
     }
   }
 
@@ -177,7 +221,9 @@ export async function POST(
 </body>
 </html>
       `.trim(),
-    }).catch(() => {}) // don't fail the request if email fails
+    }).catch((err) => {
+      console.error('[notify] Failed to send email:', err)
+    })
   }
 
   return NextResponse.json({ ok: true })
