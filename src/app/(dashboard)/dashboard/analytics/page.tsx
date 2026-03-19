@@ -43,7 +43,7 @@ export default async function AnalyticsPage() {
       .eq('photographer_id', user.id),
     supabase
       .from('projects')
-      .select('created_at, status, project_type')
+      .select('created_at, status, project_type, shoot_date')
       .eq('photographer_id', user.id),
     supabase
       .from('contracts')

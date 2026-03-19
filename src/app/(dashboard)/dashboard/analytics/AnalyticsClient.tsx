@@ -9,7 +9,7 @@ import { useLocale } from '@/hooks/useLocale'
 
 interface Invoice  { amount: number; status: string; created_at: string }
 interface Client   { created_at: string; status: string }
-interface Project  { created_at: string; status: string; project_type: string | null }
+interface Project  { created_at: string; status: string; project_type: string | null; shoot_date?: string | null }
 interface Contract { status: string; created_at: string }
 interface Gallery  { status: string; created_at: string }
 
@@ -181,6 +181,30 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
     label,
     value: clients.filter(c => c.created_at.startsWith(key)).length,
   }))
+
+  // ── Bookings per month (full year, based on shoot_date) ──
+  const currentYear = new Date().getFullYear()
+  const allMonths = Array.from({ length: 12 }, (_, i) => {
+    const monthNum = i + 1
+    const key = `${currentYear}-${String(monthNum).padStart(2, '0')}`
+    const label = new Date(currentYear, i, 1).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { month: 'short' })
+    return { key, label, monthIndex: i }
+  })
+
+  const bookingsByMonth = allMonths.map(({ key, label }) => ({
+    label,
+    value: projects.filter(p => p.shoot_date && p.shoot_date.startsWith(key)).length,
+  }))
+
+  const maxBookings = Math.max(...bookingsByMonth.map(d => d.value), 1)
+
+  // ── Revenue per month (full year, based on invoice created_at) ──
+  const revenueByMonthFull = allMonths.map(({ key, label }) => {
+    const total = invoices
+      .filter(i => i.status === 'paid' && i.created_at.startsWith(key))
+      .reduce((s, i) => s + i.amount, 0)
+    return { label, value: Math.round(total / 100) }
+  })
 
   // ── Projects by type ──
   const typeCount: Record<string, number> = {}
@@ -388,6 +412,132 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
               </BarChart>
             </ResponsiveContainer>
           )}
+        </div>
+      </div>
+
+      {/* Bookings & Revenue full year */}
+      <div className="grid lg:grid-cols-2 gap-5">
+
+        {/* Bookings per month */}
+        <div
+          className="rounded-2xl p-6"
+          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
+        >
+          <div className="flex items-start justify-between mb-1">
+            <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
+              {locale === 'de' ? 'Bookings pro Monat' : 'Bookings per Month'}
+            </h2>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#10B98115', color: '#10B981' }}>
+              {currentYear}
+            </span>
+          </div>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
+            {locale === 'de' ? 'Basierend auf dem Shooting-Datum' : 'Based on shoot date — Jan to Dec'}
+          </p>
+          {bookingsByMonth.every(d => d.value === 0) ? (
+            <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+              {locale === 'de' ? 'Noch keine Bookings mit Datum' : 'No bookings with shoot date yet'}
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={bookingsByMonth} barSize={20}>
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v) => [v, locale === 'de' ? 'Bookings' : 'Bookings']}
+                  cursor={{ fill: 'rgba(16,185,129,0.06)', radius: 8 }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {bookingsByMonth.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.value === maxBookings && entry.value > 0 ? '#10B981' : '#10B98155'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+          {/* Best month badge */}
+          {bookingsByMonth.some(d => d.value > 0) && (() => {
+            const best = bookingsByMonth.reduce((a, b) => b.value > a.value ? b : a)
+            const total = bookingsByMonth.reduce((s, d) => s + d.value, 0)
+            return (
+              <div className="flex items-center gap-3 mt-4 pt-4" style={{ borderTop: '1px solid var(--card-border)' }}>
+                <span className="text-[13px]">🔥</span>
+                <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                  {locale === 'de' ? 'Bester Monat:' : 'Best month:'}
+                  <span className="font-bold ml-1" style={{ color: 'var(--text-primary)' }}>{best.label}</span>
+                  <span className="ml-1" style={{ color: '#10B981' }}>({best.value} {locale === 'de' ? 'Bookings' : 'bookings'})</span>
+                </span>
+                <span className="ml-auto text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  {locale === 'de' ? `${total} gesamt` : `${total} total`}
+                </span>
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* Revenue per month full year */}
+        <div
+          className="rounded-2xl p-6"
+          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
+        >
+          <div className="flex items-start justify-between mb-1">
+            <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
+              {locale === 'de' ? 'Umsatz pro Monat' : 'Revenue per Month'}
+            </h2>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#C4A47C15', color: '#C4A47C' }}>
+              {currentYear}
+            </span>
+          </div>
+          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
+            {locale === 'de' ? 'Bezahlte Rechnungen — Jan bis Dez' : 'Paid invoices — Jan to Dec'}
+          </p>
+          {revenueByMonthFull.every(d => d.value === 0) ? (
+            <div className="flex items-center justify-center h-40 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+              {locale === 'de' ? 'Noch keine bezahlten Rechnungen' : 'No paid invoices yet'}
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={revenueByMonthFull} barSize={20}>
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v) => [`€${v}`, t.revenue]}
+                  cursor={{ fill: 'rgba(196,164,124,0.06)', radius: 8 }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {revenueByMonthFull.map((entry, index) => (
+                    <Cell
+                      key={`rev-${index}`}
+                      fill={entry.value === Math.max(...revenueByMonthFull.map(d => d.value)) && entry.value > 0 ? '#C4A47C' : '#C4A47C55'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+          {/* Best revenue month */}
+          {revenueByMonthFull.some(d => d.value > 0) && (() => {
+            const best = revenueByMonthFull.reduce((a, b) => b.value > a.value ? b : a)
+            const totalRev = revenueByMonthFull.reduce((s, d) => s + d.value, 0)
+            return (
+              <div className="flex items-center gap-3 mt-4 pt-4" style={{ borderTop: '1px solid var(--card-border)' }}>
+                <span className="text-[13px]">💰</span>
+                <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                  {locale === 'de' ? 'Bester Monat:' : 'Best month:'}
+                  <span className="font-bold ml-1" style={{ color: 'var(--text-primary)' }}>{best.label}</span>
+                  <span className="ml-1" style={{ color: '#C4A47C' }}>(€{best.value.toLocaleString()})</span>
+                </span>
+                <span className="ml-auto text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  €{totalRev.toLocaleString()} {locale === 'de' ? 'gesamt' : 'total'}
+                </span>
+              </div>
+            )
+          })()}
         </div>
       </div>
 
