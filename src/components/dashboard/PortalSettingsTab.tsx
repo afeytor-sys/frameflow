@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
   Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock,
-  Link2, Plus, Trash2, GripVertical, ClipboardList, Globe,
+  Link2, Plus, Trash2, GripVertical, ClipboardList, Globe, Bookmark, X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -38,6 +38,11 @@ interface PortalLink {
   url: string
 }
 
+interface MessageTemplate {
+  label: string
+  text: string
+}
+
 interface Props {
   projectId: string
   clientToken: string | null
@@ -47,9 +52,11 @@ interface Props {
   initialLinks?: PortalLink[] | null
   initialStepsOverride?: Record<string, boolean> | null
   initialPortalLocale?: string | null
+  initialMessageTemplates?: MessageTemplate[] | null
+  photographerId?: string | null
 }
 
-export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword, initialLinks, initialPortalLocale }: Props) {
+export default function PortalSettingsTab({ projectId, clientToken, initialSections, initialMessage, initialPassword, initialLinks, initialPortalLocale, initialMessageTemplates, photographerId }: Props) {
   const locale = useLocale()
   const t = dashboardT(locale)
   const tp = t.portal
@@ -66,10 +73,46 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // ── Custom message templates ─────────────────────────────────────
+  const [myTemplates, setMyTemplates] = useState<MessageTemplate[]>(initialMessageTemplates ?? [])
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [templateNameInput, setTemplateNameInput] = useState('')
+  const [savingTemplate, setSavingTemplate] = useState(false)
+
   const supabase = createClient()
 
   const toggle = (key: keyof PortalSections) => {
     setSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // ── Save a new custom template ───────────────────────────────────
+  const saveTemplate = async () => {
+    if (!message.trim() || !photographerId) return
+    const name = templateNameInput.trim() || 'Meine Vorlage'
+    setSavingTemplate(true)
+    const newTemplates = [...myTemplates, { label: name, text: message.trim() }]
+    const { error } = await supabase
+      .from('photographers')
+      .update({ portal_message_templates: newTemplates })
+      .eq('id', photographerId)
+    setSavingTemplate(false)
+    if (error) { toast.error('Fehler beim Speichern'); return }
+    setMyTemplates(newTemplates)
+    setShowSaveModal(false)
+    setTemplateNameInput('')
+    toast.success(`Vorlage "${name}" gespeichert!`)
+  }
+
+  // ── Delete a custom template ──────────────────────────────────────
+  const deleteTemplate = async (index: number) => {
+    if (!photographerId) return
+    const newTemplates = myTemplates.filter((_, i) => i !== index)
+    const { error } = await supabase
+      .from('photographers')
+      .update({ portal_message_templates: newTemplates })
+      .eq('id', photographerId)
+    if (error) { toast.error('Fehler beim Löschen'); return }
+    setMyTemplates(newTemplates)
   }
 
   const addLink = () => setLinks(prev => [...prev, { label: '', url: '' }])
@@ -305,8 +348,9 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           {tp.messageDesc}
         </p>
 
-        {/* Presets */}
+        {/* Presets + custom templates row */}
         <div className="flex flex-wrap gap-1.5 mb-3">
+          {/* Fixed presets */}
           {tp.presets.map(preset => (
             <button
               key={preset.label}
@@ -316,6 +360,28 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             >
               {preset.emoji} {preset.label}
             </button>
+          ))}
+
+          {/* Custom saved templates */}
+          {myTemplates.map((tpl, i) => (
+            <div key={i} className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid rgba(196,164,124,0.35)' }}>
+              <button
+                onClick={() => setMessage(tpl.text)}
+                className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 text-[11px] font-semibold transition-all hover:opacity-80"
+                style={{ background: 'rgba(196,164,124,0.10)', color: 'var(--accent)' }}
+              >
+                <Bookmark className="w-3 h-3 flex-shrink-0" />
+                {tpl.label}
+              </button>
+              <button
+                onClick={() => deleteTemplate(i)}
+                className="px-1.5 py-1 transition-all hover:opacity-80"
+                style={{ background: 'rgba(196,164,124,0.06)', color: 'var(--text-muted)', borderLeft: '1px solid rgba(196,164,124,0.20)' }}
+                title="Vorlage löschen"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           ))}
         </div>
 
@@ -327,6 +393,31 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
           className="input-base w-full resize-none text-[13px]"
         />
 
+        {/* Bottom actions row */}
+        <div className="flex items-center justify-between mt-2">
+          {message ? (
+            <button
+              onClick={() => setMessage('')}
+              className="text-[11px] transition-all hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {tp.deleteMessage}
+            </button>
+          ) : <span />}
+
+          {/* Save as template button */}
+          {message.trim() && photographerId && (
+            <button
+              onClick={() => { setTemplateNameInput(''); setShowSaveModal(true) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all hover:opacity-80"
+              style={{ background: 'rgba(196,164,124,0.12)', color: 'var(--accent)', border: '1px solid rgba(196,164,124,0.30)' }}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              Als Vorlage speichern
+            </button>
+          )}
+        </div>
+
         {message && (
           <div className="mt-3 p-3 rounded-xl" style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.20)' }}>
             <p className="text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: 'var(--accent)' }}>
@@ -337,17 +428,53 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
             </p>
           </div>
         )}
-
-        {message && (
-          <button
-            onClick={() => setMessage('')}
-            className="mt-2 text-[11px] transition-all hover:opacity-80"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {tp.deleteMessage}
-          </button>
-        )}
       </div>
+
+      {/* ── Save template modal ── */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+            <div className="px-6 pt-6 pb-2">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(196,164,124,0.12)' }}>
+                <Bookmark className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+              </div>
+              <h3 className="text-[16px] font-bold mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Vorlage speichern
+              </h3>
+              <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>
+                Gib dieser Vorlage einen Namen, damit du sie später schnell wiederfindest.
+              </p>
+              <input
+                autoFocus
+                value={templateNameInput}
+                onChange={e => setTemplateNameInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveTemplate() }}
+                placeholder="z.B. Begrüßung Hochzeit, Galerie bereit…"
+                className="input-base w-full text-[13px]"
+                maxLength={60}
+              />
+            </div>
+            <div className="flex gap-2 px-6 py-4">
+              <button
+                onClick={saveTemplate}
+                disabled={savingTemplate}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white disabled:opacity-50 transition-all"
+                style={{ background: 'var(--accent)' }}
+              >
+                {savingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bookmark className="w-4 h-4" />}
+                Speichern
+              </button>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Portal Links */}
       <div

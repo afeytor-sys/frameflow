@@ -43,6 +43,11 @@ interface UserTemplate {
   content: string
 }
 
+interface MessageTemplate {
+  label: string
+  text: string
+}
+
 interface Props {
   project: {
     id: string
@@ -69,6 +74,7 @@ interface Props {
   plan: Plan
   userTemplates?: UserTemplate[]
   photographerName?: string | null
+  photographerMessageTemplates?: MessageTemplate[] | null
 }
 
 // TABS is now built inside the component using translations
@@ -76,7 +82,7 @@ interface Props {
 const MWST_RATE = 0.19
 const SET_SUGGESTIONS = ['Getting Ready', 'Ceremony', 'Reception', 'Portraits', 'Details', 'Highlights', 'Moments']
 
-export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [], photographerName }: Props) {
+export default function ProjectTabs({ project, contracts, galleries: initialGalleries, plan, userTemplates = [], photographerName, photographerMessageTemplates }: Props) {
   const locale = useLocale()
   const t = dashboardT(locale)
   const [activeTab, setActiveTab] = useState('contract')
@@ -817,6 +823,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               initialLinks={(project.portal_links as { label: string; url: string }[] | null) ?? null}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               initialStepsOverride={(project.project_steps_override as any) ?? null}
+              initialMessageTemplates={photographerMessageTemplates ?? null}
+              photographerId={project.photographer_id}
             />
           )}
 

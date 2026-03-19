@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fotonizer — Automations</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  body.dark {
+    --bg-base: #0E0E10; --bg-surface: #18181C; --bg-hover: #222228;
+    --card-bg: #18181C; --card-border: rgba(255,255,255,0.07);
+    --border-color: rgba(255,255,255,0.07);
+    --text-primary: #F0EDE8; --text-secondary: #B8B4AE; --text-muted: #6B6760;
+    --accent: #C4A47C; --sidebar-bg: #111113; --sidebar-border: rgba(255,255,255,0.06);
+  }
+  body.light {
+    --bg-base: #F5F3F0; --bg-surface: #FFFFFF; --bg-hover: #F0EDE8;
+    --card-bg: #FFFFFF; --card-border: rgba(0,0,0,0.08);
+    --border-color: rgba(0,0,0,0.08);
+    --text-primary: #1A1814; --text-secondary: #4A4540; --text-muted: #9A9590;
+    --accent: #C4A47C; --sidebar-bg: #FAFAF8; --sidebar-border: rgba(0,0,0,0.07);
+  }
+
+  .app { display: flex; height: 100vh; background: var(--bg-base); overflow: hidden; }
+
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border);
+    display: flex; flex-direction: column; padding: 20px 12px; gap: 4px;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; padding: 8px 10px 20px; font-size: 15px; font-weight: 800; letter-spacing: -0.04em; color: var(--text-primary); }
+  .logo-icon { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #C4A47C, #A07850); display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; font-weight: 900; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; }
+  .nav-item.active { background: rgba(196,164,124,0.12); color: var(--accent); font-weight: 600; }
+  .nav-icon { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 56px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--bg-surface); }
+  .header-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #C4A47C, #A07850); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; }
+
+  .content { flex: 1; padding: 24px; overflow-y: auto; }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+  .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; color: var(--text-primary); margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+
+  .banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-radius: 12px; margin-bottom: 20px;
+    background: rgba(196,164,124,0.10); border: 1px solid rgba(196,164,124,0.25);
+    color: #C4A47C; font-size: 13px;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+
+  .card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
+  .card-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-header-text h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .card-header-text p { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+  .email-row { padding: 14px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-start; gap: 12px; }
+  .email-row:last-child { border-bottom: none; }
+  .email-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .email-body { flex: 1; min-width: 0; }
+  .email-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .email-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .email-meta-item { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text-muted); }
+  .email-send-date { margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .email-send-text { font-size: 11px; color: var(--text-muted); }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  }
+  .type-badge { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+  .days-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+
+  /* Settings panel */
+  .settings-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .settings-title { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .settings-title h3 { font-size: 13.5px; font-weight: 700; color: var(--text-primary); }
+  .settings-title p { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-left { display: flex; align-items: center; gap: 8px; }
+  .setting-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .setting-label { font-size: 12.5px; color: var(--text-secondary); }
+  .active-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: rgba(16,185,129,0.12); color: #10B981; }
+
+  /* Stats card */
+  .stats-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 18px; margin-top: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .stats-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; }
+  .stat-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .stat-row:last-child { margin-bottom: 0; }
+  .stat-left { display: flex; align-items: center; gap: 7px; }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-label { font-size: 12px; color: var(--text-secondary); }
+  .stat-value { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+
+  .theme-toggle {
+    position: fixed; top: 14px; right: 16px; z-index: 100;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 5px 12px;
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  svg { display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body class="dark">
+
+<button class="theme-toggle" onclick="toggleTheme()">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+  <span id="theme-label">Light</span>
+</button>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="logo"><div class="logo-icon">F</div>Fotonizer</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Bookings</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>Pipeline</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Galleries</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Contracts</div>
+    <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Invoices</div>
+    <div class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Automations</div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div class="header-title">Automations</div>
+      <div class="header-right">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--bg-surface);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <div class="avatar">JD</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-title">Automations</div>
+      <div class="page-sub">Scheduled emails and reminder history</div>
+
+      <!-- Banner -->
+      <div class="banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Reminders are sent daily at 08:00 AM automatically.
+      </div>
+
+      <div class="grid">
+        <!-- Left column -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <!-- Scheduled Emails -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" style="background:rgba(59,130,246,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="card-header-text">
+                <h3>Scheduled Emails</h3>
+                <p>Reminders that will be sent automatically</p>
+              </div>
+            </div>
+
+            <!-- Row 1 -->
+            <div class="email-row">
+              <div class="email-icon" style="background:rgba(59,130,246,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div class="email-body">
+                <div class="email-title">Wedding Müller & Schmidt</div>
+                <div class="email-meta">
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Anna Müller
+                  </div>
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Sat, 15 Jun 2025
+                  </div>
+                  <span class="type-badge" style="background:rgba(59,130,246,0.12);color:#3B82F6;">7-day reminder</span>
+                </div>
+                <div class="email-send-date">
+                  <span class="email-send-text">Sends on: <strong style="color:var(--text-secondary)">Sat, 8 Jun 2025</strong></span>
+                  <span class="days-badge" style="background:rgba(16,185,129,0.12);color:#10B981;">In 12 days</span>
+                </div>
+              </div>
+              <div style="flex-shrink:0;">
+                <span class="badge" style="background:rgba(59,130,246,0.12);color:#3B82F6;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Pending
+                </span>
+              </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="email-row">
+              <div class="email-icon" style="background:rgba(139,92,246,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div class="email-body">
+                <div class="email-title">Family Shoot — Berger</div>
+                <div class="email-meta">
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Thomas Berger
+                  </div>
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Tue, 22 Apr 2025
+                  </div>
+                  <span class="type-badge" style="background:rgba(139,92,246,0.12);color:#8B5CF6;">1-day reminder</span>
+                </div>
+                <div class="email-send-date">
+                  <span class="email-send-text">Sends on: <strong style="color:var(--text-secondary)">Mon, 21 Apr 2025</strong></span>
+                  <span class="days-badge" style="background:rgba(245,158,11,0.12);color:#F59E0B;">Tomorrow</span>
+                </div>
+              </div>
+              <div style="flex-shrink:0;">
+                <span class="badge" style="background:rgba(59,130,246,0.12);color:#3B82F6;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Pending
+                </span>
+              </div>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="email-row">
+              <div class="email-icon" style="background:rgba(59,130,246,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div class="email-body">
+                <div class="email-title">Corporate — TechStart GmbH</div>
+                <div class="email-meta">
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Maria Weber
+                  </div>
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Mon, 28 Apr 2025
+                  </div>
+                  <span class="type-badge" style="background:rgba(59,130,246,0.12);color:#3B82F6;">7-day reminder</span>
+                </div>
+                <div class="email-send-date">
+                  <span class="email-send-text">Sends on: <strong style="color:var(--text-secondary)">Mon, 21 Apr 2025</strong></span>
+                  <span class="days-badge" style="background:rgba(245,158,11,0.12);color:#F59E0B;">In 8 days</span>
+                </div>
+              </div>
+              <div style="flex-shrink:0;">
+                <span class="badge" style="background:rgba(59,130,246,0.12);color:#3B82F6;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Pending
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sent History -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" style="background:rgba(16,185,129,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              </div>
+              <div class="card-header-text">
+                <h3>Sent History</h3>
+                <p>Reminders already sent to clients</p>
+              </div>
+            </div>
+
+            <div class="email-row">
+              <div class="email-icon" style="background:rgba(16,185,129,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="email-body">
+                <div class="email-title">Maternity — Clara Schneider</div>
+                <div class="email-meta">
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Clara Schneider
+                  </div>
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Fri, 11 Apr 2025
+                  </div>
+                </div>
+                <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                  <span class="badge" style="background:rgba(16,185,129,0.12);color:#10B981;font-size:10px;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    7-day reminder
+                  </span>
+                  <span class="badge" style="background:rgba(16,185,129,0.12);color:#10B981;font-size:10px;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    1-day reminder
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="email-row">
+              <div class="email-icon" style="background:rgba(16,185,129,0.12);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="email-body">
+                <div class="email-title">Event — Startup Summit</div>
+                <div class="email-meta">
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Felix Wagner
+                  </div>
+                  <div class="email-meta-item">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Wed, 2 Apr 2025
+                  </div>
+                </div>
+                <div style="margin-top:6px;display:flex;gap:6px;">
+                  <span class="badge" style="background:rgba(16,185,129,0.12);color:#10B981;font-size:10px;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    7-day reminder
+                  </span>
+                  <span class="badge" style="background:rgba(16,185,129,0.12);color:#10B981;font-size:10px;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    1-day reminder
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div>
+          <!-- Settings -->
+          <div class="settings-card">
+            <div class="settings-title">
+              <div style="width:32px;height:32px;border-radius:10px;background:rgba(196,164,124,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C4A47C" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+              <div>
+                <h3>Automation Settings</h3>
+                <p>Active automations for your account</p>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-left">
+                <div class="setting-icon" style="background:rgba(16,185,129,0.12);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+                </div>
+                <span class="setting-label">7-day reminder to client</span>
+              </div>
+              <span class="active-badge">Active</span>
+            </div>
+            <div class="setting-row">
+              <div class="setting-left">
+                <div class="setting-icon" style="background:rgba(16,185,129,0.12);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+                </div>
+                <span class="setting-label">1-day reminder to client</span>
+              </div>
+              <span class="active-badge">Active</span>
+            </div>
+            <div class="setting-row">
+              <div class="setting-left">
+                <div class="setting-icon" style="background:rgba(16,185,129,0.12);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+                </div>
+                <span class="setting-label">Reminder to photographer</span>
+              </div>
+              <span class="active-badge">Active</span>
+            </div>
+
+            <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--bg-base);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;">
+              Change settings
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-card">
+            <div class="stats-title">Overview</div>
+            <div class="stat-row">
+              <div class="stat-left">
+                <div class="stat-dot" style="background:#3B82F6;"></div>
+                <span class="stat-label">Scheduled emails</span>
+              </div>
+              <span class="stat-value">5</span>
+            </div>
+            <div class="stat-row">
+              <div class="stat-left">
+                <div class="stat-dot" style="background:#8B5CF6;"></div>
+                <span class="stat-label">Manually scheduled</span>
+              </div>
+              <span class="stat-value">2</span>
+            </div>
+            <div class="stat-row">
+              <div class="stat-left">
+                <div class="stat-dot" style="background:#F59E0B;"></div>
+                <span class="stat-label">Blocked / Disabled</span>
+              </div>
+              <span class="stat-value">0</span>
+            </div>
+            <div class="stat-row">
+              <div class="stat-left">
+                <div class="stat-dot" style="background:#10B981;"></div>
+                <span class="stat-label">Already sent</span>
+              </div>
+              <span class="stat-value">14</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let isDark = true;
+  function toggleTheme() {
+    isDark = !isDark;
+    document.body.className = isDark ? 'dark' : 'light';
+    document.getElementById('theme-label').textContent = isDark ? 'Light' : 'Dark';
+  }
+</script>
+</body>
+</html>
