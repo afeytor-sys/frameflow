@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2 } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare } from 'lucide-react'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
 import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
@@ -62,6 +62,7 @@ interface Gallery {
   expires_at: string | null
   view_count: number
   download_count: number
+  photo_download_count?: number
   design_theme?: string | null
   tags_enabled?: string[] | null
 }
@@ -177,6 +178,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [favoriteListName, setFavoriteListName] = useState<string | null>(null)
   const [downloadingFavorites, setDownloadingFavorites] = useState(false)
   const [favDownloadProgress, setFavDownloadProgress] = useState(0)
+  // Comment count
+  const [commentCount, setCommentCount] = useState(0)
 
   // Settings form state
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
@@ -197,7 +200,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
   const supabase = createClient()
 
-  // Load sections + favorite list name
+  // Load sections + favorite list name + comment count
   useEffect(() => {
     if (!gallery) return
     supabase
@@ -215,6 +218,14 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       .single()
       .then(({ data }) => {
         if (data?.favorite_list_name) setFavoriteListName(data.favorite_list_name)
+      })
+    // Count comments across all photos in this gallery
+    supabase
+      .from('photo_comments')
+      .select('id', { count: 'exact', head: true })
+      .in('photo_id', initialPhotos.map(p => p.id))
+      .then(({ count }) => {
+        if (count !== null) setCommentCount(count)
       })
   }, [gallery?.id])
 
@@ -543,7 +554,28 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block" style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
             {gallery.status === 'active' ? 'Aktiv' : 'Draft'}
           </button>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{photos.length} Fotos · {gallery.view_count} Aufrufe</span>
+          {/* ── Stats pills ── */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { icon: Images, label: 'Fotos', value: photos.length, color: 'var(--text-muted)' },
+              { icon: Eye, label: 'Aufrufe', value: gallery.view_count, color: 'var(--text-muted)' },
+              { icon: Download, label: 'Foto-DL', value: gallery.photo_download_count ?? 0, color: '#3B82F6', title: 'Einzelfoto-Downloads' },
+              { icon: Download, label: 'Galerie-DL', value: gallery.download_count, color: '#8B5CF6', title: 'Galerie-Downloads (ZIP)' },
+              { icon: Heart, label: 'Favoriten', value: photos.filter(p => p.is_favorite).length, color: '#EF4444' },
+              { icon: MessageSquare, label: 'Kommentare', value: commentCount, color: '#F59E0B' },
+            ].map(({ icon: Icon, label, value, color, title }) => (
+              <div
+                key={label}
+                title={title}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+              >
+                <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
+                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value}</span>
+                <span className="hidden sm:inline">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={shareGallery} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>

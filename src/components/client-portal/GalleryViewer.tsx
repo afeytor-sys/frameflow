@@ -345,7 +345,7 @@ export default function GalleryViewer({
       const a = document.createElement('a')
       a.href = url; a.download = photo.filename; a.click()
       URL.revokeObjectURL(url)
-      try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
+      try { await supabase.rpc('increment_photo_download_count', { gallery_id: galleryId }) } catch {}
       // Notify photographer (fire & forget)
       if (!isPublic) notifyPhotographer(galleryId, 'photo_downloaded', clientName, photo.filename)
     } catch { toast.error('Download fehlgeschlagen') }
