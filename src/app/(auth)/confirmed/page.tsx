@@ -9,6 +9,14 @@ export default function EmailConfirmedPage() {
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 100)
+
+    // Google Ads conversion — email confirmed, account fully activated
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).gtag('event', 'ads_conversion_Contact_1', {})
+    }
+
     return () => clearTimeout(t)
   }, [])
 

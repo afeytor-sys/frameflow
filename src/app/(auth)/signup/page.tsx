@@ -46,6 +46,13 @@ export default function SignupPage() {
       localStorage.setItem('pending_invite_code', inviteCode.trim().toUpperCase())
     }
 
+    // Google Ads conversion — signup form submitted successfully
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).gtag('event', 'ads_conversion_Contact_1', {})
+    }
+
     setSuccess(true)
   }
 
