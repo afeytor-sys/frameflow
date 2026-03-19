@@ -3,6 +3,7 @@ import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
+import Script from 'next/script'
 import CookieBanner from '@/components/CookieBanner'
 import ThemeProvider from '@/components/ThemeProvider'
 import './globals.css'
@@ -79,6 +80,18 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=G-2081M7T2H7"
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-2081M7T2H7');
+        `}
+      </Script>
       <body className="antialiased">
         <ThemeProvider>
           <NextIntlClientProvider>
