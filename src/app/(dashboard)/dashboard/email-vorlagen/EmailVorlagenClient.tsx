@@ -11,9 +11,10 @@ import {
 import { useLocale } from '@/hooks/useLocale'
 import {
   Mail, Plus, X, ChevronRight, Sparkles, BookMarked,
-  Trash2, PenLine, Check,
+  Trash2, PenLine, Check, Send,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import SendEmailModal from '@/components/dashboard/SendEmailModal'
 
 interface UserTemplate {
   id: string
@@ -75,6 +76,9 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
   const [previewTpl, setPreviewTpl] = useState<{
     name: string; description: string | null; category: EmailCategory; subject: string; body: string
   } | null>(null)
+
+  // Send email modal (use template)
+  const [sendModal, setSendModal] = useState<{ subject: string; body: string } | null>(null)
 
   // Edit modal
   const [editTpl, setEditTpl] = useState<UserTemplate | null>(null)
@@ -336,17 +340,25 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
                         Subject: {tpl.subject}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setPreviewTpl(tpl)}
-                        className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
+                        className="text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
                         style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
                       >
                         Preview
                       </button>
                       <button
+                        onClick={() => setSendModal({ subject: tpl.subject, body: tpl.body })}
+                        className="flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
+                        style={{ background: 'rgba(249,115,22,0.10)', color: '#F97316', border: '1px solid rgba(249,115,22,0.20)' }}
+                      >
+                        <Send className="w-3 h-3" />
+                        Use
+                      </button>
+                      <button
                         onClick={() => openEdit(tpl)}
-                        className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
+                        className="flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
                         style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
                       >
                         Edit
@@ -525,6 +537,13 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           categoryLabels={CATEGORY_LABELS}
         />
       )}
+
+      {/* ── Send Email Modal (Use template) ── */}
+      <SendEmailModal
+        open={!!sendModal}
+        onClose={() => setSendModal(null)}
+        initialTemplate={sendModal}
+      />
 
       {/* ── Preview Modal ── */}
       {previewTpl && (

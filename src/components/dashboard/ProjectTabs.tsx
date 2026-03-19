@@ -10,6 +10,7 @@ import BookingDetailsTab from './BookingDetailsTab'
 import PortalSettingsTab from './PortalSettingsTab'
 import QuestionnaireTab from './QuestionnaireTab'
 import InternalNotesTab from './InternalNotesTab'
+import EmailTab from './EmailTab'
 import type { Contract, Plan } from '@/types/database'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
@@ -208,6 +209,14 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       desc: () => project.internal_notes
         ? (locale === 'de' ? 'Interne Notizen vorhanden' : 'Internal notes saved')
         : (locale === 'de' ? 'Keine Notizen' : 'No notes yet'),
+    },
+    {
+      key: 'email',
+      label: locale === 'de' ? 'Emails' : 'Emails',
+      icon: Mail,
+      color: '#F97316',
+      bg: 'rgba(249,115,22,0.10)',
+      desc: () => locale === 'de' ? 'Emails senden & planen' : 'Send & schedule emails',
     },
   ]
 
@@ -825,6 +834,17 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
             <InternalNotesTab
               projectId={project.id}
               initialNotes={(project.internal_notes as string | null) ?? null}
+            />
+          )}
+
+          {activeTab === 'email' && (
+            <EmailTab
+              projectId={project.id}
+              projectTitle={project.title}
+              clientEmail={client?.email}
+              clientName={client?.full_name}
+              studioName={photographerName}
+              portalUrl={project.client_url}
             />
           )}
         </div>
