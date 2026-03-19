@@ -2,12 +2,18 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CalendarDays, MapPin, Tag, FileText, Check, Loader2, Clock, Users, Euro, Timer, Plus, X } from 'lucide-react'
+import { CalendarDays, MapPin, Tag, FileText, Check, Loader2, Clock, Users, Euro, Timer, Plus, X, Bookmark } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 
+interface CustomShootingType {
+  label: string
+  color: string
+}
+
 interface Props {
   projectId: string
+  photographerId: string
   initialData: {
     shoot_date: string | null
     shoot_time: string | null
@@ -23,7 +29,9 @@ interface Props {
     custom_type_color: string | null
     custom_status_label: string | null
     custom_status_color: string | null
+    shooting_type: string | null
   }
+  savedShootingTypes?: CustomShootingType[]
 }
 
 // ─── i18n ─────────────────────────────────────────────────────────────────────
@@ -50,6 +58,10 @@ const UI = {
     notesPlaceholder: 'Internal notes about the booking...',
     customType: 'Custom',
     customTypeTitle: 'Custom Type',
+    saveAsType: 'Save as type',
+    savedTypes: 'Saved types',
+    typeSaved: 'Type saved!',
+    typeRemoved: 'Type removed',
     customStatus: 'Custom',
     customStatusTitle: 'Custom Status',
     preview: 'Preview:',
@@ -88,6 +100,10 @@ const UI = {
     notesPlaceholder: 'Interne Notizen zum Booking...',
     customType: 'Eigener',
     customTypeTitle: 'Eigener Typ',
+    saveAsType: 'Als Typ speichern',
+    savedTypes: 'Gespeicherte Typen',
+    typeSaved: 'Typ gespeichert!',
+    typeRemoved: 'Typ entfernt',
     customStatus: 'Eigener',
     customStatusTitle: 'Eigener Status',
     preview: 'Vorschau:',
@@ -168,7 +184,7 @@ function formatDate(dateStr: string, locale: string): string {
   return d.toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-export default function BookingDetailsTab({ projectId, initialData }: Props) {
+export default function BookingDetailsTab({ projectId, photographerId, initialData, savedShootingTypes = [] }: Props) {
   const locale = useLocale()
   const t = UI[locale]
   const PROJECT_TYPES = locale === 'de' ? PROJECT_TYPES_DE : PROJECT_TYPES_EN
@@ -186,7 +202,6 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed.length > 0 ? parsed : [{ label: '', url: '' }]
     } catch {}
-    // Legacy plain string → convert to first entry
     return [{ label: '', url: raw }]
   }
 
@@ -202,10 +217,14 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
   const [numPersons, setNumPersons] = useState(initialData.num_persons?.toString() ?? '')
   const [price, setPrice] = useState(initialData.price ?? '')
 
-  // Custom type
+  // Custom type (extra label/color badge)
   const [customTypeLabel, setCustomTypeLabel] = useState(initialData.custom_type_label ?? '')
   const [customTypeColor, setCustomTypeColor] = useState(initialData.custom_type_color ?? '#8B5CF6')
   const [showCustomTypeInput, setShowCustomTypeInput] = useState(false)
+
+  // Saved shooting types (from photographer profile)
+  const [myTypes, setMyTypes] = useState<CustomShootingType[]>(savedShootingTypes)
+  const [savingType, setSavingType] = useState(false)
 
   // Custom status
   const [customStatusLabel, setCustomStatusLabel] = useState(initialData.custom_status_label ?? '')
@@ -220,11 +239,49 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
   const currentStatus = STATUS_OPTIONS.find(s => s.value === status)
   const currentType = PROJECT_TYPES.find(tp => tp.value === projectType)
 
-  // Determine active status display (custom or preset)
   const isCustomStatus = status === '__custom__'
   const activeStatusColor = isCustomStatus ? customStatusColor : (currentStatus?.color ?? 'var(--text-muted)')
   const activeStatusBg = isCustomStatus ? `${customStatusColor}18` : (currentStatus?.bg ?? 'var(--bg-hover)')
   const activeStatusLabel = isCustomStatus ? customStatusLabel : (currentStatus?.label ?? '')
+
+  // ── Save a custom type to photographer profile ─────────────────────────────
+  const handleSaveType = async () => {
+    if (!customTypeLabel.trim()) return
+    const alreadyExists = myTypes.some(t => t.label.toLowerCase() === customTypeLabel.trim().toLowerCase())
+    if (alreadyExists) return
+    setSavingType(true)
+    const newTypes = [...myTypes, { label: customTypeLabel.trim(), color: customTypeColor }]
+    const { error } = await supabase
+      .from('photographers')
+      .update({ custom_shooting_types: newTypes })
+      .eq('id', photographerId)
+    setSavingType(false)
+    if (error) { toast.error('Error: ' + error.message); return }
+    setMyTypes(newTypes)
+    toast.success(t.typeSaved)
+  }
+
+  // ── Remove a saved type from photographer profile ──────────────────────────
+  const handleRemoveType = async (label: string) => {
+    const newTypes = myTypes.filter(t => t.label !== label)
+    await supabase
+      .from('photographers')
+      .update({ custom_shooting_types: newTypes })
+      .eq('id', photographerId)
+    setMyTypes(newTypes)
+    toast.success(t.typeRemoved)
+  }
+
+  // ── Select a saved type as the custom type for this project ───────────────
+  const handleSelectSavedType = (st: CustomShootingType) => {
+    const isSelected = customTypeLabel === st.label && customTypeColor === st.color
+    if (isSelected) {
+      setCustomTypeLabel('')
+    } else {
+      setCustomTypeLabel(st.label)
+      setCustomTypeColor(st.color)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -232,7 +289,18 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       ? (customType.trim() || 'other')
       : (projectType || null)
 
-    // Serialize meeting locations — filter out empty entries
+    // Determine shooting_type for the projects list display
+    // Priority: customTypeLabel (extra badge) > preset type label > null
+    let shootingTypeValue: string | null = null
+    if (customTypeLabel.trim()) {
+      shootingTypeValue = customTypeLabel.trim()
+    } else if (projectType && projectType !== 'other') {
+      const found = PROJECT_TYPES.find(tp => tp.value === projectType)
+      shootingTypeValue = found ? found.value : projectType
+    } else if (projectType === 'other' && customType.trim()) {
+      shootingTypeValue = customType.trim()
+    }
+
     const validLocations = meetingLocations.filter(l => l.url.trim())
     const meetingPointJson = validLocations.length > 0 ? JSON.stringify(validLocations) : null
 
@@ -253,6 +321,7 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
         custom_type_color: customTypeColor || null,
         custom_status_label: isCustomStatus ? customStatusLabel : null,
         custom_status_color: isCustomStatus ? customStatusColor : null,
+        shooting_type: shootingTypeValue,
       })
       .eq('id', projectId)
 
@@ -268,26 +337,14 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       {/* ── Row 1: Date + Time + Location ── */}
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Date + Time card */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '0ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '0ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(196,164,124,0.12)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,164,124,0.12)' }}>
               <CalendarDays className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.shootDateLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.shootDateLabel}</span>
           </div>
-
           {shootDate ? (
             <div className="mb-3">
               <p className="text-[22px] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
@@ -305,22 +362,9 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
           ) : (
             <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>{t.noDate}</p>
           )}
-
           <div className="grid grid-cols-2 gap-2">
-            <input
-              type="date"
-              value={shootDate}
-              onChange={e => setShootDate(e.target.value)}
-              className="input-base w-full text-[13px]"
-              style={{ colorScheme: 'light dark' }}
-            />
-            <input
-              type="time"
-              value={shootTime}
-              onChange={e => setShootTime(e.target.value)}
-              className="input-base w-full text-[13px]"
-              style={{ colorScheme: 'light dark' }}
-            />
+            <input type="date" value={shootDate} onChange={e => setShootDate(e.target.value)} className="input-base w-full text-[13px]" style={{ colorScheme: 'light dark' }} />
+            <input type="time" value={shootTime} onChange={e => setShootTime(e.target.value)} className="input-base w-full text-[13px]" style={{ colorScheme: 'light dark' }} />
           </div>
           {shootDate && (
             <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
@@ -330,139 +374,71 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
         </div>
 
         {/* Location card */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '60ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '60ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(59,130,246,0.10)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(59,130,246,0.10)' }}>
               <MapPin className="w-4 h-4" style={{ color: '#3B82F6' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.locationLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.locationLabel}</span>
           </div>
-
           {location ? (
-            <p className="text-[18px] font-black mb-3 leading-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {location}
-            </p>
+            <p className="text-[18px] font-black mb-3 leading-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{location}</p>
           ) : (
             <p className="text-[13px] mb-3" style={{ color: 'var(--text-muted)' }}>{t.noLocation}</p>
           )}
-
-          <input
-            type="text"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            placeholder={t.locationPlaceholder}
-            className="input-base w-full text-[13px]"
-          />
+          <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder={t.locationPlaceholder} className="input-base w-full text-[13px]" />
         </div>
       </div>
 
       {/* ── Meeting Point card ── */}
-      <div
-        className="rounded-2xl p-5 transition-all duration-300"
-        style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--card-shadow)',
-          animation: 'fadeSlideUp 0.35s ease both',
-          animationDelay: '90ms',
-        }}
-      >
+      <div className="rounded-2xl p-5 transition-all duration-300"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '90ms' }}>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(236,72,153,0.10)' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(236,72,153,0.10)' }}>
             <MapPin className="w-4 h-4" style={{ color: '#EC4899' }} />
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-            {t.meetingPointLabel}
-          </span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.meetingPointLabel}</span>
         </div>
-
-        <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-          {t.meetingPointDesc}
-        </p>
-
-        {/* Dynamic location list */}
+        <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>{t.meetingPointDesc}</p>
         <div className="space-y-2 mb-2">
           {meetingLocations.map((loc, idx) => (
             <div key={idx} className="rounded-xl p-3 space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wide flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(236,72,153,0.15)', color: '#EC4899' }}>
-                  {idx + 1}
-                </span>
-                <input
-                  type="text"
-                  value={loc.label}
-                  onChange={e => {
-                    const updated = [...meetingLocations]
-                    updated[idx] = { ...updated[idx], label: e.target.value }
-                    setMeetingLocations(updated)
-                  }}
+                  style={{ background: 'rgba(236,72,153,0.15)', color: '#EC4899' }}>{idx + 1}</span>
+                <input type="text" value={loc.label}
+                  onChange={e => { const u = [...meetingLocations]; u[idx] = { ...u[idx], label: e.target.value }; setMeetingLocations(u) }}
                   placeholder={locale === 'de' ? 'z.B. Getting Ready, Zeremonie, Party...' : 'e.g. Getting Ready, Ceremony, Party...'}
-                  className="input-base flex-1 text-[12px]"
-                />
+                  className="input-base flex-1 text-[12px]" />
                 {meetingLocations.length > 1 && (
-                  <button
-                    onClick={() => setMeetingLocations(meetingLocations.filter((_, i) => i !== idx))}
+                  <button onClick={() => setMeetingLocations(meetingLocations.filter((_, i) => i !== idx))}
                     className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all hover:opacity-70"
-                    style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                  >
+                    style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}>
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={loc.url}
-                  onChange={e => {
-                    const updated = [...meetingLocations]
-                    updated[idx] = { ...updated[idx], url: e.target.value }
-                    setMeetingLocations(updated)
-                  }}
-                  placeholder={t.meetingPointPlaceholder}
-                  className="input-base flex-1 text-[12px]"
-                />
+                <input type="text" value={loc.url}
+                  onChange={e => { const u = [...meetingLocations]; u[idx] = { ...u[idx], url: e.target.value }; setMeetingLocations(u) }}
+                  placeholder={t.meetingPointPlaceholder} className="input-base flex-1 text-[12px]" />
                 {loc.url && (
-                  <a
-                    href={loc.url.startsWith('http') ? loc.url : `https://maps.google.com/?q=${encodeURIComponent(loc.url)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <a href={loc.url.startsWith('http') ? loc.url : `https://maps.google.com/?q=${encodeURIComponent(loc.url)}`}
+                    target="_blank" rel="noopener noreferrer"
                     className="text-[11px] font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 flex-shrink-0 transition-all hover:opacity-80"
-                    style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}
-                  >
-                    <MapPin className="w-3 h-3" />
-                    {t.openInMaps}
+                    style={{ background: 'rgba(236,72,153,0.10)', color: '#EC4899' }}>
+                    <MapPin className="w-3 h-3" />{t.openInMaps}
                   </a>
                 )}
               </div>
-              {loc.url && (
-                <p className="text-[11px] flex items-center gap-1" style={{ color: '#EC4899' }}>
-                  <Check className="w-3 h-3" />{t.shownOnMap}
-                </p>
-              )}
+              {loc.url && <p className="text-[11px] flex items-center gap-1" style={{ color: '#EC4899' }}><Check className="w-3 h-3" />{t.shownOnMap}</p>}
             </div>
           ))}
         </div>
-
-        {/* Add location button */}
-        <button
-          onClick={() => setMeetingLocations([...meetingLocations, { label: '', url: '' }])}
+        <button onClick={() => setMeetingLocations([...meetingLocations, { label: '', url: '' }])}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all hover:opacity-80 w-full justify-center"
-          style={{ background: 'rgba(236,72,153,0.08)', color: '#EC4899', border: '1px dashed rgba(236,72,153,0.30)' }}
-        >
+          style={{ background: 'rgba(236,72,153,0.08)', color: '#EC4899', border: '1px dashed rgba(236,72,153,0.30)' }}>
           <Plus className="w-3.5 h-3.5" />
           {locale === 'de' ? '+ Location hinzufügen' : '+ Add location'}
         </button>
@@ -470,131 +446,53 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
 
       {/* ── Row 2: Duration + Persons + Price ── */}
       <div className="grid grid-cols-3 gap-4">
-        {/* Duration */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '100ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '100ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(249,115,22,0.10)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(249,115,22,0.10)' }}>
               <Timer className="w-4 h-4" style={{ color: '#F97316' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.durationLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.durationLabel}</span>
           </div>
-          {duration && (
-            <p className="text-[18px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {duration}
-            </p>
-          )}
-          <input
-            type="text"
-            value={duration}
-            onChange={e => setDuration(e.target.value)}
-            placeholder={t.durationPlaceholder}
-            className="input-base w-full text-[13px]"
-          />
+          {duration && <p className="text-[18px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{duration}</p>}
+          <input type="text" value={duration} onChange={e => setDuration(e.target.value)} placeholder={t.durationPlaceholder} className="input-base w-full text-[13px]" />
         </div>
 
-        {/* Persons */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '120ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '120ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(16,185,129,0.10)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.10)' }}>
               <Users className="w-4 h-4" style={{ color: '#10B981' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.personsLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.personsLabel}</span>
           </div>
-          {numPersons && (
-            <p className="text-[18px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {numPersons}
-            </p>
-          )}
-          <input
-            type="number"
-            value={numPersons}
-            onChange={e => setNumPersons(e.target.value)}
-            placeholder={t.personsPlaceholder}
-            min="1"
-            className="input-base w-full text-[13px]"
-          />
+          {numPersons && <p className="text-[18px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{numPersons}</p>}
+          <input type="number" value={numPersons} onChange={e => setNumPersons(e.target.value)} placeholder={t.personsPlaceholder} min="1" className="input-base w-full text-[13px]" />
         </div>
 
-        {/* Price */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '140ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '140ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(196,164,124,0.12)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,164,124,0.12)' }}>
               <Euro className="w-4 h-4" style={{ color: 'var(--accent)' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.priceLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.priceLabel}</span>
           </div>
-          {price && (
-            <p className="text-[18px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {price}
-            </p>
-          )}
-          <input
-            type="text"
-            value={price}
-            onChange={e => setPrice(e.target.value)}
-            placeholder={t.pricePlaceholder}
-            className="input-base w-full text-[13px]"
-          />
+          {price && <p className="text-[18px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{price}</p>}
+          <input type="text" value={price} onChange={e => setPrice(e.target.value)} placeholder={t.pricePlaceholder} className="input-base w-full text-[13px]" />
         </div>
       </div>
 
       {/* ── Row 3: Type + Status ── */}
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Shooting type card */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '160ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '160ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(139,92,246,0.10)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.10)' }}>
               <Tag className="w-4 h-4" style={{ color: '#8B5CF6' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.shootingTypeLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.shootingTypeLabel}</span>
           </div>
 
           {/* Current type display */}
@@ -613,58 +511,66 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
             )}
           </div>
 
+          {/* Preset type chips */}
           <div className="flex flex-wrap gap-1.5 mb-2">
             {PROJECT_TYPES.map(tp => (
-              <button
-                key={tp.value}
+              <button key={tp.value}
                 onClick={() => setProjectType(projectType === tp.value ? '' : tp.value)}
                 className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
                 style={{
                   background: projectType === tp.value ? 'rgba(139,92,246,0.12)' : 'var(--bg-hover)',
                   color: projectType === tp.value ? '#8B5CF6' : 'var(--text-muted)',
                   border: projectType === tp.value ? '1px solid rgba(139,92,246,0.30)' : '1px solid var(--border-color)',
-                }}
-              >
+                }}>
                 {tp.label}
               </button>
             ))}
+
+            {/* Saved custom type chips */}
+            {myTypes.map(st => (
+              <button key={st.label}
+                onClick={() => handleSelectSavedType(st)}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1 group/chip"
+                style={{
+                  background: customTypeLabel === st.label ? `${st.color}18` : 'var(--bg-hover)',
+                  color: customTypeLabel === st.label ? st.color : 'var(--text-muted)',
+                  border: customTypeLabel === st.label ? `1px solid ${st.color}35` : '1px solid var(--border-color)',
+                }}>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.color }} />
+                {st.label}
+                <span
+                  onClick={e => { e.stopPropagation(); handleRemoveType(st.label) }}
+                  className="ml-0.5 opacity-0 group-hover/chip:opacity-60 hover:!opacity-100 transition-opacity cursor-pointer"
+                  title={locale === 'de' ? 'Entfernen' : 'Remove'}>
+                  <X className="w-2.5 h-2.5" />
+                </span>
+              </button>
+            ))}
+
             {/* Add custom type button */}
-            <button
-              onClick={() => setShowCustomTypeInput(v => !v)}
+            <button onClick={() => setShowCustomTypeInput(v => !v)}
               className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1"
               style={{
                 background: showCustomTypeInput ? `${customTypeColor}18` : 'var(--bg-hover)',
                 color: showCustomTypeInput ? customTypeColor : 'var(--text-muted)',
                 border: showCustomTypeInput ? `1px solid ${customTypeColor}35` : '1px solid var(--border-color)',
-              }}
-            >
+              }}>
               <Plus className="w-3 h-3" />{t.customType}
             </button>
           </div>
 
           {projectType === 'other' && (
-            <input
-              type="text"
-              value={customType}
-              onChange={e => setCustomType(e.target.value)}
-              placeholder={t.customTypePlaceholder}
-              className="input-base w-full mb-2 text-[13px]"
-              autoFocus
-            />
+            <input type="text" value={customType} onChange={e => setCustomType(e.target.value)}
+              placeholder={t.customTypePlaceholder} className="input-base w-full mb-2 text-[13px]" autoFocus />
           )}
 
-          {/* Custom type input with color picker */}
+          {/* Custom type input with color picker + save button */}
           {showCustomTypeInput && (
             <div className="mt-2 p-3 rounded-xl space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
               <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.customTypeTitle}</p>
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customTypeLabel}
-                  onChange={e => setCustomTypeLabel(e.target.value)}
-                  placeholder={t.customTypePlaceholder}
-                  className="input-base flex-1 text-[12px]"
-                />
+                <input type="text" value={customTypeLabel} onChange={e => setCustomTypeLabel(e.target.value)}
+                  placeholder={t.customTypePlaceholder} className="input-base flex-1 text-[12px]" />
                 {customTypeLabel && (
                   <button onClick={() => setCustomTypeLabel('')} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
@@ -674,26 +580,29 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {COLOR_PALETTE.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setCustomTypeColor(c)}
+                  <button key={c} onClick={() => setCustomTypeColor(c)}
                     className="w-6 h-6 rounded-full transition-all hover:scale-110"
-                    style={{
-                      background: c,
-                      outline: customTypeColor === c ? `2px solid ${c}` : 'none',
-                      outlineOffset: '2px',
-                      boxShadow: customTypeColor === c ? `0 0 0 1px var(--bg-surface)` : 'none',
-                    }}
-                  />
+                    style={{ background: c, outline: customTypeColor === c ? `2px solid ${c}` : 'none', outlineOffset: '2px', boxShadow: customTypeColor === c ? `0 0 0 1px var(--bg-surface)` : 'none' }} />
                 ))}
               </div>
               {customTypeLabel && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.preview}</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
-                    style={{ background: `${customTypeColor}18`, color: customTypeColor, border: `1px solid ${customTypeColor}35` }}>
-                    ✦ {customTypeLabel}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t.preview}</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
+                      style={{ background: `${customTypeColor}18`, color: customTypeColor, border: `1px solid ${customTypeColor}35` }}>
+                      ✦ {customTypeLabel}
+                    </span>
+                  </div>
+                  {/* Save as type button */}
+                  {!myTypes.some(mt => mt.label.toLowerCase() === customTypeLabel.trim().toLowerCase()) && (
+                    <button onClick={handleSaveType} disabled={savingType}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all hover:opacity-80 disabled:opacity-50"
+                      style={{ background: `${customTypeColor}18`, color: customTypeColor, border: `1px solid ${customTypeColor}35` }}>
+                      <Bookmark className="w-3 h-3" />
+                      {t.saveAsType}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -701,33 +610,17 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
         </div>
 
         {/* Status card */}
-        <div
-          className="rounded-2xl p-5 transition-all duration-300"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--card-shadow)',
-            animation: 'fadeSlideUp 0.35s ease both',
-            animationDelay: '200ms',
-          }}
-        >
+        <div className="rounded-2xl p-5 transition-all duration-300"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '200ms' }}>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: activeStatusBg }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: activeStatusBg }}>
               <span className="w-3 h-3 rounded-full" style={{ background: activeStatusColor }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-              {t.statusLabel}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.statusLabel}</span>
           </div>
-
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-[17px] font-black leading-none" style={{ color: activeStatusColor, letterSpacing: '-0.02em' }}>
-              {activeStatusLabel || '—'}
-            </span>
+            <span className="text-[17px] font-black leading-none" style={{ color: activeStatusColor, letterSpacing: '-0.02em' }}>{activeStatusLabel || '—'}</span>
           </div>
-
-          {/* Pipeline visual — only for preset statuses */}
           {!isCustomStatus && (
             <div className="flex gap-1 mb-3">
               {STATUS_OPTIONS.filter(s => s.value !== 'cancelled').map((s) => {
@@ -743,63 +636,40 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
               })}
             </div>
           )}
-
           <div className="flex flex-wrap gap-1.5 mb-2">
             {STATUS_OPTIONS.map(s => (
-              <button
-                key={s.value}
-                onClick={() => setStatus(s.value)}
+              <button key={s.value} onClick={() => setStatus(s.value)}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
                 style={{
                   background: status === s.value ? s.bg : 'var(--bg-hover)',
                   color: status === s.value ? s.color : 'var(--text-muted)',
                   border: status === s.value ? `1px solid ${s.color}40` : '1px solid var(--border-color)',
-                }}
-              >
+                }}>
                 {status === s.value && <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }} />}
                 {s.label}
               </button>
             ))}
-            {/* Custom status button */}
-            <button
-              onClick={() => { setStatus('__custom__'); setShowCustomStatusInput(v => !v) }}
+            <button onClick={() => { setStatus('__custom__'); setShowCustomStatusInput(v => !v) }}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all"
               style={{
                 background: isCustomStatus ? `${customStatusColor}18` : 'var(--bg-hover)',
                 color: isCustomStatus ? customStatusColor : 'var(--text-muted)',
                 border: isCustomStatus ? `1px solid ${customStatusColor}35` : '1px solid var(--border-color)',
-              }}
-            >
+              }}>
               {isCustomStatus && <span className="w-1.5 h-1.5 rounded-full" style={{ background: customStatusColor }} />}
               <Plus className="w-3 h-3" />{t.customStatus}
             </button>
           </div>
-
-          {/* Custom status input with color picker */}
           {(showCustomStatusInput || isCustomStatus) && (
             <div className="mt-2 p-3 rounded-xl space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
               <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.customStatusTitle}</p>
-              <input
-                type="text"
-                value={customStatusLabel}
-                onChange={e => setCustomStatusLabel(e.target.value)}
-                placeholder={t.customStatusPlaceholder}
-                className="input-base w-full text-[12px]"
-                autoFocus={showCustomStatusInput}
-              />
+              <input type="text" value={customStatusLabel} onChange={e => setCustomStatusLabel(e.target.value)}
+                placeholder={t.customStatusPlaceholder} className="input-base w-full text-[12px]" autoFocus={showCustomStatusInput} />
               <div className="flex flex-wrap gap-1.5">
                 {COLOR_PALETTE.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setCustomStatusColor(c)}
+                  <button key={c} onClick={() => setCustomStatusColor(c)}
                     className="w-6 h-6 rounded-full transition-all hover:scale-110"
-                    style={{
-                      background: c,
-                      outline: customStatusColor === c ? `2px solid ${c}` : 'none',
-                      outlineOffset: '2px',
-                      boxShadow: customStatusColor === c ? `0 0 0 1px var(--bg-surface)` : 'none',
-                    }}
-                  />
+                    style={{ background: c, outline: customStatusColor === c ? `2px solid ${c}` : 'none', outlineOffset: '2px', boxShadow: customStatusColor === c ? `0 0 0 1px var(--bg-surface)` : 'none' }} />
                 ))}
               </div>
               {customStatusLabel && (
@@ -817,42 +687,23 @@ export default function BookingDetailsTab({ projectId, initialData }: Props) {
       </div>
 
       {/* ── Notes card ── */}
-      <div
-        className="rounded-2xl p-5 transition-all duration-300"
-        style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--card-shadow)',
-          animation: 'fadeSlideUp 0.35s ease both',
-          animationDelay: '240ms',
-        }}
-      >
+      <div className="rounded-2xl p-5 transition-all duration-300"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '240ms' }}>
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(16,185,129,0.10)' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.10)' }}>
             <FileText className="w-4 h-4" style={{ color: '#10B981' }} />
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>
-            {t.notesLabel}
-          </span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.notesLabel}</span>
         </div>
-        <textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder={t.notesPlaceholder}
-          rows={3}
-          className="input-base w-full resize-none text-[13px]"
-        />
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t.notesPlaceholder}
+          rows={3} className="input-base w-full resize-none text-[13px]" />
       </div>
 
       {/* Save button */}
       <div className="flex items-center gap-3 pt-1" style={{ animation: 'fadeSlideUp 0.35s ease both', animationDelay: '300ms' }}>
-        <button
-          onClick={handleSave}
-          disabled={saving}
+        <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-60 hover:opacity-90"
-          style={{ background: saved ? '#2A9B68' : 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}
-        >
+          style={{ background: saved ? '#2A9B68' : 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}>
           {saving ? (
             <><Loader2 className="w-4 h-4 animate-spin" />{t.saving}</>
           ) : saved ? (

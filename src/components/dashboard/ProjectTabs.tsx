@@ -773,6 +773,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           {activeTab === 'booking' && (
             <BookingDetailsTab
               projectId={project.id}
+              photographerId={project.photographer_id}
               initialData={{
                 shoot_date: (project.shoot_date as string | null) ?? null,
                 shoot_time: (project.shoot_time as string | null) ?? null,
@@ -788,7 +789,9 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                 custom_type_color: (project.custom_type_color as string | null) ?? null,
                 custom_status_label: (project.custom_status_label as string | null) ?? null,
                 custom_status_color: (project.custom_status_color as string | null) ?? null,
+                shooting_type: (project.shooting_type as string | null) ?? null,
               }}
+              savedShootingTypes={(project.savedShootingTypes as { label: string; color: string }[] | undefined) ?? []}
             />
           )}
 

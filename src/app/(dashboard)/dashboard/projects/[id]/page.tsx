@@ -24,7 +24,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('plan, full_name, studio_name, portal_message_templates')
+    .select('plan, full_name, studio_name, portal_message_templates, custom_shooting_types')
     .eq('id', user!.id)
     .single()
 
@@ -165,7 +165,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       {/* Tabs */}
       <ProjectTabs
-        project={project}
+        project={{
+          ...project,
+          savedShootingTypes: (photographer?.custom_shooting_types as { label: string; color: string }[] | null) ?? [],
+        }}
         contracts={contracts || []}
         galleries={galleries || []}
         plan={photographer?.plan || 'free'}

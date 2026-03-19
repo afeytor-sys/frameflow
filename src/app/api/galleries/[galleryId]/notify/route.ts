@@ -170,29 +170,50 @@ export async function POST(
 
   // ── Create in-app notification ───────────────────────────────────────────
   if (inappEnabled) {
-    const insertPayload = {
-      photographer_id: photographerId,
-      type: cfg.notifType,
-      title_de: cfg.titleDE,
-      title_en: cfg.titleEN,
-      body_de: cfg.bodyDE,
-      body_en: cfg.bodyEN,
-      project_id: project.id,
-      client_name: resolvedClientName,
-    }
-    console.log('[notify] Inserting notification:', JSON.stringify(insertPayload))
-    const { error: insertError, data: insertData } = await supabase.from('notifications').insert(insertPayload).select('id').single()
-    if (insertError) {
-      console.error('[notify] ❌ Failed to insert notification:', {
-        message: insertError.message,
-        code: insertError.code,
-        details: insertError.details,
-        hint: insertError.hint,
+    console.log('[notify] Inserting notification via RPC for photographer:', photographerId, 'type:', cfg.notifType)
+    // Use SECURITY DEFINER RPC function to bypass RLS entirely
+    const { error: rpcError, data: rpcData } = await supabase.rpc('insert_notification', {
+      p_photographer_id: photographerId,
+      p_type:            cfg.notifType,
+      p_title_de:        cfg.titleDE,
+      p_title_en:        cfg.titleEN,
+      p_body_de:         cfg.bodyDE,
+      p_body_en:         cfg.bodyEN,
+      p_project_id:      project.id,
+      p_client_name:     resolvedClientName,
+    })
+    if (rpcError) {
+      console.error('[notify] ❌ RPC insert_notification failed:', {
+        message: rpcError.message,
+        code: rpcError.code,
+        details: rpcError.details,
+        hint: rpcError.hint,
         photographerId,
         type: cfg.notifType,
       })
+      // Fallback: try direct insert
+      const { error: insertError, data: insertData } = await supabase
+        .from('notifications')
+        .insert({
+          photographer_id: photographerId,
+          type: cfg.notifType,
+          title_de: cfg.titleDE,
+          title_en: cfg.titleEN,
+          body_de: cfg.bodyDE,
+          body_en: cfg.bodyEN,
+          project_id: project.id,
+          client_name: resolvedClientName,
+        })
+        .select('id')
+        .single()
+      if (insertError) {
+        console.error('[notify] ❌ Fallback direct insert also failed:', insertError.message)
+      } else {
+        console.log('[notify] ✅ Fallback direct insert succeeded:', insertData?.id)
+        setThrottle(throttleKey)
+      }
     } else {
-      console.log('[notify] ✅ Notification inserted:', insertData?.id)
+      console.log('[notify] ✅ Notification inserted via RPC:', rpcData)
       // Only set throttle after successful insert
       setThrottle(throttleKey)
     }
