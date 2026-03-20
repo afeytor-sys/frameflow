@@ -736,231 +736,320 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         <div className="p-6">
           {activeTab === 'overview' && (() => {
             const allPhotos = galleries.flatMap(g => g.photos ?? [])
-            const previewPhotos = allPhotos.slice(0, 6)
+            const previewPhotos = allPhotos.slice(0, 8)
             const totalPhotos = allPhotos.length
+            const totalFavorites = allPhotos.filter(p => p.is_favorite).length
+            const totalDownloads = galleries.reduce((s, g) => s + (g.download_count ?? 0), 0)
             const shootingTypeLabel = (project.custom_type_label as string | null)
               ?? (project.project_type as string | null)
               ?? (project.shooting_type as string | null)
             const meetingPoint = project.meeting_point as string | null
-            const mapQuery = meetingPoint ? encodeURIComponent(meetingPoint) : null
             const totalInvoiceAmount = invoicesInitial.reduce((s, inv) => s + inv.amount, 0)
-            const paidInvoices = invoicesInitial.filter(inv => inv.status === 'paid')
+            const fmt = (cents: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+            const isSigned = contracts.length > 0 && !!contracts[0].signed_at
+            const firstGallery = galleries[0] ?? null
+            const isGalleryPublished = firstGallery?.status === 'active'
+
+            const bookingRows = [
+              { label: 'Shoot date', value: project.shoot_date ? new Date(project.shoot_date as string).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : null },
+              { label: 'Shooting type', value: shootingTypeLabel },
+              { label: 'Location', value: project.location as string | null },
+              { label: 'Meeting point', value: meetingPoint },
+              { label: 'Duration', value: project.shoot_duration as string | null },
+              { label: 'Package', value: project.notes as string | null },
+              { label: 'Total price', value: project.price as string | null, accent: true },
+            ].filter(r => r.value)
 
             return (
-              <div className="space-y-5">
+              <div className="space-y-4">
+                {/* ── Grid 2 colunas ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                {/* ── Status list ─────────────────────────────────────────── */}
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
-                  {[
-                    {
-                      key: 'contract',
-                      label: locale === 'de' ? 'Vertrag' : 'Contract',
-                      icon: FileText,
-                      color: '#3B82F6',
-                      value: contracts.length > 0
-                        ? (contracts[0].signed_at ? (locale === 'de' ? '✓ Unterschrieben' : '✓ Signed') : (locale === 'de' ? `${contracts.length} Entwurf` : `${contracts.length} Draft`))
-                        : (locale === 'de' ? 'Kein Vertrag' : 'No contract'),
-                      valueColor: contracts.length > 0 && contracts[0].signed_at ? '#3DBA6F' : 'var(--text-primary)',
-                    },
-                    {
-                      key: 'gallery',
-                      label: locale === 'de' ? 'Galerie' : 'Gallery',
-                      icon: Images,
-                      color: '#10B981',
-                      value: galleries.length > 0
-                        ? `${galleries.length} ${locale === 'de' ? 'Galerie(n)' : 'Gallery'} · ${totalPhotos} ${locale === 'de' ? 'Fotos' : 'Photos'}`
-                        : (locale === 'de' ? 'Keine Galerie' : 'No gallery'),
-                      valueColor: 'var(--text-primary)',
-                    },
-                    {
-                      key: 'invoice',
-                      label: locale === 'de' ? 'Rechnung' : 'Invoice',
-                      icon: Receipt,
-                      color: '#F97316',
-                      value: invoicesInitial.length > 0
-                        ? `${invoicesInitial.length} ${locale === 'de' ? 'Rechnung(en)' : 'Invoice(s)'} · ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(totalInvoiceAmount / 100)}`
-                        : (locale === 'de' ? 'Keine Rechnung' : 'No invoice'),
-                      valueColor: paidInvoices.length === invoicesInitial.length && invoicesInitial.length > 0 ? '#3DBA6F' : 'var(--text-primary)',
-                    },
-                  ].map(({ key, label, icon: Icon, color, value, valueColor }, idx, arr) => (
-                    <button
-                      key={key}
-                      onClick={() => setActiveTab(key)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:opacity-80"
-                      style={{
-                        background: 'var(--bg-hover)',
-                        borderBottom: idx < arr.length - 1 ? '1px solid var(--border-color)' : 'none',
-                      }}
-                    >
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
-                        <Icon className="w-3.5 h-3.5" style={{ color }} />
-                      </div>
-                      <span className="text-[13px] font-medium flex-shrink-0 w-24" style={{ color: 'var(--text-muted)' }}>{label}</span>
-                      <span className="text-[13px] font-bold flex-1 text-right" style={{ color: valueColor }}>{value}</span>
-                      <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-1" style={{ color: 'var(--text-muted)' }} />
-                    </button>
-                  ))}
-                </div>
-
-                {/* ── Booking Details table ────────────────────────────────── */}
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.12)' }}>
-                        <CalendarDays className="w-4 h-4" style={{ color: '#C4A47C' }} />
-                      </div>
-                      <span className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>
-                        {locale === 'de' ? 'Buchungsdetails' : 'Booking Details'}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('booking')}
-                      className="text-[12px] font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
-                      style={{ color: 'var(--accent)', background: 'rgba(196,164,124,0.10)', border: '1px solid rgba(196,164,124,0.20)' }}
-                    >
-                      {locale === 'de' ? 'Bearbeiten' : 'Edit'}
-                    </button>
-                  </div>
-
-                  {/* Rows */}
-                  {[
-                    {
-                      label: locale === 'de' ? 'Shoot date' : 'Shoot date',
-                      value: project.shoot_date
-                        ? new Date(project.shoot_date as string).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
-                        : null,
-                    },
-                    {
-                      label: locale === 'de' ? 'Shooting type' : 'Shooting type',
-                      value: shootingTypeLabel,
-                    },
-                    {
-                      label: locale === 'de' ? 'Location' : 'Location',
-                      value: project.location as string | null,
-                    },
-                    {
-                      label: locale === 'de' ? 'Meeting point' : 'Meeting point',
-                      value: meetingPoint,
-                    },
-                    {
-                      label: locale === 'de' ? 'Dauer' : 'Duration',
-                      value: project.shoot_duration as string | null,
-                    },
-                    {
-                      label: locale === 'de' ? 'Paket' : 'Package',
-                      value: project.notes as string | null,
-                    },
-                    {
-                      label: locale === 'de' ? 'Gesamtpreis' : 'Total price',
-                      value: project.price as string | null,
-                      accent: true,
-                    },
-                  ].filter(row => row.value).map((row, idx, arr) => (
-                    <div
-                      key={row.label}
-                      className="flex items-center justify-between px-4 py-3"
-                      style={{ borderBottom: idx < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}
-                    >
-                      <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
-                      <span className="text-[13px] font-bold text-right" style={{ color: row.accent ? 'var(--accent)' : 'var(--text-primary)' }}>
-                        {row.value}
-                      </span>
-                    </div>
-                  ))}
-
-                  {/* Empty state */}
-                  {!project.shoot_date && !shootingTypeLabel && !project.location && !meetingPoint && !project.shoot_duration && !project.notes && !project.price && (
-                    <div className="px-4 py-6 text-center">
-                      <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                        {locale === 'de' ? 'Noch keine Buchungsdetails' : 'No booking details yet'}
-                      </p>
-                      <button onClick={() => setActiveTab('booking')} className="mt-2 text-[12px] font-bold" style={{ color: 'var(--accent)' }}>
-                        {locale === 'de' ? '+ Details hinzufügen' : '+ Add details'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* ── Gallery preview ──────────────────────────────────────── */}
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)' }}>
-                        <Images className="w-4 h-4" style={{ color: '#10B981' }} />
-                      </div>
-                      <span className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>
-                        {locale === 'de' ? 'Galerie' : 'Gallery'}
-                        {totalPhotos > 0 && <span className="ml-2 text-[12px] font-normal" style={{ color: 'var(--text-muted)' }}>{totalPhotos} {locale === 'de' ? 'Fotos' : 'Photos'}</span>}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('gallery')}
-                      className="text-[12px] font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
-                      style={{ color: '#10B981', background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.20)' }}
-                    >
-                      {locale === 'de' ? 'Alle anzeigen' : 'View all'}
-                    </button>
-                  </div>
-
-                  {previewPhotos.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-2">
-                      {previewPhotos.map(photo => (
-                        <div
-                          key={photo.id}
-                          className="relative overflow-hidden rounded-lg cursor-pointer group"
-                          style={{ aspectRatio: '1/1', background: 'var(--bg-hover)' }}
-                          onClick={() => setActiveTab('gallery')}
-                        >
-                          <img
-                            src={photo.thumbnail_url || photo.storage_url}
-                            alt={photo.filename}
-                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                          />
+                  {/* ── Card: Booking Details ── */}
+                  <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.15)' }}>
+                          <CalendarDays className="w-4 h-4" style={{ color: '#C4A47C' }} />
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-8 text-center">
-                      <Images className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--border-strong)' }} />
-                      <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                        {locale === 'de' ? 'Noch keine Fotos' : 'No photos yet'}
-                      </p>
-                      <button onClick={() => setActiveTab('gallery')} className="mt-2 text-[12px] font-bold" style={{ color: '#10B981' }}>
-                        {locale === 'de' ? '+ Galerie erstellen' : '+ Create gallery'}
+                        <span className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                          {locale === 'de' ? 'Buchungsdetails' : 'Booking Details'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('booking')}
+                        className="text-[12px] font-bold transition-all hover:opacity-70"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        {locale === 'de' ? 'Bearbeiten' : 'Edit'}
                       </button>
                     </div>
-                  )}
-                </div>
-
-                {/* ── Map (meeting point) ──────────────────────────────────── */}
-                {mapQuery && (
-                  <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
-                    <div className="flex items-center gap-2.5 px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.12)' }}>
-                        <MapPin className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                      </div>
-                      <div>
-                        <span className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>
-                          {locale === 'de' ? 'Treffpunkt' : 'Meeting Point'}
-                        </span>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{meetingPoint}</p>
-                      </div>
-                    </div>
-                    <div style={{ height: '200px' }}>
-                      <iframe
-                        title="Meeting point map"
-                        width="100%"
-                        height="200"
-                        style={{ border: 0, display: 'block' }}
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps?q=${mapQuery}&output=embed`}
-                      />
+                    <div className="flex-1">
+                      {bookingRows.length > 0 ? bookingRows.map((row, i, arr) => (
+                        <div key={row.label} className="flex items-center justify-between px-5 py-3"
+                          style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                          <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
+                          <span className="text-[13px] font-bold text-right ml-4" style={{ color: row.accent ? 'var(--accent)' : 'var(--text-primary)' }}>{row.value}</span>
+                        </div>
+                      )) : (
+                        <div className="px-5 py-8 text-center">
+                          <p className="text-[13px] mb-2" style={{ color: 'var(--text-muted)' }}>{locale === 'de' ? 'Noch keine Details' : 'No details yet'}</p>
+                          <button onClick={() => setActiveTab('booking')} className="text-[12px] font-bold" style={{ color: 'var(--accent)' }}>+ {locale === 'de' ? 'Hinzufügen' : 'Add details'}</button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
 
+                  {/* ── Card: Contract ── */}
+                  <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)' }}>
+                          <FileText className="w-4 h-4" style={{ color: '#3B82F6' }} />
+                        </div>
+                        <span className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                          {locale === 'de' ? 'Vertrag' : 'Contract'}
+                        </span>
+                      </div>
+                      {contracts.length > 0 && (
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                          style={{ background: isSigned ? 'rgba(61,186,111,0.15)' : 'rgba(156,163,175,0.15)', color: isSigned ? '#3DBA6F' : '#9CA3AF' }}>
+                          {isSigned ? (locale === 'de' ? 'Unterschrieben' : 'Signed') : (locale === 'de' ? 'Entwurf' : 'Draft')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center px-5 py-8">
+                      {contracts.length > 0 ? (
+                        isSigned ? (
+                          <>
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(61,186,111,0.15)' }}>
+                              <Check className="w-8 h-8" style={{ color: '#3DBA6F' }} />
+                            </div>
+                            <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                              {locale === 'de' ? 'Vertrag vollständig unterschrieben' : 'Contract fully signed'}
+                            </p>
+                            <p className="text-[12px] mb-5 text-center" style={{ color: 'var(--text-muted)' }}>
+                              {locale === 'de' ? 'Beide Parteien haben digital unterschrieben' : 'Both parties have signed the contract digitally'}
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 w-full">
+                              <div className="px-3 py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                                  {locale === 'de' ? 'Fotograf' : 'Photographer'}
+                                </p>
+                                <p className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                                  <Check className="w-3 h-3" style={{ color: '#3DBA6F' }} />
+                                  {photographerName ?? 'Photographer'}
+                                </p>
+                              </div>
+                              <div className="px-3 py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                                  {locale === 'de' ? 'Kunde' : 'Client'}
+                                </p>
+                                <p className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                                  <Check className="w-3 h-3" style={{ color: '#3DBA6F' }} />
+                                  {client?.full_name ?? 'Client'}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(59,130,246,0.10)' }}>
+                              <FileText className="w-8 h-8" style={{ color: '#3B82F6' }} />
+                            </div>
+                            <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                              {locale === 'de' ? 'Vertrag ausstehend' : 'Contract pending'}
+                            </p>
+                            <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
+                              {locale === 'de' ? 'Noch nicht unterschrieben' : 'Not yet signed'}
+                            </p>
+                            <button onClick={() => setActiveTab('contract')} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#3B82F6' }}>
+                              {locale === 'de' ? 'Vertrag öffnen' : 'Open contract'}
+                            </button>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                            <FileText className="w-8 h-8" style={{ color: 'var(--border-strong)' }} />
+                          </div>
+                          <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                            {locale === 'de' ? 'Kein Vertrag' : 'No contract'}
+                          </p>
+                          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
+                            {locale === 'de' ? 'Noch kein Vertrag erstellt' : 'No contract created yet'}
+                          </p>
+                          <button onClick={() => setActiveTab('contract')} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#3B82F6' }}>
+                            + {locale === 'de' ? 'Vertrag erstellen' : 'Create contract'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Card: Gallery ── */}
+                  <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                          <Images className="w-4 h-4" style={{ color: '#10B981' }} />
+                        </div>
+                        <span className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                          {locale === 'de' ? 'Galerie' : 'Gallery'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => { setActiveTab('gallery'); if (firstGallery) setSelectedGalleryId(firstGallery.id) }}
+                        className="text-[12px] font-bold flex items-center gap-1 transition-all hover:opacity-70"
+                        style={{ color: '#10B981' }}
+                      >
+                        {locale === 'de' ? 'Galerie öffnen' : 'Open Gallery'} →
+                      </button>
+                    </div>
+                    {firstGallery ? (
+                      <div className="flex-1 p-4">
+                        {/* Stats row */}
+                        <div className="flex items-center gap-5 mb-3">
+                          <div>
+                            <p className="text-[22px] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>{totalPhotos}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Photos</p>
+                          </div>
+                          <div>
+                            <p className="text-[22px] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>{totalFavorites}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Favorites</p>
+                          </div>
+                          <div>
+                            <p className="text-[22px] font-black leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>{totalDownloads}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Downloads</p>
+                          </div>
+                          <span className="ml-auto text-[11px] font-bold px-2.5 py-1 rounded-full"
+                            style={{ background: isGalleryPublished ? 'rgba(61,186,111,0.15)' : 'rgba(156,163,175,0.15)', color: isGalleryPublished ? '#3DBA6F' : '#9CA3AF' }}>
+                            {isGalleryPublished ? (locale === 'de' ? 'Veröffentlicht' : 'Published') : (locale === 'de' ? 'Entwurf' : 'Draft')}
+                          </span>
+                        </div>
+                        {/* Photo grid */}
+                        {previewPhotos.length > 0 ? (
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {previewPhotos.slice(0, 7).map(photo => (
+                              <div key={photo.id} className="relative overflow-hidden rounded-lg cursor-pointer group"
+                                style={{ aspectRatio: '1/1', background: 'var(--bg-surface)' }}
+                                onClick={() => { setActiveTab('gallery'); if (firstGallery) setSelectedGalleryId(firstGallery.id) }}>
+                                <img src={photo.thumbnail_url || photo.storage_url} alt={photo.filename}
+                                  className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                              </div>
+                            ))}
+                            {totalPhotos > 7 && (
+                              <div className="relative overflow-hidden rounded-lg cursor-pointer flex items-center justify-center"
+                                style={{ aspectRatio: '1/1', background: 'rgba(0,0,0,0.5)' }}
+                                onClick={() => { setActiveTab('gallery'); if (firstGallery) setSelectedGalleryId(firstGallery.id) }}>
+                                {previewPhotos[7] && (
+                                  <img src={previewPhotos[7].thumbnail_url || previewPhotos[7].storage_url} alt=""
+                                    className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                                )}
+                                <span className="relative font-black text-[14px] text-white">+{totalPhotos - 7}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center py-6 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
+                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{locale === 'de' ? 'Noch keine Fotos' : 'No photos yet'}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center px-5 py-10">
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                          <Images className="w-8 h-8" style={{ color: 'var(--border-strong)' }} />
+                        </div>
+                        <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>{locale === 'de' ? 'Keine Galerie' : 'No gallery'}</p>
+                        <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{locale === 'de' ? 'Noch keine Galerie erstellt' : 'No gallery created yet'}</p>
+                        <button onClick={openCreateModal} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#10B981' }}>
+                          + {locale === 'de' ? 'Galerie erstellen' : 'Create gallery'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Card: Invoices ── */}
+                  <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,115,22,0.12)' }}>
+                          <Receipt className="w-4 h-4" style={{ color: '#F97316' }} />
+                        </div>
+                        <span className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                          {locale === 'de' ? 'Rechnungen' : 'Invoices'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('invoice')}
+                        className="text-[12px] font-bold transition-all hover:opacity-70"
+                        style={{ color: '#F97316' }}
+                      >
+                        + {locale === 'de' ? 'Neu' : 'New'}
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      {invoicesInitial.length > 0 ? (
+                        <>
+                          {invoicesInitial.map((inv, i, arr) => {
+                            const isPaid = inv.status === 'paid'
+                            const isPending = inv.status === 'draft' || inv.status === 'sent'
+                            return (
+                              <div key={inv.id} className="flex items-center gap-3 px-5 py-3.5"
+                                style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                                  style={{ background: isPaid ? 'rgba(61,186,111,0.12)' : 'rgba(249,115,22,0.10)' }}>
+                                  <Receipt className="w-3.5 h-3.5" style={{ color: isPaid ? '#3DBA6F' : '#F97316' }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                                    {inv.description ?? inv.invoice_number}
+                                  </p>
+                                  {inv.due_date && (
+                                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                      {isPaid
+                                        ? `${locale === 'de' ? 'Bezahlt am' : 'Paid on'} ${new Date(inv.due_date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                        : `${locale === 'de' ? 'Fällig am' : 'Due on'} ${new Date(inv.due_date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-[14px] font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{fmt(inv.amount)}</p>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                    style={{
+                                      background: isPaid ? 'rgba(61,186,111,0.15)' : isPending ? 'rgba(249,115,22,0.12)' : 'rgba(156,163,175,0.12)',
+                                      color: isPaid ? '#3DBA6F' : isPending ? '#F97316' : '#9CA3AF',
+                                    }}>
+                                    {isPaid ? (locale === 'de' ? 'Bezahlt' : 'Paid') : (locale === 'de' ? 'Ausstehend' : 'Pending')}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                          {/* Total */}
+                          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderTop: '1px solid var(--border-color)' }}>
+                            <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Total</span>
+                            <span className="text-[18px] font-black" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>{fmt(totalInvoiceAmount)}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center px-5 py-10">
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                            <Receipt className="w-8 h-8" style={{ color: 'var(--border-strong)' }} />
+                          </div>
+                          <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>{locale === 'de' ? 'Keine Rechnungen' : 'No invoices'}</p>
+                          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>{locale === 'de' ? 'Noch keine Rechnung erstellt' : 'No invoice created yet'}</p>
+                          <button onClick={() => setActiveTab('invoice')} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#F97316' }}>
+                            + {locale === 'de' ? 'Rechnung erstellen' : 'Create invoice'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
               </div>
             )
           })()}
