@@ -303,6 +303,84 @@ export const blogPosts: BlogPost[] = [
 <p>Ready to upgrade your delivery experience? <a href="/signup">Start free with Fotonizer</a> — no credit card required.</p>
     `.trim(),
   },
+  {
+    slug: 'why-i-stopped-using-pixieset-after-3-years',
+    title: 'Why I Stopped Using Pixieset After 3 Years',
+    excerpt: 'I used Pixieset for three years. It looked good on the surface — but underneath, it was quietly costing me clients, credibility, and money. Here\'s the honest story of why I finally walked away.',
+    date: '2026-03-20',
+    category: 'Personal Story',
+    readTime: 6,
+    tags: [
+      'Pixieset alternative',
+      'photography business software',
+      'best CRM for photographers',
+      'photography studio management Germany',
+      'client portal for photographers',
+      'photography workflow tools',
+      'online gallery software',
+      'photography business tips',
+      'Fotonizer vs Pixieset',
+      'photographer tools Europe',
+    ],
+    content: `
+<h2>Three Years. Hundreds of Clients. One Tool I Trusted.</h2>
+<p>I started using Pixieset in my second year as a professional photographer. At the time, it felt like a step up — clean galleries, easy sharing, clients could download their photos without me having to send a WeTransfer link every time. It worked. I recommended it to other photographers. I defended it in forums.</p>
+<p>But somewhere around year three, I started noticing the cracks. Small things at first. Then bigger ones. And eventually, I had to be honest with myself: Pixieset wasn't growing with me. It was holding me back.</p>
+<p>This is the story of why I left — and what I wish I'd known sooner.</p>
+
+<h2>Problem #1: My Clients Were Getting Everything in English — and My Market Is Germany</h2>
+<p>This one sounds simple, but it cost me more than I'd like to admit.</p>
+<p>I shoot in Germany. My clients are German. They speak German, they think in German, and when they receive a professional communication from their photographer, they expect it to be in German.</p>
+<p>With Pixieset, every automated email, every gallery notification, every client-facing message came through in English. "Your gallery is ready." "Download your photos." "Your quote is attached." All in English.</p>
+<p>I tried to work around it. I customized what I could. But the core of the platform — the notifications, the system messages, the interface my clients actually saw — stayed in English. There was no real localization for the German market.</p>
+<p>Do you know what that looks like to a German client who just paid €2,000 for their wedding photos? It looks unprofessional. It looks like their photographer is using a generic American tool and didn't bother to set it up properly. It creates doubt. And doubt is the last thing you want a client to feel after they've trusted you with one of the most important days of their life.</p>
+<p>I lost clients over this. Not directly — no one ever said "I'm not booking you because your gallery emails are in English." But I noticed the silence. The quotes I sent with attachments that never got a reply. The follow-ups that went nowhere. The referrals that didn't come.</p>
+<p>Language is trust. And I was sending my German clients a tool that didn't speak their language.</p>
+
+<h2>Problem #2: It Was Missing the Tools That Only a Photographer Would Know to Ask For</h2>
+<p>Pixieset is a gallery platform. That's what it was built to be, and it does that reasonably well. But when you're running a photography business — really running it — you need so much more than a gallery.</p>
+<p>You need a place to send your client a timeline for their wedding day. You need a moodboard where they can share inspiration before the shoot. You need a questionnaire to understand what they actually want. You need a contract they can sign digitally. You need an invoice. You need a way to track where every project stands.</p>
+<p>With Pixieset, I was stitching all of this together from different tools. A separate contract tool. A separate invoicing app. A Google Doc for the timeline. A Pinterest board for moodboards. A WhatsApp thread for everything else.</p>
+<p>The result was chaos — for me and for my clients. They had five different links, three different logins, and no single place to find everything related to their shoot. It felt fragmented. It felt amateur. And every time I had to say "oh, the contract is in a different system," I could feel the professionalism draining out of the interaction.</p>
+<p>The tools I was missing weren't exotic features. They were the basics of running a photography business. The fact that Pixieset didn't include them — or included them as expensive add-ons — told me something important: it wasn't built by someone who actually shoots for a living.</p>
+
+<h2>Problem #3: The Design Felt Stuck in 2018</h2>
+<p>I know design is subjective. But hear me out.</p>
+<p>Photography is a visual profession. The work we produce is beautiful, modern, carefully crafted. And then we deliver it through a platform that looks like it hasn't been updated since the early days of flat design.</p>
+<p>The Pixieset interface — both the dashboard I used and the galleries my clients saw — started to feel dated. Not broken. Not ugly. Just... behind. The kind of behind that makes a client open their gallery and feel like they're looking at something from five years ago.</p>
+<p>When you're charging premium prices, every touchpoint matters. The gallery your client opens is part of your brand. It's part of the experience they're paying for. And if that experience looks outdated, it subtly undermines the premium positioning you've worked so hard to build.</p>
+<p>I started noticing that my competitors — photographers who were charging similar rates — had client portals that looked significantly more modern and polished. That gap bothered me more than I expected.</p>
+
+<h2>Problem #4: The Attachment Bug That Silently Killed My Quotes</h2>
+<p>This one still frustrates me when I think about it.</p>
+<p>For a period of several months, I was sending quotes to potential clients with PDF attachments — my pricing packages, my contract overview, my terms. Standard stuff. Professional stuff.</p>
+<p>The emails were going out. I could see them in my sent folder. But the clients weren't receiving the attachments. Or they were receiving the email but the attachment was missing. Or it was going to spam. I never got a clear answer on exactly what was happening.</p>
+<p>What I do know is this: I sent quotes to people who were genuinely interested in booking me, and I never heard back from them. Not a "no thank you." Not a "we went with someone else." Just silence. Complete silence.</p>
+<p>I only found out about the problem when one client — a kind woman who was booking me for her daughter's baptism — called me directly to say she'd received my email but there was no attachment. She'd been waiting for the pricing information for a week.</p>
+<p>How many others had just moved on? How many bookings did I lose because a technical bug in my delivery platform was silently eating my attachments?</p>
+<p>I reported the issue. I got a support response. The problem was "looked into." And then it happened again.</p>
+<p>That was the moment I started seriously looking for an alternative.</p>
+
+<h2>The Moment I Decided to Leave</h2>
+<p>It wasn't one dramatic event. It was the accumulation of all of the above, plus the quiet realization that I was spending more time working around my tools than working with them.</p>
+<p>I was paying for a platform that didn't speak my clients' language, didn't have the features I actually needed, looked increasingly dated, and had reliability issues that were costing me real money. And every time I raised a concern, the response felt like it came from a company that was focused on its core English-speaking market — not on photographers like me, working in Germany, serving German clients.</p>
+<p>I needed something built by someone who understood what it actually means to run a photography business. Not a gallery tool with some CRM features bolted on. A real, complete platform — designed from the ground up for photographers.</p>
+
+<h2>What I Found Instead</h2>
+<p>I switched to <a href="/signup">Fotonizer</a>, and the difference was immediate.</p>
+<p>The client portal is fully localized — my German clients receive everything in German, from the first notification to the gallery delivery. No more English system messages. No more awkward workarounds. Just a clean, professional experience in the language my clients actually speak.</p>
+<p>Everything is in one place. The gallery, the contract, the timeline, the moodboard, the questionnaire — all accessible from a single link I send to my client. They don't need multiple logins or five different apps. They have one portal, beautifully designed, with everything they need.</p>
+<p>The design is modern. It looks like something I'm proud to put my name on. When a client opens their portal, it reinforces the premium experience I'm trying to deliver — not undermine it.</p>
+<p>And the reliability? No more silent attachment failures. No more quotes disappearing into the void. When I send something, it arrives.</p>
+
+<h2>What I Wish I'd Known Sooner</h2>
+<p>The tools you use are part of your brand. Every email your client receives, every interface they interact with, every moment of friction or delight in their experience with you — it all adds up to the impression they have of your business.</p>
+<p>I spent three years with a tool that was good enough. But "good enough" isn't what I'm selling. And it shouldn't be what you're settling for either.</p>
+<p>If you're a photographer working in a non-English market, or if you've ever felt like your tools were built for someone else's workflow — you're probably right. There are better options now.</p>
+<p>Don't wait three years to find them.</p>
+<p><a href="/signup">Try Fotonizer free</a> — no credit card required. See what it feels like to use a platform that was actually built for photographers like you.</p>
+    `.trim(),
+  },
 ]
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
