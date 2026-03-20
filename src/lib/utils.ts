@@ -103,6 +103,26 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+// ── Supabase Image Transform ─────────────────────────────────────────────────
+// Converts a Supabase storage URL to an optimized render URL.
+// width:   max pixel width (e.g. 400 for thumbnails, 1920 for hero)
+// quality: JPEG/WebP quality 1–100 (75 = good balance, 85 = high quality)
+// resize:  'contain' keeps aspect ratio | 'cover' crops to fill
+export function getSupabaseImageUrl(
+  url: string,
+  width: number,
+  quality = 75,
+  resize: 'contain' | 'cover' | 'fill' = 'contain'
+): string {
+  if (!url) return url
+  // Already a render URL or not a Supabase storage URL — return as-is
+  if (url.includes('/render/image/') || !url.includes('/storage/v1/object/')) return url
+  return (
+    url.replace('/storage/v1/object/', '/storage/v1/render/image/') +
+    `?width=${width}&quality=${quality}&resize=${resize}`
+  )
+}
+
 // Debounce
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,

@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
 import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare } from 'lucide-react'
+import { getSupabaseImageUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
 import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
@@ -114,10 +115,11 @@ function SortablePhoto({
       )}
     >
       <img
-        src={photo.thumbnail_url || photo.storage_url}
+        src={getSupabaseImageUrl(photo.thumbnail_url || photo.storage_url, 400, 75, 'cover')}
         alt={photo.filename}
         className="w-full aspect-square object-cover"
         loading="lazy"
+        decoding="async"
       />
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
       <button
@@ -860,7 +862,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             <div className="flex flex-wrap gap-1.5">
               {favoritePhotos.slice(0, 12).map(photo => (
                 <div key={photo.id} className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
-                  <img src={photo.thumbnail_url || photo.storage_url} alt={photo.filename} className="w-full h-full object-cover" loading="lazy" />
+                  <img
+                    src={getSupabaseImageUrl(photo.thumbnail_url || photo.storage_url, 120, 70, 'cover')}
+                    alt={photo.filename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
               ))}
               {favoritePhotos.length > 12 && (

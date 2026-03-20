@@ -4,6 +4,7 @@ import { Images } from 'lucide-react'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
 import GalleryPasswordGate from './GalleryPasswordGate'
+import { getSupabaseImageUrl } from '@/lib/utils'
 
 export default async function PublicGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -110,7 +111,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           </div>
         )}
 
-        {/* Hero photo — full width, no overlay, no gradient */}
+        {/* Hero photo — full width, optimized via Supabase Image Transform */}
         {heroUrl && (
           <div style={{
             width: '100%',
@@ -119,8 +120,10 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
             background: '#1A1A18',
           }}>
             <img
-              src={heroUrl}
+              src={getSupabaseImageUrl(heroUrl, 1920, 80, 'cover')}
               alt=""
+              fetchPriority="high"
+              decoding="async"
               style={{
                 width: '100%',
                 height: '100%',

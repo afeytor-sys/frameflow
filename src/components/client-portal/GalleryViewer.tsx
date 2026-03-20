@@ -7,7 +7,7 @@ import {
   ZoomIn, Loader2, Play, Pause, Maximize2,
   LayoutGrid, Columns2, AlignJustify, SlidersHorizontal,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getSupabaseImageUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import PhotoComments from './PhotoComments'
 import type { GalleryTheme } from '@/lib/galleryThemes'
@@ -71,22 +71,14 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
   { key: 'columns',  icon: Columns2,      label: 'Spalten' },
 ]
 
-// ── Supabase Image Transform helper ─────────────────────────────────
-function getOptimizedUrl(url: string, width: number, quality = 75): string {
-  if (!url) return url
-  if (url.includes('/render/image/') || !url.includes('/storage/v1/object/')) return url
-  return url
-    .replace('/storage/v1/object/', '/storage/v1/render/image/')
-    + `?width=${width}&quality=${quality}&resize=contain`
-}
-
+// ── Image URL helpers (use centralized Supabase Image Transform) ─────
 function getThumbnailUrl(photo: Photo): string {
   const base = photo.thumbnail_url || photo.storage_url
-  return getOptimizedUrl(base, 400, 75)
+  return getSupabaseImageUrl(base, 400, 75, 'contain')
 }
 
 function getLightboxUrl(photo: Photo): string {
-  return getOptimizedUrl(photo.storage_url, 1600, 85)
+  return getSupabaseImageUrl(photo.storage_url, 1600, 85, 'contain')
 }
 
 // ── Lazy image component with skeleton + fallback ────────────────────
