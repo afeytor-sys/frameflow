@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CalendarDays, MapPin, Tag, FileText, Check, Loader2, Clock, Users, Euro, Timer, Plus, X, Bookmark } from 'lucide-react'
+import { CalendarDays, MapPin, Tag, FileText, Check, Loader2, Clock, Users, Euro, Timer, Plus, X, Bookmark, Video, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 
@@ -30,6 +30,8 @@ interface Props {
     custom_status_label: string | null
     custom_status_color: string | null
     shooting_type: string | null
+    package: string | null
+    include_video: boolean | null
   }
   savedShootingTypes?: CustomShootingType[]
 }
@@ -231,6 +233,9 @@ export default function BookingDetailsTab({ projectId, photographerId, initialDa
   const [customStatusColor, setCustomStatusColor] = useState(initialData.custom_status_color ?? '#3B82F6')
   const [showCustomStatusInput, setShowCustomStatusInput] = useState(false)
 
+  const [packageName, setPackageName] = useState(initialData.package ?? '')
+  const [includeVideo, setIncludeVideo] = useState(initialData.include_video ?? false)
+
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -322,6 +327,8 @@ export default function BookingDetailsTab({ projectId, photographerId, initialDa
         custom_status_label: isCustomStatus ? customStatusLabel : null,
         custom_status_color: isCustomStatus ? customStatusColor : null,
         shooting_type: shootingTypeValue,
+        package: packageName || null,
+        include_video: includeVideo,
       })
       .eq('id', projectId)
 
@@ -683,6 +690,48 @@ export default function BookingDetailsTab({ projectId, photographerId, initialDa
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Package + Video card ── */}
+      <div className="rounded-2xl p-5 transition-all duration-300"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', animation: 'fadeSlideUp 0.35s ease both', animationDelay: '220ms' }}>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* Package */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,164,124,0.12)' }}>
+                <Package className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>Package</span>
+            </div>
+            {packageName && <p className="text-[16px] font-black mb-2 leading-none" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{packageName}</p>}
+            <input type="text" value={packageName} onChange={e => setPackageName(e.target.value)}
+              placeholder={locale === 'de' ? 'z.B. Gold, Premium, Basic...' : 'e.g. Gold, Premium, Basic...'}
+              className="input-base w-full text-[13px]" />
+          </div>
+          {/* Include Video */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.10)' }}>
+                <Video className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{locale === 'de' ? 'Inkl. Video' : 'Incl. Video'}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIncludeVideo(v => !v)}
+                className="relative rounded-full flex-shrink-0"
+                style={{ width: '44px', height: '24px', background: includeVideo ? '#8B5CF6' : 'var(--border-strong)', transition: 'background 150ms' }}
+              >
+                <span className="absolute top-1 w-4 h-4 bg-white rounded-full shadow"
+                  style={{ left: includeVideo ? '24px' : '4px', transition: 'left 150ms' }} />
+              </button>
+              <span className="text-[13px] font-bold" style={{ color: includeVideo ? '#8B5CF6' : 'var(--text-muted)' }}>
+                {includeVideo ? (locale === 'de' ? '✅ Ja, Video inklusive' : '✅ Yes, video included') : (locale === 'de' ? 'Nein' : 'No')}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

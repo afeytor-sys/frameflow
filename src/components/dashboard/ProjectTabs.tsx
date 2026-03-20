@@ -694,7 +694,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       )}
 
       {/* ── 6 Navigation Cards ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-5">
         {TABS.map(({ key, label, icon: Icon, color, bg, desc }, idx) => {
           const isActive = activeTab === key
           const subtitle = desc(contracts, galleries, project)
@@ -750,20 +750,78 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
             const firstGallery = galleries[0] ?? null
             const isGalleryPublished = firstGallery?.status === 'active'
 
+            const clientPhone = (project.client as { phone?: string } | null)?.phone ?? null
+            const clientEmail2 = client?.email ?? null
+            const shootTime = project.shoot_time as string | null
+            const shootDateFormatted = project.shoot_date
+              ? new Date(project.shoot_date as string).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+              : null
+            const shootDateTimeValue = shootDateFormatted
+              ? (shootTime ? `${shootDateFormatted} · ${shootTime}` : shootDateFormatted)
+              : null
+            const statusOptions: Record<string, string> = {
+              inquiry: locale === 'de' ? 'Anfrage' : 'Inquiry',
+              active: locale === 'de' ? 'Aktiv' : 'Active',
+              shooting: 'Shooting',
+              editing: locale === 'de' ? 'Bearbeitung' : 'Editing',
+              delivered: locale === 'de' ? 'Geliefert' : 'Delivered',
+              completed: locale === 'de' ? 'Abgeschlossen' : 'Completed',
+              cancelled: locale === 'de' ? 'Storniert' : 'Cancelled',
+            }
+            const statusValue = (project.custom_status_label as string | null)
+              ?? statusOptions[project.status as string]
+              ?? (project.status as string | null)
+            const includeVideo = project.include_video as boolean | null
             const bookingRows = [
-              { label: 'Shoot date', value: project.shoot_date ? new Date(project.shoot_date as string).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) : null },
-              { label: 'Shooting type', value: shootingTypeLabel },
-              { label: 'Location', value: project.location as string | null },
-              { label: 'Meeting point', value: meetingPoint },
-              { label: 'Duration', value: project.shoot_duration as string | null },
-              { label: 'Package', value: project.notes as string | null },
-              { label: 'Total price', value: project.price as string | null, accent: true },
+              { label: locale === 'de' ? 'Email' : 'Email', value: clientEmail2, link: clientEmail2 ? `mailto:${clientEmail2}` : null },
+              { label: locale === 'de' ? 'Telefon' : 'Phone', value: clientPhone, link: clientPhone ? `tel:${clientPhone}` : null },
+              { label: locale === 'de' ? 'Datum & Uhrzeit' : 'Date & Time', value: shootDateTimeValue },
+              { label: locale === 'de' ? 'Shooting-Typ' : 'Shooting type', value: shootingTypeLabel },
+              { label: locale === 'de' ? 'Stadt / Ort' : 'City', value: project.location as string | null },
+              { label: locale === 'de' ? 'Treffpunkt' : 'Meeting point', value: meetingPoint ? (locale === 'de' ? '📍 Gesetzt' : '📍 Set') : null },
+              { label: locale === 'de' ? 'Dauer' : 'Duration', value: project.shoot_duration as string | null },
+              { label: 'Package', value: project.package as string | null },
+              { label: locale === 'de' ? 'Status' : 'Status', value: statusValue },
+              { label: locale === 'de' ? 'Inkl. Video' : 'Incl. Video', value: includeVideo != null ? (includeVideo ? (locale === 'de' ? '✅ Ja' : '✅ Yes') : (locale === 'de' ? '❌ Nein' : '❌ No')) : null },
+              { label: locale === 'de' ? 'Gesamtpreis' : 'Total price', value: project.price as string | null, accent: true },
             ].filter(r => r.value)
 
+            // ── Parse meeting_point for map ──────────────────────────────────
+            type MeetingLoc = { label: string; url: string }
+            function parseMeetingPointForMap(raw: string | null): MeetingLoc[] {
+              if (!raw) return []
+              try {
+                const parsed = JSON.parse(raw)
+                if (Array.isArray(parsed)) return parsed.filter((l: MeetingLoc) => l.url?.trim())
+              } catch {}
+              return raw.trim() ? [{ label: '', url: raw.trim() }] : []
+            }
+            const meetingLocations = parseMeetingPointForMap(meetingPoint)
+            const firstMeetingLoc = meetingLocations[0] ?? null
+
+            function getMapsUrl(url: string): string {
+              if (url.startsWith('http')) return url
+              return `https://maps.google.com/?q=${encodeURIComponent(url)}`
+            }
+            function getEmbedUrl(url: string): string {
+              // If it's coordinates like "48.1351, 11.5820"
+              const coordMatch = url.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/)
+              if (coordMatch) {
+                return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&z=15&output=embed`
+              }
+              // If it's a Google Maps URL, try to extract q param
+              try {
+                const u = new URL(url)
+                const q = u.searchParams.get('q') ?? url
+                return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`
+              } catch {}
+              return `https://maps.google.com/maps?q=${encodeURIComponent(url)}&z=15&output=embed`
+            }
+
             return (
-              <div className="space-y-4">
-                {/* ── Grid 2 colunas ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-5">
+                {/* ── Linha 1: Buchungsdetails + Mini-mapa ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
                   {/* ── Card: Booking Details ── */}
                   <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
@@ -789,7 +847,11 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                         <div key={row.label} className="flex items-center justify-between px-5 py-3"
                           style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
                           <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
-                          <span className="text-[13px] font-bold text-right ml-4" style={{ color: row.accent ? 'var(--accent)' : 'var(--text-primary)' }}>{row.value}</span>
+                          {row.link ? (
+                            <a href={row.link} className="text-[13px] font-bold text-right ml-4 hover:underline" style={{ color: 'var(--accent)' }}>{row.value}</a>
+                          ) : (
+                            <span className="text-[13px] font-bold text-right ml-4" style={{ color: row.accent ? 'var(--accent)' : 'var(--text-primary)' }}>{row.value}</span>
+                          )}
                         </div>
                       )) : (
                         <div className="px-5 py-8 text-center">
@@ -800,92 +862,86 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     </div>
                   </div>
 
-                  {/* ── Card: Contract ── */}
+                  {/* ── Card: Mini-mapa Treffpunkt ── */}
                   <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
                     <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)' }}>
-                          <FileText className="w-4 h-4" style={{ color: '#3B82F6' }} />
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(236,72,153,0.12)' }}>
+                          <MapPin className="w-4 h-4" style={{ color: '#EC4899' }} />
                         </div>
                         <span className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
-                          {locale === 'de' ? 'Vertrag' : 'Contract'}
+                          {locale === 'de' ? 'Treffpunkt' : 'Meeting Point'}
                         </span>
                       </div>
-                      {contracts.length > 0 && (
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-                          style={{ background: isSigned ? 'rgba(61,186,111,0.15)' : 'rgba(156,163,175,0.15)', color: isSigned ? '#3DBA6F' : '#9CA3AF' }}>
-                          {isSigned ? (locale === 'de' ? 'Unterschrieben' : 'Signed') : (locale === 'de' ? 'Entwurf' : 'Draft')}
-                        </span>
-                      )}
+                      <button
+                        onClick={() => setActiveTab('booking')}
+                        className="text-[12px] font-bold transition-all hover:opacity-70"
+                        style={{ color: '#EC4899' }}
+                      >
+                        {locale === 'de' ? 'Bearbeiten' : 'Edit'}
+                      </button>
                     </div>
-                    <div className="flex-1 flex flex-col items-center justify-center px-5 py-8">
-                      {contracts.length > 0 ? (
-                        isSigned ? (
-                          <>
-                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(61,186,111,0.15)' }}>
-                              <Check className="w-8 h-8" style={{ color: '#3DBA6F' }} />
-                            </div>
-                            <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
-                              {locale === 'de' ? 'Vertrag vollständig unterschrieben' : 'Contract fully signed'}
-                            </p>
-                            <p className="text-[12px] mb-5 text-center" style={{ color: 'var(--text-muted)' }}>
-                              {locale === 'de' ? 'Beide Parteien haben digital unterschrieben' : 'Both parties have signed the contract digitally'}
-                            </p>
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                              <div className="px-3 py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-                                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                                  {locale === 'de' ? 'Fotograf' : 'Photographer'}
-                                </p>
-                                <p className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                                  <Check className="w-3 h-3" style={{ color: '#3DBA6F' }} />
-                                  {photographerName ?? 'Photographer'}
-                                </p>
+                    {firstMeetingLoc ? (
+                      <div className="flex-1 flex flex-col">
+                        {/* Map embed */}
+                        <div className="relative flex-1" style={{ minHeight: '220px' }}>
+                          <iframe
+                            src={getEmbedUrl(firstMeetingLoc.url)}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 'none', display: 'block', minHeight: '220px' }}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            title="Meeting point map"
+                          />
+                        </div>
+                        {/* Locations list + navigate button */}
+                        <div className="px-4 py-3 space-y-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+                          {meetingLocations.map((loc, idx) => (
+                            <a
+                              key={idx}
+                              href={getMapsUrl(loc.url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all hover:opacity-80 group"
+                              style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.20)' }}
+                            >
+                              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black"
+                                style={{ background: 'rgba(236,72,153,0.20)', color: '#EC4899' }}>
+                                {idx + 1}
                               </div>
-                              <div className="px-3 py-2.5 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-                                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                                  {locale === 'de' ? 'Kunde' : 'Client'}
-                                </p>
-                                <p className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                                  <Check className="w-3 h-3" style={{ color: '#3DBA6F' }} />
-                                  {client?.full_name ?? 'Client'}
-                                </p>
+                              <div className="flex-1 min-w-0">
+                                {loc.label && <p className="text-[11px] font-bold truncate" style={{ color: '#EC4899' }}>{loc.label}</p>}
+                                <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{loc.url}</p>
                               </div>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(59,130,246,0.10)' }}>
-                              <FileText className="w-8 h-8" style={{ color: '#3B82F6' }} />
-                            </div>
-                            <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
-                              {locale === 'de' ? 'Vertrag ausstehend' : 'Contract pending'}
-                            </p>
-                            <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
-                              {locale === 'de' ? 'Noch nicht unterschrieben' : 'Not yet signed'}
-                            </p>
-                            <button onClick={() => setActiveTab('contract')} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#3B82F6' }}>
-                              {locale === 'de' ? 'Vertrag öffnen' : 'Open contract'}
-                            </button>
-                          </>
-                        )
-                      ) : (
-                        <>
-                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-                            <FileText className="w-8 h-8" style={{ color: 'var(--border-strong)' }} />
-                          </div>
-                          <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
-                            {locale === 'de' ? 'Kein Vertrag' : 'No contract'}
-                          </p>
-                          <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
-                            {locale === 'de' ? 'Noch kein Vertrag erstellt' : 'No contract created yet'}
-                          </p>
-                          <button onClick={() => setActiveTab('contract')} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#3B82F6' }}>
-                            + {locale === 'de' ? 'Vertrag erstellen' : 'Create contract'}
-                          </button>
-                        </>
-                      )}
-                    </div>
+                              <span className="text-[11px] font-bold flex-shrink-0 flex items-center gap-1 group-hover:gap-2 transition-all" style={{ color: '#EC4899' }}>
+                                {locale === 'de' ? 'Navigieren' : 'Navigate'} →
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center px-5 py-10">
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                          <MapPin className="w-8 h-8" style={{ color: 'var(--border-strong)' }} />
+                        </div>
+                        <p className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                          {locale === 'de' ? 'Kein Treffpunkt' : 'No meeting point'}
+                        </p>
+                        <p className="text-[12px] mb-5 text-center" style={{ color: 'var(--text-muted)' }}>
+                          {locale === 'de' ? 'Füge einen Google Maps Link oder Koordinaten hinzu' : 'Add a Google Maps link or coordinates'}
+                        </p>
+                        <button onClick={() => setActiveTab('booking')} className="px-4 py-2 rounded-xl text-[13px] font-bold text-white" style={{ background: '#EC4899' }}>
+                          + {locale === 'de' ? 'Treffpunkt hinzufügen' : 'Add meeting point'}
+                        </button>
+                      </div>
+                    )}
                   </div>
+                </div>
+
+                {/* ── Linha 2: Galerie + Rechnungen + Vertrag ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
 
                   {/* ── Card: Gallery ── */}
                   <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
@@ -1049,6 +1105,93 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     </div>
                   </div>
 
+                  {/* ── Card: Contract ── */}
+                  <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)' }}>
+                          <FileText className="w-4 h-4" style={{ color: '#3B82F6' }} />
+                        </div>
+                        <span className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                          {locale === 'de' ? 'Vertrag' : 'Contract'}
+                        </span>
+                      </div>
+                      {contracts.length > 0 && (
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                          style={{ background: isSigned ? 'rgba(61,186,111,0.15)' : 'rgba(156,163,175,0.15)', color: isSigned ? '#3DBA6F' : '#9CA3AF' }}>
+                          {isSigned ? (locale === 'de' ? 'Unterschrieben' : 'Signed') : (locale === 'de' ? 'Entwurf' : 'Draft')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center px-5 py-8">
+                      {contracts.length > 0 ? (
+                        isSigned ? (
+                          <>
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(61,186,111,0.15)' }}>
+                              <Check className="w-7 h-7" style={{ color: '#3DBA6F' }} />
+                            </div>
+                            <p className="font-bold text-[14px] mb-1 text-center" style={{ color: 'var(--text-primary)' }}>
+                              {locale === 'de' ? 'Vollständig unterschrieben' : 'Fully signed'}
+                            </p>
+                            <p className="text-[11px] mb-4 text-center" style={{ color: 'var(--text-muted)' }}>
+                              {locale === 'de' ? 'Beide Parteien haben unterschrieben' : 'Both parties have signed'}
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 w-full">
+                              <div className="px-2.5 py-2 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                                <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                                  {locale === 'de' ? 'Fotograf' : 'Photographer'}
+                                </p>
+                                <p className="text-[12px] font-bold flex items-center gap-1" style={{ color: 'var(--text-primary)' }}>
+                                  <Check className="w-3 h-3 flex-shrink-0" style={{ color: '#3DBA6F' }} />
+                                  <span className="truncate">{photographerName ?? 'Photographer'}</span>
+                                </p>
+                              </div>
+                              <div className="px-2.5 py-2 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                                <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                                  {locale === 'de' ? 'Kunde' : 'Client'}
+                                </p>
+                                <p className="text-[12px] font-bold flex items-center gap-1" style={{ color: 'var(--text-primary)' }}>
+                                  <Check className="w-3 h-3 flex-shrink-0" style={{ color: '#3DBA6F' }} />
+                                  <span className="truncate">{client?.full_name ?? 'Client'}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(59,130,246,0.10)' }}>
+                              <FileText className="w-7 h-7" style={{ color: '#3B82F6' }} />
+                            </div>
+                            <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                              {locale === 'de' ? 'Vertrag ausstehend' : 'Contract pending'}
+                            </p>
+                            <p className="text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>
+                              {locale === 'de' ? 'Noch nicht unterschrieben' : 'Not yet signed'}
+                            </p>
+                            <button onClick={() => setActiveTab('contract')} className="px-4 py-2 rounded-xl text-[12px] font-bold text-white" style={{ background: '#3B82F6' }}>
+                              {locale === 'de' ? 'Vertrag öffnen' : 'Open contract'}
+                            </button>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                            <FileText className="w-7 h-7" style={{ color: 'var(--border-strong)' }} />
+                          </div>
+                          <p className="font-bold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>
+                            {locale === 'de' ? 'Kein Vertrag' : 'No contract'}
+                          </p>
+                          <p className="text-[11px] mb-4" style={{ color: 'var(--text-muted)' }}>
+                            {locale === 'de' ? 'Noch kein Vertrag erstellt' : 'No contract created yet'}
+                          </p>
+                          <button onClick={() => setActiveTab('contract')} className="px-4 py-2 rounded-xl text-[12px] font-bold text-white" style={{ background: '#3B82F6' }}>
+                            + {locale === 'de' ? 'Vertrag erstellen' : 'Create contract'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )
@@ -1132,6 +1275,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                 custom_status_label: (project.custom_status_label as string | null) ?? null,
                 custom_status_color: (project.custom_status_color as string | null) ?? null,
                 shooting_type: (project.shooting_type as string | null) ?? null,
+                package: (project.package as string | null) ?? null,
+                include_video: (project.include_video as boolean | null) ?? null,
               }}
               savedShootingTypes={(project.savedShootingTypes as { label: string; color: string }[] | undefined) ?? []}
             />
