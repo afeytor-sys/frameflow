@@ -66,11 +66,12 @@ export async function POST(request: NextRequest) {
     // Fetch photographer info
     const { data: photographer } = await supabase
       .from('photographers')
-      .select('full_name, studio_name, email')
+      .select('full_name, studio_name, email, notification_email')
       .eq('id', user.id)
       .single()
 
     const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
+    const notifEmail = photographer?.notification_email || photographer?.email || undefined
     const portalUrl = project.client_url || `${process.env.NEXT_PUBLIC_SITE_URL}/client`
 
     const amountFormatted = formatEur(invoice.amount)
@@ -80,6 +81,8 @@ export async function POST(request: NextRequest) {
 
     const { error: emailError } = await resend.emails.send({
       from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
+      replyTo: notifEmail,
+      bcc: notifEmail,
       to: clientEmail,
       subject: `Rechnung ${invoice.invoice_number} von ${studioName} — ${amountFormatted}`,
       html: `

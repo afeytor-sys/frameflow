@@ -23,14 +23,16 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Fetch photographer info for sender name
+    // Fetch photographer info for sender name + notification email
     const { data: photographer } = await supabase
       .from('photographers')
-      .select('full_name, studio_name')
+      .select('full_name, studio_name, email, notification_email')
       .eq('id', user.id)
       .single()
 
     const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
+    // Use notification_email for BCC/replyTo, fallback to account email
+    const notifEmail = photographer?.notification_email || photographer?.email || undefined
 
     const now = new Date()
     const sendAt = scheduledAt ? new Date(scheduledAt) : null
@@ -103,6 +105,8 @@ export async function POST(request: NextRequest) {
     // Send immediately via Resend
     const { error: resendError } = await resend.emails.send({
       from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
+      replyTo: notifEmail,
+      bcc: notifEmail,
       to: toEmail,
       subject,
       html: htmlBody,

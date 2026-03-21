@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
 
       const locale = (project.portal_locale || photographer?.locale || 'de') as 'de' | 'en'
       const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
+      const notifEmail7d = (photographer as any)?.notification_email || photographer?.email || undefined
       const shootDateFormatted = new Date(project.shoot_date).toLocaleDateString(
         locale === 'de' ? 'de-DE' : 'en-US',
         { weekday: 'long', day: 'numeric', month: 'long' }
@@ -91,7 +92,8 @@ export async function GET(request: NextRequest) {
 
       await resend.emails.send({
         from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-        replyTo: photographer?.email || undefined,
+        replyTo: notifEmail7d,
+        bcc: notifEmail7d,
         to: client.email,
         subject,
         html,
@@ -153,9 +155,11 @@ export async function GET(request: NextRequest) {
         locale,
       })
 
+      const notifEmail1d = (photographer as any)?.notification_email || photographer?.email || undefined
       await resend.emails.send({
         from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-        replyTo: photographer?.email || undefined,
+        replyTo: notifEmail1d,
+        bcc: notifEmail1d,
         to: client.email,
         subject,
         html,

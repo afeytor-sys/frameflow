@@ -63,9 +63,11 @@ export async function POST(request: NextRequest) {
     // Fetch photographer info
     const { data: photographer } = await supabase
       .from('photographers')
-      .select('full_name, studio_name, email, language')
+      .select('full_name, studio_name, email, language, notification_email')
       .eq('id', user.id)
       .single()
+
+    const notifEmail = photographer?.notification_email || photographer?.email || undefined
 
     const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
     const portalUrl = project.client_url
@@ -95,9 +97,10 @@ export async function POST(request: NextRequest) {
 
     const { error: emailError } = await resend.emails.send({
       from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-      replyTo: photographer?.email || undefined,
+      replyTo: notifEmail,
+      bcc: notifEmail,
       to: clientEmail,
-      subject: autoSettings?.email_contract_sent === false ? subject : subject,
+      subject,
       html,
     })
 

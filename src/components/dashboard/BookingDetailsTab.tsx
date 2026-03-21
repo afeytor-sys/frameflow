@@ -337,6 +337,13 @@ export default function BookingDetailsTab({ projectId, photographerId, initialDa
     setSaved(true)
     toast.success(t.successSaved)
     setTimeout(() => setSaved(false), 2500)
+
+    // Sync Google Calendar event (fire-and-forget, non-blocking)
+    fetch('/api/integrations/google/sync-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, action: 'upsert' }),
+    }).catch(() => {})
   }
 
   return (
