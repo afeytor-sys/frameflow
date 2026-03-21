@@ -14,7 +14,7 @@ const PLANS = [
     description: 'Zum Ausprobieren',
     features: [
       'Bis zu 2 aktive Kunden',
-      'Up to 2 contracts',
+      'Bis zu 2 Verträge',
       'Bis zu 2 Projekte',
       'Bis zu 2 Galerien',
       '5 GB Speicherplatz',
@@ -28,15 +28,15 @@ const PLANS = [
   {
     key: 'starter',
     name: 'Starter',
-    monthly: 10,
-    annual: 108, // 10 × 12 × 0.9 = 108
+    monthly: 12,
+    annual: 130,
     description: 'For growing studios',
     features: [
       'Bis zu 10 aktive Kunden',
-      'Up to 10 contracts',
+      'Bis zu 10 Verträge',
       'Bis zu 10 Projekte & Galerien',
       '15 GB Speicherplatz',
-      'Vertrags-Vorlagen',
+      'Vertrags-Vorlagen mit E-Signatur',
       'Kunden-Portal',
       '"Fotonizer" Badge ausblenden',
     ],
@@ -48,14 +48,17 @@ const PLANS = [
   {
     key: 'pro',
     name: 'Pro',
-    monthly: 16,
-    annual: 172, // 16 × 12 × 0.9 ≈ 172
+    monthly: 18,
+    annual: 180,
     description: 'For professional photographers',
     badge: 'Beliebteste Wahl',
     features: [
       'Unbegrenzte Kunden',
       'Unbegrenzte Projekte & Galerien',
-      'Unlimited contracts',
+      'Unlimited Verträge mit E-Signatur',
+      'Fragebögen',
+      'Pipeline (CRM)',
+      'Automationen',
       '1 TB Speicherplatz',
       'Kunden-Portal',
       '"Fotonizer" Logo ausblenden',
@@ -70,16 +73,17 @@ const PLANS = [
   {
     key: 'studio',
     name: 'Studio',
-    monthly: 31,
-    annual: 324, // 27 × 12 = 324
+    monthly: 35,
+    annual: 380,
     description: 'For teams & agencies',
     features: [
       'Alles in Pro',
-      'Bis zu 2 Fotografen-Accounts',
+      'Bis zu 3 Fotografen-Accounts',
       'Unbegrenzter Speicherplatz',
       'Kunden-Portal',
       '"Fotonizer" Logo ausblenden',
       'Analytics-Dashboard',
+      'Automationen',
       'Priority support',
     ],
     cta: 'Choose Studio',
@@ -134,7 +138,6 @@ export default function PricingSection() {
       {/* Plan cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {PLANS.map((plan) => {
-          // For annual billing: show per-month price (annual/12)
           const pricePerMonth = billing === 'annual' && plan.annual > 0
             ? Math.round(plan.annual / 12)
             : plan.monthly
@@ -152,7 +155,6 @@ export default function PricingSection() {
                 plan.comingSoon && 'opacity-70'
               )}
             >
-              {/* Coming Soon badge */}
               {plan.comingSoon && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-block bg-[#6B6B6B]/10 text-[#6B6B6B] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
@@ -186,20 +188,20 @@ export default function PricingSection() {
                       <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
                       <span className={cn('text-sm line-through', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>€{pricePerMonth}</span>
                     </div>
-                    <p className={cn('text-[10px] font-semibold mb-1', 'text-[#F59E0B]')}>
+                    <p className="text-[10px] font-semibold mb-1 text-[#F59E0B]">
                       🎉 50% off — erste 2 Monate
                     </p>
                     <p className={cn('text-[10px]', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
                       danach €{pricePerMonth}/Monat zzgl. MwSt.
                     </p>
                     {billing === 'annual' && annualTotal > 0 && (
-                      <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/50' : 'text-[#6B6B6B]')}>
-                        €{annualTotal}/Jahr
+                      <p className={cn('text-xs mt-0.5 font-medium', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>
+                        €{annualTotal}/Jahr (gesamt)
                       </p>
                     )}
                     {billing === 'monthly' && plan.annual > 0 && (
                       <p className={cn('text-[10px] mt-0.5', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
-                        or €{Math.round(plan.annual / 12)}/month billed annually
+                        oder €{Math.round(plan.annual / 12)}/Monat bei jährlicher Zahlung
                       </p>
                     )}
                   </>
