@@ -22,13 +22,9 @@ interface Props {
   sectionId?: string | null
   galleryTitle?: string
   onUploadComplete: (photos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[]) => void
-  /** Called when a file is rejected due to storage limit — use to open UpgradeModal */
   onStorageLimitReached?: () => void
-  /** Check if a file of given size can be uploaded (from usePlanLimits) */
   canUploadFile?: (fileSizeBytes: number) => boolean
-  /** Max storage bytes for the current plan (null = unlimited) */
   maxStorageBytes?: number | null
-  /** Storage already used in bytes */
   storageUsedBytes?: number
 }
 
@@ -52,14 +48,12 @@ export default function PhotoUploader({
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
 
-    // Check storage limit for each file before starting
     const allowed: File[] = []
     const rejected: File[] = []
 
     let runningUsed = storageUsedBytes
     for (const file of imageFiles) {
       if (canUploadFile) {
-        // Use the hook's check (accounts for already-queued files)
         const fits = maxStorageBytes === null || maxStorageBytes === undefined
           ? true
           : (runningUsed + file.size) <= maxStorageBytes
@@ -94,7 +88,6 @@ export default function PhotoUploader({
     setFiles(prev => [...prev, ...uploadItems])
     setIsUploading(true)
 
-    // Register with global upload context
     const jobId = uploadCtx ? uploadCtx.startUpload(galleryId, galleryTitle, allowed.length) : null
 
     const supabase = createClient()
@@ -125,13 +118,18 @@ export default function PhotoUploader({
         const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName)
         const storageUrl = urlData.publicUrl
 
+        // Thumbnail URL com compressão automática via Supabase Image Transform
+        const thumbnailUrl = storageUrl
+          .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+          + '?width=800&quality=75&format=webp'
+
         const { data: photo, error: dbError } = await supabase
           .from('photos')
           .insert({
             gallery_id: galleryId,
             filename: uploadFile.file.name,
             storage_url: storageUrl,
-            thumbnail_url: storageUrl,
+            thumbnail_url: thumbnailUrl,
             file_size: uploadFile.file.size,
             display_order: orderOffset++,
             ...(sectionId ? { section_id: sectionId } : {}),
@@ -178,7 +176,6 @@ export default function PhotoUploader({
     ? Math.round(files.reduce((sum, f) => sum + f.progress, 0) / files.length)
     : 0
 
-  // Storage limit UI info
   const storagePercent = maxStorageBytes
     ? Math.min(100, Math.round((storageUsedBytes / maxStorageBytes) * 100))
     : null
@@ -187,7 +184,6 @@ export default function PhotoUploader({
 
   return (
     <div className="space-y-4">
-      {/* Storage usage bar (only when limit exists) */}
       {maxStorageBytes !== null && maxStorageBytes !== undefined && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
@@ -207,7 +203,6 @@ export default function PhotoUploader({
         </div>
       )}
 
-      {/* Drop zone */}
       <div
         onDrop={handleDrop}
         onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
@@ -246,7 +241,6 @@ export default function PhotoUploader({
         </p>
       </div>
 
-      {/* File list */}
       {files.length > 0 && (
         <div className="space-y-2">
           {isUploading && (
