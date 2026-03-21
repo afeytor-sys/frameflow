@@ -28,6 +28,23 @@ interface Props {
   storageUsedBytes?: number
 }
 
+// ─── Image URL helpers ────────────────────────────────────────────────────────
+
+/** Grid thumbnail — 600px, fast loading for gallery grid view */
+function toThumbnailUrl(storageUrl: string): string {
+  return storageUrl
+    .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+    + '?width=600&quality=70&format=webp'
+}
+
+/** Full resolution — 2400px, only loaded when client clicks a photo */
+function toFullResUrl(storageUrl: string): string {
+  return storageUrl
+    .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
+    + '?width=2400&quality=85&format=webp'
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function PhotoUploader({
   galleryId,
   photographerId,
@@ -118,18 +135,19 @@ export default function PhotoUploader({
         const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName)
         const storageUrl = urlData.publicUrl
 
-        // Thumbnail URL com compressão automática via Supabase Image Transform
-        const thumbnailUrl = storageUrl
-          .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
-          + '?width=800&quality=75&format=webp'
+        // Grid thumbnail — small & fast
+        const thumbnailUrl = toThumbnailUrl(storageUrl)
+
+        // Full res — for lightbox and download
+        const fullResUrl = toFullResUrl(storageUrl)
 
         const { data: photo, error: dbError } = await supabase
           .from('photos')
           .insert({
             gallery_id: galleryId,
             filename: uploadFile.file.name,
-            storage_url: storageUrl,
-            thumbnail_url: thumbnailUrl,
+            storage_url: fullResUrl,     // full res for lightbox/download
+            thumbnail_url: thumbnailUrl,  // small & fast for grid
             file_size: uploadFile.file.size,
             display_order: orderOffset++,
             ...(sectionId ? { section_id: sectionId } : {}),
