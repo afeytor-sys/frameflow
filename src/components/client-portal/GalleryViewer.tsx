@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import {
   Heart, Download, X, ChevronLeft, ChevronRight,
@@ -83,52 +84,37 @@ function getLightboxUrl(photo: Photo): string {
   return getPhotoUrl(photo.storage_url, 1600, 85, 'contain')
 }
 
-// ── Lazy image component with skeleton + fallback ────────────────────
+// ── Blur placeholder (1×1 grey JPEG, base64) ────────────────────────
+const BLUR_DATA_URL =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k='
+
+// ── Lazy image component with skeleton + Next.js Image optimisation ──
 function LazyImage({
-  src, fallbackSrc, alt, className, onLoad, priority = false,
+  src, alt, className, onLoad, priority = false,
 }: {
   src: string; fallbackSrc?: string; alt: string; className?: string; onLoad?: () => void; priority?: boolean
 }) {
   const [loaded, setLoaded] = useState(false)
-  const [currentSrc, setCurrentSrc] = useState(src)
-  const [triedFallback, setTriedFallback] = useState(false)
-  const imgRef = useRef<HTMLImageElement>(null)
-
-  useEffect(() => {
-    setLoaded(false)
-    setCurrentSrc(src)
-    setTriedFallback(false)
-  }, [src])
-
-  const handleError = () => {
-    // If optimized URL fails and we have a fallback, try the original
-    if (!triedFallback && fallbackSrc && currentSrc !== fallbackSrc) {
-      setTriedFallback(true)
-      setCurrentSrc(fallbackSrc)
-    } else {
-      setLoaded(true) // show broken state
-    }
-  }
 
   return (
     <div className={cn('relative', className)}>
       {!loaded && (
         <div className="absolute inset-0 bg-white/8 animate-pulse rounded-sm" />
       )}
-      <img
-        ref={imgRef}
-        src={currentSrc}
+      <Image
+        src={src}
         alt={alt}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding={priority ? 'sync' : 'async'}
-        fetchPriority={priority ? 'high' : 'low'}
+        fill
+        style={{ objectFit: 'cover' }}
+        sizes="(max-width: 768px) 50vw, 25vw"
+        placeholder="blur"
+        blurDataURL={BLUR_DATA_URL}
+        priority={priority}
         className={cn(
-          'w-full h-full object-cover transition-opacity duration-300',
-          loaded ? 'opacity-100' : 'opacity-0',
-          className
+          'transition-opacity duration-300',
+          loaded ? 'opacity-100' : 'opacity-0'
         )}
         onLoad={() => { setLoaded(true); onLoad?.() }}
-        onError={handleError}
       />
     </div>
   )
@@ -920,7 +906,9 @@ export default function GalleryViewer({
                 const realIndex = Math.max(0, presentIndex - 2) + i
                 return (
                   <button key={p.id} onClick={() => { setPresentLoaded(false); setPresentIndex(realIndex) }} className={cn('flex-shrink-0 rounded overflow-hidden transition-all', realIndex === presentIndex ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70')} style={{ width: 40, height: 28 }}>
-                    <img src={getThumbnailUrl(p)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <div className="relative w-full h-full">
+                      <Image src={getThumbnailUrl(p)} alt="" fill style={{ objectFit: 'cover' }} sizes="40px" />
+                    </div>
                   </button>
                 )
               })}
