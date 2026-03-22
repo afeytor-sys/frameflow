@@ -70,7 +70,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   }
 
   // Try to fetch photos with is_private column; fall back if column doesn't exist yet
-  let rawPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; is_private?: boolean | null }[] = []
+  let rawPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; is_private?: boolean }[] = []
   const { data: photosWithPrivate, error: photosError } = await supabase
     .from('photos')
     .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private')
