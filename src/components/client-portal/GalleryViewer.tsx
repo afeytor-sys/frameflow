@@ -135,6 +135,10 @@ export default function GalleryViewer({
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
   const [showTagFilters, setShowTagFilters] = useState(false)
 
+  // ── Progressive loading ──────────────────────────────────────────
+  const INITIAL_LIMIT = 50
+  const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT)
+
   // Layout & size controls
   const [layout, setLayout] = useState<GalleryLayout>('masonry')
   const [imageSize, setImageSize] = useState(3)
@@ -211,7 +215,15 @@ export default function GalleryViewer({
         return sortOrder === 'name-asc' ? cmp : -cmp
       })
 
+  // ── Progressive loading: slice to visible count ──────────────────
+  const visiblePhotos = filteredPhotos.slice(0, visibleCount)
+
   const currentPhoto = lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null
+
+  // ── Reset visible count when filter or sort changes ─────────────
+  useEffect(() => {
+    setVisibleCount(INITIAL_LIMIT)
+  }, [filterTag, sortOrder])
 
   // Persist layout preference
   useEffect(() => {
@@ -794,23 +806,42 @@ export default function GalleryViewer({
       ) : layout === 'masonry' ? (
         /* MASONRY */
         <div className={cn(masonryCols, 'gap-1.5 space-y-1.5')}>
-          {filteredPhotos.map((photo, index) => (
+          {visiblePhotos.map((photo, index) => (
             <PhotoCard key={photo.id} photo={photo} index={index} className="break-inside-avoid" />
           ))}
         </div>
       ) : layout === 'grid' ? (
         /* GRID — uniform squares */
         <div className={cn('grid gap-1.5', gridCols)}>
-          {filteredPhotos.map((photo, index) => (
+          {visiblePhotos.map((photo, index) => (
             <PhotoCard key={photo.id} photo={photo} index={index} className="aspect-square" />
           ))}
         </div>
       ) : (
         /* COLUMNS — 2 columns, landscape-ish */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {filteredPhotos.map((photo, index) => (
+          {visiblePhotos.map((photo, index) => (
             <PhotoCard key={photo.id} photo={photo} index={index} className={cn('w-full', columnHeight)} />
           ))}
+        </div>
+      )}
+
+      {/* ── Load More ── */}
+      {visibleCount < filteredPhotos.length && (
+        <div className="flex flex-col items-center gap-2 mt-8 mb-4">
+          <button
+            onClick={() => {
+              setVisibleCount(prev => Math.min(prev + 50, filteredPhotos.length))
+              window.scrollBy({ top: 300, behavior: 'smooth' })
+            }}
+            className="px-8 py-3 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90 active:scale-95"
+            style={{ background: '#111110', boxShadow: '0 2px 12px rgba(0,0,0,0.18)' }}
+          >
+            Mehr laden ({filteredPhotos.length - visibleCount} weitere)
+          </button>
+          <span className="text-[11px]" style={{ color: '#B0ACA6' }}>
+            {visibleCount} von {filteredPhotos.length} Fotos
+          </span>
         </div>
       )}
 
