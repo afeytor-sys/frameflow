@@ -10,7 +10,7 @@ export default async function ClientsPage() {
 
   const { data: clients } = await supabase
     .from('clients')
-    .select('*')
+    .select('*, projects(shoot_date, project_type, shooting_type, custom_type_label, status, created_at)')
     .eq('photographer_id', user!.id)
     .order('created_at', { ascending: false })
 
@@ -101,6 +101,15 @@ export default async function ClientsPage() {
               {clients.map((client, idx) => {
                 const sc = statusColors[client.status] || statusColors.lead
                 const av = avatarColors[idx % avatarColors.length]
+                // Get the most recent project (sorted by shoot_date desc, fallback to created_at)
+                const projects = (client.projects as { shoot_date: string | null; project_type: string | null; shooting_type: string | null; custom_type_label: string | null; status: string; created_at: string }[] | null) ?? []
+                const latestProject = projects.sort((a, b) => {
+                  const da = a.shoot_date ?? a.created_at
+                  const db = b.shoot_date ?? b.created_at
+                  return da > db ? -1 : 1
+                })[0] ?? null
+                const shootDate = latestProject?.shoot_date ?? null
+                const shootingType = latestProject?.custom_type_label ?? latestProject?.project_type ?? latestProject?.shooting_type ?? null
                 return (
                   <tr
                     key={client.id}
@@ -126,12 +135,12 @@ export default async function ClientsPage() {
                     </td>
                     <td className="px-6 py-4 hidden md:table-cell">
                       <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                        {client.shoot_date ? formatDate(client.shoot_date, 'de') : '—'}
+                        {shootDate ? formatDate(shootDate, 'de') : '—'}
                       </span>
                     </td>
                     <td className="px-6 py-4 hidden lg:table-cell">
                       <span className="text-[13px] capitalize" style={{ color: 'var(--text-muted)' }}>
-                        {client.project_type || '—'}
+                        {shootingType || '—'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
