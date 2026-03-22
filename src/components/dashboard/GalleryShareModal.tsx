@@ -412,7 +412,7 @@ export default function GalleryShareModal({
           </div>
 
           {/* GAST-PASSWORT section */}
-          {(galleryGuestPassword !== undefined) && (
+          {(galleryGuestPassword != null) && (
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5 flex items-center gap-1" style={{ color: 'var(--text-muted, #7A7670)' }}>
                 <Lock className="w-3 h-3" style={{ opacity: 0.5 }} />

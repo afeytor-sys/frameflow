@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer, Mail, LayoutDashboard, ExternalLink, MapPin, Heart, User, ChevronRight } from 'lucide-react'
+import { FileText, Images, CalendarDays, Plus, ArrowLeft, Pencil, Check, X, Receipt, Percent, Clock, Share2, Trash2, Sparkles, Lock, GripHorizontal, Eye, ClipboardList, Send, Printer, Mail, LayoutDashboard, ExternalLink, MapPin, Heart, User, ChevronRight, ImageIcon } from 'lucide-react'
 import ContractTab from './ContractTab'
 import GalleryTab from './GalleryTab'
 import GalleryShareModal from './GalleryShareModal'
@@ -28,6 +28,7 @@ type GalleryItem = {
   description: string | null
   status: 'draft' | 'active' | 'expired'
   password: string | null
+  guest_password?: string | null
   watermark: boolean
   download_enabled: boolean
   comments_enabled: boolean
@@ -333,13 +334,25 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     toast.success('Gallery deleted')
   }
 
+  // ── Cover Photo Picker state ───────────────────────────────────────────────
+  const [coverPickerGalleryId, setCoverPickerGalleryId] = useState<string | null>(null)
+  const coverPickerGallery = galleries.find(g => g.id === coverPickerGalleryId) ?? null
+
+  const setCoverPhoto = async (galleryId: string, photoId: string) => {
+    const { error } = await supabase.from('galleries').update({ cover_photo_id: photoId }).eq('id', galleryId)
+    if (error) { toast.error('Fehler beim Speichern'); return }
+    setGalleries(prev => prev.map(g => g.id === galleryId ? { ...g, cover_photo_id: photoId } : g))
+    setCoverPickerGalleryId(null)
+    toast.success(locale === 'de' ? 'Titelbild gesetzt!' : 'Cover photo set!')
+  }
+
   // ── Share Modal state ──────────────────────────────────────────────────────
-  const [shareModal, setShareModal] = useState<{ galleryId: string; url: string; password: string | null; title: string } | null>(null)
+  const [shareModal, setShareModal] = useState<{ galleryId: string; url: string; password: string | null; guestPassword: string | null; title: string } | null>(null)
 
   const openShareModal = (g: GalleryItem) => {
     const token = (project.client_token as string | null) ?? project.client_url.split('/client/')[1]
     const url = `${window.location.origin}/gallery/${token}`
-    setShareModal({ galleryId: g.id, url, password: g.password || null, title: g.title })
+    setShareModal({ galleryId: g.id, url, password: g.password || null, guestPassword: g.guest_password ?? null, title: g.title })
   }
 
   const shareGallery = (g: GalleryItem) => openShareModal(g)
@@ -415,6 +428,18 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
+                  {/* Cover photo — bottom left (only if has photos) */}
+                  {photoCount > 0 && (
+                    <button
+                      onClick={e => { e.stopPropagation(); setCoverPickerGalleryId(g.id) }}
+                      className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
+                      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.20)' }}
+                      title={locale === 'de' ? 'Titelbild ändern' : 'Change cover photo'}
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span className="text-[11px] font-bold">{locale === 'de' ? 'Titelbild' : 'Cover'}</span>
+                    </button>
+                  )}
                   {/* Delete — bottom right */}
                   <button
                     onClick={e => { e.stopPropagation(); deleteGallery(g.id) }}
@@ -487,6 +512,82 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
   return (
     <>
+      {/* ── Cover Photo Picker Modal ────────────────────────────────────── */}
+      {coverPickerGalleryId && coverPickerGallery && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setCoverPickerGalleryId(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '85vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                  <ImageIcon className="w-4 h-4" style={{ color: '#10B981' }} />
+                </div>
+                <div>
+                  <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                    {locale === 'de' ? 'Titelbild wählen' : 'Choose cover photo'}
+                  </p>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{coverPickerGallery.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCoverPickerGalleryId(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Photo grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {(coverPickerGallery.photos ?? []).map(photo => {
+                  const isCurrent = coverPickerGallery.cover_photo_id === photo.id
+                  return (
+                    <button
+                      key={photo.id}
+                      onClick={() => setCoverPhoto(coverPickerGalleryId, photo.id)}
+                      className="relative overflow-hidden rounded-xl transition-all hover:scale-[1.02]"
+                      style={{
+                        aspectRatio: '1/1',
+                        border: isCurrent ? '2.5px solid #10B981' : '2px solid transparent',
+                        boxShadow: isCurrent ? '0 0 0 3px rgba(16,185,129,0.25)' : 'none',
+                      }}
+                    >
+                      <img
+                        src={photo.thumbnail_url || photo.storage_url}
+                        alt={photo.filename}
+                        className="w-full h-full object-cover"
+                      />
+                      {isCurrent && (
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.25)' }}>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#10B981' }}>
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="px-5 py-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <p className="text-[11px] text-center" style={{ color: 'var(--text-muted)' }}>
+                {locale === 'de' ? 'Klicke auf ein Foto um es als Titelbild zu setzen' : 'Click a photo to set it as the cover'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Upgrade Modal ───────────────────────────────────────────────── */}
       <UpgradeModal
         isOpen={showUpgradeModal}
@@ -501,6 +602,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
         galleryTitle={shareModal?.title || ''}
         galleryUrl={shareModal?.url || ''}
         galleryPassword={shareModal?.password || null}
+        galleryGuestPassword={shareModal?.guestPassword ?? null}
         galleryId={shareModal?.galleryId}
         clientEmail={client?.email}
         clientName={client?.full_name}
@@ -746,7 +848,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       </div>
 
       {/* ── Tab content card ────────────────────────────────────────────── */}
-      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+      <div className="rounded-xl overflow-hidden mt-8" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
         <div className="p-6">
           {activeTab === 'overview' && (() => {
             const allPhotos = galleries.flatMap(g => g.photos ?? [])
@@ -1246,6 +1348,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                       description: selectedGallery.description,
                       status: selectedGallery.status,
                       password: selectedGallery.password,
+                      guest_password: selectedGallery.guest_password ?? null,
                       watermark: selectedGallery.watermark,
                       download_enabled: selectedGallery.download_enabled,
                       comments_enabled: selectedGallery.comments_enabled,
