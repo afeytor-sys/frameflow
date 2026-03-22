@@ -137,46 +137,45 @@ export default function PhotoUploader({
       setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
 
       try {
-        // ── Step 1: Upload file via server-side API (browser → Vercel → R2) ──
-        // This avoids CORS issues with direct browser-to-R2 uploads.
-        const uploadFormData = new FormData()
-        uploadFormData.append('file', uploadFile.file)
-        uploadFormData.append('galleryId', galleryId)
-        uploadFormData.append('filename', uploadFile.file.name)
-        uploadFormData.append('contentType', uploadFile.file.type || 'image/jpeg')
-        uploadFormData.append('fileSize', String(uploadFile.file.size))
+        // ── Step 1: Get presigned PUT URL from server ────────────────────────
+        const presignRes = await fetch('/api/photos/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            galleryId,
+            filename: uploadFile.file.name,
+            contentType: uploadFile.file.type || 'image/jpeg',
+            fileSize: uploadFile.file.size,
+          }),
+        })
 
-        // Track progress via XHR
-        const storageUrl = await new Promise<string>((resolve, reject) => {
+        if (!presignRes.ok) {
+          const errData = await presignRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Presign fehlgeschlagen (${presignRes.status})`)
+        }
+
+        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
+
+        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 20 } : f))
+
+        // ── Step 2: PUT file directly to R2 (browser → R2, no Vercel limit) ──
+        await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest()
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
-              const pct = 10 + Math.round((e.loaded / e.total) * 75)
+              const pct = 20 + Math.round((e.loaded / e.total) * 70)
               setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: pct } : f))
             }
           }
           xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const data = JSON.parse(xhr.responseText)
-                if (data.publicUrl) resolve(data.publicUrl)
-                else reject(new Error(data.error || 'Upload fehlgeschlagen'))
-              } catch {
-                reject(new Error('Ungültige Server-Antwort'))
-              }
-            } else {
-              try {
-                const data = JSON.parse(xhr.responseText)
-                reject(new Error(data.error || `Upload fehlgeschlagen (${xhr.status})`))
-              } catch {
-                reject(new Error(`Upload fehlgeschlagen (${xhr.status})`))
-              }
-            }
+            if (xhr.status >= 200 && xhr.status < 300) resolve()
+            else reject(new Error(`R2 Upload fehlgeschlagen (${xhr.status})`))
           }
-          xhr.onerror = () => reject(new Error('Netzwerkfehler beim Upload'))
+          xhr.onerror = () => reject(new Error('Netzwerkfehler beim Upload zu R2'))
           xhr.ontimeout = () => reject(new Error('Upload-Timeout'))
-          xhr.open('POST', '/api/photos/upload')
-          xhr.send(uploadFormData)
+          xhr.open('PUT', presignedUrl)
+          xhr.setRequestHeader('Content-Type', uploadFile.file.type || 'image/jpeg')
+          xhr.send(uploadFile.file)
         })
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 90 } : f))
