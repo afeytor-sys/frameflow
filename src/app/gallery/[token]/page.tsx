@@ -112,7 +112,9 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // This is a plain function that returns JSX — called server-side only,
   // never passed as a prop across the server/client boundary.
   function renderGallery(sortedPhotos: typeof allPhotos) {
-    const coverPhoto = coverPhotoId ? sortedPhotos.find(p => p.id === coverPhotoId) : null
+    // Search cover in ALL photos (not just sortedPhotos) so private cover photos
+    // still work as hero image without being exposed in the public photo list
+    const coverPhoto = coverPhotoId ? allPhotos.find(p => p.id === coverPhotoId) : null
     const heroUrl = (coverPhoto ?? sortedPhotos[0])?.storage_url ?? null
 
     return (

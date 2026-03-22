@@ -617,6 +617,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         galleryTitle={gallery.title}
         galleryUrl={getGalleryUrl()}
         galleryPassword={gallery.password}
+        galleryGuestPassword={gallery.guest_password ?? null}
         galleryId={gallery.id}
         clientEmail={clientEmail}
         clientName={clientName || undefined}

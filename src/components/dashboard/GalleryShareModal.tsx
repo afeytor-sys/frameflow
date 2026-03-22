@@ -12,6 +12,7 @@ interface Props {
   galleryTitle: string
   galleryUrl: string
   galleryPassword: string | null
+  galleryGuestPassword?: string | null
   galleryId?: string | null
   studioName?: string
   clientName?: string
@@ -24,6 +25,7 @@ export default function GalleryShareModal({
   galleryTitle,
   galleryUrl,
   galleryPassword,
+  galleryGuestPassword,
   galleryId,
   studioName,
   clientName,
@@ -32,6 +34,7 @@ export default function GalleryShareModal({
   const [mounted, setMounted] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedPassword, setCopiedPassword] = useState(false)
+  const [copiedGuestPassword, setCopiedGuestPassword] = useState(false)
 
   // Email sub-modal
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -371,11 +374,11 @@ export default function GalleryShareModal({
             </div>
           </div>
 
-          {/* PASSWORT section */}
+          {/* KUNDEN-PASSWORT section */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5 flex items-center gap-1" style={{ color: 'var(--text-muted, #7A7670)' }}>
               <Lock className="w-3 h-3" />
-              Passwort
+              Kunden-Passwort
             </p>
             <div className="flex items-center gap-2">
               <div
@@ -407,6 +410,49 @@ export default function GalleryShareModal({
               )}
             </div>
           </div>
+
+          {/* GAST-PASSWORT section */}
+          {(galleryGuestPassword !== undefined) && (
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5 flex items-center gap-1" style={{ color: 'var(--text-muted, #7A7670)' }}>
+                <Lock className="w-3 h-3" style={{ opacity: 0.5 }} />
+                Gast-Passwort <span className="font-normal normal-case tracking-normal ml-1" style={{ opacity: 0.6 }}>(ohne private Fotos)</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex-1 flex items-center px-3 py-2.5 rounded-xl min-w-0"
+                  style={{ background: 'var(--bg-hover, #F5F4F1)', border: '1px solid var(--border-color, #E8E4DC)' }}
+                >
+                  {galleryGuestPassword ? (
+                    <span className="text-[14px] font-mono font-bold tracking-widest" style={{ color: 'var(--text-primary, #111110)' }}>
+                      {galleryGuestPassword}
+                    </span>
+                  ) : (
+                    <span className="text-[12px] italic" style={{ color: 'var(--text-muted, #7A7670)' }}>
+                      Kein Gast-Passwort
+                    </span>
+                  )}
+                </div>
+                {galleryGuestPassword && (
+                  <button
+                    onClick={async () => {
+                      try { await navigator.clipboard.writeText(galleryGuestPassword) } catch { /* fallback */ }
+                      setCopiedGuestPassword(true)
+                      setTimeout(() => setCopiedGuestPassword(false), 2000)
+                    }}
+                    className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                    style={{
+                      background: copiedGuestPassword ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover, #F5F4F1)',
+                      border: `1px solid ${copiedGuestPassword ? 'rgba(16,185,129,0.30)' : 'var(--border-color, #E8E4DC)'}`,
+                      color: copiedGuestPassword ? '#10B981' : 'var(--text-primary, #111110)',
+                    }}
+                  >
+                    {copiedGuestPassword ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* PER E-MAIL SENDEN section */}
           <div style={{ borderTop: '1px solid var(--border-color, #E8E4DC)', paddingTop: '16px' }}>
