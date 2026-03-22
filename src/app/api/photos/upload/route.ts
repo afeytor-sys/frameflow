@@ -13,7 +13,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
-import { r2, R2_BUCKET, getR2PublicUrl, getPhotoThumbnailUrl } from '@/lib/r2'
+import { r2, R2_BUCKET, getR2PublicUrl } from '@/lib/r2'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -54,9 +54,11 @@ export async function POST(request: NextRequest) {
     )
 
     const publicUrl = getR2PublicUrl(key)
-    const thumbnailUrl = getPhotoThumbnailUrl(key)
 
-    return NextResponse.json({ url: publicUrl, thumbnailUrl, key })
+    // thumbnail_url = same as storage_url for now.
+    // Cloudflare Image Resizing (cdn-cgi/image) requires a Pro plan.
+    // When upgraded, swap to: getPhotoThumbnailUrl(key)
+    return NextResponse.json({ url: publicUrl, thumbnailUrl: publicUrl, key })
   } catch (err) {
     console.error('[R2 Upload] Error:', err)
     return NextResponse.json(

@@ -9,7 +9,7 @@
  *
  * AFTER (Cloudflare R2):
  *   POST /api/photos/upload (FormData: file + galleryId)
- *   → stored at pub-010e77cbae3349479edbba7f4a30e8b6.r2.dev/galleries/<id>/...
+ *   → stored at photos.fotonizer.com/galleries/<id>/...
  *
  * The Supabase database (photos table) is still used for metadata.
  * R2 credentials never reach the browser — the API route handles them server-side.
