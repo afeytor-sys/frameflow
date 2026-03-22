@@ -40,19 +40,20 @@ export async function POST(request: NextRequest) {
     const key = `galleries/${galleryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
     // Generate presigned PUT URL (valid for 15 minutes).
-    // Do NOT include ContentLength — it causes CORS preflight issues when
-    // the browser sends the PUT directly to R2.
+    // IMPORTANT: Do NOT include ContentType in the PutObjectCommand — if we do,
+    // R2 signs the URL with Content-Type as a required header, and the browser
+    // must send the exact same value. Any mismatch causes 400 Bad Request.
+    // Instead we omit ContentType from the signed command so R2 accepts any
+    // Content-Type the browser sends.
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: key,
-      ContentType: contentType,
+      // ContentType intentionally omitted from signed command
     })
 
     const presignedUrl = await getSignedUrl(r2, command, {
       expiresIn: 900,
-      // Unset the checksum algorithm so the presigned URL doesn't require
-      // x-amz-checksum-* headers that R2 may reject
-      unhoistableHeaders: new Set(['x-amz-checksum-crc32']),
+      unhoistableHeaders: new Set(['x-amz-checksum-crc32', 'content-type']),
     })
     const publicUrl = getR2PublicUrl(key)
 

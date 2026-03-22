@@ -159,33 +159,19 @@ export default function PhotoUploader({
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 20 } : f))
 
         // ── Step 2: PUT file directly to R2 (browser → R2, no Vercel limit) ──
-        // CORS is configured on R2 bucket to allow fotonizer.com
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest()
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const pct = 20 + Math.round((e.loaded / e.total) * 70)
-              setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: pct } : f))
-            }
-          }
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) resolve()
-            else {
-              console.error('[R2 Upload] PUT failed:', xhr.status, xhr.responseText?.slice(0, 200))
-              reject(new Error(`R2 Upload fehlgeschlagen (${xhr.status})`))
-            }
-          }
-          xhr.onerror = (e) => {
-            console.error('[R2 Upload] Network error:', e, 'URL host:', new URL(presignedUrl).hostname)
-            reject(new Error('Netzwerkfehler beim Upload zu R2'))
-          }
-          xhr.ontimeout = () => reject(new Error('Upload-Timeout'))
-          xhr.open('PUT', presignedUrl)
-          // Only set Content-Type — do NOT set any x-amz-* headers
-          // The presigned URL already encodes all auth via query params
-          xhr.setRequestHeader('Content-Type', uploadFile.file.type || 'image/jpeg')
-          xhr.send(uploadFile.file)
+        // Use fetch with exact Content-Type matching the presigned URL signature.
+        // The presigned URL signs Content-Type, so we must send the exact same value.
+        const contentType = uploadFile.file.type || 'image/jpeg'
+        const putRes = await fetch(presignedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': contentType },
+          body: uploadFile.file,
         })
+        if (!putRes.ok) {
+          const errBody = await putRes.text().catch(() => '')
+          console.error('[R2 Upload] PUT failed:', putRes.status, errBody.slice(0, 300))
+          throw new Error(`R2 Upload fehlgeschlagen (${putRes.status})`)
+        }
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 90 } : f))
 
