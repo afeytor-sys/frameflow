@@ -1,17 +1,15 @@
 'use client'
 
 /**
- * PhotoUploader — uploads photos to Cloudflare R2
+ * PhotoUploader — uploads photos DIRECTLY to Cloudflare R2 (full resolution)
  *
  * Upload flow:
- *   1. Browser compresses image to JPEG (max 2400px, 88% quality) using Canvas API
- *      → reduces 20MB RAW files to ~2-4MB, well within Vercel's 4.5MB limit
- *   2. POST /api/photos/upload (FormData: compressed file + galleryId)
- *      → server uploads to R2, returns public URL
+ *   1. POST /api/photos/presign  → server returns a presigned PUT URL (no file data sent to Vercel)
+ *   2. Browser PUTs file directly to R2 presigned URL (bypasses Vercel 4.5MB limit entirely)
  *   3. INSERT photo record into Supabase
  *
- * The Supabase database (photos table) is still used for metadata.
- * R2 credentials never reach the browser — the API route handles them server-side.
+ * Files go: Browser → R2 directly (Vercel never sees the file bytes)
+ * Original full-resolution files are stored in R2.
  */
 
 import { useState, useCallback, useRef, useContext } from 'react'
@@ -42,77 +40,6 @@ interface Props {
   storageUsedBytes?: number
 }
 
-/**
- * Compress an image file using the Canvas API.
- * - Resizes to max 2400px on the longest side (preserves aspect ratio)
- * - Converts to JPEG at 88% quality
- * - Returns a new File object with the compressed data
- *
- * This reduces typical 20-25MB RAW/JPEG files to ~2-4MB,
- * well within Vercel's 4.5MB serverless body limit.
- */
-async function compressImage(file: File, maxDimension = 2400, quality = 0.88): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
-
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-
-      let { width, height } = img
-
-      // Scale down if larger than maxDimension
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width)
-          width = maxDimension
-        } else {
-          width = Math.round((width * maxDimension) / height)
-          height = maxDimension
-        }
-      }
-
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        // Canvas not available — return original file
-        resolve(file)
-        return
-      }
-
-      ctx.drawImage(img, 0, 0, width, height)
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file) // fallback to original
-            return
-          }
-          // Keep original filename but ensure .jpg extension
-          const baseName = file.name.replace(/\.[^.]+$/, '')
-          const compressedFile = new File([blob], `${baseName}.jpg`, {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          })
-          resolve(compressedFile)
-        },
-        'image/jpeg',
-        quality
-      )
-    }
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl)
-      resolve(file) // fallback to original on error
-    }
-
-    img.src = objectUrl
-  })
-}
-
 export default function PhotoUploader({
   galleryId,
   photographerId,
@@ -130,7 +57,6 @@ export default function PhotoUploader({
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadCtx = useContext(UploadContext)
 
-  // ── Duplicate detection state ────────────────────────────────────────────
   const [currentDuplicate, setCurrentDuplicate] = useState<{
     file: File
     existingId: string
@@ -143,48 +69,35 @@ export default function PhotoUploader({
     // ── Storage limit check ──────────────────────────────────────────────────
     const allowed: File[] = []
     const rejected: File[] = []
-
     let runningUsed = storageUsedBytes
     for (const file of imageFiles) {
       if (canUploadFile) {
         const fits = maxStorageBytes == null
           ? true
           : (runningUsed + file.size) <= maxStorageBytes
-        if (fits) {
-          allowed.push(file)
-          runningUsed += file.size
-        } else {
-          rejected.push(file)
-        }
+        if (fits) { allowed.push(file); runningUsed += file.size }
+        else rejected.push(file)
       } else {
         allowed.push(file)
       }
     }
-
     if (rejected.length > 0) {
-      toast.error(
-        `${rejected.length} ${rejected.length === 1 ? 'Datei' : 'Dateien'} übersprungen — Speicherlimit erreicht.`,
-        { duration: 5000 }
-      )
+      toast.error(`${rejected.length} ${rejected.length === 1 ? 'Datei' : 'Dateien'} übersprungen — Speicherlimit erreicht.`, { duration: 5000 })
       if (onStorageLimitReached) onStorageLimitReached()
     }
-
     if (allowed.length === 0) return
 
     // ── Duplicate filename check ─────────────────────────────────────────────
     const supabaseCheck = createClient()
     const filenames = allowed.map(f => f.name)
     const { data: existingPhotos } = await supabaseCheck
-      .from('photos')
-      .select('id, filename, storage_url')
-      .eq('gallery_id', galleryId)
-      .in('filename', filenames)
+      .from('photos').select('id, filename, storage_url')
+      .eq('gallery_id', galleryId).in('filename', filenames)
 
     const existingMap = new Map((existingPhotos || []).map(p => [p.filename, p]))
     const duplicates = allowed.filter(f => existingMap.has(f.name))
     const nonDuplicates = allowed.filter(f => !existingMap.has(f.name))
 
-    // Resolve duplicates one by one via modal
     const resolvedDuplicates: { file: File; replace: boolean }[] = []
     for (const dupFile of duplicates) {
       const existing = existingMap.get(dupFile.name)!
@@ -197,13 +110,8 @@ export default function PhotoUploader({
       resolvedDuplicates.push({ file: dupFile, replace: decision === 'replace' })
     }
 
-    // Files to actually upload: non-duplicates + resolved duplicates
-    const filesToUpload = [
-      ...nonDuplicates,
-      ...resolvedDuplicates.map(r => r.file),
-    ]
+    const filesToUpload = [...nonDuplicates, ...resolvedDuplicates.map(r => r.file)]
     const replaceSet = new Set(resolvedDuplicates.filter(r => r.replace).map(r => r.file.name))
-
     if (filesToUpload.length === 0) return
 
     // ── Build upload queue ───────────────────────────────────────────────────
@@ -218,52 +126,70 @@ export default function PhotoUploader({
     setIsUploading(true)
 
     const jobId = uploadCtx ? uploadCtx.startUpload(galleryId, galleryTitle, allowed.length) : null
-
     const supabase = createClient()
     const uploadedPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[] = []
 
-    // Get current photo count for display_order offset
     const { count } = await supabase
-      .from('photos')
-      .select('*', { count: 'exact', head: true })
-      .eq('gallery_id', galleryId)
-
+      .from('photos').select('*', { count: 'exact', head: true }).eq('gallery_id', galleryId)
     let orderOffset = count || 0
 
     // ── Upload each file ─────────────────────────────────────────────────────
     for (const uploadFile of uploadItems) {
-      setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 5 } : f))
+      setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
 
       try {
-        // ── Step 1: Compress image in browser ────────────────────────────────
-        // Reduces 20-25MB RAW/JPEG → ~2-4MB JPEG (max 2400px, 88% quality)
-        // This keeps files well under Vercel's 4.5MB serverless body limit.
-        const compressed = await compressImage(uploadFile.file)
-
-        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 30 } : f))
-
-        // ── Step 2: Upload compressed file to R2 via server route ────────────
-        const formData = new FormData()
-        formData.append('file', compressed)
-        formData.append('galleryId', galleryId)
-        formData.append('contentType', 'image/jpeg')
-
-        const uploadRes = await fetch('/api/photos/upload', {
+        // ── Step 1: Get presigned PUT URL (tiny JSON request to Vercel) ──────
+        const presignRes = await fetch('/api/photos/presign', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            galleryId,
+            filename: uploadFile.file.name,
+            contentType: uploadFile.file.type || 'image/jpeg',
+            fileSize: uploadFile.file.size,
+          }),
         })
 
-        if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}))
-          throw new Error(errData.error || `Upload fehlgeschlagen (${uploadRes.status})`)
+        if (!presignRes.ok) {
+          const errData = await presignRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Presign fehlgeschlagen (${presignRes.status})`)
         }
 
-        const { url: storageUrl, thumbnailUrl } = await uploadRes.json()
+        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
 
-        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 70 } : f))
+        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 20 } : f))
 
-        // ── Step 3: Insert photo record into Supabase ────────────────────────
-        // If replacing, delete the old photo record first
+        // ── Step 2: PUT file DIRECTLY to R2 (browser → R2, no Vercel) ───────
+        // Uses XMLHttpRequest for real upload progress tracking
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = 20 + Math.round((e.loaded / e.total) * 70)
+              setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: pct } : f))
+            }
+          }
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve()
+            } else {
+              reject(new Error(`R2 Upload fehlgeschlagen (${xhr.status}). Bitte CORS in Cloudflare R2 prüfen.`))
+            }
+          }
+
+          xhr.onerror = () => reject(new Error('Netzwerkfehler beim Upload zu R2'))
+          xhr.ontimeout = () => reject(new Error('Upload-Timeout'))
+
+          xhr.open('PUT', presignedUrl)
+          xhr.setRequestHeader('Content-Type', uploadFile.file.type || 'image/jpeg')
+          xhr.send(uploadFile.file)
+        })
+
+        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 90 } : f))
+
+        // ── Step 3: Delete old photo if replacing ────────────────────────────
         if (replaceSet.has(uploadFile.file.name)) {
           const oldPhoto = existingMap.get(uploadFile.file.name)
           if (oldPhoto) {
@@ -275,14 +201,15 @@ export default function PhotoUploader({
           }
         }
 
+        // ── Step 4: Insert photo record into Supabase ────────────────────────
         const { data: photo, error: dbError } = await supabase
           .from('photos')
           .insert({
             gallery_id: galleryId,
             filename: uploadFile.file.name,
             storage_url: storageUrl,
-            thumbnail_url: thumbnailUrl || storageUrl,
-            file_size: compressed.size,
+            thumbnail_url: storageUrl,
+            file_size: uploadFile.file.size,
             display_order: orderOffset++,
             ...(sectionId ? { section_id: sectionId } : {}),
           })
@@ -302,7 +229,6 @@ export default function PhotoUploader({
     }
 
     setIsUploading(false)
-
     if (uploadedPhotos.length > 0) {
       onUploadComplete(uploadedPhotos)
       toast.success(`${uploadedPhotos.length} ${uploadedPhotos.length === 1 ? 'Foto' : 'Fotos'} hochgeladen`)
@@ -315,7 +241,6 @@ export default function PhotoUploader({
     uploadFiles(imageFiles)
   }, [uploadFiles])
 
-  // Helper to resolve the current duplicate modal
   const resolveDuplicate = (decision: 'keep' | 'replace' | 'cancel') => {
     const resolve = (window as unknown as Record<string, unknown>).__duplicateResolve as ((d: 'keep' | 'replace' | 'cancel') => void) | undefined
     if (resolve) resolve(decision)
@@ -323,23 +248,18 @@ export default function PhotoUploader({
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    addFiles(e.dataTransfer.files)
+    e.preventDefault(); setIsDragging(false); addFiles(e.dataTransfer.files)
   }, [addFiles])
 
   const removeFile = (id: string) => setFiles(prev => prev.filter(f => f.id !== id))
 
   const doneCount = files.filter(f => f.status === 'done').length
   const totalProgress = files.length > 0
-    ? Math.round(files.reduce((sum, f) => sum + f.progress, 0) / files.length)
-    : 0
+    ? Math.round(files.reduce((sum, f) => sum + f.progress, 0) / files.length) : 0
 
-  // Guard against undefined/null maxStorageBytes
   const maxBytes = maxStorageBytes ?? null
   const storagePercent = maxBytes && maxBytes > 0
-    ? Math.min(100, Math.round((storageUsedBytes / maxBytes) * 100))
-    : null
+    ? Math.min(100, Math.round((storageUsedBytes / maxBytes) * 100)) : null
   const storageNearLimit = storagePercent !== null && storagePercent >= 80
   const storageFull = storagePercent !== null && storagePercent >= 100
 
@@ -353,57 +273,32 @@ export default function PhotoUploader({
               <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center mb-4">
                 <AlertCircle className="w-5 h-5 text-amber-500" />
               </div>
-              <h3 className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
-                Datei existiert bereits
-              </h3>
+              <h3 className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>Datei existiert bereits</h3>
               <p className="text-[13px] text-[#7A7670] mb-1">
                 <span className="font-semibold text-[#111110]">{currentDuplicate.file.name}</span> ist bereits in dieser Galerie vorhanden.
               </p>
               <p className="text-[12px] text-[#B0ACA6]">Was möchtest du tun?</p>
             </div>
             <div className="flex flex-col gap-2 px-6 py-4">
-              <button
-                onClick={() => resolveDuplicate('keep')}
-                className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white transition-all"
-                style={{ background: '#111110' }}
-              >
-                Beide behalten
-              </button>
-              <button
-                onClick={() => resolveDuplicate('replace')}
-                className="w-full py-2.5 rounded-xl text-[13px] font-semibold transition-all"
-                style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
-              >
-                Ersetzen (alte löschen)
-              </button>
-              <button
-                onClick={() => resolveDuplicate('cancel')}
-                className="w-full py-2.5 rounded-xl text-[13px] font-medium transition-all"
-                style={{ background: '#F5F4F1', color: '#7A7670' }}
-              >
-                Überspringen
-              </button>
+              <button onClick={() => resolveDuplicate('keep')} className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white" style={{ background: '#111110' }}>Beide behalten</button>
+              <button onClick={() => resolveDuplicate('replace')} className="w-full py-2.5 rounded-xl text-[13px] font-semibold" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Ersetzen (alte löschen)</button>
+              <button onClick={() => resolveDuplicate('cancel')} className="w-full py-2.5 rounded-xl text-[13px] font-medium" style={{ background: '#F5F4F1', color: '#7A7670' }}>Überspringen</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Storage usage bar — only shown when limit is set */}
+      {/* Storage usage bar */}
       {maxBytes != null && maxBytes > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
               Speicher: {formatFileSize(storageUsedBytes)} / {formatFileSize(maxBytes)}
             </span>
-            <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
-              {storagePercent}%
-            </span>
+            <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>{storagePercent}%</span>
           </div>
           <div className="h-1.5 bg-[#E8E8E4] rounded-full overflow-hidden">
-            <div
-              className={cn('h-full rounded-full transition-all duration-300', storageNearLimit ? 'bg-[#E84C1A]' : 'bg-[#C8A882]')}
-              style={{ width: `${storagePercent}%` }}
-            />
+            <div className={cn('h-full rounded-full transition-all duration-300', storageNearLimit ? 'bg-[#E84C1A]' : 'bg-[#C8A882]')} style={{ width: `${storagePercent}%` }} />
           </div>
         </div>
       )}
@@ -415,34 +310,19 @@ export default function PhotoUploader({
         onClick={() => !storageFull && inputRef.current?.click()}
         className={cn(
           'border-2 border-dashed rounded-xl p-8 text-center transition-all',
-          storageFull
-            ? 'border-[#E84C1A]/40 bg-[#E84C1A]/5 cursor-not-allowed opacity-60'
-            : isDragging
-            ? 'border-[#C8A882] bg-[#C8A882]/5 cursor-pointer'
+          storageFull ? 'border-[#E84C1A]/40 bg-[#E84C1A]/5 cursor-not-allowed opacity-60'
+            : isDragging ? 'border-[#C8A882] bg-[#C8A882]/5 cursor-pointer'
             : 'border-[#E8E8E4] dark:border-[#333] hover:border-[#C8A882]/50 cursor-pointer'
         )}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          className="hidden"
-          disabled={storageFull}
-          onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }}
-        />
+        <input ref={inputRef} type="file" multiple accept="image/*" className="hidden" disabled={storageFull}
+          onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }} />
         <Upload className={cn('w-8 h-8 mx-auto mb-3', isDragging ? 'text-[#C8A882]' : storageFull ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')} />
         <p className="text-sm font-medium text-[#1A1A1A] mb-1">
-          {storageFull
-            ? 'Speicherlimit erreicht'
-            : isDragging
-            ? 'Fotos hier ablegen'
-            : 'Fotos hierher ziehen oder klicken'}
+          {storageFull ? 'Speicherlimit erreicht' : isDragging ? 'Fotos hier ablegen' : 'Fotos hierher ziehen oder klicken'}
         </p>
         <p className="text-xs text-[#6B6B6B]">
-          {storageFull
-            ? 'Upgrade erforderlich, um weitere Fotos hochzuladen'
-            : 'JPG, PNG, WEBP · Wird automatisch komprimiert & hochgeladen'}
+          {storageFull ? 'Upgrade erforderlich, um weitere Fotos hochzuladen' : 'JPG, PNG, WEBP · Originalqualität · Upload startet automatisch'}
         </p>
       </div>
 
