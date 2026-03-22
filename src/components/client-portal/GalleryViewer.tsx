@@ -72,11 +72,11 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
 ]
 
 // ── Image URL helpers ────────────────────────────────────────────────
-// getPhotoUrl handles both legacy Supabase URLs (→ Image Transform)
-// and new R2 URLs (→ returned as-is, CDN serves the original).
+// Always use storage_url — thumbnail_url equals storage_url anyway (no
+// separate thumbnail generation). getPhotoUrl applies Cloudflare Image
+// Resizing for photos.fotonizer.com URLs, delivering WebP at the right size.
 function getThumbnailUrl(photo: Photo): string {
-  const base = photo.thumbnail_url || photo.storage_url
-  return getPhotoUrl(base, 400, 75, 'contain')
+  return getPhotoUrl(photo.storage_url, 400, 75, 'cover')
 }
 
 function getLightboxUrl(photo: Photo): string {

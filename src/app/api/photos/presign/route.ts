@@ -57,7 +57,10 @@ export async function POST(request: NextRequest) {
     })
     const publicUrl = getR2PublicUrl(key)
 
-    return NextResponse.json({ presignedUrl, key, publicUrl })
+    return NextResponse.json(
+      { presignedUrl, key, publicUrl },
+      { headers: { 'Cache-Control': 'no-store' } }
+    )
   } catch (err) {
     console.error('[Presign] Error:', err)
     return NextResponse.json(

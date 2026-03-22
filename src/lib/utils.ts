@@ -104,6 +104,9 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+// ── Cloudflare Image Resizing domain ─────────────────────────────────────────
+const CF_DOMAIN = 'https://photos.fotonizer.com'
+
 // ── Supabase Image Transform ─────────────────────────────────────────────────
 // Converts a Supabase storage URL to an optimized render URL.
 // width:   max pixel width (e.g. 400 for thumbnails, 1920 for hero)
@@ -125,14 +128,17 @@ export function getSupabaseImageUrl(
 }
 
 // ── Universal photo URL helper ────────────────────────────────────────────────
-// Handles both legacy Supabase Storage URLs and new Cloudflare R2 URLs.
+// Handles R2 URLs (both r2.dev and custom domain) and legacy Supabase URLs.
 //
-// • Supabase URLs  → run through Supabase Image Transform (resize + quality)
-// • R2 / r2.dev URLs → returned as-is (R2 CDN serves the original file directly)
+// • R2 via photos.fotonizer.com  → Cloudflare Image Resizing (cdn-cgi/image)
+//   delivers WebP/AVIF at the requested size, cached at CF edge.
+// • Legacy r2.dev URL            → converted to custom domain + CF Image Resizing
+// • Supabase URL                 → Supabase Image Transform (resize + quality)
 //
 // Usage:
-//   getPhotoUrl(photo.thumbnail_url, 400, 75, 'cover')   // grid thumbnail
-//   getPhotoUrl(photo.storage_url,  1600, 85, 'contain') // lightbox
+//   getPhotoUrl(photo.storage_url, 400, 75, 'cover')    // grid thumbnail ~25KB
+//   getPhotoUrl(photo.storage_url, 1600, 85, 'contain') // lightbox ~250KB
+//   getPhotoUrl(heroUrl, 1920, 80, 'cover')             // hero image
 export function getPhotoUrl(
   url: string,
   width: number,
@@ -140,10 +146,29 @@ export function getPhotoUrl(
   resize: 'contain' | 'cover' | 'fill' = 'contain'
 ): string {
   if (!url) return url
-  // R2 public CDN URL — serve as-is, no server-side transform available
-  if (url.includes('r2.dev') || url.includes('cloudflarestorage.com')) return url
-  // Legacy Supabase URL — use Image Transform
-  return getSupabaseImageUrl(url, width, quality, resize)
+
+  let path = ''
+
+  // Already using custom domain → extract path
+  if (url.includes('photos.fotonizer.com')) {
+    // Strip any existing cdn-cgi/image transform to avoid double-wrapping
+    const stripped = url.replace(/\/cdn-cgi\/image\/[^/]+/, '')
+    path = new URL(stripped).pathname
+  }
+  // Legacy r2.dev public URL → convert to custom domain
+  else if (url.includes('.r2.dev')) {
+    path = new URL(url).pathname
+  }
+  // Legacy Supabase URL → use Supabase Image Transform
+  else if (url.includes('/storage/v1/object/')) {
+    return getSupabaseImageUrl(url, width, quality, resize)
+  }
+  // Unknown URL — return as-is
+  else {
+    return url
+  }
+
+  return `${CF_DOMAIN}/cdn-cgi/image/width=${width},quality=${quality},format=auto,fit=${resize}${path}`
 }
 
 // Debounce

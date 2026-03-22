@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Images, Download, Heart, Share2 } from 'lucide-react'
+import { getPhotoUrl } from '@/lib/utils'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
 
@@ -146,8 +147,10 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             background: '#1A1A18',
           }}>
             <img
-              src={heroUrl}
+              src={getPhotoUrl(heroUrl, 1920, 80, 'cover')}
               alt=""
+              fetchPriority="high"
+              decoding="async"
               style={{
                 width: '100%',
                 height: '100%',

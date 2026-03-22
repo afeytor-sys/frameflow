@@ -4,7 +4,7 @@ import { Images } from 'lucide-react'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
 import GalleryPasswordGate from './GalleryPasswordGate'
-import { getSupabaseImageUrl } from '@/lib/utils'
+import { getPhotoUrl } from '@/lib/utils'
 
 export default async function PublicGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -69,13 +69,27 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     )
   }
 
-  const { data: photos } = await supabase
+  // Try to fetch photos with is_private column; fall back if column doesn't exist yet
+  let rawPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; is_private?: boolean | null }[] = []
+  const { data: photosWithPrivate, error: photosError } = await supabase
     .from('photos')
     .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private')
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
-  const allPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+  if (photosError) {
+    // Fallback: select without is_private (column may not exist yet)
+    const { data: photosFallback } = await supabase
+      .from('photos')
+      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order')
+      .eq('gallery_id', gallery.id)
+      .order('display_order', { ascending: true })
+    rawPhotos = (photosFallback || []).map(p => ({ ...p, is_private: false }))
+  } else {
+    rawPhotos = (photosWithPrivate || []).map(p => ({ ...p, is_private: p.is_private ?? false }))
+  }
+
+  const allPhotos = rawPhotos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
 
   const galleryPassword = gallery.password ?? null
   const guestPassword = gallery.guest_password ?? null
@@ -127,7 +141,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           {heroUrl && (
             <div style={{ width: '100%', height: 'clamp(480px, 65vw, 720px)', overflow: 'hidden', background: '#1A1A18' }}>
               <img
-                src={getSupabaseImageUrl(heroUrl, 1920, 80, 'cover')}
+                src={getPhotoUrl(heroUrl, 1920, 80, 'cover')}
                 alt=""
                 fetchPriority="high"
                 decoding="async"
