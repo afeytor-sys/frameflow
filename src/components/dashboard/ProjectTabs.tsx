@@ -137,6 +137,14 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const client = project.client as { full_name?: string; email?: string } | null
   const selectedGallery = galleries.find(g => g.id === selectedGalleryId) ?? null
 
+  // Always fetch galleries client-side to bypass any server-side RLS issues
+  useEffect(() => {
+    fetch(`/api/galleries/by-project?projectId=${project.id}`)
+      .then(r => r.json())
+      .then(data => { if (data.galleries) setGalleries(data.galleries) })
+      .catch(() => {})
+  }, [project.id])
+
   // Storage limits
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const planLimits = usePlanLimits()
