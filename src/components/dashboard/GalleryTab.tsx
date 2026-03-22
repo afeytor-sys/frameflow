@@ -706,8 +706,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Passwort (voller Zugriff)</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                    <input type="password" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} placeholder={gallery.password ? '••••••••' : 'Kein Passwort'} className="input-base pl-9" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                    <input type="password" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} placeholder={gallery.password ? '••••••••' : 'Kein Passwort'} className="input-base" style={{ paddingLeft: '2.25rem' }} />
                   </div>
                 </div>
                 <div>
@@ -715,8 +715,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     Gast-Passwort <span className="font-normal opacity-60">(ohne private Fotos)</span>
                   </label>
                   <div className="relative">
-                    <EyeOff className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                    <input type="password" value={settingsGuestPassword} onChange={(e) => setSettingsGuestPassword(e.target.value)} placeholder={gallery.guest_password ? '••••••••' : 'Kein Gast-Passwort'} className="input-base pl-9" />
+                    <EyeOff className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+                    <input type="password" value={settingsGuestPassword} onChange={(e) => setSettingsGuestPassword(e.target.value)} placeholder={gallery.guest_password ? '••••••••' : 'Kein Gast-Passwort'} className="input-base" style={{ paddingLeft: '2.25rem' }} />
                   </div>
                   <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Gäste sehen keine 🔒 privaten Fotos</p>
                 </div>
