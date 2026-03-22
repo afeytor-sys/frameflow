@@ -370,26 +370,35 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
   const createGallery = async () => {
     setCreating(true)
-    const { data, error } = await supabase
-      .from('galleries')
-      .insert({
-        project_id: projectId,
-        title: 'Galerie',
-        status: 'active',
-        watermark: showWatermark,
-        download_enabled: true,
-        view_count: 0,
-        download_count: 0,
-        design_theme: createTheme,
+    try {
+      const res = await fetch('/api/galleries/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          title: 'Galerie',
+          status: 'active',
+          watermark: showWatermark,
+          download_enabled: true,
+          comments_enabled: true,
+          view_count: 0,
+          download_count: 0,
+          design_theme: createTheme,
+          tags_enabled: ['green', 'yellow', 'red'],
+        }),
       })
-      .select().single()
-    if (error) { toast.error('Error creating der Galerie'); setCreating(false); return }
-    setGallery(data)
-    setSelectedTheme(createTheme)
-    setShowCreateModal(false)
-    setShowUploader(true)
-    setCreating(false)
-    toast.success('Galerie erstellt!')
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error || 'Fehler beim Erstellen'); setCreating(false); return }
+      setGallery(json.gallery)
+      setSelectedTheme(createTheme)
+      setShowCreateModal(false)
+      setShowUploader(true)
+      toast.success('Galerie erstellt!')
+    } catch {
+      toast.error('Fehler beim Erstellen')
+    } finally {
+      setCreating(false)
+    }
   }
 
   const togglePhotoPrivate = async (photoId: string) => {
