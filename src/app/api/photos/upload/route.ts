@@ -2,16 +2,19 @@
  * POST /api/photos/upload
  *
  * Receives a file from the browser and uploads it to R2 server-side.
- * This avoids CORS issues with direct browser-to-R2 uploads.
+ * This avoids CORS issues with direct browser-to-R2 presigned URL uploads.
  *
  * Body: multipart/form-data
  *   - file: the image file
  *   - galleryId: string
  *   - filename: string
  *   - contentType: string
- *   - fileSize: number (string)
  *
  * Returns: { publicUrl: string }
+ *
+ * Note: Vercel Hobby plan has a 4.5MB body limit per request.
+ * For larger files, the presigned URL approach is preferred once CORS is
+ * properly configured on the R2 S3 endpoint.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -20,7 +23,6 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
-// Disable Next.js body size limit so large photos can be uploaded
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
