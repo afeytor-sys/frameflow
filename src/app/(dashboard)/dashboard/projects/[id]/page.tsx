@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import Link from 'next/link'
@@ -28,8 +27,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .eq('id', user!.id)
     .single()
 
-  const service = createServiceClient()
-
   const [
     { data: contracts },
     { data: galleries },
@@ -38,7 +35,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     { data: invoices },
   ] = await Promise.all([
     supabase.from('contracts').select('*').eq('project_id', id).order('created_at'),
-    service.from('galleries').select('*, photos(*)').eq('project_id', id).eq('photographer_id', user!.id).order('created_at'),
+    supabase.from('galleries').select('*, photos(*)').eq('project_id', id).order('created_at'),
     supabase.from('timelines').select('*').eq('project_id', id).single(),
     supabase.from('contract_templates').select('id, name, description, content').eq('photographer_id', user!.id).order('created_at'),
     supabase.from('invoices').select('id, invoice_number, amount, currency, status, description, due_date, created_at').eq('project_id', id).order('created_at', { ascending: false }),
