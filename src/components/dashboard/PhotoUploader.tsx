@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * PhotoUploader — uploads photos via Vercel server to Cloudflare R2
+ * PhotoUploader — uploads photos DIRECTLY to Cloudflare R2 via presigned URL
  *
  * Upload flow:
- *   1. POST /api/photos/upload (multipart FormData) → Vercel streams file to R2
- *   2. INSERT photo record into Supabase
+ *   1. POST /api/photos/presign  → server returns a presigned PUT URL
+ *   2. Browser PUTs file directly to R2 (bypasses Vercel 4.5MB limit)
+ *   3. INSERT photo record into Supabase
  *
- * Files go: Browser → Vercel → R2
- * No CORS issues, no presigned URLs needed.
+ * Files go: Browser → R2 directly (no Vercel body limit)
  */
 
 import { useState, useCallback, useRef, useContext } from 'react'
@@ -137,27 +137,50 @@ export default function PhotoUploader({
       setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
 
       try {
-        // ── Step 1: Upload file via Vercel server → R2 ───────────────────────
-        const formData = new FormData()
-        formData.append('file', uploadFile.file)
-        formData.append('galleryId', galleryId)
-        formData.append('contentType', uploadFile.file.type || 'image/jpeg')
-
-        const uploadRes = await fetch('/api/photos/upload', {
+        // ── Step 1: Get presigned PUT URL from server ────────────────────────
+        const presignRes = await fetch('/api/photos/presign', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            galleryId,
+            filename: uploadFile.file.name,
+            contentType: uploadFile.file.type || 'image/jpeg',
+            fileSize: uploadFile.file.size,
+          }),
         })
 
-        if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}))
-          throw new Error(errData.error || `Upload fehlgeschlagen (${uploadRes.status})`)
+        if (!presignRes.ok) {
+          const errData = await presignRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Presign fehlgeschlagen (${presignRes.status})`)
         }
 
-        const { url: storageUrl } = await uploadRes.json()
+        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
+
+        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 20 } : f))
+
+        // ── Step 2: PUT file directly to R2 (browser → R2, no Vercel limit) ──
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = 20 + Math.round((e.loaded / e.total) * 70)
+              setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: pct } : f))
+            }
+          }
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve()
+            else reject(new Error(`R2 Upload fehlgeschlagen (${xhr.status})`))
+          }
+          xhr.onerror = () => reject(new Error('Netzwerkfehler beim Upload zu R2'))
+          xhr.ontimeout = () => reject(new Error('Upload-Timeout'))
+          xhr.open('PUT', presignedUrl)
+          xhr.setRequestHeader('Content-Type', uploadFile.file.type || 'image/jpeg')
+          xhr.send(uploadFile.file)
+        })
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 90 } : f))
 
-        // ── Step 2: Delete old photo if replacing ────────────────────────────
+        // ── Step 3: Delete old photo if replacing ────────────────────────────
         if (replaceSet.has(uploadFile.file.name)) {
           const oldPhoto = existingMap.get(uploadFile.file.name)
           if (oldPhoto) {
