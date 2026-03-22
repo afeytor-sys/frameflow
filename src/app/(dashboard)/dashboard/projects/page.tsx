@@ -627,127 +627,116 @@ export default function ProjectsPage() {
                       border: `1px solid ${isOver ? 'var(--accent)' : 'var(--border-color)'}`,
                       opacity: isDragging ? 0.4 : 1,
                       borderTop: isOver ? `2px solid var(--accent)` : undefined,
-                      display: 'grid',
-                      gridTemplateColumns: '20px 10px 1fr 140px 160px 180px 120px 64px',
-                      alignItems: 'center',
-                      gap: '0 12px',
-                      padding: '10px 16px',
                     }}
                   >
-                    {/* Drag handle */}
-                    <div
-                      className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <GripVertical className="w-4 h-4" />
-                    </div>
-
-                    {/* Status dot */}
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: sc.dot }}
-                    />
-
-                    {/* Title */}
+                    {/* Full-row link — covers the whole card */}
                     <Link
                       href={`/dashboard/projects/${project.id}`}
-                      className="font-bold text-[14px] hover:underline truncate"
-                      style={{ color: 'var(--text-primary)' }}
+                      className="flex items-center gap-3 px-4 py-2.5 w-full"
+                      style={{ display: 'grid', gridTemplateColumns: '20px 10px 1fr 130px 150px 160px 110px 56px', alignItems: 'center', gap: '0 12px' }}
                     >
-                      {project.title}
-                    </Link>
-
-                    {/* Shooting type — fixed col */}
-                    <div className="flex items-center">
-                      {stc ? (
-                        <span
-                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full truncate max-w-full"
-                          style={{ background: stc.bg, color: stc.color }}
-                        >
-                          <Camera className="w-2.5 h-2.5 flex-shrink-0" />
-                          {stc.label}
-                        </span>
-                      ) : <span />}
-                    </div>
-
-                    {/* Status — fixed col, inline dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={e => openStatusDropdown(e, project.id)}
-                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80 w-full justify-start"
-                        style={{ background: sc.bg, color: sc.color, border: 'none', cursor: 'pointer' }}
+                      {/* Drag handle */}
+                      <div
+                        className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+                        style={{ color: 'var(--text-muted)' }}
+                        onClick={e => e.preventDefault()}
                       >
-                        {sc.label}
-                        <ChevronDown className="w-2.5 h-2.5 opacity-70 ml-auto" />
-                      </button>
-                      {openStatusMenu === project.id && (
-                        <div
-                          className="absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
-                          style={{
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--border-color)',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                          }}
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      {/* Status dot */}
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: sc.dot }} />
+
+                      {/* Title — first prominent column */}
+                      <span className="font-bold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>
+                        {project.title}
+                      </span>
+
+                      {/* Shooting type */}
+                      <div className="flex items-center" onClick={e => e.preventDefault()}>
+                        {stc ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full truncate max-w-full"
+                            style={{ background: stc.bg, color: stc.color }}
+                          >
+                            <Camera className="w-2.5 h-2.5 flex-shrink-0" />
+                            {stc.label}
+                          </span>
+                        ) : <span />}
+                      </div>
+
+                      {/* Status dropdown */}
+                      <div className="relative" onClick={e => e.preventDefault()}>
+                        <button
+                          onClick={e => openStatusDropdown(e, project.id)}
+                          className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-opacity hover:opacity-80 w-full justify-start"
+                          style={{ background: sc.bg, color: sc.color, border: 'none', cursor: 'pointer' }}
                         >
-                          <div className="py-1">
-                            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                              const isActive = project.status === key
-                              return (
-                                <button
-                                  key={key}
-                                  onClick={e => updateStatus(e, project.id, key)}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
-                                  style={{
-                                    color: isActive ? cfg.color : 'var(--text-primary)',
-                                    background: isActive ? cfg.bg : 'transparent',
-                                  }}
-                                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-                                >
-                                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
-                                  {cfg.label}
-                                  {isActive && <span className="ml-auto text-[10px]">✓</span>}
-                                </button>
-                              )
-                            })}
+                          {sc.label}
+                          <ChevronDown className="w-2.5 h-2.5 opacity-70 ml-auto" />
+                        </button>
+                        {openStatusMenu === project.id && (
+                          <div
+                            className="absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
+                            style={{
+                              background: 'var(--card-bg)',
+                              border: '1px solid var(--border-color)',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                            }}
+                          >
+                            <div className="py-1">
+                              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+                                const isActive = project.status === key
+                                return (
+                                  <button
+                                    key={key}
+                                    onClick={e => updateStatus(e, project.id, key)}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-bold transition-all text-left"
+                                    style={{
+                                      color: isActive ? cfg.color : 'var(--text-primary)',
+                                      background: isActive ? cfg.bg : 'transparent',
+                                    }}
+                                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                                  >
+                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+                                    {cfg.label}
+                                    {isActive && <span className="ml-auto text-[10px]">✓</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    {/* Client — fixed col */}
-                    <div className="flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-muted)' }}>
-                      <User className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="text-[12px] truncate">{clientName || '—'}</span>
-                    </div>
+                      {/* Client */}
+                      <div className="flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-muted)' }}>
+                        <User className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="text-[12px] truncate">{clientName || '—'}</span>
+                      </div>
 
-                    {/* Date — fixed col */}
-                    <div className="flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-                      <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="text-[12px]">{project.shoot_date ? formatDate(project.shoot_date, 'de') : '—'}</span>
-                    </div>
+                      {/* Date */}
+                      <div className="flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="text-[12px]">{project.shoot_date ? formatDate(project.shoot_date, 'de') : '—'}</span>
+                      </div>
 
-                    {/* Actions — fixed col */}
-                    <div className="flex items-center gap-1 justify-end">
-                      <Link
-                        href={`/dashboard/projects/${project.id}`}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                        title="Open"
-                      >
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Link>
-                      <button
-                        onClick={(e) => deleteProject(e, project.id, project.title)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                        style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
-                        title="Delete"
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.20)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.10)' }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 justify-end" onClick={e => e.preventDefault()}>
+                        <button
+                          onClick={(e) => deleteProject(e, project.id, project.title)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                          style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
+                          title="Delete"
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.20)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.10)' }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-all" style={{ color: 'var(--text-muted)' }} />
+                      </div>
+                    </Link>
                   </div>
                 )
               })}
