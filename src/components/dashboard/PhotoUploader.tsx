@@ -170,11 +170,19 @@ export default function PhotoUploader({
           }
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) resolve()
-            else reject(new Error(`R2 Upload fehlgeschlagen (${xhr.status})`))
+            else {
+              console.error('[R2 Upload] PUT failed:', xhr.status, xhr.responseText?.slice(0, 200))
+              reject(new Error(`R2 Upload fehlgeschlagen (${xhr.status})`))
+            }
           }
-          xhr.onerror = () => reject(new Error('Netzwerkfehler beim Upload zu R2'))
+          xhr.onerror = (e) => {
+            console.error('[R2 Upload] Network error:', e, 'URL host:', new URL(presignedUrl).hostname)
+            reject(new Error('Netzwerkfehler beim Upload zu R2'))
+          }
           xhr.ontimeout = () => reject(new Error('Upload-Timeout'))
           xhr.open('PUT', presignedUrl)
+          // Only set Content-Type — do NOT set any x-amz-* headers
+          // The presigned URL already encodes all auth via query params
           xhr.setRequestHeader('Content-Type', uploadFile.file.type || 'image/jpeg')
           xhr.send(uploadFile.file)
         })
