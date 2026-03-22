@@ -252,53 +252,53 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     if (!createForm.title.trim()) { toast.error(t.gallery.toastTitleRequired); return }
     setCreatingGallery(true)
 
-    const { data, error } = await supabase
-      .from('galleries')
-      .insert({
-        project_id: project.id,
-        photographer_id: project.photographer_id,
-        title: createForm.title.trim(),
-        status: 'active',
-        watermark: false,
-        download_enabled: createForm.download_enabled,
-        comments_enabled: createForm.comments_enabled,
+    try {
+      const res = await fetch('/api/galleries/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: project.id,
+          title: createForm.title.trim(),
+          status: 'active',
+          watermark: false,
+          download_enabled: createForm.download_enabled,
+          comments_enabled: createForm.comments_enabled,
+          view_count: 0,
+          download_count: 0,
+          design_theme: createForm.theme,
+          tags_enabled: createForm.tags_enabled ? ['green', 'yellow', 'red'] : [],
+          password: createForm.password || undefined,
+          sets,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error || t.gallery.toastCreateError); setCreatingGallery(false); return }
+
+      const data = json.gallery
+      const newGallery: GalleryItem = {
+        id: data.id,
+        title: data.title,
+        description: data.description ?? null,
+        status: data.status,
+        password: data.password ?? null,
+        watermark: data.watermark,
+        download_enabled: data.download_enabled,
+        comments_enabled: data.comments_enabled ?? true,
+        expires_at: data.expires_at ?? null,
         view_count: 0,
         download_count: 0,
-        design_theme: createForm.theme,
-        tags_enabled: createForm.tags_enabled ? ['green', 'yellow', 'red'] : [],
-        ...(createForm.password ? { password: createForm.password } : {}),
-      })
-      .select()
-      .single()
-
-    if (error) { toast.error(t.gallery.toastCreateError); setCreatingGallery(false); return }
-
-    // Create sets
-    if (sets.length > 0) {
-      await Promise.all(sets.map((title, i) =>
-        supabase.from('gallery_sections').insert({ gallery_id: data.id, title, display_order: i })
-      ))
+        photos: [],
+      }
+      setGalleries(prev => [...prev, newGallery])
+      setSelectedGalleryId(newGallery.id)
+      setShowCreateModal(false)
+      toast.success(t.gallery.toastCreated)
+    } catch (err) {
+      toast.error(t.gallery.toastCreateError)
+    } finally {
+      setCreatingGallery(false)
     }
-
-    const newGallery: GalleryItem = {
-      id: data.id,
-      title: data.title,
-      description: data.description ?? null,
-      status: data.status,
-      password: data.password ?? null,
-      watermark: data.watermark,
-      download_enabled: data.download_enabled,
-      comments_enabled: data.comments_enabled ?? true,
-      expires_at: data.expires_at ?? null,
-      view_count: 0,
-      download_count: 0,
-      photos: [],
-    }
-    setGalleries(prev => [...prev, newGallery])
-    setSelectedGalleryId(newGallery.id)
-    setCreatingGallery(false)
-    setShowCreateModal(false)
-    toast.success(t.gallery.toastCreated)
   }
 
   const startRenaming = (g: GalleryItem) => {

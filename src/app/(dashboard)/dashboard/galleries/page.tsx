@@ -220,49 +220,59 @@ export default function GalleriesPage() {
     if (!form.project_id) { toast.error(t.errorProject); return }
     setCreating(true)
 
-    const { data: gallery, error } = await supabase
-      .from('galleries')
-      .insert({
-        project_id: form.project_id,
-        title: form.title.trim(),
-        status: 'active',
-        watermark: false,
-        download_enabled: form.download_enabled,
-        comments_enabled: form.comments_enabled,
-        view_count: 0,
-        download_count: 0,
-        design_theme: form.theme,
-        tags_enabled: form.tags_enabled ? ['green', 'yellow', 'red'] : [],
-        ...(form.password ? { password: form.password } : {}),
+    try {
+      const res = await fetch('/api/galleries/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: form.project_id,
+          title: form.title.trim(),
+          status: 'active',
+          watermark: false,
+          download_enabled: form.download_enabled,
+          comments_enabled: form.comments_enabled,
+          view_count: 0,
+          download_count: 0,
+          design_theme: form.theme,
+          tags_enabled: form.tags_enabled ? ['green', 'yellow', 'red'] : [],
+          password: form.password || undefined,
+          sets,
+        }),
       })
-      .select('id, title, status, view_count, download_count, project:projects(id, title, client_token, client:clients(full_name))')
-      .single()
 
-    if (error) { toast.error(t.errorCreating); setCreating(false); return }
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error || t.errorCreating); setCreating(false); return }
 
-    if (sets.length > 0) {
-      await Promise.all(sets.map((title, i) =>
-        supabase.from('gallery_sections').insert({ gallery_id: gallery.id, title, display_order: i })
-      ))
+      const gallery = json.gallery
+
+      // Fetch project info for display
+      const { data: projData } = await supabase
+        .from('projects')
+        .select('id, title, client_token, client:clients(full_name)')
+        .eq('id', form.project_id)
+        .single()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const proj = projData as any
+      const newGallery: Gallery = {
+        id: gallery.id,
+        title: gallery.title,
+        status: gallery.status,
+        view_count: gallery.view_count,
+        download_count: gallery.download_count,
+        photo_count: 0,
+        cover_url: null,
+        client_token: proj?.client_token || null,
+        project: proj ? { id: proj.id, title: proj.title, client: proj.client } : null,
+      }
+      setGalleries(prev => [newGallery, ...prev])
+      setShowModal(false)
+      toast.success(t.successCreated)
+    } catch {
+      toast.error(t.errorCreating)
+    } finally {
+      setCreating(false)
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const proj = Array.isArray(gallery.project) ? (gallery.project as any)[0] : (gallery.project as any)
-    const newGallery: Gallery = {
-      id: gallery.id,
-      title: gallery.title,
-      status: gallery.status,
-      view_count: gallery.view_count,
-      download_count: gallery.download_count,
-      photo_count: 0,
-      cover_url: null,
-      client_token: proj?.client_token || null,
-      project: proj ? { id: proj.id, title: proj.title, client: proj.client } : null,
-    }
-    setGalleries(prev => [newGallery, ...prev])
-    setShowModal(false)
-    setCreating(false)
-    toast.success(t.successCreated)
   }
 
   if (loading) {
