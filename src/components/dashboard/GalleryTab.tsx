@@ -463,6 +463,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     toast.success(newStatus === 'active' ? 'Galerie aktiviert' : 'Galerie deaktiviert')
   }
 
+  // ── Progressive loading (dashboard grid) ─────────────────────────────────
+  const DASH_LIMIT = 50
+  const [visibleCount, setVisibleCount] = useState(DASH_LIMIT)
+
   // ── Share Modal state ──────────────────────────────────────────────────────
   const [shareModal, setShareModal] = useState(false)
 
@@ -1002,7 +1006,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                       <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                          {sectionPhotos.map(photo => (
+                          {sectionPhotos.slice(0, visibleCount).map(photo => (
                             <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} />
                           ))}
                         </div>
@@ -1026,12 +1030,32 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {unsectionedPhotos.map(photo => (
+                    {unsectionedPhotos.slice(0, visibleCount).map(photo => (
                       <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} />
                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
+            </div>
+          )}
+
+          {/* ── Load More (dashboard) ── */}
+          {visibleCount < photos.length && (
+            <div className="flex flex-col items-center gap-1.5 pt-2">
+              <button
+                onClick={() => {
+                  setVisibleCount(prev => Math.min(prev + 50, photos.length))
+                  window.scrollBy({ top: 300, behavior: 'smooth' })
+                }}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90 active:scale-95"
+                style={{ background: 'var(--text-primary)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+              >
+                <Plus className="w-4 h-4" />
+                Mehr laden ({photos.length - visibleCount} weitere)
+              </button>
+              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                {Math.min(visibleCount, photos.length)} von {photos.length} Fotos
+              </span>
             </div>
           )}
         </div>
