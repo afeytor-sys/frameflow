@@ -647,6 +647,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               { icon: Download, label: 'Foto-DL', value: gallery.photo_download_count ?? 0, color: '#3B82F6', title: 'Einzelfoto-Downloads' },
               { icon: Download, label: 'Galerie-DL', value: gallery.download_count, color: '#8B5CF6', title: 'Galerie-Downloads (ZIP)' },
               { icon: Heart, label: 'Favoriten', value: photos.filter(p => p.is_favorite).length, color: '#EF4444' },
+              { icon: EyeOff, label: 'Privat', value: photos.filter(p => p.is_private).length, color: '#8B5CF6', title: 'Private Fotos (nur Kunden-PW)' },
               { icon: MessageSquare, label: 'Kommentare', value: commentCount, color: '#F59E0B' },
             ].map(({ icon: Icon, label, value, color, title }) => (
               <div

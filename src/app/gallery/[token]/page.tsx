@@ -86,7 +86,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
       .order('display_order', { ascending: true })
     rawPhotos = (photosFallback || []).map(p => ({ ...p, is_private: false }))
   } else {
-    rawPhotos = (photosWithPrivate || []).map(p => ({ ...p, is_private: p.is_private ?? false }))
+    rawPhotos = (photosWithPrivate || []).map(p => ({ ...p, is_private: p.is_private === null ? undefined : p.is_private }))
   }
 
   const allPhotos = rawPhotos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
@@ -111,7 +111,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // ── Helper: render the hero + gallery layout for a given photo set ──
   // This is a plain function that returns JSX — called server-side only,
   // never passed as a prop across the server/client boundary.
-  function renderGallery(sortedPhotos: typeof allPhotos) {
+  function renderGallery(sortedPhotos: typeof allPhotos, fullAccess = false) {
     // Search cover in ALL photos (not just sortedPhotos) so private cover photos
     // still work as hero image without being exposed in the public photo list
     const coverPhoto = coverPhotoId ? allPhotos.find(p => p.id === coverPhotoId) : null
@@ -186,6 +186,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               theme={theme}
               photoCount={sortedPhotos.length}
               isPublic={true}
+              canMarkPrivate={fullAccess}
             />
           )}
         </div>
@@ -201,8 +202,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
       <GalleryPasswordGate
         password={galleryPassword}
         guestPassword={guestPassword}
-        publicContent={renderGallery(publicPhotos)}
-        allContent={renderGallery(allAccessPhotos)}
+        publicContent={renderGallery(publicPhotos, false)}
+        allContent={renderGallery(allAccessPhotos, true)}
       />
     )
   }
@@ -211,7 +212,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   if (galleryPassword) {
     return (
       <GalleryPasswordGate password={galleryPassword}>
-        {renderGallery(allAccessPhotos)}
+        {renderGallery(allAccessPhotos, true)}
       </GalleryPasswordGate>
     )
   }

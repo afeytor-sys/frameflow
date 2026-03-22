@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Heart, Download, X, ChevronLeft, ChevronRight,
   ZoomIn, Loader2, Play, Pause, Maximize2,
-  LayoutGrid, Columns2, AlignJustify, SlidersHorizontal,
+  LayoutGrid, Columns2, AlignJustify, SlidersHorizontal, EyeOff,
 } from 'lucide-react'
 import { cn, getPhotoUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -21,6 +21,7 @@ interface Photo {
   thumbnail_url: string | null
   filename: string
   is_favorite: boolean
+  is_private?: boolean
   display_order: number
   tag?: PhotoTag
 }
@@ -39,6 +40,8 @@ interface Props {
   photoCount?: number
   /** Public gallery mode: hides favorites, comments, tags */
   isPublic?: boolean
+  /** Kunden-PW access: can mark photos as private (hidden from Gäste) */
+  canMarkPrivate?: boolean
 }
 
 // ── Notify photographer helper ───────────────────────────────────────────────
@@ -125,6 +128,7 @@ export default function GalleryViewer({
   theme,
   photoCount,
   isPublic = false,
+  canMarkPrivate = false,
 }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -349,6 +353,21 @@ export default function GalleryViewer({
     }
   }
 
+  // ── Toggle private ───────────────────────────────────────────────
+  const togglePrivate = async (photoId: string) => {
+    const photo = photos.find((p) => p.id === photoId)
+    if (!photo) return
+    const newVal = !photo.is_private
+    setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_private: newVal } : p))
+    const { error } = await supabase.from('photos').update({ is_private: newVal }).eq('id', photoId)
+    if (error) {
+      setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_private: !newVal } : p))
+      toast.error('Fehler beim Speichern')
+    } else {
+      toast.success(newVal ? 'Foto privat — nur mit Kunden-PW sichtbar' : 'Foto wieder öffentlich')
+    }
+  }
+
   // ── Set tag ──────────────────────────────────────────────────────
   const setTag = async (photoId: string, tag: PhotoTag) => {
     const photo = photos.find((p) => p.id === photoId)
@@ -476,11 +495,31 @@ export default function GalleryViewer({
             <Download style={{ width: 20, height: 20 }} />
           </button>
         )}
+        {/* Mark as private — only for Kunden-PW access */}
+        {canMarkPrivate && (
+          <button
+            onClick={(e) => { e.stopPropagation(); togglePrivate(photo.id) }}
+            title={photo.is_private ? 'Privat (nur Kunden-PW) — klicken zum Aufheben' : 'Als privat markieren (für Gäste verbergen)'}
+            className={cn(
+              'w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg',
+              photo.is_private
+                ? 'bg-violet-600 text-white'
+                : 'bg-black/50 backdrop-blur-sm text-white/60 hover:text-violet-300'
+            )}
+          >
+            <EyeOff style={{ width: 18, height: 18 }} />
+          </button>
+        )}
       </div>
       {/* Indicators */}
       <div className="absolute top-2 left-2 flex items-center gap-1">
         {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />}
         {photo.tag && <span className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg" style={{ background: TAG_CONFIG[photo.tag].bg }} />}
+        {photo.is_private && canMarkPrivate && (
+          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-violet-600/80 drop-shadow-lg">
+            <EyeOff className="w-2.5 h-2.5 text-white" />
+          </span>
+        )}
       </div>
     </div>
   )
