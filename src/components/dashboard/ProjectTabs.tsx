@@ -18,6 +18,7 @@ import UpgradeModal from './UpgradeModal'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import { dashboardT } from '@/lib/dashboardTranslations'
+import { getPhotoUrl } from '@/lib/utils'
 
 type Photo = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number; is_favorite: boolean }
 
@@ -33,6 +34,7 @@ type GalleryItem = {
   expires_at: string | null
   view_count: number
   download_count: number
+  cover_photo_id?: string | null
   photos?: Photo[]
 }
 
@@ -374,7 +376,9 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {galleries.map(g => {
-            const coverPhoto = g.photos?.[0]
+            const coverPhoto = g.cover_photo_id
+              ? (g.photos?.find((p: { id: string }) => p.id === g.cover_photo_id) ?? g.photos?.[0])
+              : g.photos?.[0]
             const photoCount = g.photos?.length ?? 0
             const isActive = g.status === 'active'
 
@@ -390,7 +394,9 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                 >
                   {coverPhoto ? (
                     <img
-                      src={coverPhoto.thumbnail_url || coverPhoto.storage_url}
+                      src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 480, 75, 'cover')}
+                      loading="lazy"
+                      decoding="async"
                       alt={g.title}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />

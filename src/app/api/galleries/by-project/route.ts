@@ -27,9 +27,11 @@ export async function GET(request: NextRequest) {
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 403 })
 
   const service = createServiceClient()
-  const { data: galleries, error } = await service
+
+  // Fetch galleries (no embedded photos — we fetch them separately to avoid RLS join issues)
+  const { data: galleriesRaw, error } = await service
     .from('galleries')
-    .select('*, photos(*)')
+    .select('*')
     .eq('project_id', projectId)
     .eq('photographer_id', user.id)
     .order('created_at')
@@ -39,5 +41,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ galleries: galleries || [] })
+  if (!galleriesRaw || galleriesRaw.length === 0) {
+    return NextResponse.json({ galleries: [] })
+  }
+
+  // Fetch photos for all galleries in one query, ordered by display_order
+  const galleryIds = galleriesRaw.map(g => g.id)
+  const { data: allPhotos } = await service
+    .from('photos')
+    .select('id, gallery_id, storage_url, thumbnail_url, filename, display_order, is_favorite, is_private, file_size, section_id')
+    .in('gallery_id', galleryIds)
+    .order('display_order', { ascending: true })
+
+  // Group photos by gallery_id
+  const photosByGallery: Record<string, typeof allPhotos> = {}
+  for (const photo of allPhotos || []) {
+    if (!photosByGallery[photo.gallery_id]) photosByGallery[photo.gallery_id] = []
+    photosByGallery[photo.gallery_id]!.push(photo)
+  }
+
+  const galleries = galleriesRaw.map(g => ({
+    ...g,
+    photos: photosByGallery[g.id] || [],
+  }))
+
+  return NextResponse.json({ galleries })
 }
