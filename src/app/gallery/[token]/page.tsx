@@ -38,7 +38,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
-  let gallery = null
+  type GalleryRow = NonNullable<typeof allGalleries>[number]
+  let gallery: GalleryRow | null = null
   if (allGalleries && allGalleries.length > 0) {
     const sorted = [
       ...allGalleries.filter(g => g.status === 'active'),
@@ -157,12 +158,12 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
             </div>
           ) : (
             <GalleryViewer
-              galleryId={gallery.id}
-              projectId={project.id}
-              galleryTitle={gallery.title || project.title || 'Galerie'}
+              galleryId={gallery!.id}
+              projectId={project!.id}
+              galleryTitle={gallery!.title || project!.title || 'Galerie'}
               clientName={client?.full_name || ''}
               initialPhotos={sortedPhotos}
-              downloadEnabled={gallery.download_enabled}
+              downloadEnabled={gallery!.download_enabled}
               commentsEnabled={false}
               showWatermark={false}
               token={token}
