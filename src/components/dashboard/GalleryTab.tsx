@@ -219,7 +219,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [settingsDownload, setSettingsDownload] = useState(gallery?.download_enabled ?? true)
   const [settingsComments, setSettingsComments] = useState(gallery?.comments_enabled ?? true)
   const [settingsPassword, setSettingsPassword] = useState('')
+  const [showClientPassword, setShowClientPassword] = useState(false)
   const [settingsGuestPassword, setSettingsGuestPassword] = useState('')
+  const [showGuestPassword, setShowGuestPassword] = useState(false)
   const [settingsExpiry, setSettingsExpiry] = useState(gallery?.expires_at?.split('T')[0] || '')
   const [selectedTheme, setSelectedTheme] = useState(gallery?.design_theme || 'classic-white')
   // Tags enabled: default all enabled if not set
@@ -713,7 +715,15 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Passwort (voller Zugriff)</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                    <input type="password" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} placeholder={gallery.password ? '••••••••' : 'Kein Passwort'} className="input-base" style={{ paddingLeft: '2.25rem' }} />
+                    <input type={showClientPassword ? 'text' : 'password'} value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} placeholder={gallery.password ? '••••••••' : 'Kein Passwort'} className="input-base" style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }} />
+                    <button
+                      type="button"
+                      onClick={() => setShowClientPassword(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {showClientPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                 </div>
                 <div>
@@ -722,7 +732,15 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   </label>
                   <div className="relative">
                     <EyeOff className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
-                    <input type="password" value={settingsGuestPassword} onChange={(e) => setSettingsGuestPassword(e.target.value)} placeholder={gallery.guest_password ? '••••••••' : 'Kein Gast-Passwort'} className="input-base" style={{ paddingLeft: '2.25rem' }} />
+                    <input type={showGuestPassword ? 'text' : 'password'} value={settingsGuestPassword} onChange={(e) => setSettingsGuestPassword(e.target.value)} placeholder={gallery.guest_password ? '••••••••' : 'Kein Gast-Passwort'} className="input-base" style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }} />
+                    <button
+                      type="button"
+                      onClick={() => setShowGuestPassword(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {showGuestPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                   <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Gäste sehen keine 🔒 privaten Fotos</p>
                 </div>
