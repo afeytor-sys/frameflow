@@ -54,8 +54,9 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     if (!gallery) gallery = allGalleries[0]
   }
 
+  const emptyTheme = getTheme('classic-white')
+
   if (!gallery) {
-    const emptyTheme = getTheme('classic-white')
     return (
       <div style={{ minHeight: '100vh', background: emptyTheme.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: emptyTheme.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
@@ -75,18 +76,11 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
   const allPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
 
-  const galleryTyped = gallery as {
-    password?: string | null
-    guest_password?: string | null
-    cover_photo_id?: string | null
-    design_theme?: string | null
-  }
+  const galleryPassword = gallery.password ?? null
+  const guestPassword = gallery.guest_password ?? null
+  const coverPhotoId = gallery.cover_photo_id ?? null
 
-  const galleryPassword = galleryTyped.password ?? null
-  const guestPassword = galleryTyped.guest_password ?? null
-  const coverPhotoId = galleryTyped.cover_photo_id ?? null
-
-  const theme = getTheme(galleryTyped.design_theme || 'classic-white')
+  const theme = getTheme(gallery.design_theme || 'classic-white')
 
   const shootDate = (project as { shoot_date?: string | null }).shoot_date
   const formattedDate = shootDate
@@ -95,160 +89,125 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
   const heroTitle = gallery.title || project.title
 
-  // ── Build page content factory (receives filtered photos + access level) ──
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buildPageContent = (sortedPhotos: any[]) => {
-  // Hero image: use cover_photo_id if set, otherwise first photo
-  const coverPhoto = coverPhotoId ? sortedPhotos.find(p => p.id === coverPhotoId) : null
-  const heroUrl = (coverPhoto ?? sortedPhotos[0])?.storage_url ?? null
-
-  return (
-    <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
-      {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
-
-      {/* ── HERO HEADER — no back button ── */}
-      <div style={{ position: 'relative' }}>
-        {/* Studio branding — top left, over the photo */}
-        {photographer && (
-          <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {photographer.logo_url ? (
-              <img src={photographer.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.3)' }} />
-            ) : (
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', border: '1.5px solid rgba(255,255,255,0.2)' }}>
-                {(photographer.studio_name || photographer.full_name)[0]}
-              </div>
-            )}
-            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8125rem', fontWeight: 500, background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.15)' }}>
-              {photographer.studio_name || photographer.full_name}
-            </span>
-          </div>
-        )}
-
-        {/* Hero photo — full width, optimized via Supabase Image Transform */}
-        {heroUrl && (
-          <div style={{
-            width: '100%',
-            height: 'clamp(480px, 65vw, 720px)',
-            overflow: 'hidden',
-            background: '#1A1A18',
-          }}>
-            <img
-              src={getSupabaseImageUrl(heroUrl, 1920, 80, 'cover')}
-              alt=""
-              fetchPriority="high"
-              decoding="async"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center 30%',
-                display: 'block',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Text block — below the photo, themed background */}
-        <div style={{
-          background: theme.bg,
-          padding: '28px clamp(20px, 5vw, 64px) 20px',
-          textAlign: 'center',
-          borderBottom: `1px solid ${theme.border}`,
-        }}>
-          <h1 style={{
-            color: theme.text,
-            fontFamily: theme.fontFamily,
-            fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)',
-            fontWeight: theme.headerStyle === 'bold' ? 700 : 400,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.1,
-            margin: 0,
-          }}>
-            {heroTitle}
-          </h1>
-          {formattedDate && (
-            <p style={{
-              color: theme.textMuted,
-              fontSize: '0.75rem',
-              fontWeight: 400,
-              letterSpacing: '0.06em',
-              marginTop: 6,
-              textTransform: 'uppercase',
-            }}>
-              {formattedDate}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* ── GALLERY CONTENT ── */}
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 16px 64px' }}>
-        {sortedPhotos.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '96px 0' }}>
-            <Images style={{ width: 40, height: 40, color: theme.textMuted, margin: '0 auto 16px', opacity: 0.4 }} />
-            <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
-          </div>
-        ) : (
-          <GalleryViewer
-            galleryId={gallery.id}
-            projectId={project.id}
-            galleryTitle={gallery.title || project.title || 'Galerie'}
-            clientName={client?.full_name || ''}
-            initialPhotos={sortedPhotos}
-            downloadEnabled={gallery.download_enabled}
-            commentsEnabled={false}
-            showWatermark={false}
-            token={token}
-            theme={theme}
-            photoCount={sortedPhotos.length}
-            isPublic={true}
-          />
-        )}
-      </div>
-    </div>
-  )
-  } // end buildPageContent
-
-  // ── Access logic ──────────────────────────────────────────────────────────
-  // No passwords → show all non-private photos (public gallery)
-  // Only Kunden-Password → password gate shows all photos
-  // Only Gast-Password → password gate shows non-private photos
-  // Both passwords → two gates: Kunden sees all, Gast sees non-private
-
+  // Separate public (non-private) vs all photos
   const publicPhotos = allPhotos.filter(p => !p.is_private)
   const allAccessPhotos = allPhotos
 
+  // ── Helper: render the hero + gallery layout for a given photo set ──
+  // This is a plain function that returns JSX — called server-side only,
+  // never passed as a prop across the server/client boundary.
+  function renderGallery(sortedPhotos: typeof allPhotos) {
+    const coverPhoto = coverPhotoId ? sortedPhotos.find(p => p.id === coverPhotoId) : null
+    const heroUrl = (coverPhoto ?? sortedPhotos[0])?.storage_url ?? null
+
+    return (
+      <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
+        {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
+
+        {/* ── HERO HEADER ── */}
+        <div style={{ position: 'relative' }}>
+          {/* Studio branding */}
+          {photographer && (
+            <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {photographer.logo_url ? (
+                <img src={photographer.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.3)' }} />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                  {(photographer.studio_name || photographer.full_name)[0]}
+                </div>
+              )}
+              <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8125rem', fontWeight: 500, background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                {photographer.studio_name || photographer.full_name}
+              </span>
+            </div>
+          )}
+
+          {/* Hero photo */}
+          {heroUrl && (
+            <div style={{ width: '100%', height: 'clamp(480px, 65vw, 720px)', overflow: 'hidden', background: '#1A1A18' }}>
+              <img
+                src={getSupabaseImageUrl(heroUrl, 1920, 80, 'cover')}
+                alt=""
+                fetchPriority="high"
+                decoding="async"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+              />
+            </div>
+          )}
+
+          {/* Title block */}
+          <div style={{ background: theme.bg, padding: '28px clamp(20px, 5vw, 64px) 20px', textAlign: 'center', borderBottom: `1px solid ${theme.border}` }}>
+            <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 400, letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
+              {heroTitle}
+            </h1>
+            {formattedDate && (
+              <p style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.06em', marginTop: 6, textTransform: 'uppercase' }}>
+                {formattedDate}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ── GALLERY CONTENT ── */}
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 16px 64px' }}>
+          {sortedPhotos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '96px 0' }}>
+              <Images style={{ width: 40, height: 40, color: theme.textMuted, margin: '0 auto 16px', opacity: 0.4 }} />
+              <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>Noch keine Fotos in dieser Galerie.</p>
+            </div>
+          ) : (
+            <GalleryViewer
+              galleryId={gallery.id}
+              projectId={project.id}
+              galleryTitle={gallery.title || project.title || 'Galerie'}
+              clientName={client?.full_name || ''}
+              initialPhotos={sortedPhotos}
+              downloadEnabled={gallery.download_enabled}
+              commentsEnabled={false}
+              showWatermark={false}
+              token={token}
+              theme={theme}
+              photoCount={sortedPhotos.length}
+              isPublic={true}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Access logic ──────────────────────────────────────────────────────────
+  // Both passwords → GalleryPasswordGate handles which level was entered.
+  // We pre-render both JSX trees server-side and pass them as ReactNode props.
   if (galleryPassword && guestPassword) {
-    // Two-password mode: GalleryPasswordGate handles which level was entered
     return (
       <GalleryPasswordGate
         password={galleryPassword}
         guestPassword={guestPassword}
-        publicPhotos={publicPhotos}
-        allPhotos={allAccessPhotos}
-        buildContent={buildPageContent}
+        publicContent={renderGallery(publicPhotos)}
+        allContent={renderGallery(allAccessPhotos)}
       />
     )
   }
 
+  // Kunden-only password: full access after entering
   if (galleryPassword) {
-    // Kunden-only password: full access after entering
     return (
       <GalleryPasswordGate password={galleryPassword}>
-        {buildPageContent(allAccessPhotos)}
+        {renderGallery(allAccessPhotos)}
       </GalleryPasswordGate>
     )
   }
 
+  // Guest-only password: non-private photos after entering
   if (guestPassword) {
-    // Guest-only password: non-private photos after entering
     return (
       <GalleryPasswordGate password={guestPassword}>
-        {buildPageContent(publicPhotos)}
+        {renderGallery(publicPhotos)}
       </GalleryPasswordGate>
     )
   }
 
   // No password: show only non-private photos publicly
-  return buildPageContent(publicPhotos)
+  return renderGallery(publicPhotos)
 }

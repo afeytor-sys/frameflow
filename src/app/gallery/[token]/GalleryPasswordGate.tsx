@@ -3,28 +3,22 @@
 import { useState, useEffect } from 'react'
 import { Lock, Eye, EyeOff, Users, User } from 'lucide-react'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Photo = Record<string, any>
-
-// ── Single-password mode (original behaviour) ────────────────────────────────
+// ── Single-password mode ─────────────────────────────────────────────────────
 interface SingleProps {
   password: string
   children: React.ReactNode
-  // two-password props NOT present
   guestPassword?: never
-  publicPhotos?: never
-  allPhotos?: never
-  buildContent?: never
+  publicContent?: never
+  allContent?: never
 }
 
 // ── Two-password mode (Kunden + Gast) ────────────────────────────────────────
+// Both photo sets are pre-rendered server-side as ReactNode and passed as props.
 interface DualProps {
   password: string          // Kunden-Password → full access (all photos)
   guestPassword: string     // Gast-Password   → limited access (no private photos)
-  publicPhotos: Photo[]
-  allPhotos: Photo[]
-  buildContent: (photos: Photo[]) => React.ReactNode
-  // single-password prop NOT present
+  publicContent: React.ReactNode   // pre-rendered JSX for public photos
+  allContent: React.ReactNode      // pre-rendered JSX for all photos
   children?: never
 }
 
@@ -46,10 +40,10 @@ export default function GalleryPasswordGate(props: Props) {
       const kundenKey = `gallery_pw_${btoa(dp.password)}`
       const gastKey   = `gallery_pw_${btoa(dp.guestPassword)}`
       if (sessionStorage.getItem(kundenKey) === '1') {
-        setUnlockedContent(dp.buildContent(dp.allPhotos))
+        setUnlockedContent(dp.allContent)
         setUnlocked(true)
       } else if (sessionStorage.getItem(gastKey) === '1') {
-        setUnlockedContent(dp.buildContent(dp.publicPhotos))
+        setUnlockedContent(dp.publicContent)
         setUnlocked(true)
       }
     } else {
@@ -69,12 +63,12 @@ export default function GalleryPasswordGate(props: Props) {
       const dp = props as DualProps
       if (trimmed === dp.password.trim()) {
         sessionStorage.setItem(`gallery_pw_${btoa(dp.password)}`, '1')
-        setUnlockedContent(dp.buildContent(dp.allPhotos))
+        setUnlockedContent(dp.allContent)
         setUnlocked(true)
         setError(false)
       } else if (trimmed === dp.guestPassword.trim()) {
         sessionStorage.setItem(`gallery_pw_${btoa(dp.guestPassword)}`, '1')
-        setUnlockedContent(dp.buildContent(dp.publicPhotos))
+        setUnlockedContent(dp.publicContent)
         setUnlocked(true)
         setError(false)
       } else {

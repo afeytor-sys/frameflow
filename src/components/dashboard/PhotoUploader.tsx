@@ -172,23 +172,36 @@ export default function PhotoUploader({
       setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
 
       try {
-        // ── Step 1: Upload to R2 via server-side API route ───────────────────
-        const formData = new FormData()
-        formData.append('file', uploadFile.file)
-        formData.append('galleryId', galleryId)
-        formData.append('contentType', uploadFile.file.type || 'image/jpeg')
-
-        const uploadRes = await fetch('/api/photos/upload', {
+        // ── Step 1: Get presigned URL from server (tiny JSON request) ────────
+        const presignRes = await fetch('/api/photos/presign', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            galleryId,
+            filename: uploadFile.file.name,
+            contentType: uploadFile.file.type || 'image/jpeg',
+            fileSize: uploadFile.file.size,
+          }),
         })
 
-        if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}))
-          throw new Error(errData.error || `Upload failed (${uploadRes.status})`)
+        if (!presignRes.ok) {
+          const errData = await presignRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Presign failed (${presignRes.status})`)
         }
 
-        const { url: storageUrl, thumbnailUrl } = await uploadRes.json()
+        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
+        const thumbnailUrl = storageUrl
+
+        // ── Step 2: Upload directly to R2 (bypasses Vercel 4.5 MB limit) ────
+        const putRes = await fetch(presignedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': uploadFile.file.type || 'image/jpeg' },
+          body: uploadFile.file,
+        })
+
+        if (!putRes.ok) {
+          throw new Error(`R2 upload failed (${putRes.status})`)
+        }
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 70 } : f))
 
@@ -318,7 +331,7 @@ export default function PhotoUploader({
         </div>
       )}
 
-      {maxStorageBytes !== null && maxStorageBytes !== undefined && (
+      {maxStorageBytes != null && maxStorageBytes > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
