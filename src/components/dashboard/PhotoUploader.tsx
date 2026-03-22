@@ -159,12 +159,11 @@ export default function PhotoUploader({
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 20 } : f))
 
         // ── Step 2: PUT file directly to R2 (browser → R2, no Vercel limit) ──
-        // Use fetch with exact Content-Type matching the presigned URL signature.
-        // The presigned URL signs Content-Type, so we must send the exact same value.
-        const contentType = uploadFile.file.type || 'image/jpeg'
+        // Do NOT set Content-Type header — this avoids CORS preflight entirely.
+        // PUT with a Blob body and no extra headers is a "simple" CORS request.
+        // R2 will infer the content type from the file data.
         const putRes = await fetch(presignedUrl, {
           method: 'PUT',
-          headers: { 'Content-Type': contentType },
           body: uploadFile.file,
         })
         if (!putRes.ok) {
