@@ -1,15 +1,14 @@
 'use client'
 
 /**
- * PhotoUploader — uploads photos to Cloudflare R2 via /api/photos/upload
+ * PhotoUploader — uploads photos to Cloudflare R2
  *
- * BEFORE (Supabase Storage):
- *   supabase.storage.from('photos').upload(fileName, file)
- *   → stored at vrfsirwrdlrkpaaysnyj.supabase.co/storage/v1/object/public/photos/...
- *
- * AFTER (Cloudflare R2):
- *   POST /api/photos/upload (FormData: file + galleryId)
- *   → stored at photos.fotonizer.com/galleries/<id>/...
+ * Upload flow:
+ *   1. Browser compresses image to JPEG (max 2400px, 88% quality) using Canvas API
+ *      → reduces 20MB RAW files to ~2-4MB, well within Vercel's 4.5MB limit
+ *   2. POST /api/photos/upload (FormData: compressed file + galleryId)
+ *      → server uploads to R2, returns public URL
+ *   3. INSERT photo record into Supabase
  *
  * The Supabase database (photos table) is still used for metadata.
  * R2 credentials never reach the browser — the API route handles them server-side.
@@ -43,6 +42,77 @@ interface Props {
   storageUsedBytes?: number
 }
 
+/**
+ * Compress an image file using the Canvas API.
+ * - Resizes to max 2400px on the longest side (preserves aspect ratio)
+ * - Converts to JPEG at 88% quality
+ * - Returns a new File object with the compressed data
+ *
+ * This reduces typical 20-25MB RAW/JPEG files to ~2-4MB,
+ * well within Vercel's 4.5MB serverless body limit.
+ */
+async function compressImage(file: File, maxDimension = 2400, quality = 0.88): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+
+      let { width, height } = img
+
+      // Scale down if larger than maxDimension
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width)
+          width = maxDimension
+        } else {
+          width = Math.round((width * maxDimension) / height)
+          height = maxDimension
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        // Canvas not available — return original file
+        resolve(file)
+        return
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file) // fallback to original
+            return
+          }
+          // Keep original filename but ensure .jpg extension
+          const baseName = file.name.replace(/\.[^.]+$/, '')
+          const compressedFile = new File([blob], `${baseName}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          })
+          resolve(compressedFile)
+        },
+        'image/jpeg',
+        quality
+      )
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(file) // fallback to original on error
+    }
+
+    img.src = objectUrl
+  })
+}
+
 export default function PhotoUploader({
   galleryId,
   photographerId,
@@ -61,18 +131,11 @@ export default function PhotoUploader({
   const uploadCtx = useContext(UploadContext)
 
   // ── Duplicate detection state ────────────────────────────────────────────
-  const [duplicateQueue, setDuplicateQueue] = useState<{
-    file: File
-    existingId: string
-    existingUrl: string
-  }[]>([])
   const [currentDuplicate, setCurrentDuplicate] = useState<{
     file: File
     existingId: string
     existingUrl: string
   } | null>(null)
-  const pendingAfterDuplicateRef = useRef<File[]>([])
-  const resolvedFilesRef = useRef<{ file: File; replace: boolean | null }[]>([])
 
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
@@ -84,7 +147,7 @@ export default function PhotoUploader({
     let runningUsed = storageUsedBytes
     for (const file of imageFiles) {
       if (canUploadFile) {
-        const fits = maxStorageBytes === null || maxStorageBytes === undefined
+        const fits = maxStorageBytes == null
           ? true
           : (runningUsed + file.size) <= maxStorageBytes
         if (fits) {
@@ -100,7 +163,7 @@ export default function PhotoUploader({
 
     if (rejected.length > 0) {
       toast.error(
-        `${rejected.length} ${rejected.length === 1 ? 'file' : 'files'} skipped — storage limit reached.`,
+        `${rejected.length} ${rejected.length === 1 ? 'Datei' : 'Dateien'} übersprungen — Speicherlimit erreicht.`,
         { duration: 5000 }
       )
       if (onStorageLimitReached) onStorageLimitReached()
@@ -169,47 +232,37 @@ export default function PhotoUploader({
 
     // ── Upload each file ─────────────────────────────────────────────────────
     for (const uploadFile of uploadItems) {
-      setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
+      setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 5 } : f))
 
       try {
-        // ── Step 1: Get presigned PUT URL from server ────────────────────────
-        // The server generates a signed URL; the browser uploads directly to R2.
-        // This bypasses Vercel's 4.5 MB body limit entirely.
-        const presignRes = await fetch('/api/photos/presign', {
+        // ── Step 1: Compress image in browser ────────────────────────────────
+        // Reduces 20-25MB RAW/JPEG → ~2-4MB JPEG (max 2400px, 88% quality)
+        // This keeps files well under Vercel's 4.5MB serverless body limit.
+        const compressed = await compressImage(uploadFile.file)
+
+        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 30 } : f))
+
+        // ── Step 2: Upload compressed file to R2 via server route ────────────
+        const formData = new FormData()
+        formData.append('file', compressed)
+        formData.append('galleryId', galleryId)
+        formData.append('contentType', 'image/jpeg')
+
+        const uploadRes = await fetch('/api/photos/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            galleryId,
-            filename: uploadFile.file.name,
-            contentType: uploadFile.file.type || 'image/jpeg',
-            fileSize: uploadFile.file.size,
-          }),
+          body: formData,
         })
 
-        if (!presignRes.ok) {
-          const errData = await presignRes.json().catch(() => ({}))
-          throw new Error(errData.error || `Presign fehlgeschlagen (${presignRes.status})`)
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Upload fehlgeschlagen (${uploadRes.status})`)
         }
 
-        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
-        const thumbnailUrl = storageUrl
-
-        // ── Step 2: PUT file directly to R2 (no Vercel size limit) ──────────
-        const putRes = await fetch(presignedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': uploadFile.file.type || 'image/jpeg' },
-          body: uploadFile.file,
-        })
-
-        if (!putRes.ok) {
-          throw new Error(`R2 Upload fehlgeschlagen (${putRes.status}). Bitte CORS in Cloudflare R2 konfigurieren.`)
-        }
+        const { url: storageUrl, thumbnailUrl } = await uploadRes.json()
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 70 } : f))
 
-        // ── Step 2: Insert photo record into Supabase ────────────────────────
-        // storage_url  → full resolution via photos.fotonizer.com
-        // thumbnail_url → Cloudflare Image Resizing (600px webp) via cdn-cgi/image/...
+        // ── Step 3: Insert photo record into Supabase ────────────────────────
         // If replacing, delete the old photo record first
         if (replaceSet.has(uploadFile.file.name)) {
           const oldPhoto = existingMap.get(uploadFile.file.name)
@@ -227,9 +280,9 @@ export default function PhotoUploader({
           .insert({
             gallery_id: galleryId,
             filename: uploadFile.file.name,
-            storage_url: storageUrl,                        // full res: photos.fotonizer.com/galleries/...
-            thumbnail_url: thumbnailUrl || storageUrl,      // optimized: cdn-cgi/image/width=600,...
-            file_size: uploadFile.file.size,
+            storage_url: storageUrl,
+            thumbnail_url: thumbnailUrl || storageUrl,
+            file_size: compressed.size,
             display_order: orderOffset++,
             ...(sectionId ? { section_id: sectionId } : {}),
           })
@@ -282,8 +335,10 @@ export default function PhotoUploader({
     ? Math.round(files.reduce((sum, f) => sum + f.progress, 0) / files.length)
     : 0
 
-  const storagePercent = maxStorageBytes
-    ? Math.min(100, Math.round((storageUsedBytes / maxStorageBytes) * 100))
+  // Guard against undefined/null maxStorageBytes
+  const maxBytes = maxStorageBytes ?? null
+  const storagePercent = maxBytes && maxBytes > 0
+    ? Math.min(100, Math.round((storageUsedBytes / maxBytes) * 100))
     : null
   const storageNearLimit = storagePercent !== null && storagePercent >= 80
   const storageFull = storagePercent !== null && storagePercent >= 100
@@ -333,11 +388,12 @@ export default function PhotoUploader({
         </div>
       )}
 
-      {maxStorageBytes != null && maxStorageBytes > 0 && (
+      {/* Storage usage bar — only shown when limit is set */}
+      {maxBytes != null && maxBytes > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
-              Speicher: {formatFileSize(storageUsedBytes)} / {formatFileSize(maxStorageBytes)}
+              Speicher: {formatFileSize(storageUsedBytes)} / {formatFileSize(maxBytes)}
             </span>
             <span className={cn('font-medium', storageNearLimit ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')}>
               {storagePercent}%
@@ -386,7 +442,7 @@ export default function PhotoUploader({
         <p className="text-xs text-[#6B6B6B]">
           {storageFull
             ? 'Upgrade erforderlich, um weitere Fotos hochzuladen'
-            : 'JPG, PNG, WEBP · Upload startet automatisch'}
+            : 'JPG, PNG, WEBP · Wird automatisch komprimiert & hochgeladen'}
         </p>
       </div>
 
