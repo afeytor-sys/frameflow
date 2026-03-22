@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal } from 'lucide-react'
+import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal, Trash2, ImageIcon } from 'lucide-react'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -17,8 +17,10 @@ interface Gallery {
   download_count: number
   photo_count?: number
   cover_url?: string | null
+  cover_photo_id?: string | null
   client_token?: string | null
   password?: string | null
+  guest_password?: string | null
   project?: { id: string; title: string; client?: { full_name: string } | { full_name: string }[] | null } | null
 }
 
@@ -26,7 +28,15 @@ interface ShareModalState {
   galleryId: string
   url: string
   password: string | null
+  guestPassword: string | null
   title: string
+}
+
+interface CoverPickerState {
+  galleryId: string
+  currentCoverId: string | null
+  photos: { id: string; thumbnail_url: string | null; storage_url: string }[]
+  loading: boolean
 }
 
 interface Project {
@@ -38,7 +48,6 @@ interface Project {
 const SET_SUGGESTIONS_DE = ['Getting Ready', 'Trauung', 'Feier', 'Portraits', 'Details', 'Highlights', 'Momente']
 const SET_SUGGESTIONS_EN = ['Getting Ready', 'Ceremony', 'Reception', 'Portraits', 'Details', 'Highlights', 'Moments']
 
-// ─── Translations ─────────────────────────────────────────────────────────────
 const T = {
   en: {
     title: 'Galleries',
@@ -49,7 +58,6 @@ const T = {
     photos: (n: number) => `${n} Photos`,
     noGalleries: 'No galleries yet',
     noGalleriesDesc: 'Create your first gallery right here',
-    // Modal
     modalTitle: 'Create new gallery',
     modalDesc: 'Configure your gallery before uploading',
     galleryName: 'Gallery name *',
@@ -69,22 +77,20 @@ const T = {
     layout: 'Layout / Design',
     cancel: 'Cancel',
     createGallery: 'Create gallery',
-    // Toasts
     errorTitle: 'Please enter a title',
     errorProject: 'Please select a project',
     errorCreating: 'Error creating gallery',
     successCreated: 'Gallery created!',
     errorNoToken: 'No client token found',
-    successLinkCopied: 'Gallery link copied!',
-    errorCopyFailed: 'Copy failed',
     copyLinkTitle: 'Share gallery',
-    shareModalTitle: 'Share gallery',
-    shareLink: 'Link',
-    sharePassword: 'Password',
-    shareNoPassword: 'No password',
-    shareCopyLink: 'Copy link',
-    shareCopied: 'Copied!',
-    shareClose: 'Close',
+    deleteConfirm: 'Delete this gallery and all its photos?',
+    deleteSuccess: 'Gallery deleted',
+    deleteError: 'Error deleting gallery',
+    setCoverTitle: 'Select cover photo',
+    setCoverDesc: 'Click a photo to set it as the gallery cover',
+    setCoverSuccess: 'Cover photo updated!',
+    setCoverError: 'Error updating cover',
+    noPhotos: 'No photos in this gallery yet',
   },
   de: {
     title: 'Galerien',
@@ -95,7 +101,6 @@ const T = {
     photos: (n: number) => `${n} Fotos`,
     noGalleries: 'Noch keine Galerien',
     noGalleriesDesc: 'Erstelle deine erste Galerie direkt hier',
-    // Modal
     modalTitle: 'Neue Galerie erstellen',
     modalDesc: 'Konfiguriere deine Galerie vor dem Upload',
     galleryName: 'Galerie-Name *',
@@ -115,22 +120,20 @@ const T = {
     layout: 'Layout / Design',
     cancel: 'Abbrechen',
     createGallery: 'Galerie erstellen',
-    // Toasts
     errorTitle: 'Bitte einen Titel eingeben',
     errorProject: 'Bitte ein Projekt auswählen',
     errorCreating: 'Fehler beim Erstellen',
     successCreated: 'Galerie erstellt!',
     errorNoToken: 'Kein Client-Token gefunden',
-    successLinkCopied: 'Galerie-Link kopiert!',
-    errorCopyFailed: 'Kopieren fehlgeschlagen',
     copyLinkTitle: 'Galerie teilen',
-    shareModalTitle: 'Galerie teilen',
-    shareLink: 'Link',
-    sharePassword: 'Passwort',
-    shareNoPassword: 'Kein Passwort',
-    shareCopyLink: 'Link kopieren',
-    shareCopied: 'Kopiert!',
-    shareClose: 'Schließen',
+    deleteConfirm: 'Diese Galerie und alle Fotos löschen?',
+    deleteSuccess: 'Galerie gelöscht',
+    deleteError: 'Fehler beim Löschen',
+    setCoverTitle: 'Titelbild auswählen',
+    setCoverDesc: 'Klicke ein Foto an, um es als Titelbild zu setzen',
+    setCoverSuccess: 'Titelbild aktualisiert!',
+    setCoverError: 'Fehler beim Aktualisieren',
+    noPhotos: 'Noch keine Fotos in dieser Galerie',
   },
 }
 
@@ -145,6 +148,7 @@ export default function GalleriesPage() {
   const [showModal, setShowModal] = useState(false)
   const [creating, setCreating] = useState(false)
   const [shareModal, setShareModal] = useState<ShareModalState | null>(null)
+  const [coverPicker, setCoverPicker] = useState<CoverPickerState | null>(null)
 
   const [form, setForm] = useState({
     title: '',
@@ -179,18 +183,42 @@ export default function GalleriesPage() {
 
       const { data } = await supabase
         .from('galleries')
-        .select('id, title, status, view_count, download_count, password, project:projects(id, title, client_token, client:clients(full_name))')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .select('id, title, status, view_count, download_count, password, guest_password, cover_photo_id, project:projects(id, title, client_token, client:clients(full_name))' as any)
         .in('project_id', projectIds)
         .order('created_at', { ascending: false })
 
       if (!data) { setLoading(false); return }
 
-      const enriched = await Promise.all(data.map(async (g) => {
+      const enriched = await Promise.all((data as unknown as Gallery[]).map(async (g) => {
         const { count } = await supabase.from('photos').select('id', { count: 'exact', head: true }).eq('gallery_id', g.id)
-        const { data: firstPhoto } = await supabase.from('photos').select('thumbnail_url, storage_url').eq('gallery_id', g.id).order('display_order', { ascending: true }).limit(1).single()
+
+        // Use cover_photo_id if set, otherwise first photo
+        let coverUrl: string | null = null
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const proj = (g.project as any)
-        return { ...g, photo_count: count || 0, cover_url: firstPhoto?.thumbnail_url || firstPhoto?.storage_url || null, client_token: proj?.client_token || null, password: (g as any).password || null }
+        const coverPhotoId = (g as any).cover_photo_id
+        if (coverPhotoId) {
+          const { data: coverPhoto } = await supabase.from('photos').select('thumbnail_url, storage_url').eq('id', coverPhotoId).single()
+          coverUrl = coverPhoto?.thumbnail_url || coverPhoto?.storage_url || null
+        }
+        if (!coverUrl) {
+          const { data: firstPhoto } = await supabase.from('photos').select('thumbnail_url, storage_url').eq('gallery_id', g.id).order('display_order', { ascending: true }).limit(1).single()
+          coverUrl = firstPhoto?.thumbnail_url || firstPhoto?.storage_url || null
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const proj = (g as any).project
+        return {
+          ...g,
+          photo_count: count || 0,
+          cover_url: coverUrl,
+          cover_photo_id: coverPhotoId || null,
+          client_token: proj?.client_token || null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          password: (g as any).password || null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          guest_password: (g as any).guest_password || null,
+        }
       }))
 
       setGalleries(enriched as unknown as Gallery[])
@@ -214,6 +242,42 @@ export default function GalleriesPage() {
   }
 
   const removeSet = (name: string) => setSets(prev => prev.filter(s => s !== name))
+
+  const handleDelete = async (e: React.MouseEvent, galleryId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm(t.deleteConfirm)) return
+    const { error } = await supabase.from('galleries').delete().eq('id', galleryId)
+    if (error) { toast.error(t.deleteError); return }
+    setGalleries(prev => prev.filter(g => g.id !== galleryId))
+    toast.success(t.deleteSuccess)
+  }
+
+  const openCoverPicker = async (e: React.MouseEvent, gallery: Gallery) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCoverPicker({ galleryId: gallery.id, currentCoverId: gallery.cover_photo_id || null, photos: [], loading: true })
+    const { data } = await supabase
+      .from('photos')
+      .select('id, thumbnail_url, storage_url')
+      .eq('gallery_id', gallery.id)
+      .order('display_order', { ascending: true })
+    setCoverPicker(prev => prev ? { ...prev, photos: (data || []) as { id: string; thumbnail_url: string | null; storage_url: string }[], loading: false } : null)
+  }
+
+  const selectCover = async (photoId: string, photoUrl: string) => {
+    if (!coverPicker) return
+    const { error } = await supabase
+      .from('galleries')
+      .update({ cover_photo_id: photoId })
+      .eq('id', coverPicker.galleryId)
+    if (error) { toast.error(t.setCoverError); return }
+    setGalleries(prev => prev.map(g =>
+      g.id === coverPicker.galleryId ? { ...g, cover_photo_id: photoId, cover_url: photoUrl } : g
+    ))
+    setCoverPicker(null)
+    toast.success(t.setCoverSuccess)
+  }
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error(t.errorTitle); return }
@@ -244,8 +308,6 @@ export default function GalleriesPage() {
       if (!res.ok) { toast.error(json.error || t.errorCreating); setCreating(false); return }
 
       const gallery = json.gallery
-
-      // Fetch project info for display
       const { data: projData } = await supabase
         .from('projects')
         .select('id, title, client_token, client:clients(full_name)')
@@ -262,7 +324,10 @@ export default function GalleriesPage() {
         download_count: gallery.download_count,
         photo_count: 0,
         cover_url: null,
+        cover_photo_id: null,
         client_token: proj?.client_token || null,
+        password: null,
+        guest_password: null,
         project: proj ? { id: proj.id, title: proj.title, client: proj.client } : null,
       }
       setGalleries(prev => [newGallery, ...prev])
@@ -319,7 +384,13 @@ export default function GalleriesPage() {
               e.preventDefault(); e.stopPropagation()
               if (!gallery.client_token) { toast.error(t.errorNoToken); return }
               const url = `${window.location.origin}/gallery/${gallery.client_token}`
-              setShareModal({ galleryId: gallery.id, url, password: gallery.password || null, title: gallery.title })
+              setShareModal({
+                galleryId: gallery.id,
+                url,
+                password: gallery.password || null,
+                guestPassword: gallery.guest_password || null,
+                title: gallery.title,
+              })
             }
 
             return (
@@ -340,6 +411,8 @@ export default function GalleriesPage() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
+
+                    {/* Status badge */}
                     <div className="absolute top-2 left-2">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm"
                         style={{ background: isActive ? 'rgba(16,185,129,0.85)' : 'rgba(107,114,128,0.70)', color: '#fff' }}>
@@ -347,11 +420,20 @@ export default function GalleriesPage() {
                         {isActive ? t.active : t.draft}
                       </span>
                     </div>
+
+                    {/* Share button (top right) */}
                     {gallery.client_token && (
-                      <button onClick={handleShare} className="absolute top-2 right-2 w-8 h-8 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm" style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.30)', color: '#fff' }} title={t.copyLinkTitle}>
+                      <button
+                        onClick={handleShare}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm"
+                        style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.30)', color: '#fff' }}
+                        title={t.copyLinkTitle}
+                      >
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
                     )}
+
+                    {/* Photo count */}
                     {(gallery.photo_count || 0) > 0 && (
                       <div className="absolute bottom-2 right-2">
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm" style={{ background: 'rgba(0,0,0,0.60)', color: 'rgba(255,255,255,0.95)' }}>
@@ -359,7 +441,21 @@ export default function GalleriesPage() {
                         </span>
                       </div>
                     )}
+
+                    {/* Cover picker button (bottom left, hover) */}
+                    {(gallery.photo_count || 0) > 0 && (
+                      <button
+                        onClick={e => openCoverPicker(e, gallery)}
+                        className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm"
+                        style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)' }}
+                        title={t.setCoverTitle}
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                        {locale === 'de' ? 'Titelbild' : 'Cover'}
+                      </button>
+                    )}
                   </div>
+
                   <div className="px-3.5 py-3">
                     <h3 className="font-bold text-[13.5px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>{gallery.title}</h3>
                     {clientName && <p className="text-[12px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{clientName}</p>}
@@ -375,6 +471,18 @@ export default function GalleriesPage() {
                     </div>
                   </div>
                 </Link>
+
+                {/* Delete button (bottom right, outside Link, hover) */}
+                <button
+                  onClick={e => handleDelete(e, gallery.id)}
+                  className="absolute bottom-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+                  style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}
+                  title={locale === 'de' ? 'Galerie löschen' : 'Delete gallery'}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.25)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,59,44,0.12)' }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             )
           })}
@@ -399,8 +507,92 @@ export default function GalleriesPage() {
         galleryTitle={shareModal?.title || ''}
         galleryUrl={shareModal?.url || ''}
         galleryPassword={shareModal?.password || null}
+        galleryGuestPassword={shareModal?.guestPassword || null}
         galleryId={shareModal?.galleryId}
       />
+
+      {/* ── Cover Picker Modal ── */}
+      {coverPicker && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setCoverPicker(null)}
+        >
+          <div className="flex min-h-full items-center justify-center p-4 py-8">
+            <div
+              className="w-full max-w-3xl rounded-2xl overflow-hidden flex flex-col"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '80vh' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <div>
+                  <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+                    <ImageIcon className="w-4 h-4 inline mr-2 opacity-60" />
+                    {t.setCoverTitle}
+                  </h2>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.setCoverDesc}</p>
+                </div>
+                <button
+                  onClick={() => setCoverPicker(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Photo grid */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {coverPicker.loading ? (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                      <div key={i} className="rounded-xl shimmer" style={{ aspectRatio: '1' }} />
+                    ))}
+                  </div>
+                ) : coverPicker.photos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Images className="w-10 h-10 mb-3 opacity-30" style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t.noPhotos}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {coverPicker.photos.map(photo => {
+                      const isSelected = photo.id === coverPicker.currentCoverId
+                      const url = photo.thumbnail_url || photo.storage_url
+                      return (
+                        <button
+                          key={photo.id}
+                          onClick={() => selectCover(photo.id, url)}
+                          className="relative rounded-xl overflow-hidden transition-all duration-200"
+                          style={{
+                            aspectRatio: '1',
+                            border: isSelected ? '2.5px solid var(--accent)' : '2.5px solid transparent',
+                            boxShadow: isSelected ? '0 0 0 3px rgba(196,164,124,0.25)' : 'none',
+                          }}
+                          onMouseEnter={e => { if (!isSelected) e.currentTarget.style.border = '2.5px solid rgba(196,164,124,0.50)' }}
+                          onMouseLeave={e => { if (!isSelected) e.currentTarget.style.border = '2.5px solid transparent' }}
+                        >
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          {isSelected && (
+                            <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.30)' }}>
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                                <Check className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Create Gallery Modal ── */}
       {showModal && (
@@ -409,7 +601,6 @@ export default function GalleriesPage() {
           <div className="flex min-h-full items-center justify-center p-4 py-8">
           <div className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
             onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h2 className="font-black text-[18px]" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>{t.modalTitle}</h2>
@@ -423,34 +614,19 @@ export default function GalleriesPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Basic info */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.galleryName}</label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder={t.galleryNamePlaceholder}
-                    className="input-base w-full"
-                    autoFocus
-                  />
+                  <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={t.galleryNamePlaceholder} className="input-base w-full" autoFocus />
                 </div>
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
                     <Lock className="w-3 h-3 inline mr-1" />{t.password}
                   </label>
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder={t.passwordPlaceholder}
-                    className="input-base w-full"
-                  />
+                  <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder={t.passwordPlaceholder} className="input-base w-full" />
                 </div>
               </div>
 
-              {/* Project */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.project}</label>
                 {projects.length > 0 ? (
@@ -470,13 +646,11 @@ export default function GalleriesPage() {
                 )}
               </div>
 
-              {/* Sets */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
                   <GripHorizontal className="w-3 h-3 inline mr-1" />{t.sets}
                 </label>
                 <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>{t.setsDesc}</p>
-
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {SET_SUGGESTIONS.filter(s => !sets.includes(s)).map(s => (
                     <button key={s} onClick={() => addSet(s)} className="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors"
@@ -487,22 +661,12 @@ export default function GalleriesPage() {
                     </button>
                   ))}
                 </div>
-
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newSetName}
-                    onChange={e => setNewSetName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSet() } }}
-                    placeholder={t.customSetPlaceholder}
-                    className="input-base flex-1"
-                  />
-                  <button onClick={() => addSet()} disabled={!newSetName.trim()} className="px-3 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
-                    style={{ background: 'var(--accent)' }}>
+                  <input type="text" value={newSetName} onChange={e => setNewSetName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSet() } }} placeholder={t.customSetPlaceholder} className="input-base flex-1" />
+                  <button onClick={() => addSet()} disabled={!newSetName.trim()} className="px-3 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40" style={{ background: 'var(--accent)' }}>
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-
                 {sets.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {sets.map((s, i) => (
@@ -519,7 +683,6 @@ export default function GalleriesPage() {
                 )}
               </div>
 
-              {/* Options */}
               <div className="flex items-center gap-5 flex-wrap">
                 {[
                   { label: t.downloadEnabled, key: 'download_enabled' as const, color: 'var(--accent)' },
@@ -536,7 +699,6 @@ export default function GalleriesPage() {
                 ))}
               </div>
 
-              {/* Design / Theme */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>
                   <Sparkles className="w-3 h-3 inline mr-1" />{t.layout}
@@ -566,7 +728,6 @@ export default function GalleriesPage() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
               <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">{t.cancel}</button>
               <button
