@@ -123,6 +123,28 @@ export function getSupabaseImageUrl(
   )
 }
 
+// ── Universal photo URL helper ────────────────────────────────────────────────
+// Handles both legacy Supabase Storage URLs and new Cloudflare R2 URLs.
+//
+// • Supabase URLs  → run through Supabase Image Transform (resize + quality)
+// • R2 / r2.dev URLs → returned as-is (R2 CDN serves the original file directly)
+//
+// Usage:
+//   getPhotoUrl(photo.thumbnail_url, 400, 75, 'cover')   // grid thumbnail
+//   getPhotoUrl(photo.storage_url,  1600, 85, 'contain') // lightbox
+export function getPhotoUrl(
+  url: string,
+  width: number,
+  quality = 75,
+  resize: 'contain' | 'cover' | 'fill' = 'contain'
+): string {
+  if (!url) return url
+  // R2 public CDN URL — serve as-is, no server-side transform available
+  if (url.includes('r2.dev') || url.includes('cloudflarestorage.com')) return url
+  // Legacy Supabase URL — use Image Transform
+  return getSupabaseImageUrl(url, width, quality, resize)
+}
+
 // Debounce
 export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,

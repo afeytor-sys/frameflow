@@ -24,6 +24,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'plus.unsplash.com',
       },
+      {
+        // Cloudflare R2 public bucket CDN (legacy)
+        protocol: 'https',
+        hostname: 'pub-010e77cbae3349479edbba7f4a30e8b6.r2.dev',
+        pathname: '/**',
+      },
+      {
+        // Cloudflare custom domain with Image Resizing
+        protocol: 'https',
+        hostname: 'photos.fotonizer.com',
+        pathname: '/**',
+      },
     ],
   },
 }

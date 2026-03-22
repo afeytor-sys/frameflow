@@ -21,7 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
 import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare } from 'lucide-react'
-import { getSupabaseImageUrl } from '@/lib/utils'
+import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
 import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
@@ -115,7 +115,7 @@ function SortablePhoto({
       )}
     >
       <img
-        src={getSupabaseImageUrl(photo.thumbnail_url || photo.storage_url, 400, 75, 'cover')}
+        src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 400, 75, 'cover')}
         alt={photo.filename}
         className="w-full aspect-square object-cover"
         loading="lazy"
@@ -308,13 +308,16 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const deleteSelected = async () => {
     if (!confirm(`Really delete ${selected.size} ${selected.size === 1 ? 'photo' : 'photos'}?`)) return
     const ids = Array.from(selected)
-    for (const id of ids) {
+    await Promise.all(ids.map(async (id) => {
       const photo = photos.find((p) => p.id === id)
-      if (photo) {
-        try { const url = new URL(photo.storage_url); const path = url.pathname.split('/photos/')[1]; if (path) await supabase.storage.from('photos').remove([path]) } catch {}
-      }
-      await supabase.from('photos').delete().eq('id', id)
-    }
+      try {
+        await fetch(`/api/photos/${id}/delete`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storageUrl: photo?.storage_url || '' }),
+        })
+      } catch {}
+    }))
     setPhotos((prev) => prev.filter((p) => !ids.includes(p.id)))
     setSelected(new Set())
     toast.success(`${ids.length} ${ids.length === 1 ? 'photo' : 'photos'} deleted`)
@@ -323,10 +326,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const deletePhoto = async (id: string) => {
     if (!confirm('Really delete this photo?')) return
     const photo = photos.find((p) => p.id === id)
-    if (photo) {
-      try { const url = new URL(photo.storage_url); const path = url.pathname.split('/photos/')[1]; if (path) await supabase.storage.from('photos').remove([path]) } catch {}
-    }
-    await supabase.from('photos').delete().eq('id', id)
+    try {
+      await fetch(`/api/photos/${id}/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storageUrl: photo?.storage_url || '' }),
+      })
+    } catch {}
     setPhotos((prev) => prev.filter((p) => p.id !== id))
     toast.success('Photo deleted')
   }
@@ -863,7 +869,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               {favoritePhotos.slice(0, 12).map(photo => (
                 <div key={photo.id} className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
                   <img
-                    src={getSupabaseImageUrl(photo.thumbnail_url || photo.storage_url, 120, 70, 'cover')}
+                    src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 120, 70, 'cover')}
                     alt={photo.filename}
                     className="w-full h-full object-cover"
                     loading="lazy"

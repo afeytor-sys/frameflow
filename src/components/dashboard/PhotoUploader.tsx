@@ -1,5 +1,20 @@
 'use client'
 
+/**
+ * PhotoUploader — uploads photos to Cloudflare R2 via /api/photos/upload
+ *
+ * BEFORE (Supabase Storage):
+ *   supabase.storage.from('photos').upload(fileName, file)
+ *   → stored at vrfsirwrdlrkpaaysnyj.supabase.co/storage/v1/object/public/photos/...
+ *
+ * AFTER (Cloudflare R2):
+ *   POST /api/photos/upload (FormData: file + galleryId)
+ *   → stored at pub-010e77cbae3349479edbba7f4a30e8b6.r2.dev/galleries/<id>/...
+ *
+ * The Supabase database (photos table) is still used for metadata.
+ * R2 credentials never reach the browser — the API route handles them server-side.
+ */
+
 import { useState, useCallback, useRef, useContext } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react'
@@ -28,23 +43,6 @@ interface Props {
   storageUsedBytes?: number
 }
 
-// ─── Image URL helpers ────────────────────────────────────────────────────────
-
-/** Grid thumbnail — 600px, fast loading for gallery grid view */
-function toThumbnailUrl(storageUrl: string): string {
-  return storageUrl
-    .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
-    + '?width=600&quality=70&format=webp'
-}
-
-/** Full resolution — 2400px, only loaded when client clicks a photo */
-function toFullResUrl(storageUrl: string): string {
-  return storageUrl
-    .replace('/storage/v1/object/public/', '/storage/v1/render/image/public/')
-    + '?width=2400&quality=85&format=webp'
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function PhotoUploader({
   galleryId,
   photographerId,
@@ -65,6 +63,7 @@ export default function PhotoUploader({
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
 
+    // ── Storage limit check ──────────────────────────────────────────────────
     const allowed: File[] = []
     const rejected: File[] = []
 
@@ -95,6 +94,7 @@ export default function PhotoUploader({
 
     if (allowed.length === 0) return
 
+    // ── Build upload queue ───────────────────────────────────────────────────
     const uploadItems: UploadFile[] = allowed.map((file) => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
@@ -110,6 +110,7 @@ export default function PhotoUploader({
     const supabase = createClient()
     const uploadedPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[] = []
 
+    // Get current photo count for display_order offset
     const { count } = await supabase
       .from('photos')
       .select('*', { count: 'exact', head: true })
@@ -117,37 +118,41 @@ export default function PhotoUploader({
 
     let orderOffset = count || 0
 
+    // ── Upload each file ─────────────────────────────────────────────────────
     for (const uploadFile of uploadItems) {
       setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
 
       try {
-        const ext = uploadFile.file.name.split('.').pop()?.toLowerCase() || 'jpg'
-        const fileName = `galleries/${galleryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        // ── Step 1: Upload to R2 via server-side API route ───────────────────
+        const formData = new FormData()
+        formData.append('file', uploadFile.file)
+        formData.append('galleryId', galleryId)
+        formData.append('contentType', uploadFile.file.type || 'image/jpeg')
 
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(fileName, uploadFile.file, { contentType: uploadFile.file.type, upsert: false })
+        const uploadRes = await fetch('/api/photos/upload', {
+          method: 'POST',
+          body: formData,
+        })
 
-        if (uploadError) throw new Error(`Storage: ${uploadError.message}`)
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Upload failed (${uploadRes.status})`)
+        }
+
+        const { url: storageUrl, thumbnailUrl } = await uploadRes.json()
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 70 } : f))
 
-        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName)
-        const storageUrl = urlData.publicUrl
-
-        // Grid thumbnail — small & fast
-        const thumbnailUrl = toThumbnailUrl(storageUrl)
-
-        // Full res — for lightbox and download
-        const fullResUrl = toFullResUrl(storageUrl)
-
+        // ── Step 2: Insert photo record into Supabase ────────────────────────
+        // storage_url  → full resolution via photos.fotonizer.com
+        // thumbnail_url → Cloudflare Image Resizing (600px webp) via cdn-cgi/image/...
         const { data: photo, error: dbError } = await supabase
           .from('photos')
           .insert({
             gallery_id: galleryId,
             filename: uploadFile.file.name,
-            storage_url: fullResUrl,     // full res for lightbox/download
-            thumbnail_url: thumbnailUrl,  // small & fast for grid
+            storage_url: storageUrl,                        // full res: photos.fotonizer.com/galleries/...
+            thumbnail_url: thumbnailUrl || storageUrl,      // optimized: cdn-cgi/image/width=600,...
             file_size: uploadFile.file.size,
             display_order: orderOffset++,
             ...(sectionId ? { section_id: sectionId } : {}),

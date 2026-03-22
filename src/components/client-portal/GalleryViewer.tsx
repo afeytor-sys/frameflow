@@ -7,7 +7,7 @@ import {
   ZoomIn, Loader2, Play, Pause, Maximize2,
   LayoutGrid, Columns2, AlignJustify, SlidersHorizontal,
 } from 'lucide-react'
-import { cn, getSupabaseImageUrl } from '@/lib/utils'
+import { cn, getPhotoUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import PhotoComments from './PhotoComments'
 import type { GalleryTheme } from '@/lib/galleryThemes'
@@ -71,14 +71,16 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
   { key: 'columns',  icon: Columns2,      label: 'Spalten' },
 ]
 
-// ── Image URL helpers (use centralized Supabase Image Transform) ─────
+// ── Image URL helpers ────────────────────────────────────────────────
+// getPhotoUrl handles both legacy Supabase URLs (→ Image Transform)
+// and new R2 URLs (→ returned as-is, CDN serves the original).
 function getThumbnailUrl(photo: Photo): string {
   const base = photo.thumbnail_url || photo.storage_url
-  return getSupabaseImageUrl(base, 400, 75, 'contain')
+  return getPhotoUrl(base, 400, 75, 'contain')
 }
 
 function getLightboxUrl(photo: Photo): string {
-  return getSupabaseImageUrl(photo.storage_url, 1600, 85, 'contain')
+  return getPhotoUrl(photo.storage_url, 1600, 85, 'contain')
 }
 
 // ── Lazy image component with skeleton + fallback ────────────────────

@@ -2,91 +2,197 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, Zap } from 'lucide-react'
+import { Check, X, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+// ── Feature rows shown on every plan card ────────────────────────────────────
+// Each entry: { label, included: Set of plan keys that have it }
+const ALL_FEATURES: { label: string; plans: ('free' | 'starter' | 'pro' | 'studio')[] }[] = [
+  { label: 'Bis zu 2 aktive Kunden',                plans: ['free'] },
+  { label: 'Bis zu 10 aktive Kunden',               plans: ['starter'] },
+  { label: 'Unbegrenzte Kunden',                    plans: ['pro', 'studio'] },
+  { label: 'Bis zu 2 Projekte & Galerien',          plans: ['free'] },
+  { label: 'Bis zu 10 Projekte & Galerien',         plans: ['starter'] },
+  { label: 'Unbegrenzte Projekte & Galerien',       plans: ['pro', 'studio'] },
+  { label: 'Bis zu 2 Verträge',                     plans: ['free'] },
+  { label: 'Bis zu 10 Verträge',                    plans: ['starter'] },
+  { label: 'Unbegrenzte Verträge',                  plans: ['pro', 'studio'] },
+  { label: '5 GB Speicherplatz',                    plans: ['free'] },
+  { label: '150 GB Speicherplatz',                  plans: ['starter'] },
+  { label: '1 TB Speicherplatz',                    plans: ['pro'] },
+  { label: '3 TB Speicherplatz',                    plans: ['studio'] },
+  { label: 'Kunden-Portal',                         plans: ['starter', 'pro', 'studio'] },
+  { label: 'Vertrags-Vorlagen mit E-Signatur',      plans: ['starter', 'pro', 'studio'] },
+  { label: 'Rechnungen',                            plans: ['starter', 'pro', 'studio'] },
+  { label: '"Fotonizer" Badge ausblenden',          plans: ['starter', 'pro', 'studio'] },
+  { label: 'Analytics-Dashboard',                   plans: ['pro', 'studio'] },
+  { label: 'E-Mail Automationen',                   plans: ['pro', 'studio'] },
+  { label: 'Fragebögen',                            plans: ['pro', 'studio'] },
+  { label: 'Pipeline (CRM)',                        plans: ['pro', 'studio'] },
+  { label: 'Bis zu 3 Fotografen-Accounts',          plans: ['studio'] },
+  { label: 'Priority support',                      plans: ['pro', 'studio'] },
+]
+
+type PlanKey = 'free' | 'starter' | 'pro' | 'studio'
+
+// Features shown per plan card (subset relevant to that plan)
+const PLAN_FEATURE_ROWS: Record<PlanKey, string[]> = {
+  free: [
+    'Bis zu 2 aktive Kunden',
+    'Bis zu 2 Projekte & Galerien',
+    'Bis zu 2 Verträge',
+    '5 GB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    'Analytics-Dashboard',
+    'E-Mail Automationen',
+    'Fragebögen',
+    'Pipeline (CRM)',
+  ],
+  starter: [
+    'Bis zu 10 aktive Kunden',
+    'Bis zu 10 Projekte & Galerien',
+    'Bis zu 10 Verträge',
+    '150 GB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    '"Fotonizer" Badge ausblenden',
+    'Analytics-Dashboard',
+    'E-Mail Automationen',
+    'Fragebögen',
+    'Pipeline (CRM)',
+  ],
+  pro: [
+    'Unbegrenzte Kunden',
+    'Unbegrenzte Projekte & Galerien',
+    'Unbegrenzte Verträge',
+    '1 TB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    '"Fotonizer" Badge ausblenden',
+    'Analytics-Dashboard',
+    'E-Mail Automationen',
+    'Fragebögen',
+    'Pipeline (CRM)',
+    'Priority support',
+  ],
+  studio: [
+    'Unbegrenzte Kunden',
+    'Unbegrenzte Projekte & Galerien',
+    'Unbegrenzte Verträge',
+    '3 TB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    '"Fotonizer" Badge ausblenden',
+    'Analytics-Dashboard',
+    'E-Mail Automationen',
+    'Fragebögen',
+    'Pipeline (CRM)',
+    'Bis zu 3 Fotografen-Accounts',
+    'Priority support',
+  ],
+}
+
+// Which features are INCLUDED (✓) for each plan
+const INCLUDED: Record<PlanKey, Set<string>> = {
+  free: new Set([
+    'Bis zu 2 aktive Kunden',
+    'Bis zu 2 Projekte & Galerien',
+    'Bis zu 2 Verträge',
+    '5 GB Speicherplatz',
+  ]),
+  starter: new Set([
+    'Bis zu 10 aktive Kunden',
+    'Bis zu 10 Projekte & Galerien',
+    'Bis zu 10 Verträge',
+    '150 GB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    '"Fotonizer" Badge ausblenden',
+  ]),
+  pro: new Set([
+    'Unbegrenzte Kunden',
+    'Unbegrenzte Projekte & Galerien',
+    'Unbegrenzte Verträge',
+    '1 TB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    '"Fotonizer" Badge ausblenden',
+    'Analytics-Dashboard',
+    'E-Mail Automationen',
+    'Fragebögen',
+    'Pipeline (CRM)',
+    'Priority support',
+  ]),
+  studio: new Set([
+    'Unbegrenzte Kunden',
+    'Unbegrenzte Projekte & Galerien',
+    'Unbegrenzte Verträge',
+    '3 TB Speicherplatz',
+    'Kunden-Portal',
+    'Vertrags-Vorlagen mit E-Signatur',
+    'Rechnungen',
+    '"Fotonizer" Badge ausblenden',
+    'Analytics-Dashboard',
+    'E-Mail Automationen',
+    'Fragebögen',
+    'Pipeline (CRM)',
+    'Bis zu 3 Fotografen-Accounts',
+    'Priority support',
+  ]),
+}
 
 const PLANS = [
   {
-    key: 'free',
+    key: 'free' as PlanKey,
     name: 'Free',
     monthly: 0,
     annual: 0,
     description: 'Zum Ausprobieren',
-    features: [
-      'Bis zu 2 aktive Kunden',
-      'Bis zu 2 Verträge',
-      'Bis zu 2 Projekte',
-      'Bis zu 2 Galerien',
-      '5 GB Speicherplatz',
-      'Kunden-Portal',
-    ],
+    badge: null,
     cta: 'Kostenlos starten',
     href: '/signup',
     highlight: false,
     comingSoon: false,
   },
   {
-    key: 'starter',
+    key: 'starter' as PlanKey,
     name: 'Starter',
-    monthly: 12,
-    annual: 130,
-    description: 'For growing studios',
-    features: [
-      'Bis zu 10 aktive Kunden',
-      'Bis zu 10 Verträge',
-      'Bis zu 10 Projekte & Galerien',
-      '15 GB Speicherplatz',
-      'Vertrags-Vorlagen mit E-Signatur',
-      'Kunden-Portal',
-      '"Fotonizer" Badge ausblenden',
-    ],
-    cta: 'Choose Starter',
+    monthly: 17,
+    annual: 160,
+    description: 'Für wachsende Studios',
+    badge: null,
+    cta: 'Starter wählen',
     href: '/signup?plan=starter',
     highlight: false,
     comingSoon: false,
   },
   {
-    key: 'pro',
+    key: 'pro' as PlanKey,
     name: 'Pro',
-    monthly: 18,
-    annual: 180,
-    description: 'For professional photographers',
+    monthly: 24,
+    annual: 230,
+    description: 'Für professionelle Fotografen',
     badge: 'Beliebteste Wahl',
-    features: [
-      'Unbegrenzte Kunden',
-      'Unbegrenzte Projekte & Galerien',
-      'Unlimited Verträge mit E-Signatur',
-      'Fragebögen',
-      'Pipeline (CRM)',
-      'Automationen',
-      '1 TB Speicherplatz',
-      'Kunden-Portal',
-      '"Fotonizer" Logo ausblenden',
-      'Analytics-Dashboard',
-      'Priority support',
-    ],
-    cta: 'Choose Pro',
+    cta: 'Pro wählen',
     href: '/signup?plan=pro',
     highlight: true,
     comingSoon: false,
   },
   {
-    key: 'studio',
+    key: 'studio' as PlanKey,
     name: 'Studio',
-    monthly: 35,
-    annual: 380,
-    description: 'For teams & agencies',
-    features: [
-      'Alles in Pro',
-      'Bis zu 3 Fotografen-Accounts',
-      'Unbegrenzter Speicherplatz',
-      'Kunden-Portal',
-      '"Fotonizer" Logo ausblenden',
-      'Analytics-Dashboard',
-      'Automationen',
-      'Priority support',
-    ],
-    cta: 'Choose Studio',
+    monthly: 69,
+    annual: 690,
+    description: 'Für Teams & Agenturen',
+    badge: null,
+    cta: 'Demnächst verfügbar',
     href: '/signup?plan=studio',
     highlight: false,
     comingSoon: true,
@@ -103,7 +209,7 @@ export default function PricingSection() {
         style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
         <Zap className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
         <p className="text-sm font-semibold text-center" style={{ color: '#1A1A1A' }}>
-          🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>2 months 50% off</strong> on all paid plans — automatically!
+          🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>3 months 50% off</strong> on all paid plans — automatically!
         </p>
       </div>
 
@@ -125,12 +231,12 @@ export default function PricingSection() {
             billing === 'annual' ? 'bg-[#1A1A1A] text-white' : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
           )}
         >
-          Annual
+          Jährlich
           <span className={cn(
             'text-xs px-1.5 py-0.5 rounded-full font-medium',
             billing === 'annual' ? 'bg-[#3DBA6F] text-white' : 'bg-[#3DBA6F]/10 text-[#3DBA6F]'
           )}>
-            10% Rabatt
+            spare bis zu 20%
           </span>
         </button>
       </div>
@@ -143,6 +249,8 @@ export default function PricingSection() {
             : plan.monthly
           const annualTotal = plan.annual
           const promoPrice = pricePerMonth > 0 ? Math.round(pricePerMonth * 0.5) : 0
+          const features = PLAN_FEATURE_ROWS[plan.key]
+          const included = INCLUDED[plan.key]
 
           return (
             <div
@@ -189,7 +297,7 @@ export default function PricingSection() {
                       <span className={cn('text-sm line-through', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>€{pricePerMonth}</span>
                     </div>
                     <p className="text-[10px] font-semibold mb-1 text-[#F59E0B]">
-                      🎉 50% off — erste 2 Monate
+                      🎉 50% off — erste 3 Monate
                     </p>
                     <p className={cn('text-[10px]', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
                       danach €{pricePerMonth}/Monat zzgl. MwSt.
@@ -214,15 +322,28 @@ export default function PricingSection() {
                 )}
               </div>
 
+              {/* Feature list with ✓ included and ✗ locked */}
               <ul className="space-y-2 flex-1 mb-6">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <Check className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', plan.highlight ? 'text-[#C8A882]' : 'text-[#3DBA6F]')} />
-                    <span className={cn('text-xs leading-relaxed', plan.highlight ? 'text-white/80' : 'text-[#6B6B6B]')}>
-                      {feature}
-                    </span>
-                  </li>
-                ))}
+                {features.map((feature) => {
+                  const isIncluded = included.has(feature)
+                  return (
+                    <li key={feature} className="flex items-start gap-2">
+                      {isIncluded ? (
+                        <Check className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', plan.highlight ? 'text-[#C8A882]' : 'text-[#3DBA6F]')} />
+                      ) : (
+                        <X className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', plan.highlight ? 'text-white/25' : 'text-[#EF4444]/60')} />
+                      )}
+                      <span className={cn(
+                        'text-xs leading-relaxed',
+                        isIncluded
+                          ? plan.highlight ? 'text-white/80' : 'text-[#6B6B6B]'
+                          : plan.highlight ? 'text-white/30' : 'text-[#9CA3AF]'
+                      )}>
+                        {feature}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
 
               {plan.comingSoon ? (
@@ -230,7 +351,7 @@ export default function PricingSection() {
                   disabled
                   className="block text-center py-2.5 rounded-xl text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
                 >
-                  Coming soon
+                  Demnächst verfügbar
                 </button>
               ) : (
                 <Link

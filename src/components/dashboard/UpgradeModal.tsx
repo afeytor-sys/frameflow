@@ -71,8 +71,8 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
     }
   }
 
-  // Annual = 10% off (monthly × 12 × 0.9)
-  const annualTotal = (monthly: number) => Math.round(monthly * 12 * 0.9)
+  // Annual price comes directly from PLAN_DISPLAY.annualPrice
+  const getAnnualTotal = (plan: PlanKey) => PLAN_DISPLAY[plan].annualPrice
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -138,7 +138,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
           <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
           <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
-            🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>2 months 50% off</strong> — automatisch!
+            🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>3 months 50% off</strong> — automatisch!
           </p>
         </div>
 
@@ -193,7 +193,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
             const isPro = plan === 'pro'
             const isComingSoon = COMING_SOON.includes(plan)
             const monthlyPrice = display.price
-            const annualPrice = annualTotal(monthlyPrice)
+            const annualPrice = getAnnualTotal(plan)
             const displayPrice = billing === 'annual' ? Math.round(annualPrice / 12) : monthlyPrice
             const promoPrice = Math.round(displayPrice * 0.5)
 
@@ -230,7 +230,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                     <span className="text-xs text-[#6B6B6B]">/Monat</span>
                     <span className="text-sm line-through text-[#9CA3AF]">€{displayPrice}</span>
                   </div>
-                  <p className="text-[10px] font-semibold text-[#F59E0B] mt-0.5">🎉 50% off — erste 2 Monate</p>
+                  <p className="text-[10px] font-semibold text-[#F59E0B] mt-0.5">🎉 50% off — erste 3 Monate</p>
                   <p className="text-[10px] text-[#9CA3AF]">danach €{displayPrice}/Monat zzgl. MwSt.</p>
                   {billing === 'annual' && (
                     <p className="text-xs text-[#6B6B6B] mt-0.5">€{annualPrice}/Jahr</p>

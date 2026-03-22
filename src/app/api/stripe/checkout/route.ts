@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           photographer_id: user.id,
           plan,
         },
-        // Apply launch promo coupon automatically (50% off first 2 months)
+        // Apply launch promo coupon automatically (50% off first 3 months)
         ...(process.env.STRIPE_PROMO_COUPON_ID
           ? { coupon: process.env.STRIPE_PROMO_COUPON_ID }
           : {}),
