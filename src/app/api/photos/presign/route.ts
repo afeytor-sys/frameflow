@@ -39,15 +39,21 @@ export async function POST(request: NextRequest) {
     const ext = filename.split('.').pop()?.toLowerCase() || 'jpg'
     const key = `galleries/${galleryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-    // Generate presigned PUT URL (valid for 15 minutes)
+    // Generate presigned PUT URL (valid for 15 minutes).
+    // Do NOT include ContentLength — it causes CORS preflight issues when
+    // the browser sends the PUT directly to R2.
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: key,
       ContentType: contentType,
-      ContentLength: fileSize,
     })
 
-    const presignedUrl = await getSignedUrl(r2, command, { expiresIn: 900 })
+    const presignedUrl = await getSignedUrl(r2, command, {
+      expiresIn: 900,
+      // Unset the checksum algorithm so the presigned URL doesn't require
+      // x-amz-checksum-* headers that R2 may reject
+      unhoistableHeaders: new Set(['x-amz-checksum-crc32']),
+    })
     const publicUrl = getR2PublicUrl(key)
 
     return NextResponse.json({ presignedUrl, key, publicUrl })

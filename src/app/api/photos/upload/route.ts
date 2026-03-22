@@ -68,9 +68,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Allow large file uploads (up to 50 MB)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
+// ── Next.js App Router route segment config ──────────────────────────────────
+// Increase the max request body size for file uploads.
+// Vercel Hobby: 4.5 MB hard limit (cannot be overridden).
+// Vercel Pro/Enterprise: up to 4.5 MB per serverless function invocation.
+// For larger files, use the presigned URL approach (/api/photos/presign).
+export const maxDuration = 60  // seconds
+export const dynamic = 'force-dynamic'
