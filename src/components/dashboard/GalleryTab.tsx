@@ -233,6 +233,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
   const supabase = createClient()
 
+  // Load photos via API (service client, bypasses RLS) when component mounts
+  // This ensures photos are always loaded regardless of RLS policies
+  useEffect(() => {
+    if (!gallery) return
+    fetch(`/api/photos/by-gallery?galleryId=${gallery.id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.photos && Array.isArray(data.photos)) {
+          setPhotos(data.photos)
+        }
+      })
+      .catch(() => {})
+  }, [gallery?.id])
+
   // Load sections + favorite list name + comment count
   useEffect(() => {
     if (!gallery) return

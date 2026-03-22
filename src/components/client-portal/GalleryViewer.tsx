@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import {
   Heart, Download, X, ChevronLeft, ChevronRight,
@@ -84,11 +83,8 @@ function getLightboxUrl(photo: Photo): string {
   return getPhotoUrl(photo.storage_url, 1600, 85, 'contain')
 }
 
-// ── Blur placeholder (1×1 grey JPEG, base64) ────────────────────────
-const BLUR_DATA_URL =
-  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k='
-
-// ── Lazy image component with skeleton + Next.js Image optimisation ──
+// ── Lazy image component with skeleton ──────────────────────────────
+// Uses native <img> to avoid Next.js Image fill/height constraints in masonry
 function LazyImage({
   src, alt, className, onLoad, priority = false,
 }: {
@@ -97,21 +93,18 @@ function LazyImage({
   const [loaded, setLoaded] = useState(false)
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative w-full h-full', className)}>
       {!loaded && (
         <div className="absolute inset-0 bg-white/8 animate-pulse rounded-sm" />
       )}
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={src}
         alt={alt}
-        fill
-        style={{ objectFit: 'cover' }}
-        sizes="(max-width: 768px) 50vw, 25vw"
-        placeholder="blur"
-        blurDataURL={BLUR_DATA_URL}
-        priority={priority}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
         className={cn(
-          'transition-opacity duration-300',
+          'w-full h-full object-cover transition-opacity duration-300',
           loaded ? 'opacity-100' : 'opacity-0'
         )}
         onLoad={() => { setLoaded(true); onLoad?.() }}
@@ -939,9 +932,8 @@ export default function GalleryViewer({
                 const realIndex = Math.max(0, presentIndex - 2) + i
                 return (
                   <button key={p.id} onClick={() => { setPresentLoaded(false); setPresentIndex(realIndex) }} className={cn('flex-shrink-0 rounded overflow-hidden transition-all', realIndex === presentIndex ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70')} style={{ width: 40, height: 28 }}>
-                    <div className="relative w-full h-full">
-                      <Image src={getThumbnailUrl(p)} alt="" fill style={{ objectFit: 'cover' }} sizes="40px" />
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={getThumbnailUrl(p)} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 )
               })}
