@@ -11,6 +11,10 @@ export const r2 = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
+  // Disable checksum — AWS SDK v3 adds x-amz-checksum-crc32 to presigned URLs
+  // which browsers cannot compute, causing the PUT to fail with "Failed to fetch"
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED',
 })
 
 export const R2_BUCKET = process.env.R2_BUCKET_NAME!
