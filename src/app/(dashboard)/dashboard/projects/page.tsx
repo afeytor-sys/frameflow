@@ -633,7 +633,7 @@ export default function ProjectsPage() {
                     <Link
                       href={`/dashboard/projects/${project.id}`}
                       className="flex items-center gap-3 px-4 py-2.5 w-full"
-                      style={{ display: 'grid', gridTemplateColumns: '20px 10px 1fr 130px 150px 160px 110px 56px', alignItems: 'center', gap: '0 12px' }}
+                      style={{ display: 'grid', gridTemplateColumns: '20px 10px 1fr 130px 150px 120px 56px', alignItems: 'center', gap: '0 12px' }}
                     >
                       {/* Drag handle */}
                       <div
@@ -708,12 +708,6 @@ export default function ProjectsPage() {
                             </div>
                           </div>
                         )}
-                      </div>
-
-                      {/* Client */}
-                      <div className="flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-muted)' }}>
-                        <User className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-[12px] truncate">{clientName || '—'}</span>
                       </div>
 
                       {/* Date */}
