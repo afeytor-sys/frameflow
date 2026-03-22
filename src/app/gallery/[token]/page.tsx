@@ -34,7 +34,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -69,16 +69,24 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
   const { data: photos } = await supabase
     .from('photos')
-    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order')
+    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private')
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
-  const sortedPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+  const allPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
 
-  // Hero image
-  const heroUrl = sortedPhotos[0]?.storage_url ?? null
+  const galleryTyped = gallery as {
+    password?: string | null
+    guest_password?: string | null
+    cover_photo_id?: string | null
+    design_theme?: string | null
+  }
 
-  const theme = getTheme((gallery as { design_theme?: string | null }).design_theme || 'classic-white')
+  const galleryPassword = galleryTyped.password ?? null
+  const guestPassword = galleryTyped.guest_password ?? null
+  const coverPhotoId = galleryTyped.cover_photo_id ?? null
+
+  const theme = getTheme(galleryTyped.design_theme || 'classic-white')
 
   const shootDate = (project as { shoot_date?: string | null }).shoot_date
   const formattedDate = shootDate
@@ -87,9 +95,14 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
   const heroTitle = gallery.title || project.title
 
-  const galleryPassword = (gallery as { password?: string | null }).password ?? null
+  // ── Build page content factory (receives filtered photos + access level) ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buildPageContent = (sortedPhotos: any[]) => {
+  // Hero image: use cover_photo_id if set, otherwise first photo
+  const coverPhoto = coverPhotoId ? sortedPhotos.find(p => p.id === coverPhotoId) : null
+  const heroUrl = (coverPhoto ?? sortedPhotos[0])?.storage_url ?? null
 
-  const pageContent = (
+  return (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
 
@@ -194,14 +207,48 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
       </div>
     </div>
   )
+  } // end buildPageContent
+
+  // ── Access logic ──────────────────────────────────────────────────────────
+  // No passwords → show all non-private photos (public gallery)
+  // Only Kunden-Password → password gate shows all photos
+  // Only Gast-Password → password gate shows non-private photos
+  // Both passwords → two gates: Kunden sees all, Gast sees non-private
+
+  const publicPhotos = allPhotos.filter(p => !p.is_private)
+  const allAccessPhotos = allPhotos
+
+  if (galleryPassword && guestPassword) {
+    // Two-password mode: GalleryPasswordGate handles which level was entered
+    return (
+      <GalleryPasswordGate
+        password={galleryPassword}
+        guestPassword={guestPassword}
+        publicPhotos={publicPhotos}
+        allPhotos={allAccessPhotos}
+        buildContent={buildPageContent}
+      />
+    )
+  }
 
   if (galleryPassword) {
+    // Kunden-only password: full access after entering
     return (
       <GalleryPasswordGate password={galleryPassword}>
-        {pageContent}
+        {buildPageContent(allAccessPhotos)}
       </GalleryPasswordGate>
     )
   }
 
-  return pageContent
+  if (guestPassword) {
+    // Guest-only password: non-private photos after entering
+    return (
+      <GalleryPasswordGate password={guestPassword}>
+        {buildPageContent(publicPhotos)}
+      </GalleryPasswordGate>
+    )
+  }
+
+  // No password: show only non-private photos publicly
+  return buildPageContent(publicPhotos)
 }

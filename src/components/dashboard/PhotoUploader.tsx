@@ -60,6 +60,20 @@ export default function PhotoUploader({
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadCtx = useContext(UploadContext)
 
+  // ── Duplicate detection state ────────────────────────────────────────────
+  const [duplicateQueue, setDuplicateQueue] = useState<{
+    file: File
+    existingId: string
+    existingUrl: string
+  }[]>([])
+  const [currentDuplicate, setCurrentDuplicate] = useState<{
+    file: File
+    existingId: string
+    existingUrl: string
+  } | null>(null)
+  const pendingAfterDuplicateRef = useRef<File[]>([])
+  const resolvedFilesRef = useRef<{ file: File; replace: boolean | null }[]>([])
+
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
 
@@ -94,8 +108,43 @@ export default function PhotoUploader({
 
     if (allowed.length === 0) return
 
+    // ── Duplicate filename check ─────────────────────────────────────────────
+    const supabaseCheck = createClient()
+    const filenames = allowed.map(f => f.name)
+    const { data: existingPhotos } = await supabaseCheck
+      .from('photos')
+      .select('id, filename, storage_url')
+      .eq('gallery_id', galleryId)
+      .in('filename', filenames)
+
+    const existingMap = new Map((existingPhotos || []).map(p => [p.filename, p]))
+    const duplicates = allowed.filter(f => existingMap.has(f.name))
+    const nonDuplicates = allowed.filter(f => !existingMap.has(f.name))
+
+    // Resolve duplicates one by one via modal
+    const resolvedDuplicates: { file: File; replace: boolean }[] = []
+    for (const dupFile of duplicates) {
+      const existing = existingMap.get(dupFile.name)!
+      const decision = await new Promise<'keep' | 'replace' | 'cancel'>((resolve) => {
+        setCurrentDuplicate({ file: dupFile, existingId: existing.id, existingUrl: existing.storage_url })
+        ;(window as unknown as Record<string, unknown>).__duplicateResolve = resolve
+      })
+      setCurrentDuplicate(null)
+      if (decision === 'cancel') continue
+      resolvedDuplicates.push({ file: dupFile, replace: decision === 'replace' })
+    }
+
+    // Files to actually upload: non-duplicates + resolved duplicates
+    const filesToUpload = [
+      ...nonDuplicates,
+      ...resolvedDuplicates.map(r => r.file),
+    ]
+    const replaceSet = new Set(resolvedDuplicates.filter(r => r.replace).map(r => r.file.name))
+
+    if (filesToUpload.length === 0) return
+
     // ── Build upload queue ───────────────────────────────────────────────────
-    const uploadItems: UploadFile[] = allowed.map((file) => ({
+    const uploadItems: UploadFile[] = filesToUpload.map((file) => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
       progress: 0,
@@ -146,6 +195,18 @@ export default function PhotoUploader({
         // ── Step 2: Insert photo record into Supabase ────────────────────────
         // storage_url  → full resolution via photos.fotonizer.com
         // thumbnail_url → Cloudflare Image Resizing (600px webp) via cdn-cgi/image/...
+        // If replacing, delete the old photo record first
+        if (replaceSet.has(uploadFile.file.name)) {
+          const oldPhoto = existingMap.get(uploadFile.file.name)
+          if (oldPhoto) {
+            await fetch(`/api/photos/${oldPhoto.id}/delete`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storageUrl: oldPhoto.storage_url }),
+            }).catch(() => {})
+          }
+        }
+
         const { data: photo, error: dbError } = await supabase
           .from('photos')
           .insert({
@@ -186,6 +247,13 @@ export default function PhotoUploader({
     uploadFiles(imageFiles)
   }, [uploadFiles])
 
+  // Helper to resolve the current duplicate modal
+  const resolveDuplicate = (decision: 'keep' | 'replace' | 'cancel') => {
+    const resolve = (window as unknown as Record<string, unknown>).__duplicateResolve as ((d: 'keep' | 'replace' | 'cancel') => void) | undefined
+    if (resolve) resolve(decision)
+    delete (window as unknown as Record<string, unknown>).__duplicateResolve
+  }
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
@@ -207,6 +275,49 @@ export default function PhotoUploader({
 
   return (
     <div className="space-y-4">
+      {/* ── Duplicate file modal ── */}
+      {currentDuplicate && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 pt-6 pb-3">
+              <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+              </div>
+              <h3 className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
+                Datei existiert bereits
+              </h3>
+              <p className="text-[13px] text-[#7A7670] mb-1">
+                <span className="font-semibold text-[#111110]">{currentDuplicate.file.name}</span> ist bereits in dieser Galerie vorhanden.
+              </p>
+              <p className="text-[12px] text-[#B0ACA6]">Was möchtest du tun?</p>
+            </div>
+            <div className="flex flex-col gap-2 px-6 py-4">
+              <button
+                onClick={() => resolveDuplicate('keep')}
+                className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white transition-all"
+                style={{ background: '#111110' }}
+              >
+                Beide behalten
+              </button>
+              <button
+                onClick={() => resolveDuplicate('replace')}
+                className="w-full py-2.5 rounded-xl text-[13px] font-semibold transition-all"
+                style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
+              >
+                Ersetzen (alte löschen)
+              </button>
+              <button
+                onClick={() => resolveDuplicate('cancel')}
+                className="w-full py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                style={{ background: '#F5F4F1', color: '#7A7670' }}
+              >
+                Überspringen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {maxStorageBytes !== null && maxStorageBytes !== undefined && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">

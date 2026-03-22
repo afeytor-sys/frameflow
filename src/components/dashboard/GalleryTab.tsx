@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, Image as ImageIcon } from 'lucide-react'
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
@@ -42,6 +42,7 @@ interface Photo {
   file_size: number
   display_order: number
   is_favorite: boolean
+  is_private?: boolean
   section_id?: string | null
 }
 
@@ -57,6 +58,8 @@ interface Gallery {
   description: string | null
   status: 'draft' | 'active' | 'expired'
   password: string | null
+  guest_password?: string | null
+  cover_photo_id?: string | null
   watermark: boolean
   download_enabled: boolean
   comments_enabled: boolean
@@ -89,13 +92,19 @@ interface Props {
 function SortablePhoto({
   photo,
   selected,
+  isCover,
   onSelect,
   onDelete,
+  onTogglePrivate,
+  onSetCover,
 }: {
   photo: Photo
   selected: boolean
+  isCover: boolean
   onSelect: (id: string, shiftKey?: boolean) => void
   onDelete: (id: string) => void
+  onTogglePrivate: (id: string) => void
+  onSetCover: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.id })
 
@@ -111,13 +120,13 @@ function SortablePhoto({
       style={style}
       className={cn(
         'relative group rounded-lg overflow-hidden border-2 transition-all',
-        selected ? 'border-[#C8A882]' : 'border-transparent'
+        selected ? 'border-[#C8A882]' : isCover ? 'border-[#F59E0B]' : 'border-transparent'
       )}
     >
       <img
         src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 400, 75, 'cover')}
         alt={photo.filename}
-        className="w-full aspect-square object-cover"
+        className={cn('w-full aspect-square object-cover', photo.is_private && 'opacity-60')}
         loading="lazy"
         decoding="async"
       />
@@ -142,17 +151,38 @@ function SortablePhoto({
       >
         <GripVertical className="w-3.5 h-3.5 text-white" />
       </div>
-      {photo.is_favorite && (
-        <div className="absolute bottom-2 left-2">
-          <Heart className="w-3.5 h-3.5 text-white fill-white" />
-        </div>
-      )}
-      <button
-        onClick={() => onDelete(photo.id)}
-        className="absolute bottom-2 right-2 w-6 h-6 bg-[#E84C1A]/80 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-      >
-        <Trash2 className="w-3 h-3 text-white" />
-      </button>
+      {/* Bottom-left indicators */}
+      <div className="absolute bottom-2 left-2 flex items-center gap-1">
+        {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-white fill-white drop-shadow" />}
+        {photo.is_private && <EyeOff className="w-3.5 h-3.5 text-white drop-shadow" />}
+        {isCover && <Star className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B] drop-shadow" />}
+      </div>
+      {/* Bottom-right actions */}
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+        {/* Set as cover */}
+        <button
+          onClick={() => onSetCover(photo.id)}
+          title={isCover ? 'Ist Titelbild' : 'Als Titelbild setzen'}
+          className={cn('w-6 h-6 rounded flex items-center justify-center transition-all', isCover ? 'bg-[#F59E0B]' : 'bg-black/50')}
+        >
+          <Star className={cn('w-3 h-3', isCover ? 'text-white fill-white' : 'text-white')} />
+        </button>
+        {/* Toggle private */}
+        <button
+          onClick={() => onTogglePrivate(photo.id)}
+          title={photo.is_private ? 'Privat (nur Kunden-PW)' : 'Öffentlich machen'}
+          className={cn('w-6 h-6 rounded flex items-center justify-center transition-all', photo.is_private ? 'bg-[#8B5CF6]' : 'bg-black/50')}
+        >
+          {photo.is_private ? <EyeOff className="w-3 h-3 text-white" /> : <Eye className="w-3 h-3 text-white" />}
+        </button>
+        {/* Delete */}
+        <button
+          onClick={() => onDelete(photo.id)}
+          className="w-6 h-6 bg-[#E84C1A]/80 rounded flex items-center justify-center"
+        >
+          <Trash2 className="w-3 h-3 text-white" />
+        </button>
+      </div>
     </div>
   )
 }
@@ -189,6 +219,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [settingsDownload, setSettingsDownload] = useState(gallery?.download_enabled ?? true)
   const [settingsComments, setSettingsComments] = useState(gallery?.comments_enabled ?? true)
   const [settingsPassword, setSettingsPassword] = useState('')
+  const [settingsGuestPassword, setSettingsGuestPassword] = useState('')
   const [settingsExpiry, setSettingsExpiry] = useState(gallery?.expires_at?.split('T')[0] || '')
   const [selectedTheme, setSelectedTheme] = useState(gallery?.design_theme || 'classic-white')
   // Tags enabled: default all enabled if not set
@@ -361,6 +392,23 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     toast.success('Galerie erstellt!')
   }
 
+  const togglePhotoPrivate = async (photoId: string) => {
+    const photo = photos.find(p => p.id === photoId)
+    if (!photo) return
+    const newVal = !photo.is_private
+    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, is_private: newVal } : p))
+    await supabase.from('photos').update({ is_private: newVal }).eq('id', photoId)
+    toast.success(newVal ? 'Foto privat (nur Kunden-PW)' : 'Foto öffentlich')
+  }
+
+  const setCoverPhoto = async (photoId: string) => {
+    if (!gallery) return
+    const newCoverId = gallery.cover_photo_id === photoId ? null : photoId
+    await supabase.from('galleries').update({ cover_photo_id: newCoverId }).eq('id', gallery.id)
+    setGallery(prev => prev ? { ...prev, cover_photo_id: newCoverId } : prev)
+    toast.success(newCoverId ? 'Titelbild gesetzt' : 'Titelbild entfernt')
+  }
+
   const saveSettings = async () => {
     if (!gallery) return
     setSavingSettings(true)
@@ -374,6 +422,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       tags_enabled: enabledTags,
     }
     if (settingsPassword) updates.password = settingsPassword
+    if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
     const { error } = await supabase.from('galleries').update(updates).eq('id', gallery.id)
     if (error) { toast.error('Error saving') } else {
       setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
@@ -632,11 +681,21 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   <input type="text" value={settingsTitle} onChange={(e) => setSettingsTitle(e.target.value)} className="input-base" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Passwort (optional)</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Kunden-Passwort (voller Zugriff)</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                     <input type="password" value={settingsPassword} onChange={(e) => setSettingsPassword(e.target.value)} placeholder={gallery.password ? '••••••••' : 'Kein Passwort'} className="input-base pl-9" />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
+                    Gast-Passwort <span className="font-normal opacity-60">(ohne private Fotos)</span>
+                  </label>
+                  <div className="relative">
+                    <EyeOff className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                    <input type="password" value={settingsGuestPassword} onChange={(e) => setSettingsGuestPassword(e.target.value)} placeholder={gallery.guest_password ? '••••••••' : 'Kein Gast-Passwort'} className="input-base pl-9" />
+                  </div>
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Gäste sehen keine 🔒 privaten Fotos</p>
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Beschreibung</label>
@@ -921,7 +980,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                           {sectionPhotos.map(photo => (
-                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} />
+                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} />
                           ))}
                         </div>
                       </SortableContext>
@@ -945,7 +1004,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                 <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {unsectionedPhotos.map(photo => (
-                      <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} />
+                      <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} />
                     ))}
                   </div>
                 </SortableContext>

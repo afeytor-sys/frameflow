@@ -146,6 +146,9 @@ export default function GalleryViewer({
   const [layout, setLayout] = useState<GalleryLayout>('masonry')
   const [imageSize, setImageSize] = useState(3)
   const [showControls, setShowControls] = useState(false)
+  // Sort order
+  type SortOrder = 'manual' | 'name-asc' | 'name-desc'
+  const [sortOrder, setSortOrder] = useState<SortOrder>('manual')
 
   // Presentation mode
   const [presentMode, setPresentMode] = useState(false)
@@ -202,11 +205,18 @@ export default function GalleryViewer({
     red:    photos.filter((p) => p.tag === 'red').length,
   }
 
-  const filteredPhotos = filterTag === 'favorite'
+  const filteredBase = filterTag === 'favorite'
     ? photos.filter((p) => p.is_favorite)
     : filterTag
     ? photos.filter((p) => p.tag === filterTag)
     : photos
+
+  const filteredPhotos = sortOrder === 'manual'
+    ? filteredBase
+    : [...filteredBase].sort((a, b) => {
+        const cmp = a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: 'base' })
+        return sortOrder === 'name-asc' ? cmp : -cmp
+      })
 
   const currentPhoto = lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null
 
@@ -665,6 +675,29 @@ export default function GalleryViewer({
                 }}
               >
                 <Icon className="w-4 h-4" />
+              </button>
+            ))}
+          </div>
+
+          {/* Sort order */}
+          <div className="flex items-center gap-0.5 rounded-xl p-1" style={{ background: 'rgba(0,0,0,0.04)', border: `1px solid ${tbBorder}` }}>
+            {([
+              { key: 'manual', label: 'Manual' },
+              { key: 'name-asc', label: 'A→Z' },
+              { key: 'name-desc', label: 'Z→A' },
+            ] as { key: SortOrder; label: string }[]).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSortOrder(key)}
+                title={key === 'manual' ? 'Manuelle Reihenfolge' : key === 'name-asc' ? 'Name A→Z' : 'Name Z→A'}
+                className="px-2 h-8 rounded-lg flex items-center justify-center text-[11px] font-semibold transition-all"
+                style={{
+                  background: sortOrder === key ? '#FFFFFF' : 'transparent',
+                  color: sortOrder === key ? '#111110' : tbText,
+                  boxShadow: sortOrder === key ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                }}
+              >
+                {label}
               </button>
             ))}
           </div>

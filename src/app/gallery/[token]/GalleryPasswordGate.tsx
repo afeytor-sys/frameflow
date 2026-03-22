@@ -1,43 +1,104 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Lock, Eye, EyeOff } from 'lucide-react'
+import { Lock, Eye, EyeOff, Users, User } from 'lucide-react'
 
-interface Props {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Photo = Record<string, any>
+
+// ── Single-password mode (original behaviour) ────────────────────────────────
+interface SingleProps {
   password: string
   children: React.ReactNode
+  // two-password props NOT present
+  guestPassword?: never
+  publicPhotos?: never
+  allPhotos?: never
+  buildContent?: never
 }
 
-export default function GalleryPasswordGate({ password, children }: Props) {
+// ── Two-password mode (Kunden + Gast) ────────────────────────────────────────
+interface DualProps {
+  password: string          // Kunden-Password → full access (all photos)
+  guestPassword: string     // Gast-Password   → limited access (no private photos)
+  publicPhotos: Photo[]
+  allPhotos: Photo[]
+  buildContent: (photos: Photo[]) => React.ReactNode
+  // single-password prop NOT present
+  children?: never
+}
+
+type Props = SingleProps | DualProps
+
+export default function GalleryPasswordGate(props: Props) {
+  const isDual = 'guestPassword' in props && !!props.guestPassword
+
   const [unlocked, setUnlocked] = useState(false)
+  const [unlockedContent, setUnlockedContent] = useState<React.ReactNode>(null)
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
   const [showPw, setShowPw] = useState(false)
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    const key = `gallery_pw_${btoa(password)}`
-    if (sessionStorage.getItem(key) === '1') {
-      setUnlocked(true)
+    if (isDual) {
+      const dp = props as DualProps
+      const kundenKey = `gallery_pw_${btoa(dp.password)}`
+      const gastKey   = `gallery_pw_${btoa(dp.guestPassword)}`
+      if (sessionStorage.getItem(kundenKey) === '1') {
+        setUnlockedContent(dp.buildContent(dp.allPhotos))
+        setUnlocked(true)
+      } else if (sessionStorage.getItem(gastKey) === '1') {
+        setUnlockedContent(dp.buildContent(dp.publicPhotos))
+        setUnlocked(true)
+      }
+    } else {
+      const sp = props as SingleProps
+      const key = `gallery_pw_${btoa(sp.password)}`
+      if (sessionStorage.getItem(key) === '1') setUnlocked(true)
     }
     setChecking(false)
-  }, [password])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (input.trim() === password.trim()) {
-      const key = `gallery_pw_${btoa(password)}`
-      sessionStorage.setItem(key, '1')
-      setUnlocked(true)
-      setError(false)
+    const trimmed = input.trim()
+
+    if (isDual) {
+      const dp = props as DualProps
+      if (trimmed === dp.password.trim()) {
+        sessionStorage.setItem(`gallery_pw_${btoa(dp.password)}`, '1')
+        setUnlockedContent(dp.buildContent(dp.allPhotos))
+        setUnlocked(true)
+        setError(false)
+      } else if (trimmed === dp.guestPassword.trim()) {
+        sessionStorage.setItem(`gallery_pw_${btoa(dp.guestPassword)}`, '1')
+        setUnlockedContent(dp.buildContent(dp.publicPhotos))
+        setUnlocked(true)
+        setError(false)
+      } else {
+        setError(true)
+        setInput('')
+      }
     } else {
-      setError(true)
-      setInput('')
+      const sp = props as SingleProps
+      if (trimmed === sp.password.trim()) {
+        sessionStorage.setItem(`gallery_pw_${btoa(sp.password)}`, '1')
+        setUnlocked(true)
+        setError(false)
+      } else {
+        setError(true)
+        setInput('')
+      }
     }
   }
 
   if (checking) return null
-  if (unlocked) return <>{children}</>
+  if (unlocked) {
+    if (isDual) return <>{unlockedContent}</>
+    return <>{(props as SingleProps).children}</>
+  }
 
   return (
     <div style={{
@@ -94,9 +155,25 @@ export default function GalleryPasswordGate({ password, children }: Props) {
               margin: 0,
               lineHeight: 1.5,
             }}>
-              Diese Galerie ist passwortgeschützt.<br />
-              Bitte gib das Passwort ein, um fortzufahren.
+              {isDual
+                ? <>Diese Galerie ist passwortgeschützt.<br />Kunden-Passwort: alle Fotos · Gast-Passwort: öffentliche Fotos</>
+                : <>Diese Galerie ist passwortgeschützt.<br />Bitte gib das Passwort ein, um fortzufahren.</>
+              }
             </p>
+
+            {/* Two-password hint badges */}
+            {isDual && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.20)' }}>
+                  <User style={{ width: 11, height: 11, color: '#8B5CF6' }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#8B5CF6', fontFamily: '"DM Sans", system-ui, sans-serif' }}>Kunden-PW</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'rgba(107,114,128,0.08)', border: '1px solid rgba(107,114,128,0.20)' }}>
+                  <Users style={{ width: 11, height: 11, color: '#6B7280' }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', fontFamily: '"DM Sans", system-ui, sans-serif' }}>Gast-PW</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Form */}
