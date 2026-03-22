@@ -172,23 +172,38 @@ export default function PhotoUploader({
       setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
 
       try {
-        // ── Upload to R2 via server-side API route ───────────────────────────
-        const formData = new FormData()
-        formData.append('file', uploadFile.file)
-        formData.append('galleryId', galleryId)
-        formData.append('contentType', uploadFile.file.type || 'image/jpeg')
-
-        const uploadRes = await fetch('/api/photos/upload', {
+        // ── Step 1: Get presigned PUT URL from server ────────────────────────
+        // The server generates a signed URL; the browser uploads directly to R2.
+        // This bypasses Vercel's 4.5 MB body limit entirely.
+        const presignRes = await fetch('/api/photos/presign', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            galleryId,
+            filename: uploadFile.file.name,
+            contentType: uploadFile.file.type || 'image/jpeg',
+            fileSize: uploadFile.file.size,
+          }),
         })
 
-        if (!uploadRes.ok) {
-          const errData = await uploadRes.json().catch(() => ({}))
-          throw new Error(errData.error || `Upload fehlgeschlagen (${uploadRes.status})`)
+        if (!presignRes.ok) {
+          const errData = await presignRes.json().catch(() => ({}))
+          throw new Error(errData.error || `Presign fehlgeschlagen (${presignRes.status})`)
         }
 
-        const { url: storageUrl, thumbnailUrl } = await uploadRes.json()
+        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
+        const thumbnailUrl = storageUrl
+
+        // ── Step 2: PUT file directly to R2 (no Vercel size limit) ──────────
+        const putRes = await fetch(presignedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': uploadFile.file.type || 'image/jpeg' },
+          body: uploadFile.file,
+        })
+
+        if (!putRes.ok) {
+          throw new Error(`R2 Upload fehlgeschlagen (${putRes.status}). Bitte CORS in Cloudflare R2 konfigurieren.`)
+        }
 
         setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 70 } : f))
 

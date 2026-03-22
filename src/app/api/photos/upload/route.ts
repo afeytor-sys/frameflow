@@ -10,11 +10,18 @@
  * The caller (PhotoUploader) then inserts the photo record into Supabase.
  *
  * This route runs server-side only — the R2 credentials never reach the browser.
+ *
+ * NOTE: Vercel Hobby has a 4.5 MB body limit per serverless invocation.
+ * For larger files, the R2 CORS must be configured and presigned URLs used instead.
+ * This route handles files up to 4.5 MB reliably on Vercel Hobby.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { r2, R2_BUCKET, getR2PublicUrl } from '@/lib/r2'
 import { createClient } from '@/lib/supabase/server'
+
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   // Verify the user is authenticated
@@ -48,16 +55,11 @@ export async function POST(request: NextRequest) {
         Key: key,
         Body: buffer,
         ContentType: contentType,
-        // Make the object publicly readable via the R2 public bucket URL
-        // (public access is configured at the bucket level in Cloudflare dashboard)
       })
     )
 
     const publicUrl = getR2PublicUrl(key)
 
-    // thumbnail_url = same as storage_url for now.
-    // Cloudflare Image Resizing (cdn-cgi/image) requires a Pro plan.
-    // When upgraded, swap to: getPhotoThumbnailUrl(key)
     return NextResponse.json({ url: publicUrl, thumbnailUrl: publicUrl, key })
   } catch (err) {
     console.error('[R2 Upload] Error:', err)
@@ -67,11 +69,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-// ── Next.js App Router route segment config ──────────────────────────────────
-// Increase the max request body size for file uploads.
-// Vercel Hobby: 4.5 MB hard limit (cannot be overridden).
-// Vercel Pro/Enterprise: up to 4.5 MB per serverless function invocation.
-// For larger files, use the presigned URL approach (/api/photos/presign).
-export const maxDuration = 60  // seconds
-export const dynamic = 'force-dynamic'
