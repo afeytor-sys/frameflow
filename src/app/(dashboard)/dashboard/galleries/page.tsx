@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal, Trash2, ImageIcon } from 'lucide-react'
+import { getPhotoUrl } from '@/lib/utils'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -191,26 +192,31 @@ export default function GalleriesPage() {
       if (!data) { setLoading(false); return }
 
       const enriched = await Promise.all((data as unknown as Gallery[]).map(async (g) => {
-        const { count } = await supabase.from('photos').select('id', { count: 'exact', head: true }).eq('gallery_id', g.id)
-
-        // Use cover_photo_id if set, otherwise first photo
-        let coverUrl: string | null = null
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const coverPhotoId = (g as any).cover_photo_id
-        if (coverPhotoId) {
-          const { data: coverPhoto } = await supabase.from('photos').select('thumbnail_url, storage_url').eq('id', coverPhotoId).single()
-          coverUrl = coverPhoto?.thumbnail_url || coverPhoto?.storage_url || null
-        }
-        if (!coverUrl) {
-          const { data: firstPhoto } = await supabase.from('photos').select('thumbnail_url, storage_url').eq('gallery_id', g.id).order('display_order', { ascending: true }).limit(1).single()
-          coverUrl = firstPhoto?.thumbnail_url || firstPhoto?.storage_url || null
-        }
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const proj = (g as any).project
+
+        // Fetch photos via service-client API to bypass RLS
+        let coverUrl: string | null = null
+        let photoCount = 0
+        try {
+          const res = await fetch(`/api/photos/by-gallery?galleryId=${g.id}`)
+          const json = await res.json()
+          const photos: { id: string; thumbnail_url: string | null; storage_url: string }[] = json.photos || []
+          photoCount = photos.length
+          // Prefer cover_photo_id, else first photo
+          const coverPhoto = coverPhotoId
+            ? photos.find(p => p.id === coverPhotoId) ?? photos[0]
+            : photos[0]
+          if (coverPhoto) {
+            coverUrl = coverPhoto.thumbnail_url || coverPhoto.storage_url
+          }
+        } catch {}
+
         return {
           ...g,
-          photo_count: count || 0,
+          photo_count: photoCount,
           cover_url: coverUrl,
           cover_photo_id: coverPhotoId || null,
           client_token: proj?.client_token || null,
@@ -257,12 +263,15 @@ export default function GalleriesPage() {
     e.preventDefault()
     e.stopPropagation()
     setCoverPicker({ galleryId: gallery.id, currentCoverId: gallery.cover_photo_id || null, photos: [], loading: true })
-    const { data } = await supabase
-      .from('photos')
-      .select('id, thumbnail_url, storage_url')
-      .eq('gallery_id', gallery.id)
-      .order('display_order', { ascending: true })
-    setCoverPicker(prev => prev ? { ...prev, photos: (data || []) as { id: string; thumbnail_url: string | null; storage_url: string }[], loading: false } : null)
+    // Use service-client API to bypass RLS
+    try {
+      const res = await fetch(`/api/photos/by-gallery?galleryId=${gallery.id}`)
+      const json = await res.json()
+      const photos = (json.photos || []) as { id: string; thumbnail_url: string | null; storage_url: string }[]
+      setCoverPicker(prev => prev ? { ...prev, photos, loading: false } : null)
+    } catch {
+      setCoverPicker(prev => prev ? { ...prev, loading: false } : null)
+    }
   }
 
   const selectCover = async (photoId: string, photoUrl: string) => {
@@ -404,7 +413,7 @@ export default function GalleriesPage() {
                 >
                   <div className="relative overflow-hidden" style={{ aspectRatio: '4/3', background: 'var(--bg-hover)' }}>
                     {gallery.cover_url ? (
-                      <img src={gallery.cover_url} alt={gallery.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <img src={getPhotoUrl(gallery.cover_url, 480, 75, 'cover')} alt={gallery.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Images className="w-8 h-8" style={{ color: 'var(--border-strong)', opacity: 0.4 }} />
@@ -565,7 +574,7 @@ export default function GalleriesPage() {
                       return (
                         <button
                           key={photo.id}
-                          onClick={() => selectCover(photo.id, url)}
+                          onClick={() => selectCover(photo.id, photo.thumbnail_url || photo.storage_url)}
                           className="relative rounded-xl overflow-hidden transition-all duration-200"
                           style={{
                             aspectRatio: '1',
@@ -575,7 +584,7 @@ export default function GalleriesPage() {
                           onMouseEnter={e => { if (!isSelected) e.currentTarget.style.border = '2.5px solid rgba(196,164,124,0.50)' }}
                           onMouseLeave={e => { if (!isSelected) e.currentTarget.style.border = '2.5px solid transparent' }}
                         >
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img src={getPhotoUrl(url, 300, 75, 'cover')} alt="" className="w-full h-full object-cover" loading="eager" decoding="async" />
                           {isSelected && (
                             <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.30)' }}>
                               <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
