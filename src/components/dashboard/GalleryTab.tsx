@@ -86,6 +86,8 @@ interface Props {
   onStorageLimitReached?: () => void
   clientEmail?: string | null
   clientName?: string | null
+  currentSlug?: string | null
+  clientToken?: string | null
 }
 
 // Sortable photo item
@@ -187,7 +189,7 @@ function SortablePhoto({
   )
 }
 
-export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName }: Props) {
+export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName, currentSlug, clientToken }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [sections, setSections] = useState<Section[]>([])
@@ -623,6 +625,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         galleryId={gallery.id}
         clientEmail={clientEmail}
         clientName={clientName || undefined}
+        projectId={projectId}
+        currentSlug={currentSlug}
+        clientToken={clientToken}
       />
 
       {/* Header */}

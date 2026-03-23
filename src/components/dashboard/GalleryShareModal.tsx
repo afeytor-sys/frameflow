@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Share2, Copy, Check, X, Lock, Mail, Send, Loader2, ExternalLink } from 'lucide-react'
+import { Share2, Copy, Check, X, Lock, Mail, Send, Loader2, ExternalLink, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 
@@ -17,6 +17,23 @@ interface Props {
   studioName?: string
   clientName?: string
   clientEmail?: string | null
+  // Slug editing
+  projectId?: string | null
+  currentSlug?: string | null
+  clientToken?: string | null
+  onSlugChange?: (newSlug: string) => void
+}
+
+function toSlug(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60)
 }
 
 export default function GalleryShareModal({
@@ -30,6 +47,10 @@ export default function GalleryShareModal({
   studioName,
   clientName,
   clientEmail,
+  projectId,
+  currentSlug,
+  clientToken,
+  onSlugChange,
 }: Props) {
   const [mounted, setMounted] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
@@ -41,6 +62,43 @@ export default function GalleryShareModal({
   const [shareEmail, setShareEmail] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+
+  // Slug editing
+  const [slug, setSlug] = useState(currentSlug ?? '')
+  const [editingSlug, setEditingSlug] = useState(false)
+  const [slugDraft, setSlugDraft] = useState(currentSlug ?? '')
+  const [savingSlug, setSavingSlug] = useState(false)
+
+  // Compute the live gallery URL based on current slug
+  const baseOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+  const liveGalleryUrl = slug
+    ? `${baseOrigin}/gallery/${slug}`
+    : clientToken
+      ? `${baseOrigin}/gallery/${clientToken}`
+      : galleryUrl
+
+  const saveSlug = async () => {
+    if (!projectId) return
+    const cleaned = toSlug(slugDraft)
+    setSavingSlug(true)
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('projects')
+      .update({ custom_slug: cleaned || null })
+      .eq('id', projectId)
+    if (error) {
+      if (error.code === '23505') toast.error('Dieser Link ist bereits vergeben')
+      else toast.error('Fehler beim Speichern')
+      setSavingSlug(false)
+      return
+    }
+    setSlug(cleaned)
+    setSlugDraft(cleaned)
+    setEditingSlug(false)
+    setSavingSlug(false)
+    onSlugChange?.(cleaned)
+    toast.success(cleaned ? 'Link aktualisiert!' : 'Link zurückgesetzt')
+  }
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -351,17 +409,94 @@ export default function GalleryShareModal({
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted, #7A7670)' }}>
               Link
             </p>
+
+            {/* Slug editor (inline) */}
+            {projectId && editingSlug ? (
+              <div className="space-y-2 mb-2">
+                <div
+                  className="flex items-center rounded-xl overflow-hidden"
+                  style={{ border: '1px solid #C4A47C', background: 'var(--bg-hover, #F5F4F1)' }}
+                >
+                  <span
+                    className="flex-shrink-0 px-2.5 text-[11px] select-none whitespace-nowrap"
+                    style={{ color: 'var(--text-muted, #7A7670)', borderRight: '1px solid var(--border-color, #E8E4DC)', paddingTop: '10px', paddingBottom: '10px' }}
+                  >
+                    /gallery/
+                  </span>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={slugDraft}
+                    onChange={e => setSlugDraft(toSlug(e.target.value))}
+                    onKeyDown={e => { if (e.key === 'Enter') saveSlug(); if (e.key === 'Escape') setEditingSlug(false) }}
+                    placeholder="laura-marc-2026"
+                    className="flex-1 px-2.5 py-2.5 bg-transparent text-[12px] outline-none font-mono"
+                    style={{ color: 'var(--text-primary, #111110)' }}
+                  />
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={saveSlug}
+                    disabled={savingSlug}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white disabled:opacity-50"
+                    style={{ background: '#C4A47C' }}
+                  >
+                    {savingSlug
+                      ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <><Check className="w-3 h-3" />Speichern</>
+                    }
+                  </button>
+                  <button
+                    onClick={() => { setSlugDraft(slug); setEditingSlug(false) }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium"
+                    style={{ background: 'var(--bg-hover, #F5F4F1)', color: 'var(--text-muted, #7A7670)', border: '1px solid var(--border-color, #E8E4DC)' }}
+                  >
+                    <X className="w-3 h-3" />Abbrechen
+                  </button>
+                  {slug && (
+                    <button
+                      onClick={() => { setSlugDraft(''); saveSlug() }}
+                      className="ml-auto text-[11px] px-2 py-1.5 rounded-lg"
+                      style={{ color: '#C43B2C' }}
+                    >
+                      Zurücksetzen
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
             <div className="flex items-center gap-2">
               <div
                 className="flex-1 flex items-center px-3 py-2.5 rounded-xl min-w-0"
                 style={{ background: 'var(--bg-hover, #F5F4F1)', border: '1px solid var(--border-color, #E8E4DC)' }}
               >
                 <span className="text-[12px] truncate font-mono" style={{ color: 'var(--text-secondary, #5A5650)' }}>
-                  {galleryUrl}
+                  {liveGalleryUrl}
                 </span>
               </div>
+              {/* Edit slug button — only if projectId is provided */}
+              {projectId && !editingSlug && (
+                <button
+                  onClick={() => { setSlugDraft(slug); setEditingSlug(true) }}
+                  title="Link anpassen"
+                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                  style={{
+                    background: 'var(--bg-hover, #F5F4F1)',
+                    border: '1px solid var(--border-color, #E8E4DC)',
+                    color: 'var(--text-muted, #7A7670)',
+                  }}
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
               <button
-                onClick={copyLink}
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(liveGalleryUrl) } catch {
+                    const el = document.createElement('textarea'); el.value = liveGalleryUrl; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el)
+                  }
+                  setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000)
+                }}
                 className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all"
                 style={{
                   background: copiedLink ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover, #F5F4F1)',
