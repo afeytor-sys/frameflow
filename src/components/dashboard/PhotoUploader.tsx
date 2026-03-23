@@ -11,7 +11,7 @@
  * Files go: Browser → R2 directly (no Vercel body limit)
  */
 
-import { useState, useCallback, useRef, useContext } from 'react'
+import { useState, useCallback, useRef, useContext, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn, formatFileSize } from '@/lib/utils'
@@ -21,6 +21,7 @@ import { UploadContext } from '@/contexts/UploadContext'
 interface UploadFile {
   id: string
   file: File
+  previewUrl: string
   progress: number
   status: 'pending' | 'uploading' | 'done' | 'error'
   error?: string
@@ -55,6 +56,15 @@ export default function PhotoUploader({
   const [isUploading, setIsUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadCtx = useContext(UploadContext)
+
+  // Cleanup object URLs on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      files.forEach(f => {
+        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
+      })
+    }
+  }, [])
 
   const [currentDuplicate, setCurrentDuplicate] = useState<{
     file: File
@@ -117,6 +127,7 @@ export default function PhotoUploader({
     const uploadItems: UploadFile[] = filesToUpload.map((file) => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
+      previewUrl: URL.createObjectURL(file),
       progress: 0,
       status: 'pending',
     }))
@@ -312,7 +323,7 @@ export default function PhotoUploader({
       </div>
 
       {files.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {isUploading && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-[#6B6B6B]">
@@ -324,29 +335,58 @@ export default function PhotoUploader({
               </div>
             </div>
           )}
-          <div className="max-h-48 overflow-y-auto space-y-1.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
             {files.map(f => (
-              <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
-                <div className="flex-shrink-0">
-                  {f.status === 'done' && <CheckCircle className="w-4 h-4 text-[#3DBA6F]" />}
-                  {f.status === 'error' && <AlertCircle className="w-4 h-4 text-[#E84C1A]" />}
-                  {f.status === 'pending' && <div className="w-4 h-4 rounded-full border-2 border-[#E8E8E4]" />}
-                  {f.status === 'uploading' && <div className="w-4 h-4 rounded-full border-2 border-[#E8E8E4] border-t-[#C8A882] animate-spin" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-[#1A1A1A] truncate">{f.file.name}</p>
-                  <p className="text-xs text-[#6B6B6B]">{formatFileSize(f.file.size)}</p>
-                  {f.status === 'uploading' && (
-                    <div className="h-1 bg-[#E8E8E4] rounded-full mt-1 overflow-hidden">
-                      <div className="h-full bg-[#C8A882] transition-all duration-300 rounded-full" style={{ width: `${f.progress}%` }} />
-                    </div>
-                  )}
-                  {f.error && <p className="text-xs text-[#E84C1A] mt-0.5">{f.error}</p>}
-                </div>
-                {f.status !== 'uploading' && (
-                  <button onClick={e => { e.stopPropagation(); removeFile(f.id) }} className="w-5 h-5 flex items-center justify-center text-[#6B6B6B] hover:text-[#E84C1A] transition-colors flex-shrink-0">
-                    <X className="w-3.5 h-3.5" />
+              <div key={f.id} className="relative aspect-square overflow-hidden rounded-lg group">
+
+                {/* Image — always visible */}
+                <img
+                  src={f.previewUrl}
+                  alt={f.file.name}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+
+                {/* Uploading / pending overlay — spinner */}
+                {(f.status === 'pending' || f.status === 'uploading') && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  </div>
+                )}
+
+                {/* Success state — green checkmark badge */}
+                {f.status === 'done' && (
+                  <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow">
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
+
+                {/* Error state */}
+                {f.status === 'error' && (
+                  <div className="absolute inset-0 bg-red-500/50 flex items-center justify-center">
+                    <AlertCircle className="w-5 h-5 text-white" />
+                  </div>
+                )}
+
+                {/* Remove button — only when not actively uploading */}
+                {f.status !== 'uploading' && f.status !== 'pending' && (
+                  <button
+                    onClick={e => { e.stopPropagation(); removeFile(f.id) }}
+                    className="absolute top-1.5 left-1.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <X className="w-3 h-3 text-white" />
                   </button>
+                )}
+
+                {/* Progress bar at bottom */}
+                {f.status === 'uploading' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+                    <div
+                      className="h-full bg-white transition-all duration-300"
+                      style={{ width: `${f.progress}%` }}
+                    />
+                  </div>
                 )}
               </div>
             ))}

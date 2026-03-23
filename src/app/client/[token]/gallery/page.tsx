@@ -34,7 +34,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   // Fetch all galleries for this project, prefer active ones with photos
   const { data: allGalleries, error: galleryError } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, tags_enabled')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -215,6 +215,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             token={token}
             theme={theme}
             photoCount={sortedPhotos.length}
+            tagsEnabled={Array.isArray((gallery as { tags_enabled?: string[] | null }).tags_enabled) ? ((gallery as { tags_enabled?: string[] | null }).tags_enabled?.length ?? 0) > 0 : true}
           />
         )}
       </div>

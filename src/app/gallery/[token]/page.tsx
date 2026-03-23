@@ -34,7 +34,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -111,6 +111,10 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // ── Helper: render the hero + gallery layout for a given photo set ──
   // This is a plain function that returns JSX — called server-side only,
   // never passed as a prop across the server/client boundary.
+  const tagsEnabled = Array.isArray((gallery as { tags_enabled?: string[] | null }).tags_enabled)
+    ? ((gallery as { tags_enabled?: string[] | null }).tags_enabled?.length ?? 0) > 0
+    : true
+
   function renderGallery(sortedPhotos: typeof allPhotos, fullAccess = false) {
     // Search cover in ALL photos (not just sortedPhotos) so private cover photos
     // still work as hero image without being exposed in the public photo list
@@ -187,6 +191,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               photoCount={sortedPhotos.length}
               isPublic={true}
               canMarkPrivate={fullAccess}
+              tagsEnabled={tagsEnabled}
             />
           )}
         </div>
