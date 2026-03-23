@@ -826,8 +826,8 @@ export default function GalleryViewer({
               style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
             >
               {downloadingAll
-                ? <><Loader2 className="w-4 h-4 animate-spin" />{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</>
-                : <><Download className="w-4 h-4" /><span className="hidden sm:inline">Alle ({photos.length})</span><span className="sm:hidden"><Download className="w-4 h-4" /></span></>
+                ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</span></>
+                : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
               }
             </button>
           )}
