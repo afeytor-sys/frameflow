@@ -24,12 +24,12 @@ export default async function ClientContractPage({ params }: { params: Promise<{
 
   if (!project) notFound()
 
-  // Get the most recent non-draft contract
+  // Get the most recent contract (including draft so client can sign even before photographer sends)
   const { data: contract } = await supabase
     .from('contracts')
     .select('*')
     .eq('project_id', project.id)
-    .in('status', ['sent', 'viewed', 'signed'])
+    .in('status', ['draft', 'sent', 'viewed', 'signed'])
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
@@ -42,8 +42,8 @@ export default async function ClientContractPage({ params }: { params: Promise<{
     )
   }
 
-  // Mark as viewed if it was sent
-  if (contract.status === 'sent') {
+  // Mark as viewed if it was sent or draft (first time client opens it)
+  if (contract.status === 'sent' || contract.status === 'draft') {
     await supabase
       .from('contracts')
       .update({ status: 'viewed', viewed_at: new Date().toISOString() })
@@ -55,7 +55,7 @@ export default async function ClientContractPage({ params }: { params: Promise<{
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
     <ContractSigningClient
-      contract={{ ...contract, status: contract.status === 'sent' ? 'viewed' : contract.status }}
+      contract={{ ...contract, status: (contract.status === 'sent' || contract.status === 'draft') ? 'viewed' : contract.status }}
       clientName={client.full_name}
       token={token}
     />

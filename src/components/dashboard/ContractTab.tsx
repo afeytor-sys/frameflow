@@ -10,7 +10,7 @@ import ContractPDFDownload from './ContractPDFDownload'
 import SignatureCanvas from 'react-signature-canvas'
 import {
   FileText, Plus, Send, Download, Check, Trash2,
-  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2, Mail, Calendar, Clock,
+  ChevronDown, BookMarked, X, Bookmark, RotateCcw, PenLine, CheckCircle2, Mail, Calendar, Clock, Copy, Link2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EmailVorlagePicker from './EmailVorlagePicker'
@@ -28,6 +28,7 @@ interface Props {
   clientEmail?: string
   clientName?: string
   photographerName?: string | null
+  portalUrl?: string | null
   contracts: Contract[]
   userTemplates?: UserTemplate[]
 }
@@ -222,6 +223,7 @@ export default function ContractTab({
   clientEmail,
   clientName,
   photographerName,
+  portalUrl,
   contracts: initialContracts,
   userTemplates: initialUserTemplates = [],
 }: Props) {
@@ -582,8 +584,47 @@ export default function ContractTab({
           <button onClick={() => setShowSendModal(false)} className="btn-secondary flex-1">Cancel</button>
           {sendMode === 'send' ? (
             <button
-              onClick={() => { handleSend(pendingSendContract); setShowSendModal(false) }}
-              disabled={sending}
+              onClick={async () => {
+                if (!clientEmail || !pendingSendContract) return
+                setSending(true)
+                // 1. Update contract status to 'sent' (no email from API)
+                const statusRes = await fetch('/api/contracts/send', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ contractId: pendingSendContract.id }),
+                })
+                if (!statusRes.ok) {
+                  toast.error('Error updating contract status')
+                  setSending(false)
+                  return
+                }
+                // 2. Send the customized email with contract link
+                const contractLink = portalUrl ? `${portalUrl}/contract` : `${window.location.origin}/client/${pendingSendContract.project_id}/contract`
+                const bodyWithLink = sendMessage + `\n\n🔗 ${contractLink}`
+                const emailRes = await fetch('/api/emails/send', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    toEmail: clientEmail,
+                    toName: clientName,
+                    subject: sendSubject,
+                    body: bodyWithLink,
+                    projectId,
+                  }),
+                })
+                setSending(false)
+                setShowSendModal(false)
+                if (!emailRes.ok) {
+                  toast.error('Error sending email')
+                  return
+                }
+                setContracts(prev => prev.map(c => c.id === pendingSendContract.id ? { ...c, status: 'sent' as const, sent_at: new Date().toISOString() } : c))
+                if (activeContract?.id === pendingSendContract.id) {
+                  setActiveContract(prev => prev ? { ...prev, status: 'sent', sent_at: new Date().toISOString() } : prev)
+                }
+                toast.success(`Contract sent to ${clientEmail}`)
+              }}
+              disabled={sending || !sendSubject.trim()}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
               style={{ background: '#8B5CF6' }}
             >
@@ -846,6 +887,27 @@ export default function ContractTab({
                 <Download className="w-3.5 h-3.5" />
                 Download PDF
               </a>
+            )}
+            {/* Copy contract link */}
+            {portalUrl && activeContract.status !== 'draft' && (
+              <button
+                onClick={() => {
+                  const contractLink = `${portalUrl}/contract`
+                  navigator.clipboard.writeText(contractLink).then(() => {
+                    toast.success('Link copied!')
+                  }).catch(() => {
+                    toast.error('Could not copy link')
+                  })
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                style={{ background: 'rgba(196,164,124,0.12)', color: 'var(--accent)', border: '1px solid rgba(196,164,124,0.25)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(196,164,124,0.20)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(196,164,124,0.12)')}
+                title="Copy contract link"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy link
+              </button>
             )}
           </div>
         </div>

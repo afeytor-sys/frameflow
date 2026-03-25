@@ -1320,6 +1320,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               clientEmail={client?.email}
               clientName={client?.full_name}
               photographerName={photographerName}
+              portalUrl={project.client_url || clientUrl || null}
               userTemplates={userTemplates}
             />
           )}

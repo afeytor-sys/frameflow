@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
-import { contractSentEmail } from '@/lib/automationEmails'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,55 +54,6 @@ export async function POST(request: NextRequest) {
 
     if (!clientEmail) {
       return NextResponse.json({ error: 'Client has no email address' }, { status: 400 })
-    }
-
-    // Fetch photographer info
-    const { data: photographer } = await supabase
-      .from('photographers')
-      .select('full_name, studio_name, email, language, notification_email')
-      .eq('id', user.id)
-      .single()
-
-    const notifEmail = photographer?.notification_email || photographer?.email || undefined
-
-    const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
-    const portalUrl = project.client_url
-
-    // Fetch project locale
-    const { data: projectData } = await supabase
-      .from('projects')
-      .select('portal_locale')
-      .eq('id', project.id)
-      .single()
-    const locale = (projectData?.portal_locale || photographer?.language || 'de') as 'de' | 'en'
-
-    // Check automation settings
-    const { data: autoSettings } = await supabase
-      .from('automation_settings')
-      .select('email_contract_sent')
-      .eq('photographer_id', user.id)
-      .single()
-
-    const { subject, html } = contractSentEmail({
-      studioName,
-      clientName: clientName || 'Kunde',
-      projectTitle: project.title,
-      portalUrl,
-      locale,
-    })
-
-    const { error: emailError } = await resend.emails.send({
-      from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-      replyTo: notifEmail,
-      bcc: notifEmail,
-      to: clientEmail,
-      subject,
-      html,
-    })
-
-    if (emailError) {
-      console.error('Resend error:', emailError)
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
     }
 
     // Update contract status to 'sent'
