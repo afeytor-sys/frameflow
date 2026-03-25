@@ -822,20 +822,20 @@ export default function ContractTab({
               </button>
             )}
             {/* PDF download — available whenever photographer has signed */}
-            {(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data && (
+            {activeContract.photographer_signature_data && (
               <ContractPDFDownload
                 title={title || activeContract.title}
                 content={content || activeContract.content || ''}
                 createdAt={activeContract.created_at}
-                photographerName={(activeContract as Contract & { photographer_signed_by_name?: string }).photographer_signed_by_name ?? null}
-                photographerSignedAt={(activeContract as Contract & { photographer_signed_at?: string }).photographer_signed_at ?? null}
-                photographerSignatureData={(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data ?? null}
+                photographerName={activeContract.photographer_signed_by_name ?? null}
+                photographerSignedAt={activeContract.photographer_signed_at ?? null}
+                photographerSignatureData={activeContract.photographer_signature_data ?? null}
                 clientName={activeContract.signed_by_name ?? null}
                 clientSignedAt={activeContract.signed_at ?? null}
-                clientSignatureData={(activeContract as Contract & { signature_data?: string }).signature_data ?? null}
+                clientSignatureData={activeContract.signature_data ?? null}
               />
             )}
-            {activeContract.status === 'signed' && activeContract.pdf_url && !(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data && (
+            {activeContract.status === 'signed' && activeContract.pdf_url && !activeContract.photographer_signature_data && (
               <a
                 href={activeContract.pdf_url}
                 target="_blank"
@@ -856,8 +856,8 @@ export default function ContractTab({
             label={clientName || 'Client'}
             name={activeContract.signed_by_name ?? ''}
             signedAt={activeContract.signed_at ?? null}
-            ipAddress={(activeContract as Contract & { ip_address?: string }).ip_address ?? null}
-            signatureData={(activeContract as Contract & { signature_data?: string }).signature_data ?? null}
+            ipAddress={activeContract.ip_address ?? null}
+            signatureData={activeContract.signature_data ?? null}
             color="#3DBA6F"
             bg="rgba(61,186,111,0.10)"
             border="rgba(61,186,111,0.20)"
@@ -875,9 +875,9 @@ export default function ContractTab({
           <PhotographerSignatureSection
             contractId={activeContract.id}
             photographerName={photographerName}
-            existingSignature={(activeContract as Contract & { photographer_signature_data?: string }).photographer_signature_data ?? null}
-            existingName={(activeContract as Contract & { photographer_signed_by_name?: string }).photographer_signed_by_name ?? null}
-            existingAt={(activeContract as Contract & { photographer_signed_at?: string }).photographer_signed_at ?? null}
+            existingSignature={activeContract.photographer_signature_data ?? null}
+            existingName={activeContract.photographer_signed_by_name ?? null}
+            existingAt={activeContract.photographer_signed_at ?? null}
             onSaved={(data) => {
               setActiveContract(prev => prev ? { ...prev, ...data } : prev)
             }}

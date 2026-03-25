@@ -107,6 +107,7 @@ export interface Contract {
   pdf_url: string | null
   // migration 011: photographer signature
   photographer_signature_data: string | null
+  photographer_signed_by_name: string | null
   photographer_signed_at: string | null
   // migration 021: client fields
   client_name: string | null

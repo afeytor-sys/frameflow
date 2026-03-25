@@ -4,12 +4,58 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
+import { Mark } from '@tiptap/core'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
   Undo, Redo, Braces,
 } from 'lucide-react'
+
+// ── TipTap extension: recognises <span class="contract-variable"> ─────────
+const ContractVariable = Mark.create({
+  name: 'contractVariable',
+
+  addAttributes() {
+    return {
+      variable: {
+        default: null,
+        parseHTML: (element) => {
+          const text = element.textContent || ''
+          const match = text.match(/\{\{([^}]+)\}\}/)
+          return match ? match[1].trim() : null
+        },
+        renderHTML: () => ({}),
+      },
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span',
+        getAttrs: (node) => {
+          const el = node as HTMLElement
+          return el.classList.contains('contract-variable') ? {} : false
+        },
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      {
+        ...HTMLAttributes,
+        class: 'contract-variable',
+        style:
+          'background:rgba(139,92,246,0.12);color:#8B5CF6;border-radius:4px;padding:1px 5px;font-weight:600;font-size:0.92em;cursor:default;',
+        'data-variable': HTMLAttributes.variable || '',
+      },
+      0,
+    ]
+  },
+})
 
 // ── Predefined variables the photographer can insert ──────────────────────
 const PRESET_VARIABLES = [
@@ -139,6 +185,7 @@ export default function ContractEditor({
       }),
       Placeholder.configure({ placeholder }),
       Link.configure({ openOnClick: false }),
+      ContractVariable,
     ],
     content,
     editable,

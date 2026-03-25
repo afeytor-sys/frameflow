@@ -257,6 +257,8 @@ export default function ContractsClient({
 
   // PDF download
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  // Delete contract
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]))
 
@@ -350,6 +352,27 @@ export default function ContractsClient({
       toast.error(t.errorSaving)
     } finally {
       setSavingTemplate(false)
+    }
+  }
+
+  const handleDeleteContract = async (e: React.MouseEvent, contractId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const confirmMsg = locale === 'de'
+      ? 'Diesen Vertrag wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.'
+      : 'Really delete this contract? This action cannot be undone.'
+    if (!confirm(confirmMsg)) return
+    setDeletingId(contractId)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('contracts').delete().eq('id', contractId)
+      if (error) throw error
+      setContracts(prev => prev.filter(c => c.id !== contractId))
+      toast.success(locale === 'de' ? 'Vertrag gelöscht' : 'Contract deleted')
+    } catch {
+      toast.error(locale === 'de' ? 'Fehler beim Löschen' : 'Error deleting contract')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -819,28 +842,28 @@ export default function ContractsClient({
 
         {contracts.length > 0 ? (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+            {/* Table header */}
             <div
               className="grid px-5 py-3"
-              style={{ borderBottom: '1px solid var(--border-color)', gridTemplateColumns: '1fr 180px 130px 160px 100px 24px' }}
+              style={{ borderBottom: '1px solid var(--border-color)', gridTemplateColumns: '1fr 160px 130px 150px auto' }}
             >
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colContract}</span>
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colClient}</span>
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colStatus}</span>
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colCreated}</span>
               <span />
-              <span />
             </div>
             {contracts.map((contract, i) => {
               const sc = STATUS_COLORS[contract.status] || STATUS_COLORS.draft
               const project = projectMap[contract.project_id]
-              const fullySignedByBoth = !!(contract.signature_data && contract.photographer_signature_data)
+              const canDownload = !!(contract.signature_data && contract.photographer_signature_data)
               return (
                 <a
                   key={contract.id}
                   href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
-                  className="grid items-center px-5 py-3.5 transition-all duration-200 cursor-pointer"
+                  className="group grid items-center px-5 py-3.5 transition-all duration-150 cursor-pointer"
                   style={{
-                    gridTemplateColumns: '1fr 180px 130px 160px 100px 24px',
+                    gridTemplateColumns: '1fr 160px 130px 150px auto',
                     borderBottom: '1px solid var(--border-color)',
                     animation: 'fadeSlideUp 0.35s ease forwards',
                     animationDelay: `${i * 50}ms`,
@@ -849,26 +872,36 @@ export default function ContractsClient({
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                 >
+                  {/* Title */}
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: sc.bg }}>
                       <FileText className="w-4 h-4" style={{ color: sc.color }} />
                     </div>
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
                   </div>
+
+                  {/* Client */}
                   <span className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
+
+                  {/* Status */}
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit" style={{ background: sc.bg, color: sc.color }}>
                     {STATUS_ICONS[contract.status]}
                     {STATUS_LABELS[contract.status]}
                   </span>
+
+                  {/* Date */}
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, locale)}</span>
-                  <div className="flex items-center">
-                    {fullySignedByBoth && (
+
+                  {/* Hover actions */}
+                  <div className="flex items-center justify-end gap-1.5">
+                    {/* Download PDF — only if both signed */}
+                    {canDownload && (
                       <button
                         onClick={(e) => handleDownloadPDF(e, contract)}
                         disabled={downloadingId === contract.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 hover:opacity-88"
+                        title={locale === 'de' ? 'PDF herunterladen' : 'Download PDF'}
+                        className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 disabled:opacity-40"
                         style={{ background: 'rgba(61,186,111,0.12)', color: '#3DBA6F', border: '1px solid rgba(61,186,111,0.25)' }}
-                        title={locale === 'de' ? 'Vertrag als PDF herunterladen' : 'Download contract as PDF'}
                       >
                         {downloadingId === contract.id
                           ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
@@ -877,8 +910,26 @@ export default function ContractsClient({
                         PDF
                       </button>
                     )}
+
+                    {/* Delete contract */}
+                    <button
+                      onClick={(e) => handleDeleteContract(e, contract.id)}
+                      disabled={deletingId === contract.id}
+                      title={locale === 'de' ? 'Vertrag löschen' : 'Delete contract'}
+                      className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 disabled:opacity-40"
+                      style={{ color: 'var(--text-muted)', background: 'transparent' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                    >
+                      {deletingId === contract.id
+                        ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        : <Trash2 className="w-3.5 h-3.5" />
+                      }
+                    </button>
+
+                    {/* Arrow */}
+                    <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
                   </div>
-                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                 </a>
               )
             })}

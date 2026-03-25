@@ -17,33 +17,28 @@ interface Props {
 // Extract all {{variable}} keys from HTML content
 // Handles both plain {{key}} and TipTap's <span class="contract-variable">{{key}}</span>
 function extractVariables(html: string): string[] {
+  // Match all {{key}} occurrences anywhere in the HTML (inside or outside spans)
+  const allMatches = html.matchAll(/\{\{([^}]+)\}\}/g)
   const keys: string[] = []
-
-  // Match inside span.contract-variable: <span class="contract-variable">{{key}}</span>
-  const spanMatches = html.matchAll(/<span[^>]*class="contract-variable"[^>]*>\{\{([^}]+)\}\}<\/span>/g)
-  for (const m of spanMatches) keys.push(m[1].trim())
-
-  // Also match plain {{key}} not inside a span (fallback)
-  const plainMatches = html.matchAll(/\{\{([^}]+)\}\}/g)
-  for (const m of plainMatches) keys.push(m[1].trim())
-
+  for (const m of allMatches) keys.push(m[1].trim())
   return [...new Set(keys)] // deduplicate
 }
 
 // Replace variables in HTML with filled values
 function applyVariables(html: string, fields: Record<string, string>): string {
   let result = html
+
   for (const [key, value] of Object.entries(fields)) {
     const filled = value.trim()
       ? `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${value}</span>`
       : `<span style="background:rgba(239,68,68,0.10);color:#EF4444;border-radius:3px;padding:0 3px;font-style:italic;">[${key}]</span>`
 
-    // Replace TipTap span wrapper (exact class match)
+    // Replace TipTap span wrapper — match any span containing {{key}} regardless of attribute order
     result = result.replace(
-      new RegExp(`<span[^>]*class="contract-variable"[^>]*>\\{\\{${escapeRegex(key)}\\}\\}<\\/span>`, 'g'),
+      new RegExp(`<span[^>]*>\\{\\{${escapeRegex(key)}\\}\\}<\\/span>`, 'g'),
       filled
     )
-    // Replace plain {{key}} (fallback)
+    // Replace plain {{key}} (fallback for any remaining)
     result = result.replace(new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, 'g'), filled)
   }
   return result
