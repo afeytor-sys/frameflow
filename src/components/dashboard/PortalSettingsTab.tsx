@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
   Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock,
-  Link2, Plus, Trash2, GripVertical, ClipboardList, Globe, Bookmark, X,
+  Link2, Plus, Trash2, GripVertical, ClipboardList, Globe, Bookmark, X, Receipt,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -20,6 +20,7 @@ type PortalSections = {
   tips: boolean
   weather: boolean
   questionnaire: boolean
+  invoice: boolean
 }
 
 const DEFAULT_SECTIONS: PortalSections = {
@@ -31,6 +32,7 @@ const DEFAULT_SECTIONS: PortalSections = {
   tips: true,
   weather: true,
   questionnaire: true,
+  invoice: false,
 }
 
 interface PortalLink {
@@ -159,6 +161,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
     { key: 'weather',       label: tp.sections.weather,       description: tp.sections.weatherDesc,       icon: CloudSun,     color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
     { key: 'moodboard',     label: tp.sections.moodboard,     description: tp.sections.moodboardDesc,     icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
     { key: 'questionnaire', label: tp.sections.questionnaire, description: tp.sections.questionnaireDesc, icon: ClipboardList, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
+    { key: 'invoice',       label: locale === 'de' ? 'Rechnung' : 'Invoice',                              description: locale === 'de' ? 'Rechnungen im Kundenportal anzeigen' : 'Show invoices in client portal', icon: Receipt, color: '#F97316', bg: 'rgba(249,115,22,0.10)' },
   ]
 
   return (

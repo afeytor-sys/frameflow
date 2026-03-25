@@ -273,6 +273,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     tips:          rawSections?.tips          !== false,
     weather:       rawSections?.weather       !== false,
     questionnaire: rawSections?.questionnaire !== false,
+    invoice:       rawSections?.invoice       === true,
   }
   const customMessage: string | null = (project as { portal_message?: string | null }).portal_message ?? null
   const stepsOverride = (project as { project_steps_override?: Record<string, boolean> | null }).project_steps_override ?? null
@@ -844,6 +845,40 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               })}
             </div>
           </div>
+        )}
+
+        {/* ── INVOICE CARD ── */}
+        {show.invoice && (
+          <Link href={`/client/${token}/invoice`}
+            className="group block rounded-2xl overflow-hidden transition-all duration-300 animate-in-delay-2 hover:-translate-y-0.5"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #F97316, #FB923C)' }} />
+            <div className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: 'rgba(249,115,22,0.10)' }}>
+                    <FileText className="w-5 h-5" style={{ color: '#F97316' }} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[18px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                      {portalLocale === 'de' ? 'Rechnung' : 'Invoice'}
+                    </p>
+                    <p className="text-[14px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {portalLocale === 'de' ? 'Rechnungen & Zahlungsdetails ansehen' : 'View invoices & payment details'}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0 mt-3" style={{ color: 'var(--text-muted)' }} />
+              </div>
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <div className="flex items-center gap-1.5 text-[15.5px] font-bold" style={{ color: '#F97316' }}>
+                  <FileText className="w-3.5 h-3.5" />
+                  {portalLocale === 'de' ? 'Rechnung ansehen →' : 'View invoice →'}
+                </div>
+              </div>
+            </div>
+          </Link>
         )}
 
         {/* Empty state */}
