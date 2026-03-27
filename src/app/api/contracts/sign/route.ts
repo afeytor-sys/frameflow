@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
           title,
           photographer_id,
           client_token,
+          custom_slug,
           client:clients(full_name, email)
         )
       `)
@@ -85,11 +86,12 @@ export async function POST(request: NextRequest) {
       title: string
       photographer_id: string
       client_token: string
+      custom_slug: string | null
       client: { full_name: string; email: string }
     }
 
-    // Verify token matches
-    if (project.client_token !== token) {
+    // Verify token matches — accept both the raw client_token UUID and the custom_slug
+    if (project.client_token !== token && project.custom_slug !== token) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
     }
 

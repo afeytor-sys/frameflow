@@ -50,6 +50,26 @@ function escapeRegex(s: string): string {
 
 // Label map for known variable keys
 const VARIABLE_LABELS: Record<string, string> = {
+  // German wedding / common fields
+  'Name':            'Name',
+  'Brautpaar':       'Brautpaar',
+  'Vorname':         'Vorname',
+  'Nachname':        'Nachname',
+  'Adresse':         'Adresse',
+  'Straße':          'Straße',
+  'PLZ':             'Postleitzahl',
+  'Ort':             'Ort',
+  'Stadt':           'Stadt',
+  'Telefon':         'Telefon',
+  'Geburtsdatum':    'Geburtsdatum',
+  'Datum':           'Datum',
+  'Hochzeitsdatum':  'Hochzeitsdatum',
+  'Hochzeitsort':    'Hochzeitsort',
+  'Standesamt':      'Standesamt',
+  'Kirche':          'Kirche',
+  'Location':        'Location',
+  'Uhrzeit':         'Uhrzeit',
+  // Portuguese / generic fields (legacy)
   'endereço':        'Adresse',
   'CPF':             'CPF / Ausweis-Nr.',
   'data_nascimento': 'Geburtsdatum',
