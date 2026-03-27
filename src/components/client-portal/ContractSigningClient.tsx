@@ -16,42 +16,32 @@ interface Props {
 }
 
 // Extract all {{variable}} keys from HTML content
-// Handles both plain {{key}} and TipTap's <span class="contract-variable">{{key}}</span>
 function extractVariables(html: string): string[] {
-  // Match all {{key}} occurrences anywhere in the HTML (inside or outside spans)
   const allMatches = html.matchAll(/\{\{([^}]+)\}\}/g)
   const keys: string[] = []
   for (const m of allMatches) keys.push(m[1].trim())
-  return [...new Set(keys)] // deduplicate
-}
-
-// Replace variables in HTML with filled values
-function applyVariables(html: string, fields: Record<string, string>): string {
-  let result = html
-
-  for (const [key, value] of Object.entries(fields)) {
-    const filled = value.trim()
-      ? `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${value}</span>`
-      : `<span style="background:rgba(239,68,68,0.10);color:#EF4444;border-radius:3px;padding:0 3px;font-style:italic;">[${key}]</span>`
-
-    // Replace TipTap span wrapper — match any span containing {{key}} regardless of attribute order
-    result = result.replace(
-      new RegExp(`<span[^>]*>\\{\\{${escapeRegex(key)}\\}\\}<\\/span>`, 'g'),
-      filled
-    )
-    // Replace plain {{key}} (fallback for any remaining)
-    result = result.replace(new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, 'g'), filled)
-  }
-  return result
+  return [...new Set(keys)]
 }
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+// Replace variables in HTML with filled values
+function applyVariables(html: string, fields: Record<string, string>): string {
+  let result = html
+  for (const [key, value] of Object.entries(fields)) {
+    const filled = value.trim()
+      ? `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${value}</span>`
+      : `<span style="background:rgba(239,68,68,0.10);color:#EF4444;border-radius:3px;padding:0 3px;font-style:italic;">[${key}]</span>`
+    result = result.replace(new RegExp(`<span[^>]*>\\{\\{${escapeRegex(key)}\\}\\}<\\/span>`, 'g'), filled)
+    result = result.replace(new RegExp(`\\{\\{${escapeRegex(key)}\\}\\}`, 'g'), filled)
+  }
+  return result
+}
+
 // Label map for known variable keys
 const VARIABLE_LABELS: Record<string, string> = {
-  // German wedding / common fields
   'Name':            'Name',
   'Brautpaar':       'Brautpaar',
   'Vorname':         'Vorname',
@@ -70,17 +60,156 @@ const VARIABLE_LABELS: Record<string, string> = {
   'Kirche':          'Kirche',
   'Location':        'Location',
   'Uhrzeit':         'Uhrzeit',
-  // Portuguese / generic fields (legacy)
   'endereço':        'Adresse',
   'CPF':             'CPF / Ausweis-Nr.',
   'data_nascimento': 'Geburtsdatum',
   'telefone':        'Telefon',
   'cidade':          'Stadt',
   'campo_livre':     'Freies Feld',
+  'E-mail':          'E-Mail',
+  'Email':           'E-Mail',
 }
 
 function getLabel(key: string): string {
   return VARIABLE_LABELS[key] || key.replace(/_/g, ' ')
+}
+
+// ── Client-side PDF download button (fallback when no storage URL) ──────────
+function ClientContractPDFButton({
+  title,
+  content,
+  signedByName,
+  signedAt,
+  signatureData,
+}: {
+  title: string
+  content: string
+  signedByName: string
+  signedAt: string | null
+  signatureData: string | null
+}) {
+  const [generating, setGenerating] = useState(false)
+
+  const handleDownload = async () => {
+    setGenerating(true)
+    try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
+
+      function htmlToText(html: string): string {
+        return html
+          .replace(/<h[1-6][^>]*>/gi, '\n\n').replace(/<\/h[1-6]>/gi, '\n')
+          .replace(/<p[^>]*>/gi, '\n').replace(/<\/p>/gi, '')
+          .replace(/<li[^>]*>/gi, '\n• ').replace(/<\/li>/gi, '')
+          .replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+          .replace(/\n{3,}/g, '\n\n').trim()
+      }
+
+      function wrapText(text: string, max: number): string[] {
+        const lines: string[] = []
+        for (const para of text.split('\n')) {
+          if (!para.trim()) { lines.push(''); continue }
+          let cur = ''
+          for (const word of para.split(' ')) {
+            if ((cur + ' ' + word).trim().length <= max) cur = (cur + ' ' + word).trim()
+            else { if (cur) lines.push(cur); cur = word }
+          }
+          if (cur) lines.push(cur)
+        }
+        return lines
+      }
+
+      const pdfDoc = await PDFDocument.create()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+      const pageWidth = 595, pageHeight = 842, margin = 50
+      const fontSize = 10, lineHeight = 16
+      const maxChars = Math.floor((pageWidth - margin * 2) / (fontSize * 0.55))
+      let page = pdfDoc.addPage([pageWidth, pageHeight])
+      let y = pageHeight - margin
+
+      const draw = (text: string, bold = false, size = fontSize, color: [number, number, number] = [0.1, 0.1, 0.1]) => {
+        if (y < margin + 60) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+        page.drawText(text, { x: margin, y, font: bold ? boldFont : font, size, color: rgb(...color) })
+        y -= size + 6
+      }
+
+      draw('Fotonizer', true, 18, [0.78, 0.66, 0.51])
+      y -= 4
+      page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: rgb(0.9, 0.9, 0.9) })
+      y -= 12
+      draw(title, true, 14)
+      y -= 8
+
+      const lines = wrapText(htmlToText(content), maxChars)
+      for (const line of lines) {
+        if (y < margin + 80) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+        if (!line) { y -= lineHeight / 2 } else {
+          page.drawText(line, { x: margin, y, font, size: fontSize, color: rgb(0.1, 0.1, 0.1) })
+          y -= lineHeight
+        }
+      }
+
+      y -= 20
+      page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: rgb(0.9, 0.9, 0.9) })
+      y -= 12
+      draw('DIGITALE UNTERSCHRIFT', true, 9, [0.42, 0.42, 0.42])
+      y -= 4
+
+      if (signatureData) {
+        try {
+          const base64 = signatureData.replace(/^data:image\/png;base64,/, '')
+          const sigImg = await pdfDoc.embedPng(Buffer.from(base64, 'base64'))
+          const dims = sigImg.scale(0.4)
+          if (y < margin + dims.height + 40) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin }
+          page.drawImage(sigImg, { x: margin, y: y - dims.height, width: dims.width, height: dims.height })
+          y -= dims.height + 8
+        } catch { /* skip */ }
+      }
+
+      draw(`Unterschrieben von: ${signedByName}`, true)
+      if (signedAt) draw(`Datum: ${new Date(signedAt).toLocaleDateString('de-DE')}`)
+      y -= 8
+      page.drawLine({ start: { x: margin, y }, end: { x: pageWidth - margin, y }, thickness: 0.5, color: rgb(0.9, 0.9, 0.9) })
+      y -= 12
+      draw('Digitally signed via Fotonizer (fotonizer.com)', false, 8, [0.6, 0.6, 0.6])
+
+      const bytes = await pdfDoc.save()
+      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${title.replace(/[^a-z0-9]/gi, '_')}_signed.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error(e)
+      toast.error('PDF konnte nicht generiert werden')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={generating}
+      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+    >
+      {generating ? (
+        <>
+          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          Generiere PDF...
+        </>
+      ) : (
+        <>
+          <Download className="w-4 h-4" />
+          PDF herunterladen
+        </>
+      )}
+    </button>
+  )
 }
 
 export default function ContractSigningClient({ contract, clientName, token, savedClientFields }: Props) {
@@ -114,7 +243,6 @@ export default function ContractSigningClient({ contract, clientName, token, sav
   }
 
   const proceedToSign = () => {
-    // Validate required fields (all fields are required)
     const missing = variables.filter(k => !clientFields[k]?.trim())
     if (missing.length > 0) {
       toast.error(`Please fill in all fields: ${missing.map(getLabel).join(', ')}`)
@@ -167,7 +295,7 @@ export default function ContractSigningClient({ contract, clientName, token, sav
     setSigning(false)
   }
 
-  // Already signed view
+  // ── Already signed view ────────────────────────────────────────────────
   if (signed) {
     return (
       <div className="space-y-6 animate-in">
@@ -184,21 +312,33 @@ export default function ContractSigningClient({ contract, clientName, token, sav
             Vertrag unterschrieben! 🎉
           </h2>
           <p className="text-[#6B6B6B] text-sm mb-6">
-            Signed von <strong>{contract.signed_by_name || signerName}</strong>
+            Unterschrieben von <strong>{contract.signed_by_name || signerName}</strong>
             {contract.signed_at && ` am ${new Date(contract.signed_at).toLocaleDateString('de-DE')}`}
           </p>
 
-          {pdfUrl && (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Signedes PDF herunterladen
-            </a>
-          )}
+          <div className="flex flex-wrap gap-3 justify-center">
+            {/* Download from Supabase Storage if URL available */}
+            {pdfUrl ? (
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                PDF herunterladen
+              </a>
+            ) : (
+              /* Fallback: generate PDF in browser */
+              <ClientContractPDFButton
+                title={contract.title}
+                content={applyVariables(contract.content || '', clientFields)}
+                signedByName={contract.signed_by_name || signerName}
+                signedAt={contract.signed_at || null}
+                signatureData={contract.signature_data || null}
+              />
+            )}
+          </div>
         </div>
 
         {/* Show contract content read-only with filled values */}
