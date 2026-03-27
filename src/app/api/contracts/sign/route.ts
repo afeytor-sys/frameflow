@@ -174,12 +174,12 @@ export async function POST(request: NextRequest) {
       for (const [key, value] of Object.entries(clientFields)) {
         const val = String(value || '')
         const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        // Replace TipTap span wrapper first
+        // Replace any span containing {{key}} — permissive match regardless of attribute order/content
         contractContent = contractContent.replace(
-          new RegExp(`<span[^>]*class="contract-variable"[^>]*>\\{\\{${escapedKey}\\}\\}<\\/span>`, 'g'),
+          new RegExp(`<span[^>]*>\\{\\{${escapedKey}\\}\\}<\\/span>`, 'g'),
           val
         )
-        // Replace plain {{key}} fallback
+        // Replace plain {{key}} (fallback for any remaining occurrences)
         contractContent = contractContent.replace(new RegExp(`\\{\\{${escapedKey}\\}\\}`, 'g'), val)
       }
     }
