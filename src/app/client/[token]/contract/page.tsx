@@ -58,6 +58,7 @@ export default async function ClientContractPage({ params }: { params: Promise<{
       contract={{ ...contract, status: (contract.status === 'sent' || contract.status === 'draft') ? 'viewed' : contract.status }}
       clientName={client.full_name}
       token={token}
+      savedClientFields={(contract.client_fields as Record<string, string> | null) ?? null}
     />
     </div>
   )

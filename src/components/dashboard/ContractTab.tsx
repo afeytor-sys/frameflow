@@ -912,6 +912,21 @@ export default function ContractTab({
           </div>
         </div>
 
+        {/* ── Banner: client signed but photographer hasn't yet ── */}
+        {activeContract.status === 'signed' && !activeContract.photographer_signature_data && (
+          <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: 'rgba(61,186,111,0.08)', border: '1px solid rgba(61,186,111,0.30)' }}>
+            <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: '#3DBA6F' }} />
+            <div>
+              <p className="text-[13px] font-bold" style={{ color: '#3DBA6F' }}>
+                ✍️ {activeContract.signed_by_name || clientName} hat den Vertrag unterschrieben!
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Jetzt bitte auch deine eigene Unterschrift hinzufügen (siehe unten).
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Client signature block ── */}
         {activeContract.status === 'signed' && (
           <SignatureBlock
@@ -927,13 +942,35 @@ export default function ContractTab({
         )}
 
         <ContractEditor
-          content={content || activeContract.content || ''}
+          content={(() => {
+            // If contract is signed and has client_fields, apply them to the content for display
+            const baseContent = content || activeContract.content || ''
+            const fields = activeContract.client_fields as Record<string, string> | null
+            if (activeContract.status === 'signed' && fields && Object.keys(fields).length > 0) {
+              let result = baseContent
+              for (const [key, value] of Object.entries(fields)) {
+                const val = String(value || '')
+                const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                result = result.replace(
+                  new RegExp(`<span[^>]*>\\{\\{${escapedKey}\\}\\}<\\/span>`, 'g'),
+                  `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${val}</span>`
+                )
+                result = result.replace(
+                  new RegExp(`\\{\\{${escapedKey}\\}\\}`, 'g'),
+                  `<span style="background:rgba(196,164,124,0.15);color:#8B5CF6;border-radius:3px;padding:0 3px;font-weight:600;">${val}</span>`
+                )
+              }
+              return result
+            }
+            return baseContent
+          })()}
           onChange={setContent}
           editable={activeContract.status === 'draft'}
         />
 
         {/* ── Photographer signature block ── */}
-        {['sent', 'viewed', 'signed'].includes(activeContract.status) && (
+        {/* Show for all statuses so photographer can always sign */}
+        {activeContract.status !== 'draft' ? (
           <PhotographerSignatureSection
             contractId={activeContract.id}
             photographerName={photographerName}
@@ -944,6 +981,17 @@ export default function ContractTab({
               setActiveContract(prev => prev ? { ...prev, ...data } : prev)
             }}
           />
+        ) : (
+          /* Draft: show a hint that the photographer can sign after sending */
+          <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: 'rgba(196,164,124,0.08)', border: '1px dashed rgba(196,164,124,0.35)' }}>
+            <PenLine className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+            <div>
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Deine Unterschrift (Fotograf)</p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Sende den Vertrag zuerst an den Kunden, um ihn anschließend selbst zu unterschreiben.
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Save as template modal */}

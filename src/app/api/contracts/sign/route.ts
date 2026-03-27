@@ -275,6 +275,22 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', contractId)
 
+    // ─── Create in-app notification for photographer ─────────────────
+    try {
+      await supabase.from('notifications').insert({
+        photographer_id: project.photographer_id,
+        type: 'contract_signed',
+        title_de: `Vertrag unterschrieben: ${project.client.full_name}`,
+        title_en: `Contract signed: ${project.client.full_name}`,
+        body_de: `${project.client.full_name} hat den Vertrag „${contract.title}" für das Projekt „${project.title}" unterschrieben.`,
+        body_en: `${project.client.full_name} signed the contract "${contract.title}" for project "${project.title}".`,
+        project_id: project.id,
+        client_name: project.client.full_name,
+      })
+    } catch (notifErr) {
+      console.error('Notification insert error:', notifErr)
+    }
+
     // ─── Notify photographer via email ───────────────────────────────
     if (photographer?.email) {
       const dateStr = signedAt.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })

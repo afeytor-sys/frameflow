@@ -113,6 +113,8 @@ export interface Contract {
   client_name: string | null
   client_email: string | null
   client_address: string | null
+  // client-filled variables (JSON object from contract signing)
+  client_fields: Record<string, string> | null
   created_at: string
 }
 

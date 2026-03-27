@@ -12,6 +12,7 @@ interface Props {
   contract: Contract
   clientName: string
   token: string
+  savedClientFields?: Record<string, string> | null
 }
 
 // Extract all {{variable}} keys from HTML content
@@ -82,7 +83,7 @@ function getLabel(key: string): string {
   return VARIABLE_LABELS[key] || key.replace(/_/g, ' ')
 }
 
-export default function ContractSigningClient({ contract, clientName, token }: Props) {
+export default function ContractSigningClient({ contract, clientName, token, savedClientFields }: Props) {
   const sigCanvasRef = useRef<SignatureCanvas>(null)
   const [agreed, setAgreed] = useState(false)
   const [signerName, setSignerName] = useState(clientName)
@@ -91,10 +92,12 @@ export default function ContractSigningClient({ contract, clientName, token }: P
   const [pdfUrl, setPdfUrl] = useState(contract.pdf_url || null)
   const [scrollProgress, setScrollProgress] = useState(0)
 
-  // Client fields (variables)
+  // Client fields (variables) — pre-fill from saved data if contract is already signed
   const variables = extractVariables(contract.content || '')
   const [clientFields, setClientFields] = useState<Record<string, string>>(
-    Object.fromEntries(variables.map(k => [k, '']))
+    savedClientFields && Object.keys(savedClientFields).length > 0
+      ? savedClientFields
+      : Object.fromEntries(variables.map(k => [k, '']))
   )
   const [fieldsStep, setFieldsStep] = useState<'fields' | 'sign'>(
     variables.length > 0 ? 'fields' : 'sign'
