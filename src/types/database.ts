@@ -289,6 +289,52 @@ export interface AutomationSettings {
   updated_at: string
 }
 
+// ── Public Form System ────────────────────────────────────────────────────────
+
+export interface FormFieldOption {
+  id: string
+  label: string
+  type: 'text' | 'textarea' | 'email' | 'tel' | 'select'
+  required?: boolean
+  options?: string[]
+}
+
+export interface Form {
+  id: string
+  photographer_id: string
+  name: string
+  fields: FormFieldOption[]
+  created_at: string
+}
+
+export interface Lead {
+  id: string
+  form_id: string
+  photographer_id: string
+  name: string
+  email: string
+  message: string
+  created_at: string
+}
+
+export interface Conversation {
+  id: string
+  photographer_id: string
+  lead_email: string
+  lead_name: string
+  created_at: string
+  // Joined
+  messages?: Message[]
+}
+
+export interface Message {
+  id: string
+  conversation_id: string
+  sender: 'lead' | 'photographer'
+  content: string
+  created_at: string
+}
+
 // Plan limits
 export const PLAN_LIMITS = {
   free: {
