@@ -1,5 +1,6 @@
 import { getFormById } from '@/lib/forms'
 import DynamicForm from '@/components/forms/DynamicForm'
+import FormSubtitle from '@/components/forms/FormSubtitle'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -55,9 +56,7 @@ export default async function PublicFormPage({ params }: Props) {
             style={{ color: 'var(--text-primary, #111)', letterSpacing: '-0.03em' }}>
             {form.name}
           </h1>
-          <p className="text-sm" style={{ color: 'var(--text-secondary, #666)' }}>
-            Fill out the form below and we'll get back to you shortly.
-          </p>
+          <FormSubtitle />
         </div>
 
         {/* Form card */}

@@ -4,6 +4,43 @@ import { useState } from 'react'
 import type { FormField } from '@/lib/forms'
 import { DEFAULT_FIELDS } from '@/lib/forms'
 
+// ── Inline translations (EN / DE) ─────────────────────────────────────────
+const translations = {
+  en: {
+    subtitle: "Fill out the form below and we'll get back to you shortly.",
+    submit: 'Send inquiry',
+    sending: 'Sending...',
+    successTitle: 'Thanks, your inquiry was sent.',
+    successSubtitle: "We'll get back to you as soon as possible.",
+    selectPlaceholder: 'Select an option',
+    noOptions: 'No options configured for this field.',
+    required: (label: string) => `${label} is required`,
+    invalidEmail: 'Please enter a valid email address',
+    networkError: 'Network error. Please check your connection and try again.',
+    serverError: 'Something went wrong. Please try again.',
+  },
+  de: {
+    subtitle: 'Füllen Sie das Formular aus und wir melden uns in Kürze bei Ihnen.',
+    submit: 'Anfrage senden',
+    sending: 'Wird gesendet...',
+    successTitle: 'Danke, Ihre Anfrage wurde gesendet.',
+    successSubtitle: 'Wir melden uns so schnell wie möglich bei Ihnen.',
+    selectPlaceholder: 'Option auswählen',
+    noOptions: 'Keine Optionen für dieses Feld konfiguriert.',
+    required: (label: string) => `${label} ist erforderlich`,
+    invalidEmail: 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
+    networkError: 'Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+    serverError: 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
+  },
+}
+
+function useT() {
+  if (typeof navigator !== 'undefined' && navigator.language.startsWith('de')) {
+    return translations.de
+  }
+  return translations.en
+}
+
 interface DynamicFormProps {
   formId: string
   formName: string
@@ -23,6 +60,7 @@ function isValidEmail(email: string): boolean {
 }
 
 export default function DynamicForm({ formId, fields: rawFields }: DynamicFormProps) {
+  const t = useT()
   const fields = rawFields && rawFields.length > 0 ? rawFields : DEFAULT_FIELDS
 
   // Single-value fields: text, email, textarea, date, tel, select, radio
@@ -57,16 +95,16 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
 
       if (field.type === 'checkbox') {
         if (!multiValues[field.id]?.length) {
-          newErrors[field.id] = `${field.label} is required`
+          newErrors[field.id] = t.required(field.label)
         }
       } else {
         const val = values[field.id]?.trim() ?? ''
         if (!val) {
-          newErrors[field.id] = `${field.label} is required`
+          newErrors[field.id] = t.required(field.label)
           continue
         }
         if (field.type === 'email' && !isValidEmail(val)) {
-          newErrors[field.id] = 'Please enter a valid email address'
+          newErrors[field.id] = t.invalidEmail
         }
       }
     }
@@ -113,12 +151,12 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
       })
       const data = await res.json()
       if (!res.ok) {
-        setServerError(data.error ?? 'Something went wrong. Please try again.')
+        setServerError(data.error ?? t.serverError)
         return
       }
       setSubmitted(true)
     } catch {
-      setServerError('Network error. Please check your connection and try again.')
+      setServerError(t.networkError)
     } finally {
       setLoading(false)
     }
@@ -133,10 +171,10 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
           ✓
         </div>
         <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary, #111)' }}>
-          Thanks, your inquiry was sent.
+          {t.successTitle}
         </h2>
         <p className="text-sm" style={{ color: 'var(--text-secondary, #666)' }}>
-          We'll get back to you as soon as possible.
+          {t.successSubtitle}
         </p>
       </div>
     )
@@ -176,14 +214,14 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
                   className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
                   style={baseInputStyle}
                 >
-                  <option value="">Select an option</option>
+                  <option value="">{t.selectPlaceholder}</option>
                   {field.options!.map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
               ) : (
                 <p className="text-xs italic" style={{ color: 'var(--text-muted, #aaa)' }}>
-                  No options configured for this field.
+                  {t.noOptions}
                 </p>
               )
             )}
@@ -221,7 +259,7 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
                 </div>
               ) : (
                 <p className="text-xs italic" style={{ color: 'var(--text-muted, #aaa)' }}>
-                  No options configured for this field.
+                  {t.noOptions}
                 </p>
               )
             )}
@@ -258,7 +296,7 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
                 </div>
               ) : (
                 <p className="text-xs italic" style={{ color: 'var(--text-muted, #aaa)' }}>
-                  No options configured for this field.
+                  {t.noOptions}
                 </p>
               )
             )}
@@ -322,10 +360,10 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Sending...
+            {t.sending}
           </>
         ) : (
-          'Send inquiry'
+          t.submit
         )}
       </button>
     </form>
