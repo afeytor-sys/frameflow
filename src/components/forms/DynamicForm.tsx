@@ -11,15 +11,25 @@ interface DynamicFormProps {
   fields: FormField[]
 }
 
+const CHOICE_TYPES = ['select', 'radio', 'checkbox'] as const
+type ChoiceType = (typeof CHOICE_TYPES)[number]
+
+function isChoiceType(t: string): t is ChoiceType {
+  return CHOICE_TYPES.includes(t as ChoiceType)
+}
+
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 export default function DynamicForm({ formId, fields: rawFields }: DynamicFormProps) {
-  // Use DEFAULT_FIELDS if no custom fields configured
   const fields = rawFields && rawFields.length > 0 ? rawFields : DEFAULT_FIELDS
 
+  // Single-value fields: text, email, textarea, date, tel, select, radio
   const [values, setValues] = useState<Record<string, string>>({})
+  // Multi-value fields: checkbox only (string[])
+  const [multiValues, setMultiValues] = useState<Record<string, string[]>>({})
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -29,20 +39,35 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
     setValues(prev => ({ ...prev, [id]: val }))
   }
 
+  function toggleCheckbox(id: string, option: string, checked: boolean) {
+    setMultiValues(prev => {
+      const current = prev[id] ?? []
+      return {
+        ...prev,
+        [id]: checked ? [...current, option] : current.filter(v => v !== option),
+      }
+    })
+  }
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {}
 
     for (const field of fields) {
-      const val = values[field.id]?.trim() ?? ''
+      if (!field.required) continue
 
-      if (field.required && !val) {
-        newErrors[field.id] = `${field.label} is required`
-        continue
-      }
-
-      // Email format check for any email-type field
-      if (field.type === 'email' && val && !isValidEmail(val)) {
-        newErrors[field.id] = 'Please enter a valid email address'
+      if (field.type === 'checkbox') {
+        if (!multiValues[field.id]?.length) {
+          newErrors[field.id] = `${field.label} is required`
+        }
+      } else {
+        const val = values[field.id]?.trim() ?? ''
+        if (!val) {
+          newErrors[field.id] = `${field.label} is required`
+          continue
+        }
+        if (field.type === 'email' && !isValidEmail(val)) {
+          newErrors[field.id] = 'Please enter a valid email address'
+        }
       }
     }
 
@@ -53,21 +78,31 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setServerError(null)
-
     if (!validate()) return
 
-    // Extract the 3 core fields the API expects
+    // Extract core fields for API
     const name = values['name']?.trim() ?? ''
     const email = values['email']?.trim() ?? ''
-    // Use 'message' field if present, otherwise join all non-core values
-    const message = values['message']?.trim()
-      ?? Object.entries(values)
-        .filter(([k]) => k !== 'name' && k !== 'email')
-        .map(([k, v]) => {
-          const f = fields.find(f => f.id === k)
-          return f ? `${f.label}: ${v}` : v
-        })
-        .join('\n')
+
+    // Build message: use 'message' field if present, otherwise join all non-core values
+    const messageParts: string[] = []
+    for (const field of fields) {
+      if (field.id === 'name' || field.id === 'email') continue
+      if (field.type === 'checkbox') {
+        const selected = multiValues[field.id] ?? []
+        if (selected.length) messageParts.push(`${field.label}: ${selected.join(', ')}`)
+      } else {
+        const val = values[field.id]?.trim()
+        if (val) {
+          if (field.id === 'message') {
+            messageParts.unshift(val) // message goes first
+          } else {
+            messageParts.push(`${field.label}: ${val}`)
+          }
+        }
+      }
+    }
+    const message = messageParts.join('\n')
 
     setLoading(true)
     try {
@@ -76,14 +111,11 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ formId, name, email, message }),
       })
-
       const data = await res.json()
-
       if (!res.ok) {
         setServerError(data.error ?? 'Something went wrong. Please try again.')
         return
       }
-
       setSubmitted(true)
     } catch {
       setServerError('Network error. Please check your connection and try again.')
@@ -114,18 +146,19 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {fields.map(field => {
-        const val = values[field.id] ?? ''
         const err = errors[field.id]
-        const inputStyle = {
+        const hasOptions = field.options && field.options.length > 0
+        const borderColor = err ? '#ef4444' : 'var(--card-border, #e5e7eb)'
+        const baseInputStyle: React.CSSProperties = {
           background: 'var(--card-bg, #fff)',
-          border: err ? '1.5px solid #ef4444' : '1.5px solid var(--card-border, #e5e7eb)',
+          border: `1.5px solid ${borderColor}`,
           color: 'var(--text-primary, #111)',
         }
 
         return (
           <div key={field.id}>
             <label
-              htmlFor={`ff-${field.id}`}
+              htmlFor={isChoiceType(field.type) ? undefined : `ff-${field.id}`}
               className="block text-sm font-semibold mb-1.5"
               style={{ color: 'var(--text-primary, #111)' }}
             >
@@ -133,17 +166,118 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
               {field.required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
 
-            {field.type === 'textarea' ? (
+            {/* ── SELECT ── */}
+            {field.type === 'select' && (
+              hasOptions ? (
+                <select
+                  id={`ff-${field.id}`}
+                  value={values[field.id] ?? ''}
+                  onChange={e => setValue(field.id, e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                  style={baseInputStyle}
+                >
+                  <option value="">Select an option</option>
+                  {field.options!.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted, #aaa)' }}>
+                  No options configured for this field.
+                </p>
+              )
+            )}
+
+            {/* ── RADIO ── */}
+            {field.type === 'radio' && (
+              hasOptions ? (
+                <div className="space-y-2">
+                  {field.options!.map(opt => {
+                    const selected = values[field.id] === opt
+                    return (
+                      <label
+                        key={opt}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all"
+                        style={{
+                          border: `1.5px solid ${selected ? 'var(--accent, #C9A96E)' : borderColor}`,
+                          background: selected ? 'rgba(201,169,110,0.07)' : 'var(--card-bg, #fff)',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name={`ff-${field.id}`}
+                          value={opt}
+                          checked={selected}
+                          onChange={() => setValue(field.id, opt)}
+                          className="w-4 h-4 flex-shrink-0"
+                          style={{ accentColor: 'var(--accent, #C9A96E)' }}
+                        />
+                        <span className="text-sm" style={{ color: 'var(--text-primary, #111)' }}>
+                          {opt}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted, #aaa)' }}>
+                  No options configured for this field.
+                </p>
+              )
+            )}
+
+            {/* ── CHECKBOX ── */}
+            {field.type === 'checkbox' && (
+              hasOptions ? (
+                <div className="space-y-2">
+                  {field.options!.map(opt => {
+                    const checked = (multiValues[field.id] ?? []).includes(opt)
+                    return (
+                      <label
+                        key={opt}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all"
+                        style={{
+                          border: `1.5px solid ${checked ? 'var(--accent, #C9A96E)' : borderColor}`,
+                          background: checked ? 'rgba(201,169,110,0.07)' : 'var(--card-bg, #fff)',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          value={opt}
+                          checked={checked}
+                          onChange={e => toggleCheckbox(field.id, opt, e.target.checked)}
+                          className="w-4 h-4 flex-shrink-0 rounded"
+                          style={{ accentColor: 'var(--accent, #C9A96E)' }}
+                        />
+                        <span className="text-sm" style={{ color: 'var(--text-primary, #111)' }}>
+                          {opt}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted, #aaa)' }}>
+                  No options configured for this field.
+                </p>
+              )
+            )}
+
+            {/* ── TEXTAREA ── */}
+            {field.type === 'textarea' && (
               <textarea
                 id={`ff-${field.id}`}
                 rows={field.id === 'message' ? 5 : 3}
-                value={val}
+                value={values[field.id] ?? ''}
                 onChange={e => setValue(field.id, e.target.value)}
                 placeholder={field.placeholder ?? field.label}
                 className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
-                style={inputStyle}
+                style={baseInputStyle}
               />
-            ) : (
+            )}
+
+            {/* ── TEXT / EMAIL / TEL / DATE ── */}
+            {!isChoiceType(field.type) && field.type !== 'textarea' && (
               <input
                 id={`ff-${field.id}`}
                 type={field.type === 'email' ? 'email'
@@ -155,11 +289,11 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
                   : field.id === 'email' ? 'email'
                   : undefined
                 }
-                value={val}
+                value={values[field.id] ?? ''}
                 onChange={e => setValue(field.id, e.target.value)}
                 placeholder={field.placeholder ?? field.label}
                 className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={inputStyle}
+                style={baseInputStyle}
               />
             )}
 

@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 export interface FormField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'email' | 'tel' | 'date' | 'select'
+  type: 'text' | 'textarea' | 'email' | 'tel' | 'date' | 'select' | 'radio' | 'checkbox'
   required?: boolean
   placeholder?: string
   core?: boolean        // core fields (name, email) cannot be deleted
