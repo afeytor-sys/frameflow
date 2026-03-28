@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { MessageCircle, Inbox } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { MessageCircle, Inbox, Send } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Message {
   id: string
@@ -21,6 +22,7 @@ interface Conversation {
 
 interface Props {
   conversations: Conversation[]
+  photographerEmail: string | null
 }
 
 function formatTime(iso: string) {
@@ -45,13 +47,124 @@ function getSortedMessages(messages: Message[]): Message[] {
   return [...messages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 }
 
-export default function InboxClient({ conversations }: Props) {
+export default function InboxClient({ conversations, photographerEmail }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(
     conversations.length > 0 ? conversations[0].id : null
   )
 
+  // Local messages state for optimistic updates — keyed by conversation id
+  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
+
+  // Reply state
+  const [replyText, setReplyText] = useState('')
+  const [isSending, setIsSending] = useState(false)
+
+  // Refs for scroll-to-bottom
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
   const selected = conversations.find(c => c.id === selectedId) ?? null
-  const sortedMessages = selected ? getSortedMessages(selected.messages) : []
+
+  // Merge server messages with local optimistic messages
+  const getMessages = useCallback((convId: string): Message[] => {
+    const conv = conversations.find(c => c.id === convId)
+    const serverMsgs = conv ? getSortedMessages(conv.messages) : []
+    const localMsgs = localMessages[convId] ?? []
+    // Merge: local messages that aren't already in server (by id)
+    const serverIds = new Set(serverMsgs.map(m => m.id))
+    const newLocal = localMsgs.filter(m => !serverIds.has(m.id))
+    return [...serverMsgs, ...newLocal].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }, [conversations, localMessages])
+
+  const displayMessages = selected ? getMessages(selected.id) : []
+
+  // Scroll to bottom when messages change or conversation changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [displayMessages.length, selectedId])
+
+  // Clear reply text when switching conversations
+  useEffect(() => {
+    setReplyText('')
+  }, [selectedId])
+
+  const handleSend = async () => {
+    if (!selected || !replyText.trim() || isSending) return
+
+    const content = replyText.trim()
+    const optimisticId = `optimistic-${Date.now()}`
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      sender: 'photographer',
+      content,
+      created_at: new Date().toISOString(),
+    }
+
+    // Optimistic update
+    setLocalMessages(prev => ({
+      ...prev,
+      [selected.id]: [...(prev[selected.id] ?? []), optimisticMsg],
+    }))
+    setReplyText('')
+    setIsSending(true)
+
+    try {
+      const res = await fetch('/api/inbox/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: selected.id, content }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        // Rollback optimistic message
+        setLocalMessages(prev => ({
+          ...prev,
+          [selected.id]: (prev[selected.id] ?? []).filter(m => m.id !== optimisticId),
+        }))
+        setReplyText(content) // restore text
+        toast.error(data.error ?? 'Failed to send reply')
+        return
+      }
+
+      // Replace optimistic message with real one from server
+      if (data.message) {
+        setLocalMessages(prev => ({
+          ...prev,
+          [selected.id]: [
+            ...(prev[selected.id] ?? []).filter(m => m.id !== optimisticId),
+            data.message,
+          ],
+        }))
+      }
+
+      // Warn if email failed but message was saved
+      if (data.emailSent === false) {
+        toast('Message saved, but email could not be sent.', { icon: '⚠️' })
+      }
+    } catch {
+      // Rollback
+      setLocalMessages(prev => ({
+        ...prev,
+        [selected.id]: (prev[selected.id] ?? []).filter(m => m.id !== optimisticId),
+      }))
+      setReplyText(content)
+      toast.error('Network error — please try again')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Cmd+Enter or Ctrl+Enter to send
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
   return (
     <div className="flex h-full" style={{ minHeight: 0 }}>
@@ -91,7 +204,8 @@ export default function InboxClient({ conversations }: Props) {
 
         {/* Conversation rows */}
         {conversations.map(conv => {
-          const last = getLastMessage(conv.messages)
+          const allMsgs = getMessages(conv.id)
+          const last = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : getLastMessage(conv.messages)
           const isActive = conv.id === selectedId
           return (
             <button
@@ -127,7 +241,7 @@ export default function InboxClient({ conversations }: Props) {
               {/* Last message preview */}
               {last && (
                 <p className="text-[12px] truncate pl-10" style={{ color: 'var(--text-secondary)' }}>
-                  {last.content}
+                  {last.sender === 'photographer' ? 'You: ' : ''}{last.content}
                 </p>
               )}
             </button>
@@ -167,10 +281,10 @@ export default function InboxClient({ conversations }: Props) {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-              {sortedMessages.length === 0 && (
+              {displayMessages.length === 0 && (
                 <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>No messages yet.</p>
               )}
-              {sortedMessages.map(msg => {
+              {displayMessages.map(msg => {
                 const isLead = msg.sender === 'lead'
                 return (
                   <div key={msg.id} className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
@@ -185,6 +299,7 @@ export default function InboxClient({ conversations }: Props) {
                           background: 'var(--accent, #C9A96E)',
                           color: '#fff',
                           borderBottomRightRadius: '4px',
+                          opacity: msg.id.startsWith('optimistic-') ? 0.7 : 1,
                         }}
                       >
                         {msg.content}
@@ -197,19 +312,55 @@ export default function InboxClient({ conversations }: Props) {
                   </div>
                 )
               })}
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Reply area — read-only for now, placeholder for future */}
+            {/* ── Reply area ──────────────────────────────────────────────── */}
             <div className="px-6 py-4 flex-shrink-0"
               style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
-              <div className="px-4 py-3 rounded-xl text-sm"
-                style={{
-                  background: 'var(--bg-hover)',
-                  border: '1.5px solid var(--card-border)',
-                  color: 'var(--text-muted)',
-                }}>
-                Reply functionality coming soon…
+              <div className="flex items-end gap-3">
+                <textarea
+                  ref={textareaRef}
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Write a reply… (Cmd+Enter to send)"
+                  rows={3}
+                  disabled={isSending}
+                  className="flex-1 resize-none rounded-xl px-4 py-3 text-[13px] leading-relaxed outline-none transition-all disabled:opacity-50"
+                  style={{
+                    background: 'var(--bg-hover)',
+                    border: '1.5px solid var(--card-border)',
+                    color: 'var(--text-primary)',
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = 'var(--accent, #C9A96E)'
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = 'var(--card-border)'
+                  }}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!replyText.trim() || isSending}
+                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    background: replyText.trim() && !isSending ? 'var(--accent, #C9A96E)' : 'var(--bg-hover)',
+                    color: replyText.trim() && !isSending ? '#fff' : 'var(--text-muted)',
+                  }}
+                  title="Send reply (Cmd+Enter)"
+                >
+                  {isSending ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
               </div>
+              <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+                Reply will be sent to {selected.lead_email}
+              </p>
             </div>
           </>
         )}
