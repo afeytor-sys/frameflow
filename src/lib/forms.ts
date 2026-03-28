@@ -3,8 +3,10 @@ import { createServiceClient } from '@/lib/supabase/service'
 export interface FormField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'email' | 'tel' | 'select'
+  type: 'text' | 'textarea' | 'email' | 'tel' | 'date' | 'select'
   required?: boolean
+  placeholder?: string
+  core?: boolean        // core fields (name, email) cannot be deleted
   options?: string[]
 }
 
@@ -23,6 +25,33 @@ export interface SubmitFormPayload {
   email: string
   message: string
 }
+
+/** Default fields used when a form has no custom fields configured */
+export const DEFAULT_FIELDS: FormField[] = [
+  {
+    id: 'name',
+    label: 'Name',
+    type: 'text',
+    required: true,
+    placeholder: 'Your full name',
+    core: true,
+  },
+  {
+    id: 'email',
+    label: 'Email',
+    type: 'email',
+    required: true,
+    placeholder: 'your@email.com',
+    core: true,
+  },
+  {
+    id: 'message',
+    label: 'Message',
+    type: 'textarea',
+    required: false,
+    placeholder: 'Tell us about your project, date, location…',
+  },
+]
 
 /**
  * Fetch a public form by its ID.

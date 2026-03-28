@@ -70,7 +70,7 @@ export default async function PublicFormPage({ params }: Props) {
           <DynamicForm
             formId={form.id}
             formName={form.name}
-            extraFields={form.fields ?? []}
+            fields={form.fields ?? []}
           />
         </div>
 

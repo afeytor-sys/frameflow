@@ -2,42 +2,47 @@
 
 import { useState } from 'react'
 import type { FormField } from '@/lib/forms'
+import { DEFAULT_FIELDS } from '@/lib/forms'
 
 interface DynamicFormProps {
   formId: string
   formName: string
-  extraFields: FormField[]
+  /** All form fields including name, email, message. Falls back to DEFAULT_FIELDS if empty. */
+  fields: FormField[]
 }
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-export default function DynamicForm({ formId, formName, extraFields }: DynamicFormProps) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
-  const [extraValues, setExtraValues] = useState<Record<string, string>>({})
+export default function DynamicForm({ formId, fields: rawFields }: DynamicFormProps) {
+  // Use DEFAULT_FIELDS if no custom fields configured
+  const fields = rawFields && rawFields.length > 0 ? rawFields : DEFAULT_FIELDS
+
+  const [values, setValues] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
+  function setValue(id: string, val: string) {
+    setValues(prev => ({ ...prev, [id]: val }))
+  }
+
   function validate(): boolean {
     const newErrors: Record<string, string> = {}
 
-    if (!name.trim()) newErrors.name = 'Name is required'
-    if (!email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!isValidEmail(email.trim())) {
-      newErrors.email = 'Please enter a valid email address'
-    }
-    if (!message.trim()) newErrors.message = 'Message is required'
+    for (const field of fields) {
+      const val = values[field.id]?.trim() ?? ''
 
-    // Validate required extra fields
-    for (const field of extraFields) {
-      if (field.required && !extraValues[field.id]?.trim()) {
+      if (field.required && !val) {
         newErrors[field.id] = `${field.label} is required`
+        continue
+      }
+
+      // Email format check for any email-type field
+      if (field.type === 'email' && val && !isValidEmail(val)) {
+        newErrors[field.id] = 'Please enter a valid email address'
       }
     }
 
@@ -50,6 +55,19 @@ export default function DynamicForm({ formId, formName, extraFields }: DynamicFo
     setServerError(null)
 
     if (!validate()) return
+
+    // Extract the 3 core fields the API expects
+    const name = values['name']?.trim() ?? ''
+    const email = values['email']?.trim() ?? ''
+    // Use 'message' field if present, otherwise join all non-core values
+    const message = values['message']?.trim()
+      ?? Object.entries(values)
+        .filter(([k]) => k !== 'name' && k !== 'email')
+        .map(([k, v]) => {
+          const f = fields.find(f => f.id === k)
+          return f ? `${f.label}: ${v}` : v
+        })
+        .join('\n')
 
     setLoading(true)
     try {
@@ -95,153 +113,60 @@ export default function DynamicForm({ formId, formName, extraFields }: DynamicFo
   // ── Form ──────────────────────────────────────────────────────────────────
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
-      {/* Name */}
-      <div>
-        <label htmlFor="ff-name" className="block text-sm font-semibold mb-1.5"
-          style={{ color: 'var(--text-primary, #111)' }}>
-          Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="ff-name"
-          type="text"
-          autoComplete="name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Your full name"
-          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-          style={{
-            background: 'var(--card-bg, #fff)',
-            border: errors.name
-              ? '1.5px solid #ef4444'
-              : '1.5px solid var(--card-border, #e5e7eb)',
-            color: 'var(--text-primary, #111)',
-          }}
-        />
-        {errors.name && (
-          <p className="mt-1 text-xs text-red-500">{errors.name}</p>
-        )}
-      </div>
+      {fields.map(field => {
+        const val = values[field.id] ?? ''
+        const err = errors[field.id]
+        const inputStyle = {
+          background: 'var(--card-bg, #fff)',
+          border: err ? '1.5px solid #ef4444' : '1.5px solid var(--card-border, #e5e7eb)',
+          color: 'var(--text-primary, #111)',
+        }
 
-      {/* Email */}
-      <div>
-        <label htmlFor="ff-email" className="block text-sm font-semibold mb-1.5"
-          style={{ color: 'var(--text-primary, #111)' }}>
-          Email <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="ff-email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="your@email.com"
-          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-          style={{
-            background: 'var(--card-bg, #fff)',
-            border: errors.email
-              ? '1.5px solid #ef4444'
-              : '1.5px solid var(--card-border, #e5e7eb)',
-            color: 'var(--text-primary, #111)',
-          }}
-        />
-        {errors.email && (
-          <p className="mt-1 text-xs text-red-500">{errors.email}</p>
-        )}
-      </div>
-
-      {/* Dynamic extra fields */}
-      {extraFields.map(field => (
-        <div key={field.id}>
-          <label htmlFor={`ff-${field.id}`} className="block text-sm font-semibold mb-1.5"
-            style={{ color: 'var(--text-primary, #111)' }}>
-            {field.label}
-            {field.required && <span className="text-red-500 ml-0.5">*</span>}
-          </label>
-
-          {field.type === 'textarea' ? (
-            <textarea
-              id={`ff-${field.id}`}
-              rows={3}
-              value={extraValues[field.id] ?? ''}
-              onChange={e => setExtraValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-              placeholder={field.label}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
-              style={{
-                background: 'var(--card-bg, #fff)',
-                border: errors[field.id]
-                  ? '1.5px solid #ef4444'
-                  : '1.5px solid var(--card-border, #e5e7eb)',
-                color: 'var(--text-primary, #111)',
-              }}
-            />
-          ) : field.type === 'select' && field.options ? (
-            <select
-              id={`ff-${field.id}`}
-              value={extraValues[field.id] ?? ''}
-              onChange={e => setExtraValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-              style={{
-                background: 'var(--card-bg, #fff)',
-                border: errors[field.id]
-                  ? '1.5px solid #ef4444'
-                  : '1.5px solid var(--card-border, #e5e7eb)',
-                color: 'var(--text-primary, #111)',
-              }}
+        return (
+          <div key={field.id}>
+            <label
+              htmlFor={`ff-${field.id}`}
+              className="block text-sm font-semibold mb-1.5"
+              style={{ color: 'var(--text-primary, #111)' }}
             >
-              <option value="">Select an option</option>
-              {field.options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id={`ff-${field.id}`}
-              type={field.type === 'email' ? 'email' : field.type === 'tel' ? 'tel' : 'text'}
-              value={extraValues[field.id] ?? ''}
-              onChange={e => setExtraValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-              placeholder={field.label}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-              style={{
-                background: 'var(--card-bg, #fff)',
-                border: errors[field.id]
-                  ? '1.5px solid #ef4444'
-                  : '1.5px solid var(--card-border, #e5e7eb)',
-                color: 'var(--text-primary, #111)',
-              }}
-            />
-          )}
+              {field.label}
+              {field.required && <span className="text-red-500 ml-0.5">*</span>}
+            </label>
 
-          {errors[field.id] && (
-            <p className="mt-1 text-xs text-red-500">{errors[field.id]}</p>
-          )}
-        </div>
-      ))}
+            {field.type === 'textarea' ? (
+              <textarea
+                id={`ff-${field.id}`}
+                rows={field.id === 'message' ? 5 : 3}
+                value={val}
+                onChange={e => setValue(field.id, e.target.value)}
+                placeholder={field.placeholder ?? field.label}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
+                style={inputStyle}
+              />
+            ) : (
+              <input
+                id={`ff-${field.id}`}
+                type={field.type === 'email' ? 'email'
+                  : field.type === 'tel' ? 'tel'
+                  : field.type === 'date' ? 'date'
+                  : 'text'}
+                autoComplete={
+                  field.id === 'name' ? 'name'
+                  : field.id === 'email' ? 'email'
+                  : undefined
+                }
+                value={val}
+                onChange={e => setValue(field.id, e.target.value)}
+                placeholder={field.placeholder ?? field.label}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                style={inputStyle}
+              />
+            )}
 
-      {/* Message */}
-      <div>
-        <label htmlFor="ff-message" className="block text-sm font-semibold mb-1.5"
-          style={{ color: 'var(--text-primary, #111)' }}>
-          Message <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          id="ff-message"
-          rows={5}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder="Tell us about your project, date, location..."
-          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none"
-          style={{
-            background: 'var(--card-bg, #fff)',
-            border: errors.message
-              ? '1.5px solid #ef4444'
-              : '1.5px solid var(--card-border, #e5e7eb)',
-            color: 'var(--text-primary, #111)',
-          }}
-        />
-        {errors.message && (
-          <p className="mt-1 text-xs text-red-500">{errors.message}</p>
-        )}
-      </div>
+            {err && <p className="mt-1 text-xs text-red-500">{err}</p>}
+          </div>
+        )
+      })}
 
       {/* Server error */}
       {serverError && (
@@ -255,23 +180,13 @@ export default function DynamicForm({ formId, formName, extraFields }: DynamicFo
         type="submit"
         disabled={loading}
         className="w-full py-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{
-          background: 'var(--accent, #C9A96E)',
-          color: '#fff',
-        }}
+        style={{ background: 'var(--accent, #C9A96E)', color: '#fff' }}
       >
         {loading ? (
           <>
-            {/* Simple spinner */}
-            <svg
-              className="animate-spin h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
+            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             Sending...
           </>
