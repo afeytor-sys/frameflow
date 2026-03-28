@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getFormById, submitFormInquiry } from '@/lib/forms'
+import { getFormById, submitFormInquiry, triggerInquiryNotifications } from '@/lib/forms'
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -38,6 +38,16 @@ export async function POST(req: NextRequest) {
       email: email.trim().toLowerCase(),
       message: message.trim(),
     })
+
+    // ── Fire-and-forget notifications (never blocks the 201 response) ───────
+    Promise.allSettled([
+      triggerInquiryNotifications({
+        photographerId: form.photographer_id,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        message: message.trim(),
+      }),
+    ]).catch(() => {/* swallow — already logged inside */})
 
     return NextResponse.json({ success: true, ...result }, { status: 201 })
   } catch (err) {

@@ -72,6 +72,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
 
   // Notification settings (in-app + email for photographer)
   const [notifSettings, setNotifSettings] = useState({
+    notify_inapp_new_inquiry: true,
+    notify_email_new_inquiry: true,
     notify_inapp_contract_signed: true,
     notify_email_contract_signed: true,
     notify_inapp_gallery_viewed: true,
@@ -105,6 +107,8 @@ export default function SettingsClient({ photographer, userId }: Props) {
             reminder_1d: data.reminder_1d ?? true,
           })
           setNotifSettings({
+            notify_inapp_new_inquiry: data.notify_inapp_new_inquiry ?? true,
+            notify_email_new_inquiry: data.notify_email_new_inquiry ?? true,
             notify_inapp_contract_signed: data.notify_inapp_contract_signed ?? true,
             notify_email_contract_signed: data.notify_email_contract_signed ?? true,
             notify_inapp_gallery_viewed: data.notify_inapp_gallery_viewed ?? true,
@@ -583,6 +587,38 @@ export default function SettingsClient({ photographer, userId }: Props) {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] w-14 text-center">
                   E-Mail
                 </span>
+              </div>
+
+              {/* New inquiry section */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] mb-2">
+                  {isDE ? 'Neue Anfragen' : 'New Inquiries'}
+                </p>
+                {(() => {
+                  const inappOn = notifSettings.notify_inapp_new_inquiry
+                  const emailOn = notifSettings.notify_email_new_inquiry
+                  return (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
+                      <span className="text-sm text-[#1A1A1A] flex-1">
+                        {isDE ? 'Neue Anfrage erhalten' : 'New inquiry received'}
+                      </span>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setNotifSettings(prev => ({ ...prev, notify_inapp_new_inquiry: !prev.notify_inapp_new_inquiry }))}
+                          className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', inappOn ? 'bg-[#3DBA6F]' : 'bg-[#E8E8E4]')}
+                        >
+                          <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', inappOn ? 'left-4' : 'left-0.5')} />
+                        </button>
+                        <button
+                          onClick={() => setNotifSettings(prev => ({ ...prev, notify_email_new_inquiry: !prev.notify_email_new_inquiry }))}
+                          className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', emailOn ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]')}
+                        >
+                          <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', emailOn ? 'left-4' : 'left-0.5')} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Client activity section */}
