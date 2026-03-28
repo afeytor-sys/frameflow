@@ -24,10 +24,18 @@ export default async function InboxPage() {
     .eq('photographer_id', user.id)
     .order('created_at', { ascending: false })
 
+  // Fetch photographer's saved email templates for the reply dropdown
+  const { data: emailTemplates } = await supabase
+    .from('email_templates')
+    .select('id, name, subject, body')
+    .eq('photographer_id', user.id)
+    .order('name', { ascending: true })
+
   return (
     <InboxClient
       conversations={conversations ?? []}
       photographerEmail={photographer?.email ?? null}
+      emailTemplates={emailTemplates ?? []}
     />
   )
 }

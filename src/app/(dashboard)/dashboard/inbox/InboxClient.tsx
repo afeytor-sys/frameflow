@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MessageCircle, Inbox, Send } from 'lucide-react'
+import { MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Message {
   id: string
@@ -20,10 +22,20 @@ interface Conversation {
   messages: Message[]
 }
 
+interface EmailTemplate {
+  id: string
+  name: string
+  subject: string
+  body: string
+}
+
 interface Props {
   conversations: Conversation[]
   photographerEmail: string | null
+  emailTemplates: EmailTemplate[]
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatTime(iso: string) {
   const date = new Date(iso)
@@ -47,7 +59,127 @@ function getSortedMessages(messages: Message[]): Message[] {
   return [...messages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 }
 
-export default function InboxClient({ conversations, photographerEmail }: Props) {
+/**
+ * Detect if a message content looks like structured form data.
+ * Returns parsed key-value pairs if ≥2 lines match "Label: value" pattern,
+ * otherwise returns null (plain text).
+ */
+function parseFormMessage(content: string): Array<{ label: string; value: string }> | null {
+  const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
+  if (lines.length < 2) return null
+
+  const pairs: Array<{ label: string; value: string }> = []
+  for (const line of lines) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx > 0 && colonIdx < line.length - 1) {
+      const label = line.slice(0, colonIdx).trim()
+      const value = line.slice(colonIdx + 1).trim()
+      if (label.length > 0 && value.length > 0) {
+        pairs.push({ label, value })
+      }
+    } else {
+      // Line doesn't match "Label: value" — treat whole thing as plain text
+      return null
+    }
+  }
+
+  return pairs.length >= 2 ? pairs : null
+}
+
+/** Format a value if it looks like a date */
+function formatValueIfDate(value: string): string {
+  // ISO date pattern: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    try {
+      return new Date(value + 'T00:00:00').toLocaleDateString('en-US', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      })
+    } catch {
+      return value
+    }
+  }
+  return value
+}
+
+/** Check if a label likely refers to an email field */
+function isEmailLabel(label: string): boolean {
+  return /email|e-mail|mail/i.test(label)
+}
+
+// ── Structured message bubble ─────────────────────────────────────────────────
+
+function StructuredMessageBubble({
+  pairs,
+  leadName,
+  createdAt,
+}: {
+  pairs: Array<{ label: string; value: string }>
+  leadName: string
+  createdAt: string
+}) {
+  return (
+    <div className="flex justify-start">
+      <div style={{ maxWidth: '80%', minWidth: '260px' }}>
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: 'var(--bg-hover, #f5f5f3)',
+            border: '1px solid var(--border-color)',
+            borderBottomLeftRadius: '4px',
+          }}
+        >
+          {/* Header */}
+          <div
+            className="px-4 py-2.5 flex items-center gap-2"
+            style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
+          >
+            <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent, #C9A96E)' }} />
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Form submission
+            </span>
+          </div>
+          {/* Fields */}
+          <div className="px-4 py-3 space-y-2">
+            {pairs.map(({ label, value }) => {
+              const formattedValue = formatValueIfDate(value)
+              const isEmail = isEmailLabel(label)
+              return (
+                <div key={label} className="flex items-start gap-2">
+                  <span
+                    className="text-[12px] font-semibold flex-shrink-0"
+                    style={{ color: 'var(--text-secondary)', minWidth: '90px' }}
+                  >
+                    {label}
+                  </span>
+                  <span className="text-[12px]" style={{ color: 'var(--text-primary)' }}>
+                    {isEmail ? (
+                      <a
+                        href={`mailto:${value}`}
+                        className="underline"
+                        style={{ color: 'var(--accent, #C9A96E)' }}
+                      >
+                        {value}
+                      </a>
+                    ) : (
+                      formattedValue
+                    )}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <p className="text-[10px] mt-1 text-left" style={{ color: 'var(--text-muted)' }}>
+          {leadName} · {formatTime(createdAt)}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function InboxClient({ conversations, photographerEmail, emailTemplates }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(
     conversations.length > 0 ? conversations[0].id : null
   )
@@ -58,6 +190,10 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
   // Reply state
   const [replyText, setReplyText] = useState('')
   const [isSending, setIsSending] = useState(false)
+
+  // Templates dropdown
+  const [showTemplates, setShowTemplates] = useState(false)
+  const templatesRef = useRef<HTMLDivElement>(null)
 
   // Refs for scroll-to-bottom
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -70,7 +206,6 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
     const conv = conversations.find(c => c.id === convId)
     const serverMsgs = conv ? getSortedMessages(conv.messages) : []
     const localMsgs = localMessages[convId] ?? []
-    // Merge: local messages that aren't already in server (by id)
     const serverIds = new Set(serverMsgs.map(m => m.id))
     const newLocal = localMsgs.filter(m => !serverIds.has(m.id))
     return [...serverMsgs, ...newLocal].sort(
@@ -85,10 +220,26 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [displayMessages.length, selectedId])
 
-  // Clear reply text when switching conversations
+  // Auto-focus textarea + clear reply text when switching conversations
   useEffect(() => {
     setReplyText('')
+    setShowTemplates(false)
+    // Small delay so the panel has rendered
+    const t = setTimeout(() => textareaRef.current?.focus(), 50)
+    return () => clearTimeout(t)
   }, [selectedId])
+
+  // Close templates dropdown on outside click
+  useEffect(() => {
+    if (!showTemplates) return
+    const handler = (e: MouseEvent) => {
+      if (templatesRef.current && !templatesRef.current.contains(e.target as Node)) {
+        setShowTemplates(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showTemplates])
 
   const handleSend = async () => {
     if (!selected || !replyText.trim() || isSending) return
@@ -120,17 +271,15 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
       const data = await res.json()
 
       if (!res.ok) {
-        // Rollback optimistic message
         setLocalMessages(prev => ({
           ...prev,
           [selected.id]: (prev[selected.id] ?? []).filter(m => m.id !== optimisticId),
         }))
-        setReplyText(content) // restore text
+        setReplyText(content)
         toast.error(data.error ?? 'Failed to send reply')
         return
       }
 
-      // Replace optimistic message with real one from server
       if (data.message) {
         setLocalMessages(prev => ({
           ...prev,
@@ -141,12 +290,10 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
         }))
       }
 
-      // Warn if email failed but message was saved
       if (data.emailSent === false) {
         toast('Message saved, but email could not be sent.', { icon: '⚠️' })
       }
     } catch {
-      // Rollback
       setLocalMessages(prev => ({
         ...prev,
         [selected.id]: (prev[selected.id] ?? []).filter(m => m.id !== optimisticId),
@@ -159,11 +306,16 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Cmd+Enter or Ctrl+Enter to send
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault()
       handleSend()
     }
+  }
+
+  const applyTemplate = (tpl: EmailTemplate) => {
+    setReplyText(tpl.body)
+    setShowTemplates(false)
+    setTimeout(() => textareaRef.current?.focus(), 50)
   }
 
   return (
@@ -218,7 +370,6 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
                 borderLeft: isActive ? '3px solid #10B981' : '3px solid transparent',
               }}
             >
-              {/* Avatar + name row */}
               <div className="flex items-center gap-2.5 mb-1">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold text-white"
                   style={{ background: isActive ? '#10B981' : 'var(--accent, #C9A96E)' }}>
@@ -238,7 +389,6 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
                   <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{conv.lead_email}</p>
                 </div>
               </div>
-              {/* Last message preview */}
               {last && (
                 <p className="text-[12px] truncate pl-10" style={{ color: 'var(--text-secondary)' }}>
                   {last.sender === 'photographer' ? 'You: ' : ''}{last.content}
@@ -286,11 +436,26 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
               )}
               {displayMessages.map(msg => {
                 const isLead = msg.sender === 'lead'
+
+                // Try to parse structured form data for lead messages
+                const parsed = isLead ? parseFormMessage(msg.content) : null
+
+                if (parsed) {
+                  return (
+                    <StructuredMessageBubble
+                      key={msg.id}
+                      pairs={parsed}
+                      leadName={selected.lead_name}
+                      createdAt={msg.created_at}
+                    />
+                  )
+                }
+
                 return (
                   <div key={msg.id} className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
                     <div className="max-w-[75%]">
                       <div
-                        className="px-4 py-3 rounded-2xl text-[13px] leading-relaxed"
+                        className="px-4 py-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap"
                         style={isLead ? {
                           background: 'var(--bg-hover, #f5f5f3)',
                           color: 'var(--text-primary)',
@@ -319,6 +484,7 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
             {/* ── Reply area ──────────────────────────────────────────────── */}
             <div className="px-6 py-4 flex-shrink-0"
               style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
+
               <div className="flex items-end gap-3">
                 <textarea
                   ref={textareaRef}
@@ -334,30 +500,109 @@ export default function InboxClient({ conversations, photographerEmail }: Props)
                     border: '1.5px solid var(--card-border)',
                     color: 'var(--text-primary)',
                   }}
-                  onFocus={e => {
-                    e.currentTarget.style.borderColor = 'var(--accent, #C9A96E)'
-                  }}
-                  onBlur={e => {
-                    e.currentTarget.style.borderColor = 'var(--card-border)'
-                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent, #C9A96E)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
                 />
-                <button
-                  onClick={handleSend}
-                  disabled={!replyText.trim() || isSending}
-                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{
-                    background: replyText.trim() && !isSending ? 'var(--accent, #C9A96E)' : 'var(--bg-hover)',
-                    color: replyText.trim() && !isSending ? '#fff' : 'var(--text-muted)',
-                  }}
-                  title="Send reply (Cmd+Enter)"
-                >
-                  {isSending ? (
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </button>
+
+                {/* Templates button + Send button */}
+                <div className="flex flex-col gap-2 flex-shrink-0">
+
+                  {/* Templates dropdown */}
+                  <div className="relative" ref={templatesRef}>
+                    <button
+                      onClick={() => setShowTemplates(v => !v)}
+                      disabled={isSending}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all disabled:opacity-40"
+                      style={{
+                        background: showTemplates ? 'var(--accent-muted, rgba(201,169,110,0.12))' : 'var(--bg-hover)',
+                        border: '1.5px solid var(--card-border)',
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Insert email template"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Templates
+                      <ChevronDown className="w-3 h-3" style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
+                    </button>
+
+                    {showTemplates && (
+                      <div
+                        className="absolute bottom-full right-0 mb-2 rounded-xl overflow-hidden z-50"
+                        style={{
+                          width: '260px',
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--border-color)',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        }}
+                      >
+                        <div className="px-3 py-2.5" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            Email Templates
+                          </p>
+                        </div>
+
+                        {emailTemplates.length === 0 ? (
+                          <div className="px-4 py-4 text-center">
+                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                              No templates yet.
+                            </p>
+                            <a
+                              href="/dashboard/email-vorlagen"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] mt-1.5"
+                              style={{ color: 'var(--accent, #C9A96E)' }}
+                            >
+                              Create templates
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="max-h-[220px] overflow-y-auto">
+                            {emailTemplates.map(tpl => (
+                              <button
+                                key={tpl.id}
+                                onClick={() => applyTemplate(tpl)}
+                                className="w-full text-left px-4 py-3 transition-colors"
+                                style={{ borderBottom: '1px solid var(--border-color)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                              >
+                                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                                  {tpl.name}
+                                </p>
+                                <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                  {tpl.subject}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Send button */}
+                  <button
+                    onClick={handleSend}
+                    disabled={!replyText.trim() || isSending}
+                    className="flex items-center justify-center w-full h-10 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{
+                      background: replyText.trim() && !isSending ? 'var(--accent, #C9A96E)' : 'var(--bg-hover)',
+                      color: replyText.trim() && !isSending ? '#fff' : 'var(--text-muted)',
+                    }}
+                    title="Send reply (Cmd+Enter)"
+                  >
+                    {isSending ? (
+                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
+
               <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
                 Reply will be sent to {selected.lead_email}
               </p>
