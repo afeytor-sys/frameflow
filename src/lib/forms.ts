@@ -235,6 +235,7 @@ async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.fotonizer.com'
   const resend = new Resend(resendKey)
+  const { to, replyTo, name, email, message } = payload
 
   const html = `
 <!DOCTYPE html>
