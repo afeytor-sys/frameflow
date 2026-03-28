@@ -61,6 +61,8 @@ export default function DashboardSidebar({ photographer }: Props) {
     { key: 'clients',        href: '/dashboard/clients',      icon: Users,           label: s.clients,        plans: null,             activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)' },
     { key: 'projects',       href: '/dashboard/projects',     icon: FolderOpen,      label: s.projects,       plans: null,             activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)' },
     { key: 'bookings',       href: '/dashboard/bookings',     icon: CalendarDays,    label: s.bookings,       plans: null,             activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)' },
+    { key: 'inbox',          href: '/dashboard/inbox',       icon: Inbox,           label: 'Inbox',                                          plans: null, activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
+    { key: 'forms',          href: '/dashboard/forms',       icon: FormInput,       label: locale === 'de' ? 'Formulare' : 'Forms',          plans: null, activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)' },
     { key: 'contracts',      href: '/dashboard/contracts',    icon: FileText,        label: s.contracts,      plans: null,             activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)' },
     { key: 'galleries',      href: '/dashboard/galleries',    icon: Images,          label: s.galleries,      plans: null,             activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
     { key: 'invoices',       href: '/dashboard/invoices',     icon: Receipt,         label: s.invoices,       plans: null,             activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)' },
@@ -68,8 +70,6 @@ export default function DashboardSidebar({ photographer }: Props) {
     { key: 'email-vorlagen', href: '/dashboard/email-vorlagen', icon: Mail,          label: s.emailTemplates, plans: null,             activeColor: '#F97316', activeBg: 'rgba(249,115,22,0.12)' },
     { key: 'pipeline',       href: '/dashboard/pipeline',    icon: Kanban,          label: locale === 'de' ? 'Pipeline' : 'Pipeline', plans: null, activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)' },
     { key: 'automations',    href: '/dashboard/automations', icon: Zap,             label: locale === 'de' ? 'Automationen' : 'Automations', plans: null, activeColor: '#C4A47C', activeBg: 'rgba(196,164,124,0.15)' },
-    { key: 'forms',          href: '/dashboard/forms',       icon: FormInput,       label: locale === 'de' ? 'Formulare' : 'Forms',          plans: null, activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)' },
-    { key: 'inbox',          href: '/dashboard/inbox',       icon: Inbox,           label: 'Inbox',                                          plans: null, activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
     { key: 'analytics',      href: '/dashboard/analytics',   icon: BarChart2,       label: s.analytics,      plans: ['pro', 'studio'], activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)' },
     ...(photographer.id === '3f3a14b9-3bb2-40fa-b0eb-5fea92f67429' ? [
       { key: 'admin', href: '/dashboard/admin', icon: Shield, label: 'Admin', plans: null as null, activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)' },
