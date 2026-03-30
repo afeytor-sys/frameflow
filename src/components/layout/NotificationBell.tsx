@@ -130,12 +130,9 @@ export default function NotificationBell() {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-20"
+            className="dropdown-glass absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-20"
             style={{
               width: '340px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--card-shadow-hover)',
             }}
           >
             {/* Header */}

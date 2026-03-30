@@ -598,6 +598,36 @@
   }
 }
 
+/* ── Dropdown / popover glass ── */
+.dropdown-glass {
+  background: var(--dropdown-bg) !important;
+  border: 1px solid var(--dropdown-border) !important;
+  box-shadow: var(--dropdown-shadow) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
+  z-index: 9999 !important;
+  position: absolute;
+}
+
+:root,
+[data-theme="light"] {
+  --dropdown-bg:     rgba(255,255,255,0.82);
+  --dropdown-border: rgba(255,255,255,0.95);
+  --dropdown-shadow: 0 16px 48px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,1);
+}
+
+[data-theme="dark"] {
+  --dropdown-bg:     rgba(20,20,18,0.88);
+  --dropdown-border: rgba(255,255,255,0.10);
+  --dropdown-shadow: 0 16px 48px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+[data-theme="mono"] {
+  --dropdown-bg:     rgba(18,18,18,0.90);
+  --dropdown-border: rgba(255,255,255,0.18);
+  --dropdown-shadow: 0 16px 48px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
 /* ── Sidebar nav items ── */
 .sidebar-nav-item {
   display: flex;

@@ -839,8 +839,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   {openMenu === inv.id && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
-                      <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-20 min-w-[200px]"
-                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+                      <div className="dropdown-glass absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-20 min-w-[200px]">
                         {/* Send — only for draft/sent */}
                         {(inv.status === 'draft' || inv.status === 'sent') && (
                           <button onClick={() => { handleSendInvoice(inv.id); setOpenMenu(null) }}

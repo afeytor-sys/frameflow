@@ -1116,12 +1116,7 @@ export default function ContractTab({
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowTemplates(false)} />
               <div
-                className="absolute right-0 top-full mt-1 rounded-xl z-20 w-64 overflow-hidden"
-                style={{
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--card-shadow-hover)',
-                }}
+                className="dropdown-glass absolute right-0 top-full mt-1 rounded-xl z-20 w-64 overflow-hidden"
               >
                 <div className="p-2">
                   {/* Blank */}

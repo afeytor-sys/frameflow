@@ -100,8 +100,8 @@ function VariableInsertButton({ editor }: { editor: ReturnType<typeof useEditor>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           {/* Dropdown */}
           <div
-            className="absolute left-0 top-full mt-1 z-50 rounded-xl overflow-hidden shadow-xl"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', minWidth: '220px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
+            className="dropdown-glass absolute left-0 top-full mt-1 z-50 rounded-xl overflow-hidden"
+            style={{ minWidth: '220px' }}
           >
             <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <p className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>

@@ -285,14 +285,7 @@ export default function ProjectsPage() {
             {showSortMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
-                <div className="absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[200px]"
-                  style={{
-                    background: 'rgba(20,20,28,0.80)',
-                    backdropFilter: 'blur(20px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                    border: '1px solid rgba(255,255,255,0.10)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.40)',
-                  }}>
+                <div className="dropdown-glass absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-50 min-w-[200px]">
                   <div className="px-3 pt-2.5 pb-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>Sortierung</p>
                   </div>
@@ -534,12 +527,7 @@ export default function ProjectsPage() {
                           </button>
                           {openStatusMenu === project.id && (
                             <div
-                              className="absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
-                              style={{
-                                background: 'var(--card-bg)',
-                                border: '1px solid var(--border-color)',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                              }}
+                              className="dropdown-glass absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
                             >
                               <div className="py-1">
                                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
@@ -677,12 +665,7 @@ export default function ProjectsPage() {
                         </button>
                         {openStatusMenu === project.id && (
                           <div
-                            className="absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
-                            style={{
-                              background: 'var(--card-bg)',
-                              border: '1px solid var(--border-color)',
-                              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                            }}
+                            className="dropdown-glass absolute left-0 top-full mt-1 rounded-2xl overflow-hidden z-[9999] min-w-[170px]"
                           >
                             <div className="py-1">
                               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {

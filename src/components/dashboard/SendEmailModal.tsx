@@ -214,8 +214,8 @@ export default function SendEmailModal({
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowTemplatePicker(false)} />
                 <div
-                  className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', maxHeight: 280, overflowY: 'auto' }}
+                  className="dropdown-glass absolute left-0 right-0 top-full mt-1.5 z-20 rounded-xl overflow-hidden"
+                  style={{ maxHeight: 280, overflowY: 'auto' }}
                 >
                   {/* User templates */}
                   {userTemplates.length > 0 && (

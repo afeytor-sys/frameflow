@@ -102,12 +102,7 @@ export default function DashboardHeader({ photographer }: Props) {
             <>
               <div className="fixed inset-0 z-10" onClick={() => setLangOpen(false)} />
               <div
-                className="absolute right-0 top-full mt-1.5 rounded-xl overflow-hidden z-20 min-w-[140px]"
-                style={{
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--card-shadow-hover)',
-                }}
+                className="dropdown-glass absolute right-0 top-full mt-1.5 rounded-xl overflow-hidden z-20 min-w-[140px]"
               >
                 {[
                   { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
