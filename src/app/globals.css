@@ -609,8 +609,8 @@
   background: var(--dropdown-bg) !important;
   border: 1px solid var(--dropdown-border) !important;
   box-shadow: var(--dropdown-shadow) !important;
-  backdrop-filter: blur(32px) !important;
-  -webkit-backdrop-filter: blur(32px) !important;
+  backdrop-filter: blur(40px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) !important;
   z-index: 9999 !important;
   position: absolute;
 }
@@ -623,7 +623,7 @@
 }
 
 [data-theme="dark"] {
-  --dropdown-bg:     rgba(20,20,18,0.88);
+  --dropdown-bg:     rgba(20,20,18,0.96);
   --dropdown-border: rgba(255,255,255,0.10);
   --dropdown-shadow: 0 16px 48px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.06);
 }
