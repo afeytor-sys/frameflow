@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Star, Zap, Shield, Globe, Camera, Users, Menu, X } from 'lucide-react'
 import PricingSection from '@/components/marketing/PricingSection'
@@ -26,6 +26,19 @@ const T = {
     analytics: { label: 'Analytics', h2: 'Your studio at a glance.', p1: 'Revenue, open invoices, clients and conversion rate — all in one clear overview.', p2: 'Understand how your business grows and make better decisions.' },
     portal: { label: 'Client Portal', h2: 'Every client gets their own portal.', p1: 'Each client gets a private space for their project — gallery, contract, timeline and meeting point.', p2: 'This creates a premium experience that photographers and clients love equally.' },
     featuresSection: { label: 'Everything included', h2: 'Built for real photo workflows.', sub: 'From the first booking to the final gallery delivery — Fotonizer supports every step.' },
+    workflowSection: {
+      label: 'Features',
+      h2: 'Alles drin. Nichts überflüssig.',
+      sub: 'Von der ersten Anfrage bis zur finalen Galerie — jeder Schritt abgedeckt.',
+      features: [
+        { key: 'inbox', label: 'Inbox', headline: 'Keine Nachricht geht verloren.', desc: 'Alle Kundengespräche an einem Ort. Kein Suchen in E-Mail-Threads mehr.' },
+        { key: 'forms', label: 'Formulare', headline: 'Jede Anfrage automatisch erfassen.', desc: 'Keine verpassten Leads. Jede Anfrage landet direkt in deinem Dashboard.' },
+        { key: 'galleries', label: 'Galerien', headline: 'Fotos professionell übergeben.', desc: 'Schicke Online-Galerien mit Download-Kontrolle und Kundenauswahl.' },
+        { key: 'contracts', label: 'Verträge', headline: 'In Minuten senden und unterschreiben.', desc: 'Kein PDF-Chaos. Kunden unterschreiben online — du behältst alles im Blick.' },
+        { key: 'bookings', label: 'Buchungen', headline: 'Kalender immer aktuell.', desc: 'Alle Shootings und Sessions in einer Übersicht. Immer wissen, was als Nächstes kommt.' },
+        { key: 'templates', label: 'E-Mail-Vorlagen', headline: 'Einmal schreiben. Immer senden.', desc: 'Keine doppelten E-Mails mehr. Smarte Platzhalter — persönlich wirkende Nachrichten.' },
+      ],
+    },
     features: [
       { icon: '📅', title: 'Bookings & Sessions', desc: 'Track every shoot, session and client in one clear overview.' },
       { icon: '✍️', title: 'Digital Contracts', desc: 'Create and send contracts in seconds. Clients sign online.' },
@@ -82,6 +95,19 @@ const T = {
     analytics: { label: 'Analytics', h2: 'Your studio at a glance.', p1: 'Revenue, open invoices, clients and conversion rate — all in one clear overview.', p2: 'Understand how your business is growing and make better decisions.' },
     portal: { label: 'Client Portal', h2: 'Give every client their own portal.', p1: 'Each client gets a private space with their gallery, contract, timeline and meeting point.', p2: 'This creates a premium experience that photographers and clients both love.' },
     featuresSection: { label: 'Everything included', h2: 'Built for real photography workflows.', sub: 'From the first booking to the final gallery delivery, Fotonizer supports every step.' },
+    workflowSection: {
+      label: 'Features',
+      h2: "Everything you need. Nothing you don't.",
+      sub: 'From the first inquiry to the final delivery — every step covered.',
+      features: [
+        { key: 'inbox', label: 'Inbox', headline: 'Never lose a client message.', desc: 'Every conversation in one place. Stop digging through email threads.' },
+        { key: 'forms', label: 'Forms', headline: 'Capture every inquiry.', desc: 'Stop losing leads to missed messages. Every request lands in your dashboard.' },
+        { key: 'galleries', label: 'Galleries', headline: 'Deliver your work beautifully.', desc: 'Send polished online galleries with download control and client favorites.' },
+        { key: 'contracts', label: 'Contracts', headline: 'Send and sign in minutes.', desc: 'No PDFs, no printing. Clients sign online, you keep everything organized.' },
+        { key: 'bookings', label: 'Bookings', headline: 'Your calendar, always in sync.', desc: "Every shoot and session in one clear overview. Know exactly what's next." },
+        { key: 'templates', label: 'Email Templates', headline: 'Say it once. Send it forever.', desc: 'Stop rewriting the same emails. Smart variables, personal-feeling messages.' },
+      ],
+    },
     features: [
       { icon: '📅', title: 'Bookings & Sessions', desc: "Track every shoot, session and client in one clear overview. Know exactly what's coming next." },
       { icon: '✍️', title: 'Digital Contracts', desc: 'Create, send and manage contracts in seconds. Clients sign online.' },
@@ -166,86 +192,365 @@ function LightBrowserFrame({ children, url = 'fotonizer.com/dashboard' }: { chil
   )
 }
 
-// ── Dark Dashboard ────────────────────────────────────────────────────
-function DarkDashboard() {
+// ── Sidebar nav items (full feature set) ─────────────────────────────
+const SIDEBAR_ITEMS = [
+  { label: 'Dashboard', icon: '⬛' },
+  { label: 'Inbox',     icon: '📬' },
+  { label: 'Bookings',  icon: '📅' },
+  { label: 'Projects',  icon: '📁' },
+  { label: 'Pipeline',  icon: '🔀' },
+  { label: 'Clients',   icon: '👥' },
+  { label: 'Forms',     icon: '📋' },
+  { label: 'Galleries', icon: '🖼️' },
+  { label: 'Contracts', icon: '✍️' },
+  { label: 'Invoices',  icon: '💳' },
+  { label: 'Templates', icon: '💌' },
+  { label: 'Analytics', icon: '📊' },
+]
+
+// ── Dark Sidebar ──────────────────────────────────────────────────────
+function DarkSidebar({ active }: { active: string }) {
   return (
-    <DarkBrowserFrame url="fotonizer.com/dashboard">
-      <div style={{ background: '#141412', display: 'flex', height: 320 }}>
-        <div style={{ width: 160, background: '#0F0F0D', borderRight: '1px solid rgba(255,255,255,0.06)', padding: '14px 10px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20, paddingLeft: 3 }}>
-            <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(196,164,124,0.2)' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#F0EDE8' }}>Fotonizer</span>
-          </div>
-          {['Dashboard', 'Projects', 'Clients', 'Galleries', 'Contracts', 'Analytics'].map((label, i) => (
-            <div key={label} style={{ padding: '6px 8px', borderRadius: 7, marginBottom: 2, fontSize: 10, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? 'rgba(196,164,124,0.15)' : 'transparent', color: i === 0 ? '#C4A47C' : '#5A5A58' }}>{label}</div>
-          ))}
-        </div>
-        <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#F0EDE8', marginBottom: 3 }}>Good morning 👋</div>
-          <div style={{ fontSize: 9, color: '#5A5A58', marginBottom: 14 }}>Here&apos;s what&apos;s happening today</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
-            {[{ v: '12', l: 'Projects', c: '#3B82F6' }, { v: '3', l: 'Contracts', c: '#F59E0B' }, { v: '8', l: 'Galleries', c: '#10B981' }, { v: '€4.2k', l: 'Revenue', c: '#C4A47C' }].map(({ v, l, c }) => (
-              <div key={l} style={{ background: '#1C1C1A', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: c, marginBottom: 1 }}>{v}</div>
-                <div style={{ fontSize: 8, color: '#5A5A58' }}>{l}</div>
+    <div style={{ width: 148, background: '#0F0F0D', borderRight: '1px solid rgba(255,255,255,0.06)', padding: '12px 8px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, paddingLeft: 4 }}>
+        <div style={{ width: 18, height: 18, borderRadius: 4, background: 'rgba(196,164,124,0.2)', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#F0EDE8' }}>Fotonizer</span>
+      </div>
+      {SIDEBAR_ITEMS.map(({ label }) => (
+        <div key={label} style={{
+          padding: '4px 7px', borderRadius: 6, marginBottom: 1,
+          fontSize: 9, fontWeight: label === active ? 600 : 400,
+          background: label === active ? 'rgba(196,164,124,0.15)' : 'transparent',
+          color: label === active ? '#C4A47C' : '#4A4A48',
+          transition: 'all 0.25s ease',
+        }}>{label}</div>
+      ))}
+    </div>
+  )
+}
+
+// ── Light Sidebar ─────────────────────────────────────────────────────
+function LightSidebar({ active }: { active: string }) {
+  return (
+    <div style={{ width: 148, background: '#FFFFFF', borderRight: '1px solid rgba(0,0,0,0.06)', padding: '12px 8px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, paddingLeft: 4 }}>
+        <div style={{ width: 18, height: 18, borderRadius: 4, background: 'rgba(196,164,124,0.15)', flexShrink: 0 }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#1A1A18' }}>Fotonizer</span>
+      </div>
+      {SIDEBAR_ITEMS.map(({ label }) => (
+        <div key={label} style={{
+          padding: '4px 7px', borderRadius: 6, marginBottom: 1,
+          fontSize: 9, fontWeight: label === active ? 600 : 400,
+          background: label === active ? 'rgba(196,164,124,0.12)' : 'transparent',
+          color: label === active ? '#A8845C' : '#B8B4AE',
+          transition: 'all 0.25s ease',
+        }}>{label}</div>
+      ))}
+    </div>
+  )
+}
+
+// ── Animated Dark Dashboard ───────────────────────────────────────────
+function DarkDashboard() {
+  const [screen, setScreen] = useState(0)
+  const [fade, setFade] = useState(true)
+
+  // screens: 0=dashboard, 1=projects list, 2=project detail, 3=inbox
+  const navByScreen = ['Dashboard', 'Projects', 'Projects', 'Inbox']
+  const urlByScreen = ['fotonizer.com/dashboard', 'fotonizer.com/dashboard/projects', 'fotonizer.com/dashboard/projects/laura-marc', 'fotonizer.com/dashboard/inbox']
+  const durations   = [3000, 2600, 3400, 2800]
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setFade(false), durations[screen] - 350)
+    const t2 = setTimeout(() => { setScreen(s => (s + 1) % 4); setFade(true) }, durations[screen])
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen])
+
+  return (
+    <DarkBrowserFrame url={urlByScreen[screen]}>
+      <div style={{ background: '#141412', display: 'flex', height: 340 }}>
+        <DarkSidebar active={navByScreen[screen]} />
+        <div style={{ flex: 1, overflow: 'hidden', opacity: fade ? 1 : 0, transition: 'opacity 0.32s ease' }}>
+
+          {/* ── Screen 0: Dashboard ── */}
+          {screen === 0 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#F0EDE8', marginBottom: 2 }}>Good morning 👋</div>
+              <div style={{ fontSize: 8, color: '#5A5A58', marginBottom: 12 }}>Here&apos;s what&apos;s happening today</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginBottom: 12 }}>
+                {[{ v: '12', l: 'Projects', c: '#3B82F6' }, { v: '3', l: 'Invoices', c: '#F59E0B' }, { v: '8', l: 'Galleries', c: '#10B981' }, { v: '€4.2k', l: 'Revenue', c: '#C4A47C' }].map(({ v, l, c }) => (
+                  <div key={l} style={{ background: '#1C1C1A', borderRadius: 7, padding: '7px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: c, marginBottom: 1 }}>{v}</div>
+                    <div style={{ fontSize: 7.5, color: '#5A5A58' }}>{l}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div style={{ background: '#1C1C1A', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-            <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: '#F0EDE8' }}>Recent Projects</div>
-            {[{ n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', c: '#10B981' }, { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Contract', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Gallery', c: '#3B82F6' }].map(({ n, d, s, c }) => (
-              <div key={n} style={{ padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8' }}>{n}</div>
-                  <div style={{ fontSize: 8, color: '#5A5A58' }}>{d}</div>
+              <div style={{ background: '#1C1C1A', borderRadius: 7, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 8, fontWeight: 700, color: '#F0EDE8' }}>Recent Projects</div>
+                {[{ n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', c: '#10B981' }, { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Contract', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Gallery', c: '#3B82F6' }].map(({ n, d, s, c }) => (
+                  <div key={n} style={{ padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 8.5, fontWeight: 600, color: '#D0CCC8' }}>{n}</div>
+                      <div style={{ fontSize: 7.5, color: '#5A5A58' }}>{d}</div>
+                    </div>
+                    <div style={{ fontSize: 7.5, fontWeight: 600, color: c, background: `${c}20`, padding: '2px 5px', borderRadius: 999 }}>{s}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: '#1C1C1A', borderRadius: 7, border: '1px solid rgba(255,255,255,0.06)', padding: '6px 10px' }}>
+                <div style={{ fontSize: 8, fontWeight: 700, color: '#F0EDE8', marginBottom: 5 }}>Inbox — 2 unread</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#C4A47C' }} />
+                  <span style={{ fontSize: 8, color: '#5A5A58' }}>Laura H. — &quot;Love the photos! 🤍&quot;</span>
                 </div>
-                <div style={{ fontSize: 8, fontWeight: 600, color: c, background: `${c}20`, padding: '2px 6px', borderRadius: 999 }}>{s}</div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* ── Screen 1: Projects list ── */}
+          {screen === 1 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#F0EDE8', marginBottom: 12 }}>Projects</div>
+              <div style={{ background: '#1C1C1A', borderRadius: 7, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 52px 52px', padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 7.5, color: '#4A4A48', fontWeight: 600 }}>
+                  <span>Name</span><span>Date</span><span>Status</span><span>Stage</span>
+                </div>
+                {[
+                  { n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', st: 'Gallery', c: '#10B981', sc: '#3B82F6' },
+                  { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Pending', st: 'Contract', c: '#F59E0B', sc: '#F59E0B' },
+                  { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Active', st: 'Booking', c: '#10B981', sc: '#C4A47C' },
+                  { n: 'Miller Family', d: 'Apr 15', s: 'Lead', st: 'Pipeline', c: '#A78BFA', sc: '#A78BFA' },
+                ].map(({ n, d, s, st, c, sc }, i) => (
+                  <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 52px 52px', padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', background: i === 0 ? 'rgba(196,164,124,0.06)' : 'transparent' }}>
+                    <div style={{ fontSize: 8.5, fontWeight: i === 0 ? 600 : 400, color: i === 0 ? '#F0EDE8' : '#D0CCC8' }}>{n}</div>
+                    <div style={{ fontSize: 8, color: '#5A5A58' }}>{d}</div>
+                    <div style={{ fontSize: 7.5, fontWeight: 600, color: c, background: `${c}18`, padding: '1px 5px', borderRadius: 999, width: 'fit-content' }}>{s}</div>
+                    <div style={{ fontSize: 7.5, fontWeight: 600, color: sc, background: `${sc}18`, padding: '1px 5px', borderRadius: 999, width: 'fit-content' }}>{st}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Screen 2: Project detail ── */}
+          {screen === 2 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 10, color: '#5A5A58', marginBottom: 4 }}>Projects /</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#F0EDE8', marginBottom: 2 }}>Laura &amp; Marc Wedding</div>
+              <div style={{ fontSize: 8, color: '#5A5A58', marginBottom: 10 }}>Mar 27, 2026 · Vienna · Wedding</div>
+              {/* Tabs */}
+              <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
+                {['Overview', 'Gallery', 'Contract', 'Invoice', 'Inbox'].map((tab, i) => (
+                  <div key={tab} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 8, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? 'rgba(196,164,124,0.15)' : 'transparent', color: i === 0 ? '#C4A47C' : '#4A4A48', border: i === 0 ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>{tab}</div>
+                ))}
+              </div>
+              {/* Status chips */}
+              <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                {[{ l: 'Contract ✓', c: '#10B981' }, { l: 'Gallery ready', c: '#C4A47C' }, { l: 'Invoice open', c: '#F59E0B' }].map(({ l, c }) => (
+                  <div key={l} style={{ fontSize: 7.5, fontWeight: 600, color: c, background: `${c}18`, padding: '2px 7px', borderRadius: 999, border: `1px solid ${c}30` }}>{l}</div>
+                ))}
+              </div>
+              {/* Detail cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+                {[
+                  { icon: '🖼️', l: 'Gallery', s: '248 Photos', c: '#C4A47C' },
+                  { icon: '✍️', l: 'Contract', s: 'Signed', c: '#10B981' },
+                  { icon: '💳', l: 'Invoice', s: '€1,200', c: '#F59E0B' },
+                  { icon: '📅', l: 'Booking', s: 'Mar 27', c: '#3B82F6' },
+                  { icon: '📬', l: 'Inbox', s: '2 msgs', c: '#A78BFA' },
+                  { icon: '📁', l: 'Files', s: '14 files', c: '#5A5A58' },
+                ].map(({ icon, l, s, c }) => (
+                  <div key={l} style={{ background: '#1C1C1A', borderRadius: 7, padding: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: 12, marginBottom: 3 }}>{icon}</div>
+                    <div style={{ fontSize: 8.5, fontWeight: 700, color: '#D0CCC8', marginBottom: 1 }}>{l}</div>
+                    <div style={{ fontSize: 8, color: c }}>{s}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Screen 3: Inbox ── */}
+          {screen === 3 && (
+            <div style={{ display: 'flex', height: '100%' }}>
+              <div style={{ width: 130, borderRight: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 700, color: '#F0EDE8' }}>Inbox</div>
+                {[
+                  { n: 'Laura H.', m: 'Love the photos! 🤍', t: '2m', u: true },
+                  { n: 'Thomas B.', m: 'Can we reschedule?', t: '1h', u: true },
+                  { n: 'TechCorp', m: 'Invoice received', t: '3h', u: false },
+                  { n: 'Anna K.', m: 'Thank you!', t: 'Tue', u: false },
+                ].map(({ n, m, t, u }) => (
+                  <div key={n} style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: u ? 'rgba(196,164,124,0.06)' : 'transparent' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ fontSize: 8.5, fontWeight: u ? 700 : 400, color: u ? '#F0EDE8' : '#5A5A58' }}>{n}</span>
+                      <span style={{ fontSize: 7, color: '#3A3A38' }}>{t}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {u && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#C4A47C', flexShrink: 0 }} />}
+                      <span style={{ fontSize: 7.5, color: '#4A4A48', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 90 }}>{m}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 9, fontWeight: 600, color: '#F0EDE8' }}>Laura H.</div>
+                <div style={{ flex: 1, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ alignSelf: 'flex-start', background: '#1C1C1A', borderRadius: '2px 7px 7px 7px', padding: '4px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: 8, color: '#D0CCC8' }}>These photos are beautiful 🤍</span>
+                  </div>
+                  <div style={{ alignSelf: 'flex-end', background: 'rgba(196,164,124,0.14)', borderRadius: '7px 2px 7px 7px', padding: '4px 8px', border: '1px solid rgba(196,164,124,0.2)' }}>
+                    <span style={{ fontSize: 8, color: '#C4A47C' }}>So happy you love them! 🙏</span>
+                  </div>
+                  <div style={{ alignSelf: 'flex-start', background: '#1C1C1A', borderRadius: '2px 7px 7px 7px', padding: '4px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ fontSize: 8, color: '#D0CCC8' }}>Love the photos! 🤍</span>
+                  </div>
+                </div>
+                <div style={{ padding: '6px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ background: '#1C1C1A', borderRadius: 5, padding: '4px 8px', border: '1px solid rgba(255,255,255,0.08)', fontSize: 7.5, color: '#3A3A38' }}>Reply...</div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </DarkBrowserFrame>
   )
 }
 
-// ── Light Dashboard ───────────────────────────────────────────────────
+// ── Animated Light Dashboard ──────────────────────────────────────────
 function LightDashboard() {
+  const [screen, setScreen] = useState(0)
+  const [fade, setFade] = useState(true)
+
+  // screens: 0=dashboard, 1=gallery, 2=contract, 3=analytics
+  const navByScreen = ['Dashboard', 'Galleries', 'Contracts', 'Analytics']
+  const urlByScreen = ['fotonizer.com/dashboard', 'fotonizer.com/dashboard/galleries', 'fotonizer.com/dashboard/contracts', 'fotonizer.com/dashboard/analytics']
+  const durations   = [3000, 2800, 3200, 3200]
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setFade(false), durations[screen] - 350)
+    const t2 = setTimeout(() => { setScreen(s => (s + 1) % 4); setFade(true) }, durations[screen])
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen])
+
   return (
-    <LightBrowserFrame url="fotonizer.com/dashboard">
-      <div style={{ background: '#F8F7F4', display: 'flex', height: 320 }}>
-        <div style={{ width: 160, background: '#FFFFFF', borderRight: '1px solid rgba(0,0,0,0.06)', padding: '14px 10px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20, paddingLeft: 3 }}>
-            <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(196,164,124,0.15)' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#1A1A18' }}>Fotonizer</span>
-          </div>
-          {['Dashboard', 'Projects', 'Clients', 'Galleries', 'Contracts', 'Analytics'].map((label, i) => (
-            <div key={label} style={{ padding: '6px 8px', borderRadius: 7, marginBottom: 2, fontSize: 10, fontWeight: i === 0 ? 600 : 400, background: i === 0 ? 'rgba(196,164,124,0.12)' : 'transparent', color: i === 0 ? '#A8845C' : '#A8A49E' }}>{label}</div>
-          ))}
-        </div>
-        <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A18', marginBottom: 3 }}>Good morning 👋</div>
-          <div style={{ fontSize: 9, color: '#A8A49E', marginBottom: 14 }}>Here&apos;s what&apos;s happening today</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
-            {[{ v: '12', l: 'Projects', c: '#3B82F6' }, { v: '3', l: 'Contracts', c: '#F59E0B' }, { v: '8', l: 'Galleries', c: '#10B981' }, { v: '€4.2k', l: 'Revenue', c: '#A8845C' }].map(({ v, l, c }) => (
-              <div key={l} style={{ background: '#FFFFFF', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: c, marginBottom: 1 }}>{v}</div>
-                <div style={{ fontSize: 8, color: '#A8A49E' }}>{l}</div>
+    <LightBrowserFrame url={urlByScreen[screen]}>
+      <div style={{ background: '#F8F7F4', display: 'flex', height: 340 }}>
+        <LightSidebar active={navByScreen[screen]} />
+        <div style={{ flex: 1, overflow: 'hidden', opacity: fade ? 1 : 0, transition: 'opacity 0.32s ease' }}>
+
+          {/* ── Screen 0: Dashboard ── */}
+          {screen === 0 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 2 }}>Good morning 👋</div>
+              <div style={{ fontSize: 8, color: '#A8A49E', marginBottom: 12 }}>Here&apos;s what&apos;s happening today</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginBottom: 12 }}>
+                {[{ v: '12', l: 'Projects', c: '#3B82F6' }, { v: '3', l: 'Invoices', c: '#F59E0B' }, { v: '8', l: 'Galleries', c: '#10B981' }, { v: '€4.2k', l: 'Revenue', c: '#A8845C' }].map(({ v, l, c }) => (
+                  <div key={l} style={{ background: '#FFFFFF', borderRadius: 7, padding: '7px 8px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: c, marginBottom: 1 }}>{v}</div>
+                    <div style={{ fontSize: 7.5, color: '#A8A49E' }}>{l}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div style={{ background: '#FFFFFF', borderRadius: 8, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-            <div style={{ padding: '7px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: 9, fontWeight: 700, color: '#1A1A18' }}>Recent Projects</div>
-            {[{ n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', c: '#10B981' }, { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Contract', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Gallery', c: '#3B82F6' }].map(({ n, d, s, c }) => (
-              <div key={n} style={{ padding: '6px 12px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 600, color: '#2A2A28' }}>{n}</div>
-                  <div style={{ fontSize: 8, color: '#A8A49E' }}>{d}</div>
+              <div style={{ background: '#FFFFFF', borderRadius: 7, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ padding: '6px 10px', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: 8, fontWeight: 700, color: '#1A1A18' }}>Recent Projects</div>
+                {[{ n: 'Laura & Marc Wedding', d: 'Mar 27', s: 'Active', c: '#10B981' }, { n: 'Portrait — Anna K.', d: 'Apr 3', s: 'Contract', c: '#F59E0B' }, { n: 'Brand Shoot TechCorp', d: 'Apr 10', s: 'Gallery', c: '#3B82F6' }].map(({ n, d, s, c }) => (
+                  <div key={n} style={{ padding: '5px 10px', borderBottom: '1px solid rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 8.5, fontWeight: 600, color: '#2A2A28' }}>{n}</div>
+                      <div style={{ fontSize: 8, color: '#A8A49E' }}>{d}</div>
+                    </div>
+                    <div style={{ fontSize: 8, fontWeight: 600, color: c, background: `${c}15`, padding: '2px 6px', borderRadius: 999 }}>{s}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Screen 1: Galleries ── */}
+          {screen === 1 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 12 }}>Galleries</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7 }}>
+                {[
+                  { name: 'Laura & Marc Wedding', count: '248', status: 'Published', c: '#10B981' },
+                  { name: 'Portrait — Anna K.', count: '84', status: 'Draft', c: '#F59E0B' },
+                  { name: 'Brand Shoot TechCorp', count: '132', status: 'Published', c: '#10B981' },
+                  { name: 'Miller Family', count: '67', status: 'Draft', c: '#F59E0B' },
+                ].map(({ name, count, status, c }) => (
+                  <div key={name} style={{ background: '#FFFFFF', borderRadius: 7, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <div style={{ height: 52, background: 'linear-gradient(135deg, #2A2118, #1E1A14)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', bottom: 5, right: 6, fontSize: 7.5, fontWeight: 600, color: c, background: `${c}20`, padding: '1px 5px', borderRadius: 999 }}>{status}</div>
+                    </div>
+                    <div style={{ padding: '6px 8px' }}>
+                      <div style={{ fontSize: 8.5, fontWeight: 600, color: '#1A1A18', marginBottom: 1 }}>{name}</div>
+                      <div style={{ fontSize: 7.5, color: '#A8A49E' }}>{count} photos</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Screen 2: Contracts ── */}
+          {screen === 2 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 12 }}>Contracts</div>
+              <div style={{ background: '#FFFFFF', borderRadius: 7, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 55px 60px', padding: '5px 10px', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: 7.5, color: '#A8A49E', fontWeight: 600 }}>
+                  <span>Client</span><span>Date</span><span>Status</span>
                 </div>
-                <div style={{ fontSize: 8, fontWeight: 600, color: c, background: `${c}15`, padding: '2px 6px', borderRadius: 999 }}>{s}</div>
+                {[
+                  { n: 'Laura & Marc Hoffmann', d: 'Mar 20', s: 'Signed', c: '#10B981' },
+                  { n: 'Anna K.', d: 'Mar 28', s: 'Sent', c: '#3B82F6' },
+                  { n: 'TechCorp GmbH', d: 'Apr 1', s: 'Draft', c: '#A8A49E' },
+                  { n: 'Miller Family', d: 'Apr 8', s: 'Signed', c: '#10B981' },
+                ].map(({ n, d, s, c }, i) => (
+                  <div key={n} style={{ display: 'grid', gridTemplateColumns: '1fr 55px 60px', padding: '6px 10px', borderBottom: '1px solid rgba(0,0,0,0.04)', alignItems: 'center', background: i === 0 ? 'rgba(168,132,92,0.04)' : 'transparent' }}>
+                    <div style={{ fontSize: 8.5, fontWeight: i === 0 ? 600 : 400, color: '#1A1A18' }}>{n}</div>
+                    <div style={{ fontSize: 8, color: '#A8A49E' }}>{d}</div>
+                    <div style={{ fontSize: 7.5, fontWeight: 600, color: c, background: `${c}15`, padding: '1px 6px', borderRadius: 999, width: 'fit-content' }}>{s}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* ── Screen 3: Analytics ── */}
+          {screen === 3 && (
+            <div style={{ padding: '14px', height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 12 }}>Analytics</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
+                {[
+                  { label: 'Revenue', value: '€8.4k', sub: '+12% ↑', color: '#10B981' },
+                  { label: 'Clients', value: '24', sub: '+4 this month', color: '#3B82F6' },
+                  { label: 'Conversion', value: '68%', sub: 'Leads → Bookings', color: '#A8845C' },
+                ].map(({ label, value, sub, color }) => (
+                  <div key={label} style={{ background: '#FFFFFF', borderRadius: 7, padding: '8px 10px', border: '1px solid rgba(0,0,0,0.06)', borderTop: `2px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color, marginBottom: 1 }}>{value}</div>
+                    <div style={{ fontSize: 7.5, color: '#A8A49E', marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 7.5, color: `${color}99` }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: '#FFFFFF', borderRadius: 7, padding: '8px 10px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: 8, fontWeight: 700, color: '#1A1A18', marginBottom: 8 }}>Revenue — last 6 months</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 36 }}>
+                  {[55, 70, 45, 85, 65, 100].map((h, i) => (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div style={{ width: '100%', height: `${h * 0.32}px`, borderRadius: '3px 3px 0 0', background: i === 5 ? '#A8845C' : 'rgba(168,132,92,0.2)' }} />
+                      <div style={{ fontSize: 6.5, color: '#A8A49E' }}>{['O', 'N', 'D', 'J', 'F', 'M'][i]}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </LightBrowserFrame>
@@ -473,6 +778,145 @@ function ContractsMockup() {
         </div>
       </div>
     </LightBrowserFrame>
+  )
+}
+
+// ── Inbox Mockup (Dark) ───────────────────────────────────────────────
+function InboxMockup() {
+  return (
+    <DarkBrowserFrame url="fotonizer.com/dashboard/inbox">
+      <div style={{ background: '#141412', display: 'flex', height: 180 }}>
+        <div style={{ width: 145, borderRight: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 10, fontWeight: 700, color: '#F0EDE8' }}>Inbox</div>
+          {[
+            { name: 'Laura H.', preview: 'Love the photos! 🤍', time: '2m', unread: true },
+            { name: 'Thomas B.', preview: 'Can we reschedule?', time: '1h', unread: true },
+            { name: 'TechCorp', preview: 'Invoice received', time: '3h', unread: false },
+            { name: 'Anna K.', preview: 'Thank you so much!', time: 'Tue', unread: false },
+          ].map(({ name, preview, time, unread }) => (
+            <div key={name} style={{ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: unread ? 'rgba(196,164,124,0.06)' : 'transparent' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                <div style={{ fontSize: 9, fontWeight: unread ? 700 : 400, color: unread ? '#F0EDE8' : '#6A6A68' }}>{name}</div>
+                <div style={{ fontSize: 7, color: '#5A5A58' }}>{time}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {unread && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#C4A47C', flexShrink: 0 }} />}
+                <div style={{ fontSize: 8, color: '#5A5A58', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>{preview}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 10, fontWeight: 600, color: '#F0EDE8' }}>Laura H.</div>
+          <div style={{ flex: 1, padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden' }}>
+            <div style={{ alignSelf: 'flex-start', background: '#1C1C1A', borderRadius: '0 8px 8px 8px', padding: '5px 8px', maxWidth: '85%', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: 8, color: '#D0CCC8', lineHeight: 1.4 }}>These photos are absolutely beautiful 🤍</div>
+            </div>
+            <div style={{ alignSelf: 'flex-end', background: 'rgba(196,164,124,0.15)', borderRadius: '8px 0 8px 8px', padding: '5px 8px', maxWidth: '85%', border: '1px solid rgba(196,164,124,0.2)' }}>
+              <div style={{ fontSize: 8, color: '#C4A47C', lineHeight: 1.4 }}>So happy you love them! 🙏</div>
+            </div>
+            <div style={{ alignSelf: 'flex-start', background: '#1C1C1A', borderRadius: '0 8px 8px 8px', padding: '5px 8px', maxWidth: '85%', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: 8, color: '#D0CCC8', lineHeight: 1.4 }}>Love the photos! 🤍</div>
+            </div>
+          </div>
+          <div style={{ padding: '7px 12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ background: '#1C1C1A', borderRadius: 6, padding: '5px 9px', border: '1px solid rgba(255,255,255,0.08)', fontSize: 8, color: '#5A5A58' }}>Reply to Laura...</div>
+          </div>
+        </div>
+      </div>
+    </DarkBrowserFrame>
+  )
+}
+
+// ── Forms Mockup (Light) ──────────────────────────────────────────────
+function FormulareMockup() {
+  return (
+    <LightBrowserFrame url="fotonizer.com/f/anna-fotografie">
+      <div style={{ background: '#F8F7F4', padding: '14px 14px 10px', height: 180 }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 10, padding: '12px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1A1A18', marginBottom: 1 }}>Inquiry — Anna Fotografie</div>
+          <div style={{ fontSize: 8, color: '#A8A49E', marginBottom: 10 }}>Tell me about your project.</div>
+          {[
+            { label: 'Name', value: 'Laura Hoffmann' },
+            { label: 'Date', value: 'June 14, 2026' },
+            { label: 'Shoot type', value: 'Wedding' },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ marginBottom: 7 }}>
+              <div style={{ fontSize: 7.5, fontWeight: 600, color: '#7A7670', marginBottom: 2 }}>{label}</div>
+              <div style={{ background: '#F8F7F4', borderRadius: 5, padding: '4px 7px', border: '1px solid rgba(168,132,92,0.3)', fontSize: 8.5, color: '#1A1A18' }}>{value}</div>
+            </div>
+          ))}
+          <div style={{ marginTop: 10, padding: '6px 0', background: '#A8845C', borderRadius: 6, fontSize: 9, fontWeight: 700, color: '#FFFFFF', textAlign: 'center' }}>Send Inquiry →</div>
+        </div>
+      </div>
+    </LightBrowserFrame>
+  )
+}
+
+// ── Galleries Mockup (Light) ──────────────────────────────────────────
+function GalerienMockup() {
+  return (
+    <LightBrowserFrame url="fotonizer.com/g/laura-marc">
+      <div style={{ background: '#F8F7F4', padding: '14px', height: 180, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#1A1A18' }}>Laura &amp; Marc</div>
+            <div style={{ fontSize: 8, color: '#A8A49E' }}>248 photos · March 27</div>
+          </div>
+          <div style={{ fontSize: 8, fontWeight: 700, color: '#A8845C', background: 'rgba(168,132,92,0.1)', padding: '3px 8px', borderRadius: 5, border: '1px solid rgba(168,132,92,0.2)' }}>↓ Download</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+          {[
+            { bg: '#2A2118', fav: false },
+            { bg: '#3A3028', fav: true },
+            { bg: '#1E1A14', fav: false },
+            { bg: '#342820', fav: false },
+            { bg: '#2C241C', fav: true },
+            { bg: '#3E3226', fav: false },
+          ].map(({ bg, fav }, i) => (
+            <div key={i} style={{ aspectRatio: '4/3', borderRadius: 5, background: bg, position: 'relative', overflow: 'hidden' }}>
+              {fav && <div style={{ position: 'absolute', top: 4, right: 4, fontSize: 9 }}>🤍</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </LightBrowserFrame>
+  )
+}
+
+// ── Email Templates Mockup (Dark) ─────────────────────────────────────
+function EmailTemplatesMockup() {
+  return (
+    <DarkBrowserFrame url="fotonizer.com/dashboard/templates">
+      <div style={{ background: '#141412', padding: '14px', height: 180, overflow: 'hidden' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#F0EDE8', marginBottom: 8 }}>Email Templates</div>
+        <div style={{ background: '#1C1C1A', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          <div style={{ padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 9, fontWeight: 600, color: '#D0CCC8' }}>Gallery ready — client notification</div>
+            <div style={{ fontSize: 7, color: '#C4A47C', background: 'rgba(196,164,124,0.1)', padding: '1px 5px', borderRadius: 3 }}>Active</div>
+          </div>
+          <div style={{ padding: '8px 10px' }}>
+            <div style={{ fontSize: 7.5, color: '#5A5A58', marginBottom: 2 }}>SUBJECT</div>
+            <div style={{ fontSize: 8.5, color: '#D0CCC8', marginBottom: 8 }}>
+              Your photos are ready,{' '}
+              <span style={{ color: '#C4A47C', background: 'rgba(196,164,124,0.12)', padding: '1px 4px', borderRadius: 3 }}>{'{client_name}'}</span> 🤍
+            </div>
+            <div style={{ fontSize: 7.5, color: '#5A5A58', marginBottom: 2 }}>MESSAGE</div>
+            <div style={{ fontSize: 8, color: '#6A6A68', lineHeight: 1.5 }}>
+              Hi{' '}
+              <span style={{ color: '#C4A47C', background: 'rgba(196,164,124,0.12)', padding: '1px 3px', borderRadius: 3 }}>{'{client_name}'}</span>
+              , your gallery from{' '}
+              <span style={{ color: '#C4A47C', background: 'rgba(196,164,124,0.12)', padding: '1px 3px', borderRadius: 3 }}>{'{shoot_date}'}</span>
+              {' '}is now live 🤍
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <div style={{ flex: 1, padding: '5px', background: '#A8845C', borderRadius: 5, fontSize: 8, fontWeight: 700, color: '#FFFFFF', textAlign: 'center' }}>Use template</div>
+          <div style={{ padding: '5px 9px', background: 'rgba(255,255,255,0.05)', borderRadius: 5, fontSize: 8, color: '#5A5A58', textAlign: 'center' }}>Preview</div>
+        </div>
+      </div>
+    </DarkBrowserFrame>
   )
 }
 
@@ -733,6 +1177,41 @@ export default function HomePage() {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* ── WORKFLOW SECTION ── */}
+      <section className="py-24">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="label-caps mb-3">{t.workflowSection.label}</p>
+            <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.workflowSection.h2}</h2>
+            <p className="text-[16px] max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>{t.workflowSection.sub}</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {[
+              { key: 'inbox', mockupEl: <InboxMockup /> },
+              { key: 'forms', mockupEl: <FormulareMockup /> },
+              { key: 'galleries', mockupEl: <GalerienMockup /> },
+              { key: 'contracts', mockupEl: <ContractsMockup /> },
+              { key: 'bookings', mockupEl: <BookingsMockup /> },
+              { key: 'templates', mockupEl: <EmailTemplatesMockup /> },
+            ].map(({ key, mockupEl }) => {
+              const f = t.workflowSection.features.find(feat => feat.key === key)!
+              return (
+                <div key={key} className="glass-card overflow-hidden">
+                  <div style={{ height: 220, overflow: 'hidden', pointerEvents: 'none' }}>
+                    {mockupEl}
+                  </div>
+                  <div className="p-6 pt-5">
+                    <p className="label-caps mb-2">{f.label}</p>
+                    <h3 className="font-bold text-[18px] mb-2" style={{ letterSpacing: '-0.02em' }}>{f.headline}</h3>
+                    <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.desc}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </section>
 
