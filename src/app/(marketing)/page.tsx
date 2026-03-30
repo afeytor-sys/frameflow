@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Star, Zap, Shield, Globe, Camera, Users, Menu, X } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Star, Zap, Shield, Globe, Menu, X } from 'lucide-react'
 import PricingSection from '@/components/marketing/PricingSection'
 import FAQAccordion from '@/components/marketing/FAQAccordion'
 
@@ -920,6 +920,73 @@ function EmailTemplatesMockup() {
   )
 }
 
+// ── Glass primitives ──────────────────────────────────────────────────
+const glass = {
+  light: {
+    bg:     'rgba(255,255,255,0.62)',
+    border: 'rgba(255,255,255,0.85)',
+    shadow: '0 8px 32px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
+  },
+  mid: {
+    bg:     'rgba(255,255,255,0.42)',
+    border: 'rgba(255,255,255,0.65)',
+    shadow: '0 12px 40px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,0.8)',
+  },
+  dark: {
+    bg:     'rgba(255,255,255,0.22)',
+    border: 'rgba(255,255,255,0.38)',
+    shadow: '0 16px 48px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.5)',
+  },
+}
+
+function GlassCard({ children, style = {}, level = 'mid' }: {
+  children: React.ReactNode
+  style?: React.CSSProperties
+  level?: 'light' | 'mid' | 'dark'
+}) {
+  const g = glass[level]
+  return (
+    <div style={{
+      background: g.bg,
+      border: `1px solid ${g.border}`,
+      boxShadow: g.shadow,
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      borderRadius: 20,
+      ...style,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function Background() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #f0ebe3 0%, #e8e0d5 30%, #ddd5c8 60%, #e6dfd8 100%)' }} />
+      <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(196,164,124,0.25) 0%, transparent 70%)', borderRadius: '50%' }} />
+      <div style={{ position: 'absolute', bottom: '-15%', right: '-10%', width: '55%', height: '55%', background: 'radial-gradient(circle, rgba(168,185,210,0.20) 0%, transparent 70%)', borderRadius: '50%' }} />
+      <div style={{ position: 'absolute', top: '40%', right: '20%', width: '35%', height: '35%', background: 'radial-gradient(circle, rgba(196,164,124,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundRepeat: 'repeat', backgroundSize: '180px' }} />
+    </div>
+  )
+}
+
+function GlassSection({ children, style = {}, id }: { children: React.ReactNode; style?: React.CSSProperties; id?: string }) {
+  return (
+    <div id={id} style={{
+      background: 'rgba(255,255,255,0.30)',
+      backdropFilter: 'blur(28px)',
+      WebkitBackdropFilter: 'blur(28px)',
+      borderTop: '1px solid rgba(255,255,255,0.55)',
+      borderBottom: '1px solid rgba(255,255,255,0.35)',
+      ...style,
+    }}>
+      {children}
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────
 export default function HomePage() {
   const [lang, setLang] = useState<'de' | 'en'>('en')
@@ -927,268 +994,203 @@ export default function HomePage() {
   const t = T[lang]
 
   return (
-    <div style={{ background: 'var(--bg-page)', color: 'var(--text-primary)', minHeight: '100vh' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif' }}>
+      <Background />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
 
       {/* ── NAVBAR ── */}
-      <nav style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)', position: 'relative', zIndex: 50 }}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                <path d="M4 14V7.5L10 4L16 7.5V14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 14V10.5H12.5V14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          height: 64,
+          background: 'rgba(255,255,255,0.52)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          borderBottom: '1px solid rgba(255,255,255,0.65)',
+          padding: '0 48px',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.5), 0 4px 24px rgba(0,0,0,0.06)',
+        }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(168,132,92,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,132,92,0.2)' }}>
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Fotonizer</span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.03em' }}>Fotonizer</span>
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-6">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
             {[{ href: '#features', label: t.nav.features }, { href: '#pricing', label: t.nav.pricing }, { href: '#faq', label: t.nav.faq }].map(({ href, label }) => (
-              <a key={href} href={href} className="text-[13.5px] font-medium" style={{ color: 'var(--text-muted)' }}>{label}</a>
+              <a key={href} href={href} style={{ fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.48)', textDecoration: 'none' }}>{label}</a>
             ))}
-            <Link href="/blog" className="text-[13.5px] font-medium" style={{ color: 'var(--text-muted)' }}>{t.nav.blog}</Link>
+            <Link href="/blog" style={{ fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.48)', textDecoration: 'none' }}>{t.nav.blog}</Link>
           </div>
 
-          {/* Desktop right actions */}
-          <div className="hidden sm:flex items-center gap-3">
+          {/* Right actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold"
-              style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.8)', color: 'rgba(0,0,0,0.45)', cursor: 'pointer' }}>
               <span style={{ opacity: lang === 'de' ? 1 : 0.4 }}>DE</span>
-              <span style={{ color: 'var(--border-color)' }}>|</span>
+              <span style={{ color: 'rgba(0,0,0,0.2)' }}>|</span>
               <span style={{ opacity: lang === 'en' ? 1 : 0.4 }}>EN</span>
             </button>
-            <Link href="/login" className="text-[13.5px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{t.nav.signin}</Link>
-            <Link href="/signup" className="btn-shimmer flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13.5px] font-bold text-white" style={{ background: 'var(--accent)' }}>
-              {t.nav.cta}<ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {/* Mobile: CTA + hamburger */}
-          <div className="flex sm:hidden items-center gap-2">
-            <Link href="/signup" className="btn-shimmer flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white" style={{ background: 'var(--accent)' }}>
-              {t.nav.cta}
+            <Link href="/login" style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(0,0,0,0.48)', textDecoration: 'none' }}>{t.nav.signin}</Link>
+            <Link href="/signup" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 12, background: '#A8845C', fontSize: 13.5, fontWeight: 700, color: '#FFF', textDecoration: 'none', boxShadow: '0 4px 16px rgba(168,132,92,0.35)' }}>
+              {t.nav.cta} <ArrowRight size={14} />
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center justify-center w-9 h-9 rounded-lg"
-              style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', cursor: 'pointer' }}
+              style={{ display: 'none', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.9)', color: '#1A1510', cursor: 'pointer' }}
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile dropdown menu */}
+        {/* Mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="sm:hidden" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-            <div className="px-6 py-4 flex flex-col gap-1">
-              {/* Nav links */}
-              {[
-                { href: '#features', label: t.nav.features },
-                { href: '#pricing', label: t.nav.pricing },
-                { href: '#faq', label: t.nav.faq },
-                { href: '/blog', label: t.nav.blog },
-              ].map(({ href, label }) => (
-                <a
-                  key={href}
-                  href={href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 text-[15px] font-medium"
-                  style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)' }}
-                >
-                  {label}
-                </a>
-              ))}
-
-              {/* Auth links */}
-              <div className="pt-3 flex flex-col gap-2">
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 rounded-xl text-[14px] font-semibold text-center"
-                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                >
-                  {t.nav.signin}
-                </Link>
-                <Link
-                  href="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="btn-shimmer w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[14px] font-bold text-white"
-                  style={{ background: 'var(--accent)' }}
-                >
-                  {t.nav.cta}<ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              {/* Language toggle */}
-              <div className="pt-2 flex justify-center">
-                <button onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold"
-                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                  <span style={{ opacity: lang === 'de' ? 1 : 0.4 }}>DE</span>
-                  <span style={{ color: 'var(--border-color)' }}>|</span>
-                  <span style={{ opacity: lang === 'en' ? 1 : 0.4 }}>EN</span>
-                </button>
-              </div>
+          <div style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.7)', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[{ href: '#features', label: t.nav.features }, { href: '#pricing', label: t.nav.pricing }, { href: '#faq', label: t.nav.faq }, { href: '/blog', label: t.nav.blog }].map(({ href, label }) => (
+              <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} style={{ padding: '10px 0', fontSize: 15, fontWeight: 500, color: '#1A1510', borderBottom: '1px solid rgba(0,0,0,0.06)', textDecoration: 'none' }}>{label}</a>
+            ))}
+            <div style={{ paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center', fontSize: 14, fontWeight: 600, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.9)', color: '#1A1510', textDecoration: 'none' }}>{t.nav.signin}</Link>
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)} style={{ width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center', fontSize: 14, fontWeight: 700, background: '#A8845C', color: '#FFF', textDecoration: 'none' }}>{t.nav.cta}</Link>
             </div>
           </div>
         )}
       </nav>
 
-      {/* ── HERO ── */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(196,164,124,0.12) 0%, transparent 70%)' }} />
-        <div className="relative max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold mb-8"
-            style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid rgba(196,164,124,0.2)' }}>
-            <Zap className="w-3 h-3" />{t.badge}
+      {/* ── HERO ── transparent */}
+      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '110px 48px 90px', textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 100, background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', marginBottom: 44, boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+          <Zap size={13} color="#A8845C" />
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#8A6A3C' }}>{t.badge}</span>
+        </div>
+        <h1 style={{ fontSize: 'clamp(2.8rem, 6vw, 5rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.045em', lineHeight: 1.05, marginBottom: 28 }}>
+          {t.h1a}<br />
+          <span style={{ background: 'linear-gradient(135deg, #A8845C 0%, #C4A47C 50%, #8A6A3C 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {t.h1b}
+          </span>
+        </h1>
+        <p style={{ fontSize: 19, color: 'rgba(0,0,0,0.52)', lineHeight: 1.65, maxWidth: 580, margin: '0 auto 48px' }}>{t.sub}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 64 }}>
+          <Link href="/signup" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 32px', borderRadius: 14, background: '#A8845C', fontSize: 15, fontWeight: 700, color: '#FFF', textDecoration: 'none', boxShadow: '0 8px 28px rgba(168,132,92,0.40)' }}>
+            {t.ctaPrimary} <ArrowRight size={16} />
+          </Link>
+          <a href="#features" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 32px', borderRadius: 14, background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.58)', textDecoration: 'none' }}>
+            {t.ctaSecondary}
+          </a>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 80 }}>
+          <div style={{ display: 'flex' }}>
+            {['#C4A47C','#8B7355','#D4B48C','#A8845C','#E8C89C'].map((color, i) => (
+              <div key={i} style={{ width: 34, height: 34, borderRadius: '50%', background: color, border: '2.5px solid rgba(255,255,255,0.9)', marginLeft: i === 0 ? 0 : -10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#FFF', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>{['A','T','J','M','S'][i]}</div>
+            ))}
           </div>
-          <h1 className="font-black mb-6" style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
-            {t.h1a}<br /><span className="text-gradient-gold">{t.h1b}</span>
-          </h1>
-          <p className="text-[17px] leading-relaxed max-w-2xl mx-auto mb-10" style={{ color: 'var(--text-secondary)' }}>{t.sub}</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
-            <Link href="/signup" className="btn-shimmer flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-bold text-white"
-              style={{ background: 'var(--accent)', boxShadow: '0 4px 20px rgba(196,164,124,0.35)' }}>
-              {t.ctaPrimary}<ArrowRight className="w-4 h-4" />
-            </Link>
-            <a href="#features" className="flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-              {t.ctaSecondary}
-            </a>
+          <div style={{ display: 'flex', gap: 2 }}>
+            {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="#A8845C" color="#A8845C" />)}
           </div>
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex -space-x-2">
-              {['#C4A47C', '#8B7355', '#D4B48C', '#A8845C', '#E8C89C'].map((color, i) => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold text-white"
-                  style={{ borderColor: 'var(--bg-page)', background: color }}>
-                  {['A', 'T', 'J', 'M', 'S'][i]}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} />)}
-            </div>
-            <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              {t.socialProof} <strong style={{ color: 'var(--text-primary)' }}>{t.socialProof2}</strong>
-            </span>
-          </div>
+          <span style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.45)' }}>{t.socialProof} <strong style={{ color: '#1A1510' }}>{t.socialProof2}</strong></span>
         </div>
 
-        {/* Hero: Light + Dark side by side */}
-        <div className="relative max-w-6xl mx-auto px-6 pb-24">
-          <div style={{ position: 'absolute', inset: -20, background: 'radial-gradient(ellipse 70% 60% at 50% 100%, rgba(196,164,124,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
-          <div className="grid md:grid-cols-2 gap-6 items-start">
-            {/* Dark mode */}
-            <div>
-              <div className="flex items-center gap-2 mb-3 justify-center">
-                <div className="w-2 h-2 rounded-full bg-gray-600" />
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Dark Mode</span>
-              </div>
-              <DarkDashboard />
+        {/* Dashboards side by side */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxWidth: 1100, margin: '0 auto' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6B6B6B' }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.4)' }}>Dark Mode</span>
             </div>
-            {/* Light mode */}
-            <div>
-              <div className="flex items-center gap-2 mb-3 justify-center">
-                <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Light Mode</span>
-              </div>
-              <LightDashboard />
+            <DarkDashboard />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#A8845C' }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.4)' }}>Light Mode</span>
             </div>
+            <LightDashboard />
           </div>
-          {/* Dark mode label */}
-          <div className="text-center mt-8">
-            <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t.darkModeLabel}</p>
-            <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>{t.darkModeSub}</p>
-          </div>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 32 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: '#1A1510' }}>{t.darkModeLabel}</p>
+          <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.45)', marginTop: 4 }}>{t.darkModeSub}</p>
         </div>
       </section>
 
-      {/* ── PROBLEM ── */}
-      <section className="py-24" style={{ background: 'var(--bg-page-2)' }}>
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <p className="label-caps mb-3">{t.problem.label}</p>
-          <h2 className="font-black mb-6" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.problem.h2}</h2>
-          <p className="text-[17px] leading-relaxed max-w-2xl mx-auto mb-6" style={{ color: 'var(--text-secondary)' }}>{t.problem.p1}</p>
-          <p className="text-[17px] leading-relaxed max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>{t.problem.p2}</p>
+      {/* ── PROBLEM ── glass panel */}
+      <GlassSection style={{ padding: '80px 48px' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20 }}>{t.problem.label}</p>
+          <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em', lineHeight: 1.1, marginBottom: 22 }}>{t.problem.h2}</h2>
+          <p style={{ fontSize: 17, color: 'rgba(0,0,0,0.5)', lineHeight: 1.65, marginBottom: 14 }}>{t.problem.p1}</p>
+          <p style={{ fontSize: 17, color: 'rgba(0,0,0,0.5)', lineHeight: 1.65 }}>{t.problem.p2}</p>
         </div>
-      </section>
+      </GlassSection>
 
-      {/* ── FEATURE SECTIONS ── */}
-      <section id="features" className="py-24">
-        <div className="max-w-6xl mx-auto px-6 space-y-28">
+      {/* ── FEATURE SECTIONS ── transparent */}
+      <section id="features" style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 112 }}>
 
           {/* 1 — Bookings */}
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
             <div>
-              <p className="label-caps mb-3">{t.bookings.label}</p>
-              <h2 className="font-black mb-5" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>{t.bookings.h2}</h2>
-              <p className="text-[16px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>{t.bookings.p1}</p>
-              <p className="text-[16px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t.bookings.p2}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>{t.bookings.label}</p>
+              <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.03em', marginBottom: 20 }}>{t.bookings.h2}</h2>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7, marginBottom: 14 }}>{t.bookings.p1}</p>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7 }}>{t.bookings.p2}</p>
             </div>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -20, background: 'radial-gradient(ellipse at center, rgba(196,164,124,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <BookingsMockup />
-            </div>
+            <BookingsMockup />
           </div>
 
           {/* 2 — Contracts */}
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="md:order-2">
-              <p className="label-caps mb-3">{t.contracts.label}</p>
-              <h2 className="font-black mb-5" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>{t.contracts.h2}</h2>
-              <p className="text-[16px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>{t.contracts.p1}</p>
-              <p className="text-[16px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t.contracts.p2}</p>
-            </div>
-            <div className="md:order-1" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -20, background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <ContractsMockup />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+            <ContractsMockup />
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>{t.contracts.label}</p>
+              <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.03em', marginBottom: 20 }}>{t.contracts.h2}</h2>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7, marginBottom: 14 }}>{t.contracts.p1}</p>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7 }}>{t.contracts.p2}</p>
             </div>
           </div>
 
           {/* 3 — Analytics */}
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
             <div>
-              <p className="label-caps mb-3">{t.analytics.label}</p>
-              <h2 className="font-black mb-5" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>{t.analytics.h2}</h2>
-              <p className="text-[16px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>{t.analytics.p1}</p>
-              <p className="text-[16px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t.analytics.p2}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>{t.analytics.label}</p>
+              <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.03em', marginBottom: 20 }}>{t.analytics.h2}</h2>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7, marginBottom: 14 }}>{t.analytics.p1}</p>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7 }}>{t.analytics.p2}</p>
             </div>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -20, background: 'radial-gradient(ellipse at center, rgba(196,164,124,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <AnalyticsMockup />
-            </div>
+            <AnalyticsMockup />
           </div>
 
-          {/* 4 — Client Portal (phone) */}
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="md:order-2">
-              <p className="label-caps mb-3">{t.portal.label}</p>
-              <h2 className="font-black mb-5" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>{t.portal.h2}</h2>
-              <p className="text-[16px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>{t.portal.p1}</p>
-              <p className="text-[16px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t.portal.p2}</p>
-            </div>
-            <div className="md:order-1" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -20, background: 'radial-gradient(ellipse at center, rgba(196,164,124,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <PhonePortalMockup />
+          {/* 4 — Client Portal */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+            <PhonePortalMockup />
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>{t.portal.label}</p>
+              <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.03em', marginBottom: 20 }}>{t.portal.h2}</h2>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7, marginBottom: 14 }}>{t.portal.p1}</p>
+              <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.5)', lineHeight: 1.7 }}>{t.portal.p2}</p>
             </div>
           </div>
 
         </div>
       </section>
 
-      {/* ── WORKFLOW SECTION ── */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="label-caps mb-3">{t.workflowSection.label}</p>
-            <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.workflowSection.h2}</h2>
-            <p className="text-[16px] max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>{t.workflowSection.sub}</p>
+      {/* ── WORKFLOW SECTION ── glass panel */}
+      <GlassSection style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>{t.workflowSection.label}</p>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em', marginBottom: 14 }}>{t.workflowSection.h2}</h2>
+            <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.48)', maxWidth: 500, margin: '0 auto' }}>{t.workflowSection.sub}</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {[
               { key: 'inbox', mockupEl: <InboxMockup /> },
               { key: 'forms', mockupEl: <FormulareMockup /> },
@@ -1199,168 +1201,160 @@ export default function HomePage() {
             ].map(({ key, mockupEl }) => {
               const f = t.workflowSection.features.find(feat => feat.key === key)!
               return (
-                <div key={key} className="glass-card overflow-hidden">
+                <GlassCard key={key} level="light" style={{ overflow: 'hidden' }}>
                   <div style={{ height: 220, overflow: 'hidden', pointerEvents: 'none' }}>
                     {mockupEl}
                   </div>
-                  <div className="p-6 pt-5">
-                    <p className="label-caps mb-2">{f.label}</p>
-                    <h3 className="font-bold text-[18px] mb-2" style={{ letterSpacing: '-0.02em' }}>{f.headline}</h3>
-                    <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.desc}</p>
+                  <div style={{ padding: '24px 28px 28px' }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>{f.label}</p>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em', marginBottom: 8 }}>{f.headline}</h3>
+                    <p style={{ fontSize: 14, color: 'rgba(0,0,0,0.5)', lineHeight: 1.65 }}>{f.desc}</p>
                   </div>
-                </div>
+                </GlassCard>
               )
             })}
           </div>
         </div>
-      </section>
+      </GlassSection>
 
-      {/* ── FEATURES GRID ── */}
-      <section className="py-24" style={{ background: 'var(--bg-page-2)' }}>
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="label-caps mb-3">{t.featuresSection.label}</p>
-            <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.featuresSection.h2}</h2>
-            <p className="text-[16px] max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>{t.featuresSection.sub}</p>
+      {/* ── FEATURES GRID ── transparent */}
+      <section style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>{t.featuresSection.label}</p>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em', lineHeight: 1.1, marginBottom: 14 }}>{t.featuresSection.h2}</h2>
+            <p style={{ fontSize: 17, color: 'rgba(0,0,0,0.48)', maxWidth: 500, margin: '0 auto' }}>{t.featuresSection.sub}</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {t.features.map(({ icon, title, desc }) => (
-              <div key={title} className="glass-card p-6">
-                <span className="text-2xl mb-4 block">{icon}</span>
-                <h3 className="font-bold text-[16px] mb-2" style={{ letterSpacing: '-0.01em' }}>{title}</h3>
-                <p className="text-[13.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{desc}</p>
-              </div>
+              <GlassCard key={title} level="light" style={{ padding: 28 }}>
+                <span style={{ fontSize: 28, display: 'block', marginBottom: 16 }}>{icon}</span>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1A1510', marginBottom: 8, letterSpacing: '-0.02em' }}>{title}</h3>
+                <p style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.5)', lineHeight: 1.65 }}>{desc}</p>
+              </GlassCard>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── PHOTO TYPES ── */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-black mb-10" style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', letterSpacing: '-0.03em' }}>
-            {'Fotonizer works for every style and genre'}
+      {/* ── PHOTO TYPES ── glass panel */}
+      <GlassSection style={{ padding: '64px 48px' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.03em', marginBottom: 40 }}>
+            Fotonizer works for every style and genre
           </h2>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
             {t.genres.map(({ emoji, label }) => (
-              <div key={label} className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-semibold"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 100, fontSize: 14, fontWeight: 600, background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', color: '#1A1510', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                 <span>{emoji}</span>{label}
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </GlassSection>
 
-      {/* ── TESTIMONIALS ── */}
-      <section className="py-24" style={{ background: 'var(--bg-page-2)' }}>
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="label-caps mb-3">{t.testimonials.label}</p>
-            <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.testimonials.h2}</h2>
+      {/* ── TESTIMONIALS ── transparent, cards float */}
+      <section style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>{t.testimonials.label}</p>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em' }}>{t.testimonials.h2}</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {t.reviews.map(({ quote, name, role, stars }) => (
-              <div key={name} className="glass-card p-7">
-                <div className="flex gap-0.5 mb-5">
-                  {[...Array(stars)].map((_, j) => <Star key={j} className="w-4 h-4 fill-current" style={{ color: 'var(--accent)' }} />)}
+              <GlassCard key={name} level="light" style={{ padding: 32 }}>
+                <div style={{ display: 'flex', gap: 3, marginBottom: 20 }}>
+                  {[...Array(stars)].map((_, i) => <Star key={i} size={15} fill="#A8845C" color="#A8845C" />)}
                 </div>
-                <p className="text-[14.5px] leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>&ldquo;{quote}&rdquo;</p>
+                <p style={{ fontSize: 14.5, color: 'rgba(0,0,0,0.58)', lineHeight: 1.65, marginBottom: 24 }}>&ldquo;{quote}&rdquo;</p>
                 <div>
-                  <p className="font-bold text-[14px]">{name}</p>
-                  <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{role}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#1A1510' }}>{name}</p>
+                  <p style={{ fontSize: 12.5, color: 'rgba(0,0,0,0.4)', marginTop: 3 }}>{role}</p>
                 </div>
-              </div>
+              </GlassCard>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── PRICING ── */}
-      <section id="pricing" className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="label-caps mb-3">{t.pricing.label}</p>
-            <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.pricing.h2}</h2>
-            <p className="text-[16px]" style={{ color: 'var(--text-secondary)' }}>{t.pricing.sub}</p>
+      {/* ── PRICING ── glass panel */}
+      <GlassSection id="pricing" style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>{t.pricing.label}</p>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em', marginBottom: 12 }}>{t.pricing.h2}</h2>
+            <p style={{ fontSize: 16, color: 'rgba(0,0,0,0.45)' }}>{t.pricing.sub}</p>
           </div>
           <PricingSection />
         </div>
-      </section>
+      </GlassSection>
 
-      {/* ── FAQ ── */}
-      <section id="faq" className="py-24" style={{ background: 'var(--bg-page-2)' }}>
-        <div className="max-w-2xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="label-caps mb-3">{t.faq.label}</p>
-            <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.faq.h2}</h2>
+      {/* ── FAQ ── transparent */}
+      <section style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>{t.faq.label}</p>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em' }}>{t.faq.h2}</h2>
           </div>
           <FAQAccordion />
         </div>
       </section>
 
-      {/* ── CTA FINAL ── */}
-      <section className="py-24">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <div className="glass-card p-12 relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 100%, rgba(196,164,124,0.10) 0%, transparent 70%)' }} />
-            <div className="relative">
-              <h2 className="font-black mb-4" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}>{t.finalCta.h2}</h2>
-              <p className="text-[16px] mb-8" style={{ color: 'var(--text-secondary)' }}>{t.finalCta.sub}</p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link href="/signup" className="btn-shimmer flex items-center gap-2 px-8 py-3.5 rounded-xl text-[15px] font-bold text-white"
-                  style={{ background: 'var(--accent)', boxShadow: '0 4px 20px rgba(196,164,124,0.35)' }}>
-                  {t.finalCta.btn1}<ArrowRight className="w-4 h-4" />
-                </Link>
-                <a href="#features" className="flex items-center gap-2 px-8 py-3.5 rounded-xl text-[15px] font-semibold"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                  {t.finalCta.btn2}
-                </a>
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-8">
-                {t.trust.map((text, i) => {
-                  const icons = [CheckCircle2, Shield, Globe]
-                  const Icon = icons[i]
-                  return (
-                    <div key={text} className="flex items-center gap-1.5 text-[12.5px]" style={{ color: 'var(--text-muted)' }}>
-                      <Icon className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />{text}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+      {/* ── CTA FINAL ── glass panel */}
+      <GlassSection style={{ padding: '96px 48px 110px' }}>
+        <div style={{ maxWidth: 740, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 20 }}>{t.finalCta.h2}</h2>
+          <p style={{ fontSize: 17, color: 'rgba(0,0,0,0.45)', marginBottom: 40 }}>{t.finalCta.sub}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 36 }}>
+            <Link href="/signup" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 36px', borderRadius: 14, background: '#A8845C', fontSize: 15, fontWeight: 700, color: '#FFF', textDecoration: 'none', boxShadow: '0 8px 28px rgba(168,132,92,0.40)' }}>
+              {t.finalCta.btn1} <ArrowRight size={16} />
+            </Link>
+            <a href="#features" style={{ padding: '14px 28px', borderRadius: 14, background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.55)', textDecoration: 'none' }}>
+              {t.finalCta.btn2}
+            </a>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28 }}>
+            {t.trust.map((text, i) => {
+              const icons = [CheckCircle2, Shield, Globe]
+              const Icon = icons[i]
+              return (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>
+                  <Icon size={14} color="#A8845C" />{text}
+                </div>
+              )
+            })}
           </div>
         </div>
-      </section>
+      </GlassSection>
 
       {/* ── FOOTER ── */}
-      <footer style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="flex flex-col md:flex-row items-start justify-between gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
-                  <Camera className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                </div>
-                <span className="font-bold text-[15px]" style={{ letterSpacing: '-0.02em' }}>Fotonizer</span>
+      <footer style={{ background: 'rgba(255,255,255,0.40)', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)', borderTop: '1px solid rgba(255,255,255,0.65)', padding: '48px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 7, background: 'rgba(168,132,92,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
+                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{t.footer.tagline}</p>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em' }}>Fotonizer</span>
             </div>
-            <div className="flex flex-wrap gap-x-8 gap-y-3">
-              {t.footerLinks.map(({ href, label }) => (
-                <Link key={href} href={href} className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{label}</Link>
-              ))}
-            </div>
+            <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>{t.footer.tagline}</p>
           </div>
-          <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>© {new Date().getFullYear()} Fotonizer. {t.footer.copyright}</p>
-            <div className="flex items-center gap-2">
-              <Users className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{t.footer.social}</span>
-            </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+            {t.footerLinks.map(({ href, label }) => (
+              <Link key={href} href={href} style={{ fontSize: 13, color: 'rgba(0,0,0,0.38)', textDecoration: 'none' }}>{label}</Link>
+            ))}
           </div>
         </div>
+        <div style={{ maxWidth: 1100, margin: '24px auto 0', paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.55)', display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.3)' }}>© {new Date().getFullYear()} Fotonizer. {t.footer.copyright}</span>
+          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.3)' }}>{t.footer.social}</span>
+        </div>
       </footer>
+
+      </div>{/* end position:relative zIndex:1 */}
     </div>
   )
 }
