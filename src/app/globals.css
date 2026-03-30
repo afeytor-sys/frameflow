@@ -31,10 +31,10 @@
 [data-theme="light"] {
   --bg-page:          transparent;
   --bg-page-2:        transparent;
-  --bg-surface:       rgba(255,255,255,0.60);
+  --bg-surface:       rgba(255,255,255,0.32);
   --bg-surface-solid: #F0EBE3;
-  --bg-sidebar:       rgba(255,255,255,0.52);
-  --bg-hover:         rgba(255,255,255,0.65);
+  --bg-sidebar:       rgba(255,255,255,0.28);
+  --bg-hover:         rgba(255,255,255,0.45);
   --bg-active:        #A8845C;
 
   --text-primary:     #1A1510;
@@ -42,12 +42,12 @@
   --text-muted:       #7A6A58;
   --text-on-active:   #FFFFFF;
 
-  --border-color:     rgba(255,255,255,0.70);
+  --border-color:     rgba(255,255,255,0.60);
   --border-strong:    rgba(168,132,92,0.25);
 
-  --glass-bg:         rgba(255,255,255,0.62);
-  --glass-border:     rgba(255,255,255,0.85);
-  --glass-shadow:     0 8px 32px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95);
+  --glass-bg:         rgba(255,255,255,0.30);
+  --glass-border:     rgba(255,255,255,0.65);
+  --glass-shadow:     0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.80);
 
   --accent:           #A8845C;
   --accent-hover:     #8A6A3C;
@@ -66,20 +66,20 @@
   --color-bookings:   #EC4899;
   --color-bookings-bg: rgba(236,72,153,0.10);
 
-  --card-bg:          rgba(255,255,255,0.62);
-  --card-border:      rgba(255,255,255,0.85);
-  --card-shadow:      0 8px 32px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95);
-  --card-shadow-hover: 0 16px 48px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.95);
+  --card-bg:          rgba(255,255,255,0.30);
+  --card-border:      rgba(255,255,255,0.62);
+  --card-shadow:      0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.80);
+  --card-shadow-hover: 0 16px 48px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.85);
 
-  --input-bg:         rgba(255,255,255,0.75);
-  --input-border:     rgba(255,255,255,0.80);
+  --input-bg:         rgba(255,255,255,0.45);
+  --input-border:     rgba(255,255,255,0.65);
   --input-focus:      #A8845C;
 
-  --sidebar-bg:       rgba(255,255,255,0.52);
-  --sidebar-border:   rgba(255,255,255,0.65);
+  --sidebar-bg:       rgba(255,255,255,0.28);
+  --sidebar-border:   rgba(255,255,255,0.50);
   --sidebar-active:   rgba(168,132,92,0.15);
   --sidebar-active-text: #A8845C;
-  --sidebar-hover:    rgba(255,255,255,0.55);
+  --sidebar-hover:    rgba(255,255,255,0.40);
   --sidebar-text:     rgba(26,21,16,0.45);
   --sidebar-text-hover: #1A1510;
 }
