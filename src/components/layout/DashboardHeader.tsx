@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
 import { Globe, ChevronDown, Sun, Moon } from 'lucide-react'
@@ -15,9 +15,10 @@ interface Props {
 
 export default function DashboardHeader({ photographer }: Props) {
   const [langOpen, setLangOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
+  const langBtnRef = useRef<HTMLButtonElement>(null)
   const { theme, toggleTheme } = useTheme()
 
-  // Read current locale from cookie (client-side)
   const [currentLocale, setCurrentLocale] = useState<string>('en')
 
   useEffect(() => {
@@ -26,19 +27,39 @@ export default function DashboardHeader({ photographer }: Props) {
     if (cookieLocale === 'de' || cookieLocale === 'en') {
       setCurrentLocale(cookieLocale)
     } else {
-      // No cookie yet — default to English and persist
       document.cookie = `locale=en; path=/; max-age=31536000; SameSite=Lax`
       setCurrentLocale('en')
     }
   }, [])
 
+  // Close on outside click
+  useEffect(() => {
+    if (!langOpen) return
+    const handler = (e: MouseEvent) => {
+      if (langBtnRef.current && !langBtnRef.current.contains(e.target as Node)) {
+        setLangOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [langOpen])
+
+  const openLang = () => {
+    if (!langOpen && langBtnRef.current) {
+      const rect = langBtnRef.current.getBoundingClientRect()
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      })
+    }
+    setLangOpen(o => !o)
+  }
+
   const switchLanguage = async (lang: string) => {
-    // Save cookie
     document.cookie = `locale=${lang}; path=/; max-age=31536000; SameSite=Lax`
     setCurrentLocale(lang)
     setLangOpen(false)
 
-    // Also save to DB so it persists across devices
     try {
       const supabase = createClient()
       await supabase
@@ -53,42 +74,40 @@ export default function DashboardHeader({ photographer }: Props) {
   }
 
   return (
-    <header
-      className="h-[52px] flex items-center justify-between px-5 gap-2 flex-shrink-0"
-      style={{
-        background: 'var(--bg-surface)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderBottom: '1px solid var(--border-color)',
-        boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
-      }}
-    >
-      {/* Left spacer — keeps controls on the right */}
-      <div />
+    <>
+      <header
+        className="h-[52px] flex items-center justify-between px-5 gap-2 flex-shrink-0"
+        style={{
+          background: 'var(--bg-surface)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderBottom: '1px solid var(--border-color)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
+        }}
+      >
+        {/* Left spacer */}
+        <div />
 
-      {/* Right side controls */}
-      <div className="flex items-center gap-2">
-        {/* Weather widget */}
-        <WeatherWidget />
+        {/* Right side controls */}
+        <div className="flex items-center gap-2">
+          <WeatherWidget />
+          <NotificationBell />
 
-        {/* Notification bell */}
-        <NotificationBell />
-
-        {/* Theme toggle — cycles light → dark → mono */}
-        <button
-          onClick={toggleTheme}
-          className="header-icon-btn w-8 h-8 rounded-xl"
-          title={theme === 'light' ? 'Switch to Dark' : theme === 'dark' ? 'Switch to Mono' : 'Switch to Light'}
-        >
-          {theme === 'light' && <Moon className="w-3.5 h-3.5" />}
-          {theme === 'dark'  && <Sun  className="w-3.5 h-3.5" />}
-          {theme === 'mono'  && <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 1 }}>M</span>}
-        </button>
-
-        {/* Language switcher */}
-        <div className="relative">
+          {/* Theme toggle */}
           <button
-            onClick={() => setLangOpen(!langOpen)}
+            onClick={toggleTheme}
+            className="header-icon-btn w-8 h-8 rounded-xl"
+            title={theme === 'light' ? 'Switch to Dark' : theme === 'dark' ? 'Switch to Mono' : 'Switch to Light'}
+          >
+            {theme === 'light' && <Moon className="w-3.5 h-3.5" />}
+            {theme === 'dark'  && <Sun  className="w-3.5 h-3.5" />}
+            {theme === 'mono'  && <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 1 }}>M</span>}
+          </button>
+
+          {/* Language switcher button */}
+          <button
+            ref={langBtnRef}
+            onClick={openLang}
             className="header-icon-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
           >
             <Globe className="w-3.5 h-3.5" />
@@ -97,41 +116,46 @@ export default function DashboardHeader({ photographer }: Props) {
             </span>
             <ChevronDown className={cn('w-3 h-3 transition-transform', langOpen && 'rotate-180')} />
           </button>
-
-          {langOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setLangOpen(false)} />
-              <div
-                className="dropdown-glass absolute right-0 top-full mt-1.5 rounded-xl overflow-hidden z-20 min-w-[140px]"
-              >
-                {[
-                  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-                  { code: 'en', label: 'English', flag: '🇬🇧' },
-                ].map(({ code, label, flag }) => {
-                  const isSelected = currentLocale === code
-                  return (
-                    <button
-                      key={code}
-                      onClick={() => switchLanguage(code)}
-                      className="header-icon-btn w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5"
-                      style={{
-                        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                      }}
-                    >
-                      <span>{flag}</span>
-                      <span className="font-medium">{label}</span>
-                      {isSelected && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Language dropdown — rendered outside header to escape its stacking context */}
+      {langOpen && (
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setLangOpen(false)} />
+          <div
+            className="dropdown-glass fixed rounded-xl overflow-hidden z-[9999] min-w-[140px]"
+            style={{
+              top: dropdownPos.top,
+              right: dropdownPos.right,
+            }}
+          >
+            {[
+              { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+              { code: 'en', label: 'English', flag: '🇬🇧' },
+            ].map(({ code, label, flag }) => {
+              const isSelected = currentLocale === code
+              return (
+                <button
+                  key={code}
+                  onClick={() => switchLanguage(code)}
+                  className="header-icon-btn w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5"
+                  style={{
+                    color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    background: isSelected ? 'var(--bg-hover)' : 'transparent',
+                  }}
+                >
+                  <span>{flag}</span>
+                  <span className="font-medium">{label}</span>
+                  {isSelected && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </>
   )
 }

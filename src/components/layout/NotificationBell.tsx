@@ -56,7 +56,8 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   const unread = notifications.filter(n => !n.read).length
 
@@ -72,19 +73,21 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications()
-    // Poll every 60s
     const interval = setInterval(fetchNotifications, 60000)
     return () => clearInterval(interval)
   }, [])
 
   // Close on outside click
   useEffect(() => {
+    if (!open) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (btnRef.current && !btnRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  }, [open])
 
   const markAllRead = async () => {
     await fetch('/api/notifications', { method: 'PATCH' })
@@ -101,16 +104,23 @@ export default function NotificationBell() {
   }
 
   const handleOpen = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      })
+    }
     setOpen(o => !o)
     if (!open && unread > 0) {
-      // Mark as read after 2s
       setTimeout(markAllRead, 2000)
     }
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={btnRef}
         onClick={handleOpen}
         className="header-icon-btn relative w-8 h-8 rounded-xl flex items-center justify-center"
         title={locale === 'de' ? 'Benachrichtigungen' : 'Notifications'}
@@ -128,10 +138,12 @@ export default function NotificationBell() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
           <div
-            className="dropdown-glass absolute right-0 top-full mt-1.5 rounded-2xl overflow-hidden z-20"
+            className="dropdown-glass fixed rounded-2xl overflow-hidden z-[9999]"
             style={{
+              top: dropdownPos.top,
+              right: dropdownPos.right,
               width: '340px',
             }}
           >
@@ -183,7 +195,7 @@ export default function NotificationBell() {
                   return (
                     <div
                       key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 transition-all hover:opacity-90"
+                      className="flex items-start gap-3 px-4 py-3 group transition-all hover:opacity-90"
                       style={{
                         background: n.read ? 'transparent' : 'rgba(196,164,124,0.06)',
                         borderBottom: '1px solid var(--border-color)',
@@ -239,6 +251,6 @@ export default function NotificationBell() {
           </div>
         </>
       )}
-    </div>
+    </>
   )
 }
