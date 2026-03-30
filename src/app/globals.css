@@ -140,6 +140,9 @@
   --sidebar-hover:    rgba(255,255,255,0.09);
   --sidebar-text:     rgba(255,255,255,0.90);
   --sidebar-text-hover: #FFFFFF;
+
+  --card-blur:        blur(6px);
+  --sidebar-blur:     blur(8px);
 }
 
 /* Mono background — deep black with sharp white glow spots */
@@ -291,8 +294,8 @@
     border: 1px solid var(--card-border);
     border-radius: 16px;
     box-shadow: var(--card-shadow);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: var(--card-blur, blur(20px));
+    -webkit-backdrop-filter: var(--card-blur, blur(20px));
     transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
   }
 
@@ -306,8 +309,8 @@
   .glass-sidebar {
     background: var(--sidebar-bg);
     border-right: 1px solid var(--sidebar-border);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
+    backdrop-filter: var(--sidebar-blur, blur(32px));
+    -webkit-backdrop-filter: var(--sidebar-blur, blur(32px));
     transition: background 200ms ease;
   }
 
