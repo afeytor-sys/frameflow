@@ -19,6 +19,7 @@ interface Notification {
 }
 
 const TYPE_ICONS: Record<string, string> = {
+  new_inquiry: '📩',
   contract_signed: '✍️',
   questionnaire_filled: '📋',
   gallery_viewed: '👁️',

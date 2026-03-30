@@ -187,8 +187,10 @@ export async function triggerInquiryNotifications(
       const { error } = await supabase.from('notifications').insert({
         photographer_id: photographerId,
         type: 'new_inquiry',
-        title: 'New inquiry',
-        message: `${name} sent you a new message`,
+        title_en: 'New inquiry',
+        title_de: 'Neue Anfrage',
+        body_en: `${name} sent you a new message`,
+        body_de: `${name} hat dir eine neue Nachricht geschickt`,
       })
       if (error) {
         console.error('[triggerInquiryNotifications] in-app insert error:', error.message)

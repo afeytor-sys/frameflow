@@ -74,16 +74,15 @@ export default function DashboardHeader({ photographer }: Props) {
         {/* Notification bell */}
         <NotificationBell />
 
-        {/* Theme toggle */}
+        {/* Theme toggle — cycles light → dark → mono */}
         <button
           onClick={toggleTheme}
           className="header-icon-btn w-8 h-8 rounded-xl"
-          title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+          title={theme === 'light' ? 'Switch to Dark' : theme === 'dark' ? 'Switch to Mono' : 'Switch to Light'}
         >
-          {theme === 'light'
-            ? <Moon className="w-3.5 h-3.5" />
-            : <Sun className="w-3.5 h-3.5" />
-          }
+          {theme === 'light' && <Moon className="w-3.5 h-3.5" />}
+          {theme === 'dark'  && <Sun  className="w-3.5 h-3.5" />}
+          {theme === 'mono'  && <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 1 }}>M</span>}
         </button>
 
         {/* Language switcher */}
