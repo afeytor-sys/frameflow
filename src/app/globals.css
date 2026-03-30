@@ -162,16 +162,15 @@
     transition: background-color 200ms ease, color 200ms ease;
   }
 
-  /* Glass background for light theme — vivid blobs for strong glass effect */
+  /* Glass background for light theme — light base + vivid color blobs */
   [data-theme="light"] body,
   body:not([data-theme="dark"]) {
     background:
-      radial-gradient(ellipse 55% 45% at  8% 12%, rgba(196,140, 80,0.72) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 42% at 92% 82%, rgba(100,140,200,0.60) 0%, transparent 58%),
-      radial-gradient(ellipse 45% 40% at 78% 10%, rgba(180,120,160,0.50) 0%, transparent 55%),
-      radial-gradient(ellipse 48% 44% at 18% 88%, rgba( 80,170,140,0.45) 0%, transparent 58%),
-      radial-gradient(ellipse 60% 55% at 55% 48%, rgba(210,180,140,0.35) 0%, transparent 65%),
-      linear-gradient(145deg, #c8bdb0 0%, #b8b0a4 40%, #c0b8ae 70%, #cac0b4 100%);
+      radial-gradient(ellipse 55% 50% at  5% 10%, rgba(196,140, 80,0.55) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 45% at 95% 85%, rgba( 80,130,220,0.45) 0%, transparent 58%),
+      radial-gradient(ellipse 45% 40% at 80%  8%, rgba(200, 90,160,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse 48% 44% at 15% 90%, rgba( 60,180,140,0.35) 0%, transparent 58%),
+      linear-gradient(145deg, #f5f2ee 0%, #f0ece8 50%, #f2eee9 100%);
     background-attachment: fixed;
   }
 
