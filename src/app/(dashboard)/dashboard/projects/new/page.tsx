@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { cn, generateToken } from '@/lib/utils'
+import { generateToken } from '@/lib/utils'
 import { ArrowLeft, Plus, X, UserPlus, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
@@ -246,11 +246,7 @@ export default function NewProjectPage() {
     router.push(`/dashboard/projects/${data.id}`)
   }
 
-  const inputClass = cn(
-    'w-full px-3.5 py-2.5 rounded-lg border text-sm',
-    'border-[#E4E1DC] focus:border-[#111110] focus:ring-2 focus:ring-[#111110]/10',
-    'outline-none transition-all bg-white text-[#111110] placeholder-[#B0ACA6]'
-  )
+  const inputClass = 'input-base w-full'
 
   // ── Plan limit block ──
   if (!limitsLoading && !canCreateProject) {
@@ -293,25 +289,25 @@ export default function NewProjectPage() {
   return (
     <div className="space-y-6 animate-in">
       <div className="flex items-center gap-3">
-        <Link href="/dashboard/projects" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E4E1DC] text-[#7A7670] hover:bg-[#F2F0EC] transition-colors">
+        <Link href="/dashboard/projects" className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
           <h1
-            className="font-semibold text-[#111110]"
-            style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em' }}
+            className="font-semibold"
+            style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '24px', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
           >
             {t.title}
           </h1>
-          <p className="text-[#7A7670] text-[13px]">{t.subtitle}</p>
+          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{t.subtitle}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-[10px] border border-[#E4E1DC] p-6 space-y-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <form onSubmit={handleSubmit} className="modal-glass rounded-2xl p-6 space-y-5">
 
         {/* Title */}
         <div>
-          <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">
+          <label className="block text-[12px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>
             {t.projectTitle} <span className="text-[#C94030]">*</span>
           </label>
           <input
@@ -334,7 +330,7 @@ export default function NewProjectPage() {
             <button
               type="button"
               onClick={() => setShowNewClient(!showNewClient)}
-              className="flex items-center gap-1 text-[12px] font-semibold text-[#C8A882] hover:text-[#B8966E] transition-colors"
+              className="flex items-center gap-1 text-[12px] font-semibold transition-colors" style={{ color: 'var(--accent)' }}
             >
               {showNewClient ? (
                 <><X className="w-3 h-3" /> {t.cancel}</>
@@ -362,11 +358,11 @@ export default function NewProjectPage() {
 
           {/* Inline new client form */}
           {showNewClient && (
-            <div className="rounded-lg border border-[#C8A882]/30 bg-[#C8A882]/5 p-4 space-y-3">
-              <p className="text-[12px] font-semibold text-[#7A7670] uppercase tracking-wide">{t.addNewClient}</p>
+            <div className="rounded-lg p-4 space-y-3" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
+              <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.addNewClient}</p>
 
               <div>
-                <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">
+                <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>
                   {t.name} <span className="text-[#C94030]">*</span>
                 </label>
                 <input
@@ -380,7 +376,7 @@ export default function NewProjectPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">{t.email}</label>
+                  <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>{t.email}</label>
                   <input
                     type="email"
                     value={newClient.email}
@@ -390,7 +386,7 @@ export default function NewProjectPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#111110] mb-1 uppercase tracking-wide">{t.phone}</label>
+                  <label className="block text-[11px] font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>{t.phone}</label>
                   <input
                     type="tel"
                     value={newClient.phone}
@@ -417,11 +413,11 @@ export default function NewProjectPage() {
         {/* Date + Type */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">{t.shootingDate}</label>
+            <label className="block text-[12px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>{t.shootingDate}</label>
             <input type="date" name="shoot_date" value={form.shoot_date} onChange={handleChange} className={inputClass} />
           </div>
           <div>
-            <label className="block text-[12px] font-semibold text-[#111110] mb-1.5 uppercase tracking-wide">{t.projectType}</label>
+            <label className="block text-[12px] font-semibold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>{t.projectType}</label>
             <select name="project_type" value={form.project_type} onChange={handleChange} className={inputClass}>
               <option value="">{t.select}</option>
               {PROJECT_TYPES.map(({ value, label }) => (
@@ -447,8 +443,8 @@ export default function NewProjectPage() {
                   className="px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all"
                   style={{
                     background: selected ? color + '18' : 'transparent',
-                    borderColor: selected ? color : '#E4E1DC',
-                    color: selected ? color : '#7A7670',
+                    borderColor: selected ? color : 'var(--border-color)',
+                    color: selected ? color : 'var(--text-muted)',
                   }}
                 >
                   {label}
@@ -462,7 +458,7 @@ export default function NewProjectPage() {
         <div className="flex items-center gap-3 pt-2">
           <Link
             href="/dashboard/projects"
-            className="px-4 py-2.5 rounded-md border border-[#E4E1DC] text-[13px] font-semibold text-[#7A7670] hover:bg-[#F2F0EC] transition-colors"
+            className="px-4 py-2.5 rounded-md text-[13px] font-semibold transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
           >
             {t.cancelBtn}
           </Link>
