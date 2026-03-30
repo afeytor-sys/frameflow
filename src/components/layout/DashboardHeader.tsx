@@ -57,7 +57,10 @@ export default function DashboardHeader({ photographer }: Props) {
       className="h-[52px] flex items-center justify-between px-5 gap-2 flex-shrink-0"
       style={{
         background: 'var(--bg-surface)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid var(--border-color)',
+        boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
       }}
     >
       {/* Left spacer — keeps controls on the right */}
