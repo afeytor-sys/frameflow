@@ -163,8 +163,8 @@ export default function SendEmailModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl rounded-2xl overflow-hidden flex flex-col"
-        style={{ height: 'min(92vh, 780px)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+        className="modal-glass w-full max-w-xl rounded-2xl overflow-hidden flex flex-col"
+        style={{ height: 'min(92vh, 780px)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

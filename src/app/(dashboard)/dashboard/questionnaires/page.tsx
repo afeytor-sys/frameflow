@@ -755,8 +755,7 @@ export default function QuestionnairesPage() {
           onClick={e => { if (e.target === e.currentTarget) setBuilderOpen(false) }}
         >
           <div
-            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+            className="modal-glass w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
           >
             <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
               <div>

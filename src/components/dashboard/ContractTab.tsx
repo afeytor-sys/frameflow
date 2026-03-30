@@ -483,8 +483,8 @@ export default function ContractTab({
       onClick={() => setShowSendModal(false)}
     >
       <div
-        className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
-        style={{ maxHeight: '92vh', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+        className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: '92vh' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />

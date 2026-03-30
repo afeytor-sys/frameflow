@@ -728,8 +728,8 @@ export default function ContractsClient({
       {showNewTemplateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
           <div
-            className="w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col"
-            style={{ height: 'min(92vh, 900px)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+            className="modal-glass w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col"
+            style={{ height: 'min(92vh, 900px)' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -956,7 +956,7 @@ export default function ContractsClient({
       {/* ── New Contract Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+          <div className="modal-glass w-full max-w-md rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{t.newContractTitle}</h2>
@@ -1090,8 +1090,7 @@ export default function ContractsClient({
           onClick={() => setPreviewKey(null)}
         >
           <div
-            className="w-full max-w-2xl max-h-[85vh] rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+            className="modal-glass w-full max-w-2xl max-h-[85vh] rounded-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>

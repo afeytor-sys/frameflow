@@ -64,8 +64,7 @@ export default function QRCodeModal({ clientUrl, projectTitle }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div
-            className="relative rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+            className="modal-glass relative rounded-2xl w-full max-w-sm p-6 animate-in"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-5">

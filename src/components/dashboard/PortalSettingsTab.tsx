@@ -436,7 +436,7 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
       {/* ── Save template modal ── */}
       {showSaveModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+          <div className="modal-glass rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="px-6 pt-6 pb-2">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(196,164,124,0.12)' }}>
                 <Bookmark className="w-5 h-5" style={{ color: 'var(--accent)' }} />

@@ -228,8 +228,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.4)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowCreate(false) }}>
-          <div className="w-full max-w-md rounded-2xl p-6"
-            style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--card-border)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+          <div className="modal-glass w-full max-w-md rounded-2xl p-6">
             <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>New Form</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
@@ -270,13 +269,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.45)' }}
           onClick={e => { if (e.target === e.currentTarget) closeEdit() }}>
-          <div className="w-full max-w-lg rounded-2xl flex flex-col"
-            style={{
-              background: 'var(--card-bg, #fff)',
-              border: '1px solid var(--card-border)',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
-              maxHeight: '90vh',
-            }}>
+          <div className="modal-glass w-full max-w-lg rounded-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
 
             {/* Modal header */}
             <div className="px-6 py-4 flex items-center justify-between flex-shrink-0"

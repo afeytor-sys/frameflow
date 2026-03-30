@@ -529,8 +529,8 @@ export default function GalleriesPage() {
         >
           <div className="flex min-h-full items-center justify-center p-4 py-8">
             <div
-              className="w-full max-w-3xl rounded-2xl overflow-hidden flex flex-col"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '80vh' }}
+              className="modal-glass w-full max-w-3xl rounded-2xl overflow-hidden flex flex-col"
+              style={{ maxHeight: '80vh' }}
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
@@ -608,7 +608,7 @@ export default function GalleriesPage() {
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
           onClick={() => setShowModal(false)}>
           <div className="flex min-h-full items-center justify-center p-4 py-8">
-          <div className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+          <div className="modal-glass w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>

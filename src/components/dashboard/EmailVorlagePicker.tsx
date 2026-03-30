@@ -119,12 +119,9 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
+            className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
             style={{
               maxHeight: 'min(88vh, 680px)',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--card-shadow-hover)',
             }}
             onClick={e => e.stopPropagation()}
           >
@@ -263,12 +260,9 @@ export default function EmailVorlagePicker({ category, onSelect, vars = {}, labe
           onClick={() => setPreviewTpl(null)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
+            className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
             style={{
               maxHeight: 'min(88vh, 600px)',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--card-shadow-hover)',
             }}
             onClick={e => e.stopPropagation()}
           >

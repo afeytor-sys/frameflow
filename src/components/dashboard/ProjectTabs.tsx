@@ -520,8 +520,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           onClick={() => setCoverPickerGalleryId(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '85vh' }}
+            className="modal-glass w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
+            style={{ maxHeight: '85vh' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -617,8 +617,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '92vh' }}
+            className="modal-glass w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
+            style={{ maxHeight: '92vh' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}

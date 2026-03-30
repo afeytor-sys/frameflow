@@ -216,12 +216,7 @@ export default function GalleryShareModal({
       onClick={() => setShowEmailModal(false)}
     >
       <div
-        className="w-full max-w-sm rounded-2xl overflow-hidden"
-        style={{
-          background: 'var(--bg-surface, #fff)',
-          border: '1px solid var(--border-color, #E8E4DC)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
-        }}
+        className="modal-glass w-full max-w-sm rounded-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -367,12 +362,7 @@ export default function GalleryShareModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl overflow-hidden"
-        style={{
-          background: 'var(--bg-surface, #fff)',
-          border: '1px solid var(--border-color, #E8E4DC)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
-        }}
+        className="modal-glass w-full max-w-sm rounded-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

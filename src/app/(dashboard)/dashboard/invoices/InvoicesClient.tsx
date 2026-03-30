@@ -1123,8 +1123,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       {createdInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col animate-scale-in"
-            style={{ maxHeight: '92vh', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+          <div className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden flex flex-col animate-scale-in"
+            style={{ maxHeight: '92vh' }}>
 
             {/* Accent bar */}
             <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #F97316, #CC8415)' }} />

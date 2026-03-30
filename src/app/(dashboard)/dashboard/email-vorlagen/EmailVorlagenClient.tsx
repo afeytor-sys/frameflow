@@ -553,8 +553,7 @@ export default function EmailVorlagenClient({ userTemplates: initialUserTemplate
           onClick={() => setPreviewTpl(null)}
         >
           <div
-            className="w-full max-w-xl max-h-[85vh] rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+            className="modal-glass w-full max-w-xl max-h-[85vh] rounded-2xl overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -672,8 +671,8 @@ function TemplateModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
       <div
-        className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
-        style={{ height: 'min(92vh, 860px)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}
+        className="modal-glass w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
+        style={{ height: 'min(92vh, 860px)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>

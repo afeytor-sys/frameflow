@@ -711,7 +711,7 @@ ${studio}`
       {/* ── Email Compose Modal ── */}
       {showEmailModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '92vh' }}>
+          <div className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ maxHeight: '92vh' }}>
             {/* Header */}
             <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
             <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -847,8 +847,8 @@ ${studio}`
           onClick={e => { if (e.target === e.currentTarget) setShowVorlagenModal(false) }}
         >
           <div
-            className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)', maxHeight: '88vh' }}
+            className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden flex flex-col"
+            style={{ maxHeight: '88vh' }}
           >
             {/* Top accent bar */}
             <div className="h-1 w-full flex-shrink-0" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
@@ -997,7 +997,7 @@ ${studio}`
       {/* ── Schedule Modal (legacy, kept for safety) ── */}
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow-hover)' }}>
+          <div className="modal-glass w-full max-w-sm rounded-2xl overflow-hidden">
             {/* Header */}
             <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)' }} />
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
