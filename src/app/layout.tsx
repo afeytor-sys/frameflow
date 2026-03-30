@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast'
 import Script from 'next/script'
 import CookieBanner from '@/components/CookieBanner'
 import ThemeProvider from '@/components/ThemeProvider'
+import MouseGlow from '@/components/MouseGlow'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -94,6 +95,7 @@ export default async function RootLayout({
       </Script>
       <body className="antialiased">
         <ThemeProvider>
+          <MouseGlow />
           <NextIntlClientProvider>
             {children}
             <CookieBanner />

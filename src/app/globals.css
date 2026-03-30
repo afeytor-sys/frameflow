@@ -82,6 +82,7 @@
   --sidebar-hover:    rgba(255,255,255,0.40);
   --sidebar-text:     #000000;
   --sidebar-text-hover: #000000;
+  --mouse-glow:       rgba(196,150,80,0.18);
 }
 
 /* ─────────────────────────────────────────────
@@ -143,6 +144,7 @@
 
   --card-blur:        blur(6px);
   --sidebar-blur:     blur(8px);
+  --mouse-glow:       rgba(255,255,255,0.12);
 }
 
 /* Mono background — deep black with sharp white glow spots */
@@ -214,6 +216,7 @@
   --sidebar-hover:    rgba(255,255,255,0.05);
   --sidebar-text:     #8A8680;
   --sidebar-text-hover: #F0EDE8;
+  --mouse-glow:       rgba(180,140,80,0.14);
 }
 
 @layer base {
