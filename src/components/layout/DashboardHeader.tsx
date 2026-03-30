@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
 import { Globe, ChevronDown, Sun, Moon } from 'lucide-react'
@@ -18,8 +19,10 @@ export default function DashboardHeader({ photographer }: Props) {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
   const langBtnRef = useRef<HTMLButtonElement>(null)
   const { theme, toggleTheme } = useTheme()
-
   const [currentLocale, setCurrentLocale] = useState<string>('en')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)locale=([^;]*)/)
@@ -32,7 +35,6 @@ export default function DashboardHeader({ photographer }: Props) {
     }
   }, [])
 
-  // Close on outside click
   useEffect(() => {
     if (!langOpen) return
     const handler = (e: MouseEvent) => {
@@ -73,6 +75,44 @@ export default function DashboardHeader({ photographer }: Props) {
     window.location.reload()
   }
 
+  const langDropdown = (
+    <>
+      <div
+        className="fixed inset-0"
+        style={{ zIndex: 99998 }}
+        onClick={() => setLangOpen(false)}
+      />
+      <div
+        className="dropdown-glass fixed rounded-xl overflow-hidden min-w-[140px]"
+        style={{ top: dropdownPos.top, right: dropdownPos.right, zIndex: 99999 }}
+      >
+        {[
+          { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+          { code: 'en', label: 'English', flag: '🇬🇧' },
+        ].map(({ code, label, flag }) => {
+          const isSelected = currentLocale === code
+          return (
+            <button
+              key={code}
+              onClick={() => switchLanguage(code)}
+              className="header-icon-btn w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5"
+              style={{
+                color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                background: isSelected ? 'var(--bg-hover)' : 'transparent',
+              }}
+            >
+              <span>{flag}</span>
+              <span className="font-medium">{label}</span>
+              {isSelected && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
+
   return (
     <>
       <header
@@ -85,15 +125,12 @@ export default function DashboardHeader({ photographer }: Props) {
           boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
         }}
       >
-        {/* Left spacer */}
         <div />
 
-        {/* Right side controls */}
         <div className="flex items-center gap-2">
           <WeatherWidget />
           <NotificationBell />
 
-          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
             className="header-icon-btn w-8 h-8 rounded-xl"
@@ -104,7 +141,6 @@ export default function DashboardHeader({ photographer }: Props) {
             {theme === 'mono'  && <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 1 }}>M</span>}
           </button>
 
-          {/* Language switcher button */}
           <button
             ref={langBtnRef}
             onClick={openLang}
@@ -119,43 +155,7 @@ export default function DashboardHeader({ photographer }: Props) {
         </div>
       </header>
 
-      {/* Language dropdown — rendered outside header to escape its stacking context */}
-      {langOpen && (
-        <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setLangOpen(false)} />
-          <div
-            className="dropdown-glass fixed rounded-xl overflow-hidden z-[9999] min-w-[140px]"
-            style={{
-              top: dropdownPos.top,
-              right: dropdownPos.right,
-            }}
-          >
-            {[
-              { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-              { code: 'en', label: 'English', flag: '🇬🇧' },
-            ].map(({ code, label, flag }) => {
-              const isSelected = currentLocale === code
-              return (
-                <button
-                  key={code}
-                  onClick={() => switchLanguage(code)}
-                  className="header-icon-btn w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5"
-                  style={{
-                    color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                  }}
-                >
-                  <span>{flag}</span>
-                  <span className="font-medium">{label}</span>
-                  {isSelected && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
+      {mounted && langOpen && createPortal(langDropdown, document.body)}
     </>
   )
 }

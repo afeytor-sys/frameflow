@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Bell, X, CheckCheck, ExternalLink } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import Link from 'next/link'
@@ -58,6 +59,9 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   const unread = notifications.filter(n => !n.read).length
 
@@ -77,7 +81,6 @@ export default function NotificationBell() {
     return () => clearInterval(interval)
   }, [])
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -117,6 +120,123 @@ export default function NotificationBell() {
     }
   }
 
+  const dropdown = (
+    <>
+      <div className="fixed inset-0" style={{ zIndex: 99998 }} onClick={() => setOpen(false)} />
+      <div
+        className="dropdown-glass fixed rounded-2xl overflow-hidden"
+        style={{
+          top: dropdownPos.top,
+          right: dropdownPos.right,
+          width: '340px',
+          zIndex: 99999,
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <div className="flex items-center gap-2">
+            <Bell className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+            <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              {locale === 'de' ? 'Benachrichtigungen' : 'Notifications'}
+            </span>
+            {unread > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(232,76,26,0.12)', color: '#E84C1A' }}>
+                {unread}
+              </span>
+            )}
+          </div>
+          {notifications.length > 0 && (
+            <button
+              onClick={markAllRead}
+              className="flex items-center gap-1 text-[11px] transition-all hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <CheckCheck className="w-3 h-3" />
+              {locale === 'de' ? 'Alle gelesen' : 'Mark all read'}
+            </button>
+          )}
+        </div>
+
+        {/* List */}
+        <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
+          {loading && notifications.length === 0 ? (
+            <div className="py-8 text-center">
+              <div className="w-4 h-4 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--border-color)', borderTopColor: 'var(--accent)' }} />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="py-10 text-center">
+              <Bell className="w-6 h-6 mx-auto mb-2 opacity-20" style={{ color: 'var(--text-muted)' }} />
+              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                {locale === 'de' ? 'Keine Benachrichtigungen' : 'No notifications yet'}
+              </p>
+            </div>
+          ) : (
+            notifications.map(n => {
+              const title = locale === 'de' ? n.title_de : n.title_en
+              const body = locale === 'de' ? n.body_de : n.body_en
+              const icon = TYPE_ICONS[n.type] ?? '🔔'
+
+              return (
+                <div
+                  key={n.id}
+                  className="flex items-start gap-3 px-4 py-3 group transition-all hover:opacity-90"
+                  style={{
+                    background: n.read ? 'transparent' : 'rgba(196,164,124,0.06)',
+                    borderBottom: '1px solid var(--border-color)',
+                  }}
+                >
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-[16px]"
+                    style={{ background: 'var(--bg-hover)' }}>
+                    {icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[12px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                        {title}
+                      </p>
+                      <button
+                        onClick={() => deleteNotification(n.id)}
+                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {body && (
+                      <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                        {body}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        {timeAgo(n.created_at, locale)}
+                      </span>
+                      {n.project_id && (
+                        <Link
+                          href={`/dashboard/projects/${n.project_id}`}
+                          onClick={() => setOpen(false)}
+                          className="flex items-center gap-0.5 text-[10px] font-medium transition-all hover:opacity-80"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          <ExternalLink className="w-2.5 h-2.5" />
+                          {locale === 'de' ? 'Projekt' : 'Project'}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                  {!n.read && (
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: 'var(--accent)' }} />
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </>
+  )
+
   return (
     <>
       <button
@@ -136,121 +256,7 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-          <div
-            className="dropdown-glass fixed rounded-2xl overflow-hidden z-[9999]"
-            style={{
-              top: dropdownPos.top,
-              right: dropdownPos.right,
-              width: '340px',
-            }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <div className="flex items-center gap-2">
-                <Bell className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {locale === 'de' ? 'Benachrichtigungen' : 'Notifications'}
-                </span>
-                {unread > 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(232,76,26,0.12)', color: '#E84C1A' }}>
-                    {unread}
-                  </span>
-                )}
-              </div>
-              {notifications.length > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="flex items-center gap-1 text-[11px] transition-all hover:opacity-80"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  <CheckCheck className="w-3 h-3" />
-                  {locale === 'de' ? 'Alle gelesen' : 'Mark all read'}
-                </button>
-              )}
-            </div>
-
-            {/* List */}
-            <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
-              {loading && notifications.length === 0 ? (
-                <div className="py-8 text-center">
-                  <div className="w-4 h-4 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--border-color)', borderTopColor: 'var(--accent)' }} />
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="py-10 text-center">
-                  <Bell className="w-6 h-6 mx-auto mb-2 opacity-20" style={{ color: 'var(--text-muted)' }} />
-                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                    {locale === 'de' ? 'Keine Benachrichtigungen' : 'No notifications yet'}
-                  </p>
-                </div>
-              ) : (
-                notifications.map(n => {
-                  const title = locale === 'de' ? n.title_de : n.title_en
-                  const body = locale === 'de' ? n.body_de : n.body_en
-                  const icon = TYPE_ICONS[n.type] ?? '🔔'
-
-                  return (
-                    <div
-                      key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 group transition-all hover:opacity-90"
-                      style={{
-                        background: n.read ? 'transparent' : 'rgba(196,164,124,0.06)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-[16px]"
-                        style={{ background: 'var(--bg-hover)' }}>
-                        {icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-[12px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
-                            {title}
-                          </p>
-                          <button
-                            onClick={() => deleteNotification(n.id)}
-                            className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                        {body && (
-                          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                            {body}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                            {timeAgo(n.created_at, locale)}
-                          </span>
-                          {n.project_id && (
-                            <Link
-                              href={`/dashboard/projects/${n.project_id}`}
-                              onClick={() => setOpen(false)}
-                              className="flex items-center gap-0.5 text-[10px] font-medium transition-all hover:opacity-80"
-                              style={{ color: 'var(--accent)' }}
-                            >
-                              <ExternalLink className="w-2.5 h-2.5" />
-                              {locale === 'de' ? 'Projekt' : 'Project'}
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                      {!n.read && (
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: 'var(--accent)' }} />
-                      )}
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      {mounted && open && createPortal(dropdown, document.body)}
     </>
   )
 }
