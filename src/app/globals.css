@@ -80,8 +80,8 @@
   --sidebar-active:   rgba(168,132,92,0.15);
   --sidebar-active-text: #A8845C;
   --sidebar-hover:    rgba(255,255,255,0.40);
-  --sidebar-text:     rgba(26,21,16,0.45);
-  --sidebar-text-hover: #1A1510;
+  --sidebar-text:     #000000;
+  --sidebar-text-hover: #000000;
 }
 
 /* ─────────────────────────────────────────────
