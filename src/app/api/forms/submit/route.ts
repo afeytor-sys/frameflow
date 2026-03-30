@@ -39,15 +39,13 @@ export async function POST(req: NextRequest) {
       message: message.trim(),
     })
 
-    // ── Fire-and-forget notifications (never blocks the 201 response) ───────
-    Promise.allSettled([
-      triggerInquiryNotifications({
-        photographerId: form.photographer_id,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        message: message.trim(),
-      }),
-    ]).catch(() => {/* swallow — already logged inside */})
+    // ── Notifications (awaited — serverless functions terminate on response) ─
+    await triggerInquiryNotifications({
+      photographerId: form.photographer_id,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      message: message.trim(),
+    })
 
     return NextResponse.json({ success: true, ...result }, { status: 201 })
   } catch (err) {

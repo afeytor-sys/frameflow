@@ -159,31 +159,27 @@ export async function triggerInquiryNotifications(
   const { photographerId, name, email, message } = payload
   const supabase = createServiceClient()
 
+  // 1. Read notification settings — default both to true if anything fails
+  let inAppEnabled = true
+  let emailEnabled = true
   try {
-    // 1. Load (or create default) notification settings
-    // First try to get existing row
-    let { data: settings } = await supabase
+    const { data: settings } = await supabase
       .from('automation_settings')
       .select('notify_inapp_new_inquiry, notify_email_new_inquiry')
       .eq('photographer_id', photographerId)
-      .single()
+      .maybeSingle()
 
-    // If no row, insert default and use defaults
-    if (!settings) {
-      await supabase
-        .from('automation_settings')
-        .insert({ photographer_id: photographerId })
-        .select()
-        .single()
-      // Use defaults
-      settings = { notify_inapp_new_inquiry: true, notify_email_new_inquiry: true }
+    if (settings) {
+      inAppEnabled = settings.notify_inapp_new_inquiry !== false
+      emailEnabled = settings.notify_email_new_inquiry !== false
     }
+  } catch {
+    // table may not exist yet — keep defaults (both enabled)
+  }
 
-    const inAppEnabled = settings.notify_inapp_new_inquiry !== false
-    const emailEnabled = settings.notify_email_new_inquiry !== false
-
-    // 2. In-app notification
-    if (inAppEnabled) {
+  // 2. In-app notification
+  if (inAppEnabled) {
+    try {
       const { error } = await supabase.from('notifications').insert({
         photographer_id: photographerId,
         type: 'new_inquiry',
@@ -192,13 +188,15 @@ export async function triggerInquiryNotifications(
         body_en: `${name} sent you a new message`,
         body_de: `${name} hat dir eine neue Nachricht geschickt`,
       })
-      if (error) {
-        console.error('[triggerInquiryNotifications] in-app insert error:', error.message)
-      }
+      if (error) console.error('[notifications] in-app insert error:', error.message)
+    } catch (err) {
+      console.error('[notifications] in-app unexpected error:', err)
     }
+  }
 
-    // 3. Email notification
-    if (emailEnabled) {
+  // 3. Email notification
+  if (emailEnabled) {
+    try {
       const { data: photographer } = await supabase
         .from('photographers')
         .select('email')
@@ -214,9 +212,9 @@ export async function triggerInquiryNotifications(
           message,
         })
       }
+    } catch (err) {
+      console.error('[notifications] email error:', err)
     }
-  } catch (err) {
-    console.error('[triggerInquiryNotifications] Unexpected error:', err)
   }
 }
 
