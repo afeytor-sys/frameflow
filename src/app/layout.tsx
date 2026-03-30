@@ -97,6 +97,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <MouseGlow />
           <NextIntlClientProvider>
+            <div style={{ position: 'relative', zIndex: 1 }}>
             {children}
             <CookieBanner />
             <Toaster
@@ -122,6 +123,7 @@ export default async function RootLayout({
                 },
               }}
             />
+            </div>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>
