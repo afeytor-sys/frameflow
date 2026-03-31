@@ -1,31 +1,31 @@
 'use client'
 
 /**
- * PhotoUploader — uploads photos DIRECTLY to Cloudflare R2 via presigned URL
+ * PhotoUploader — hands files to UploadContext after pre-checks.
  *
  * Upload flow:
- *   1. POST /api/photos/presign  → server returns a presigned PUT URL
- *   2. Browser PUTs file directly to R2 (bypasses Vercel 4.5MB limit)
- *   3. INSERT photo record into Supabase
- *
- * Files go: Browser → R2 directly (no Vercel body limit)
+ *   1. Storage-limit check (client-side)
+ *   2. Duplicate-filename check (Supabase)
+ *   3. Duplicate resolution modal (interactive)
+ *   4. enqueueFiles() → UploadContext runs the actual fetch loop
+ *      The context persists across navigation so uploads continue even when
+ *      the user leaves this page.
  */
 
-import { useState, useCallback, useRef, useContext, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, X, AlertCircle } from 'lucide-react'
 import { cn, formatFileSize } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { UploadContext } from '@/contexts/UploadContext'
+import { useUpload } from '@/contexts/UploadContext'
+import type { UploadedPhoto } from '@/contexts/UploadContext'
 
-interface UploadFile {
-  id: string
-  file: File
+interface LocalFile {
+  id: string          // local UI id
+  filename: string
   previewUrl: string
-  progress: number
   status: 'pending' | 'uploading' | 'done' | 'error'
   error?: string
-  url?: string
 }
 
 interface Props {
@@ -33,7 +33,7 @@ interface Props {
   photographerId: string
   sectionId?: string | null
   galleryTitle?: string
-  onUploadComplete: (photos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[]) => void
+  onUploadComplete: (photos: UploadedPhoto[]) => void
   onStorageLimitReached?: () => void
   canUploadFile?: (fileSizeBytes: number) => boolean
   maxStorageBytes?: number | null
@@ -51,19 +51,19 @@ export default function PhotoUploader({
   maxStorageBytes,
   storageUsedBytes = 0,
 }: Props) {
-  const [files, setFiles] = useState<UploadFile[]>([])
+  const [localFiles, setLocalFiles] = useState<LocalFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const uploadCtx = useContext(UploadContext)
+  const mountedRef = useRef(true)
+  const { enqueueFiles } = useUpload()
 
-  // Cleanup object URLs on unmount to avoid memory leaks
   useEffect(() => {
+    mountedRef.current = true
     return () => {
-      files.forEach(f => {
-        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
-      })
+      mountedRef.current = false
+      localFiles.forEach(f => { if (f.previewUrl) URL.revokeObjectURL(f.previewUrl) })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const [currentDuplicate, setCurrentDuplicate] = useState<{
@@ -75,7 +75,7 @@ export default function PhotoUploader({
   const uploadFiles = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) return
 
-    // ── Storage limit check ──────────────────────────────────────────────────
+    // ── 1. Storage limit check ───────────────────────────────────────────────
     const allowed: File[] = []
     const rejected: File[] = []
     let runningUsed = storageUsedBytes
@@ -96,10 +96,10 @@ export default function PhotoUploader({
     }
     if (allowed.length === 0) return
 
-    // ── Duplicate filename check ─────────────────────────────────────────────
-    const supabaseCheck = createClient()
+    // ── 2. Duplicate filename check ──────────────────────────────────────────
+    const supabase = createClient()
     const filenames = allowed.map(f => f.name)
-    const { data: existingPhotos } = await supabaseCheck
+    const { data: existingPhotos } = await supabase
       .from('photos').select('id, filename, storage_url')
       .eq('gallery_id', galleryId).in('filename', filenames)
 
@@ -107,7 +107,10 @@ export default function PhotoUploader({
     const duplicates = allowed.filter(f => existingMap.has(f.name))
     const nonDuplicates = allowed.filter(f => !existingMap.has(f.name))
 
-    const resolvedDuplicates: { file: File; replace: boolean }[] = []
+    // ── 3. Duplicate resolution (interactive, blocks until user decides) ─────
+    const replaceMap = new Map<string, { id: string; storage_url: string }>()
+    const filesToUpload: File[] = [...nonDuplicates]
+
     for (const dupFile of duplicates) {
       const existing = existingMap.get(dupFile.name)!
       const decision = await new Promise<'keep' | 'replace' | 'cancel'>((resolve) => {
@@ -116,120 +119,66 @@ export default function PhotoUploader({
       })
       setCurrentDuplicate(null)
       if (decision === 'cancel') continue
-      resolvedDuplicates.push({ file: dupFile, replace: decision === 'replace' })
-    }
-
-    const filesToUpload = [...nonDuplicates, ...resolvedDuplicates.map(r => r.file)]
-    const replaceSet = new Set(resolvedDuplicates.filter(r => r.replace).map(r => r.file.name))
-    if (filesToUpload.length === 0) return
-
-    // ── Build upload queue ───────────────────────────────────────────────────
-    const uploadItems: UploadFile[] = filesToUpload.map((file) => ({
-      id: `${Date.now()}-${Math.random()}`,
-      file,
-      previewUrl: URL.createObjectURL(file),
-      progress: 0,
-      status: 'pending',
-    }))
-
-    setFiles(prev => [...prev, ...uploadItems])
-    setIsUploading(true)
-
-    const jobId = uploadCtx ? uploadCtx.startUpload(galleryId, galleryTitle, allowed.length) : null
-    const supabase = createClient()
-    const uploadedPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; file_size: number; display_order: number }[] = []
-
-    const { count } = await supabase
-      .from('photos').select('*', { count: 'exact', head: true }).eq('gallery_id', galleryId)
-    let orderOffset = count || 0
-
-    // ── Upload each file ─────────────────────────────────────────────────────
-    for (const uploadFile of uploadItems) {
-      setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
-
-      try {
-        // ── Step 1: Get presigned PUT URL from server ────────────────────────
-        const presignRes = await fetch('/api/photos/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            galleryId,
-            filename: uploadFile.file.name,
-            contentType: uploadFile.file.type || 'image/jpeg',
-            fileSize: uploadFile.file.size,
-          }),
-        })
-
-        if (!presignRes.ok) {
-          const errData = await presignRes.json().catch(() => ({}))
-          throw new Error(errData.error || `Presign fehlgeschlagen (${presignRes.status})`)
-        }
-
-        const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
-
-        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 20 } : f))
-
-        // ── Step 2: PUT file directly to R2 (browser → R2, no Vercel limit) ──
-        // Do NOT set Content-Type header — this avoids CORS preflight entirely.
-        // PUT with a Blob body and no extra headers is a "simple" CORS request.
-        // R2 will infer the content type from the file data.
-        const putRes = await fetch(presignedUrl, {
-          method: 'PUT',
-          body: uploadFile.file,
-        })
-        if (!putRes.ok) {
-          const errBody = await putRes.text().catch(() => '')
-          console.error('[R2 Upload] PUT failed:', putRes.status, errBody.slice(0, 300))
-          throw new Error(`R2 Upload fehlgeschlagen (${putRes.status})`)
-        }
-
-        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, progress: 90 } : f))
-
-        // ── Step 3: Delete old photo if replacing ────────────────────────────
-        if (replaceSet.has(uploadFile.file.name)) {
-          const oldPhoto = existingMap.get(uploadFile.file.name)
-          if (oldPhoto) {
-            await fetch(`/api/photos/${oldPhoto.id}/delete`, {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storageUrl: oldPhoto.storage_url }),
-            }).catch(() => {})
-          }
-        }
-
-        // ── Step 4: Insert photo record into Supabase ────────────────────────
-        const { data: photo, error: dbError } = await supabase
-          .from('photos')
-          .insert({
-            gallery_id: galleryId,
-            filename: uploadFile.file.name,
-            storage_url: storageUrl,
-            thumbnail_url: storageUrl,
-            file_size: uploadFile.file.size,
-            display_order: orderOffset++,
-            ...(sectionId ? { section_id: sectionId } : {}),
-          })
-          .select()
-          .single()
-
-        if (dbError) throw dbError
-
-        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'done', progress: 100, url: storageUrl } : f))
-        uploadedPhotos.push(photo)
-        if (jobId && uploadCtx) uploadCtx.tickDone(jobId)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Upload fehlgeschlagen'
-        setFiles(prev => prev.map(f => f.id === uploadFile.id ? { ...f, status: 'error', progress: 0, error: message } : f))
-        if (jobId && uploadCtx) uploadCtx.tickFailed(jobId)
+      filesToUpload.push(dupFile)
+      if (decision === 'replace') {
+        replaceMap.set(dupFile.name, { id: existing.id, storage_url: existing.storage_url })
       }
     }
+    if (filesToUpload.length === 0) return
 
-    setIsUploading(false)
-    if (uploadedPhotos.length > 0) {
-      onUploadComplete(uploadedPhotos)
-      toast.success(`${uploadedPhotos.length} ${uploadedPhotos.length === 1 ? 'Foto' : 'Fotos'} hochgeladen`)
-    }
-  }, [galleryId, galleryTitle, sectionId, uploadCtx, onUploadComplete, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached])
+    // ── 4. Get current photo count for display_order ─────────────────────────
+    const { count } = await supabase
+      .from('photos').select('*', { count: 'exact', head: true }).eq('gallery_id', galleryId)
+    const initialOrder = count || 0
+
+    // ── 5. Add local preview thumbnails ─────────────────────────────────────
+    const newLocalFiles: LocalFile[] = filesToUpload.map(file => ({
+      id: `${Date.now()}-${Math.random()}`,
+      filename: file.name,
+      previewUrl: URL.createObjectURL(file),
+      status: 'pending',
+    }))
+    if (mountedRef.current) setLocalFiles(prev => [...prev, ...newLocalFiles])
+
+    const uploadedPhotos: UploadedPhoto[] = []
+
+    // ── 6. Hand off to context (persists across navigation) ──────────────────
+    enqueueFiles(filesToUpload, {
+      galleryId,
+      photographerId,
+      sectionId,
+      galleryTitle,
+      initialOrder,
+      replaceMap,
+
+      onFileDone: (filename, photo) => {
+        uploadedPhotos.push(photo)
+        if (mountedRef.current) {
+          setLocalFiles(prev => prev.map(f =>
+            f.filename === filename ? { ...f, status: 'done' } : f
+          ))
+        }
+      },
+
+      onFileError: (filename, error) => {
+        console.error('[upload] error:', filename, error)
+        if (mountedRef.current) {
+          setLocalFiles(prev => prev.map(f =>
+            f.filename === filename ? { ...f, status: 'error', error } : f
+          ))
+        }
+      },
+
+      onAllDone: (photos) => {
+        if (photos.length > 0) {
+          try { onUploadComplete(photos) } catch {}
+          if (mountedRef.current) {
+            toast.success(`${photos.length} ${photos.length === 1 ? 'Foto' : 'Fotos'} hochgeladen`)
+          }
+        }
+      },
+    })
+  }, [galleryId, galleryTitle, sectionId, enqueueFiles, onUploadComplete, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, photographerId])
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/'))
@@ -247,17 +196,22 @@ export default function PhotoUploader({
     e.preventDefault(); setIsDragging(false); addFiles(e.dataTransfer.files)
   }, [addFiles])
 
-  const removeFile = (id: string) => setFiles(prev => prev.filter(f => f.id !== id))
-
-  const doneCount = files.filter(f => f.status === 'done').length
-  const totalProgress = files.length > 0
-    ? Math.round(files.reduce((sum, f) => sum + f.progress, 0) / files.length) : 0
+  const removeLocalFile = (id: string) => {
+    setLocalFiles(prev => {
+      const f = prev.find(f => f.id === id)
+      if (f?.previewUrl) URL.revokeObjectURL(f.previewUrl)
+      return prev.filter(f => f.id !== id)
+    })
+  }
 
   const maxBytes = maxStorageBytes ?? null
   const storagePercent = maxBytes && maxBytes > 0
     ? Math.min(100, Math.round((storageUsedBytes / maxBytes) * 100)) : null
   const storageNearLimit = storagePercent !== null && storagePercent >= 80
   const storageFull = storagePercent !== null && storagePercent >= 100
+
+  const isUploading = localFiles.some(f => f.status === 'pending' || f.status === 'uploading')
+  const doneCount = localFiles.filter(f => f.status === 'done').length
 
   return (
     <div className="space-y-4">
@@ -299,6 +253,7 @@ export default function PhotoUploader({
         </div>
       )}
 
+      {/* Drop zone */}
       <div
         onDrop={handleDrop}
         onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
@@ -322,38 +277,39 @@ export default function PhotoUploader({
         </p>
       </div>
 
-      {files.length > 0 && (
+      {/* Local preview thumbnails */}
+      {localFiles.length > 0 && (
         <div className="space-y-3">
           {isUploading && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-[#6B6B6B]">
-                <span>Wird hochgeladen... ({doneCount}/{files.length})</span>
-                <span>{totalProgress}%</span>
+                <span>Wird hochgeladen... ({doneCount}/{localFiles.length})</span>
               </div>
               <div className="h-1.5 bg-[#E8E8E4] rounded-full overflow-hidden">
-                <div className="h-full bg-[#C8A882] transition-all duration-300 rounded-full" style={{ width: `${totalProgress}%` }} />
+                <div
+                  className="h-full bg-[#C8A882] transition-all duration-300 rounded-full"
+                  style={{ width: `${Math.round((doneCount / localFiles.length) * 100)}%` }}
+                />
               </div>
             </div>
           )}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-            {files.map(f => (
+            {localFiles.map(f => (
               <div key={f.id} className="relative aspect-square overflow-hidden rounded-lg group">
-
-                {/* Image — always visible */}
                 <img
                   src={f.previewUrl}
-                  alt={f.file.name}
+                  alt={f.filename}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
 
-                {/* Uploading / pending overlay — spinner */}
+                {/* Pending / uploading overlay */}
                 {(f.status === 'pending' || f.status === 'uploading') && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                   </div>
                 )}
 
-                {/* Success state — green checkmark badge */}
+                {/* Done */}
                 {f.status === 'done' && (
                   <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow">
                     <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
@@ -362,31 +318,21 @@ export default function PhotoUploader({
                   </div>
                 )}
 
-                {/* Error state */}
+                {/* Error */}
                 {f.status === 'error' && (
                   <div className="absolute inset-0 bg-red-500/50 flex items-center justify-center">
                     <AlertCircle className="w-5 h-5 text-white" />
                   </div>
                 )}
 
-                {/* Remove button — only when not actively uploading */}
-                {f.status !== 'uploading' && f.status !== 'pending' && (
+                {/* Remove (only when not in-flight) */}
+                {(f.status === 'done' || f.status === 'error') && (
                   <button
-                    onClick={e => { e.stopPropagation(); removeFile(f.id) }}
+                    onClick={e => { e.stopPropagation(); removeLocalFile(f.id) }}
                     className="absolute top-1.5 left-1.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <X className="w-3 h-3 text-white" />
                   </button>
-                )}
-
-                {/* Progress bar at bottom */}
-                {f.status === 'uploading' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
-                    <div
-                      className="h-full bg-white transition-all duration-300"
-                      style={{ width: `${f.progress}%` }}
-                    />
-                  </div>
                 )}
               </div>
             ))}
