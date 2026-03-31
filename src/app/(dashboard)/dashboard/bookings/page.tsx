@@ -358,7 +358,7 @@ export default function BookingsPage() {
       .select('id, title, shoot_date, location, status, client:clients(full_name)')
       .single()
 
-    if (error) { toast.error('Error creating'); setSaving(false); return }
+    if (error) { console.error('[booking create]', error); toast.error(error.message || 'Error creating'); setSaving(false); return }
 
     const newBooking: Booking = {
       id: data.id,
