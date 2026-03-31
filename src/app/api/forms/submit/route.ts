@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getFormById, submitFormInquiry, triggerInquiryNotifications } from '@/lib/forms'
+import { getFormById, submitFormInquiry } from '@/lib/forms'
+import { triggerInquiryNotifications } from '@/lib/inquiry-notifications'
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
