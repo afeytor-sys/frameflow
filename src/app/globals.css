@@ -238,17 +238,10 @@
     transition: background-color 200ms ease, color 200ms ease;
   }
 
-  /* Glass background — colored base so transparent cards are clearly visible */
+  /* Light mode — solid white background */
   [data-theme="light"] body,
   body:not([data-theme="dark"]) {
-    background:
-      radial-gradient(ellipse 50% 45% at   0%   0%, rgba(196,150, 70,0.55) 0%, transparent 65%),
-      radial-gradient(ellipse 45% 40% at 100% 100%, rgba( 80,120,220,0.50) 0%, transparent 65%),
-      radial-gradient(ellipse 38% 35% at 100%   0%, rgba(190, 80,150,0.38) 0%, transparent 60%),
-      radial-gradient(ellipse 38% 35% at   0% 100%, rgba( 50,170,130,0.38) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 50% at  50%  50%, rgba(150,160,200,0.20) 0%, transparent 70%),
-      #e8e6f0;
-    background-attachment: fixed;
+    background: #FFFFFF;
   }
 
   h1, h2, h3, h4, h5, h6 {
