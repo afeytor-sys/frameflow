@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink } from 'lucide-react'
+import {
+  MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink,
+  MapPin, Calendar, Users, Clock, Tag, Globe, Zap,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -35,15 +38,23 @@ interface Props {
   emailTemplates: EmailTemplate[]
 }
 
+interface LeadData {
+  name: string
+  date?: string
+  location?: string
+  guestCount?: string
+  coverageHours?: string
+  type?: string
+  source?: string
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatTime(iso: string) {
   const date = new Date(iso)
   const now = new Date()
   const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  }
+  if (diffDays === 0) return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'short' })
   return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
@@ -59,90 +70,164 @@ function getSortedMessages(messages: Message[]): Message[] {
   return [...messages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 }
 
-/**
- * Detect if a message content looks like structured form data.
- * Returns parsed key-value pairs if ≥2 lines match "Label: value" pattern,
- * otherwise returns null (plain text).
- */
 function parseFormMessage(content: string): Array<{ label: string; value: string }> | null {
   const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
   if (lines.length < 2) return null
-
   const pairs: Array<{ label: string; value: string }> = []
   for (const line of lines) {
     const colonIdx = line.indexOf(':')
     if (colonIdx > 0 && colonIdx < line.length - 1) {
       const label = line.slice(0, colonIdx).trim()
       const value = line.slice(colonIdx + 1).trim()
-      if (label.length > 0 && value.length > 0) {
-        pairs.push({ label, value })
-      }
+      if (label.length > 0 && value.length > 0) pairs.push({ label, value })
     } else {
-      // Line doesn't match "Label: value" — treat whole thing as plain text
       return null
     }
   }
-
   return pairs.length >= 2 ? pairs : null
 }
 
-/** Format a value if it looks like a date */
 function formatValueIfDate(value: string): string {
-  // ISO date pattern: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     try {
       return new Date(value + 'T00:00:00').toLocaleDateString('en-US', {
         day: 'numeric', month: 'long', year: 'numeric',
       })
-    } catch {
-      return value
-    }
+    } catch { return value }
   }
   return value
 }
 
-/** Check if a label likely refers to an email field */
 function isEmailLabel(label: string): boolean {
   return /email|e-mail|mail/i.test(label)
 }
 
-/**
- * Extract name / date / location from parsed form fields.
- * Returns an object with whatever could be found (values may be undefined).
- */
 function extractLeadData(
   leadName: string,
-  pairs: Array<{ label: string; value: string }> | null
-): { name: string; date?: string; location?: string } {
+  pairs: Array<{ label: string; value: string }> | null,
+): LeadData {
   const name = leadName
   if (!pairs) return { name }
 
-  const dateEntry = pairs.find(p =>
-    /^(datum|date|event.?date|shoot.?date|hochzeit.?datum|wedding.?date)$/i.test(p.label.trim())
-  )
-  const locationEntry = pairs.find(p =>
-    /^(ort|location|venue|stadt|city|place|hochzeitsort)$/i.test(p.label.trim())
-  )
+  const find = (pattern: RegExp) => pairs.find(p => pattern.test(p.label.trim()))
+
+  const dateEntry     = find(/^(datum|date|event.?date|shoot.?date|hochzeit.?datum|wedding.?date)$/i)
+  const locationEntry = find(/^(ort|location|venue|stadt|city|place|hochzeitsort)$/i)
+  const guestEntry    = find(/^(g[äa]ste|guests?|g[äa]steanzahl|anzahl.?g[äa]ste|number.?of.?guests?)$/i)
+  const hoursEntry    = find(/^(stunden|hours?|coverage.?hours?|stundenzahl|dauer)$/i)
+  const typeEntry     = find(/^(typ|type|art|event.?type|art.?der.?feier|hochzeitsart)$/i)
+  const sourceEntry   = find(/^(quelle|source|how.?did.?you.?find|woher|kanal)$/i)
 
   return {
     name,
-    date: dateEntry ? formatValueIfDate(dateEntry.value) : undefined,
-    location: locationEntry?.value,
+    date:          dateEntry     ? formatValueIfDate(dateEntry.value) : undefined,
+    location:      locationEntry?.value,
+    guestCount:    guestEntry?.value,
+    coverageHours: hoursEntry?.value,
+    type:          typeEntry?.value,
+    source:        sourceEntry?.value,
   }
 }
 
-/** Replace {{name}}, {{date}}, {{location}} placeholders in a template body */
-function replacePlaceholders(
-  body: string,
-  data: { name: string; date?: string; location?: string }
-): string {
+function replacePlaceholders(body: string, data: LeadData): string {
   return body
-    .replace(/\{\{name\}\}/gi, data.name || '{{name}}')
-    .replace(/\{\{date\}\}/gi, data.date || '{{date}}')
+    .replace(/\{\{name\}\}/gi,     data.name     || '{{name}}')
+    .replace(/\{\{date\}\}/gi,     data.date     || '{{date}}')
     .replace(/\{\{location\}\}/gi, data.location || '{{location}}')
 }
 
-// ── Structured message bubble ─────────────────────────────────────────────────
+// ── LeadSummaryCard ───────────────────────────────────────────────────────────
+
+function LeadSummaryCard({ data }: { data: LeadData }) {
+  const fields: Array<{ icon: React.ReactNode; label: string; value: string }> = [
+    data.date          && { icon: <Calendar className="w-3 h-3" />, label: 'Date',     value: data.date },
+    data.location      && { icon: <MapPin   className="w-3 h-3" />, label: 'Location', value: data.location },
+    data.guestCount    && { icon: <Users    className="w-3 h-3" />, label: 'Guests',   value: data.guestCount },
+    data.coverageHours && { icon: <Clock    className="w-3 h-3" />, label: 'Coverage', value: data.coverageHours },
+    data.type          && { icon: <Tag      className="w-3 h-3" />, label: 'Type',     value: data.type },
+    data.source        && { icon: <Globe    className="w-3 h-3" />, label: 'Source',   value: data.source },
+  ].filter(Boolean) as Array<{ icon: React.ReactNode; label: string; value: string }>
+
+  if (fields.length === 0) return null
+
+  return (
+    <div
+      className="mx-6 mt-4 rounded-xl overflow-hidden flex-shrink-0"
+      style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
+    >
+      <div
+        className="px-4 py-2 flex items-center gap-2"
+        style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}
+      >
+        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+          Lead Summary
+        </span>
+      </div>
+      <div className="px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
+        {fields.map(({ icon, label, value }) => (
+          <div key={label} className="flex items-center gap-2 min-w-0">
+            <span style={{ color: 'var(--accent, #C9A96E)', flexShrink: 0 }}>{icon}</span>
+            <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+              {label}:
+            </span>
+            <span className="text-[12px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+              {value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── QuickActionBar ────────────────────────────────────────────────────────────
+
+function QuickActionBar({ data, onFill }: { data: LeadData; onFill: (text: string) => void }) {
+  const actions = [
+    {
+      label: 'Angebot senden',
+      text: `Hallo ${data.name},\n\nvielen Dank für deine Anfrage! Ich freue mich über dein Interesse.\n\nGerne sende ich dir ein individuelles Angebot zu. Kannst du mir noch ein paar Details mitteilen?\n\nBeste Grüße`,
+    },
+    {
+      label: 'Termin vorschlagen',
+      text: `Hallo ${data.name},\n\nvielen Dank für deine Nachricht! Ich würde mich gerne mit dir für ein kurzes Kennenlerngespräch verabreden.\n\nWärst du verfügbar für einen kurzen Anruf diese Woche?\n\nBeste Grüße`,
+    },
+    {
+      label: 'Schnell antworten',
+      text: `Hallo ${data.name},\n\nvielen Dank für eure Anfrage${data.date ? ` für den ${data.date}` : ''}${data.location ? ` in ${data.location}` : ''}.\n\nIch melde mich schnellstmöglich bei euch.\n\nBeste Grüße`,
+    },
+  ]
+
+  return (
+    <div className="mx-6 mt-3 mb-1 flex items-center gap-2 flex-shrink-0 flex-wrap">
+      <Zap className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+      {actions.map(action => (
+        <button
+          key={action.label}
+          onClick={() => onFill(action.text)}
+          className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+          style={{
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-secondary)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--accent, #C9A96E)'
+            e.currentTarget.style.color = 'var(--accent, #C9A96E)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border-color)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          {action.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── StructuredMessageBubble ───────────────────────────────────────────────────
 
 function StructuredMessageBubble({
   pairs,
@@ -162,43 +247,36 @@ function StructuredMessageBubble({
             background: 'var(--bg-hover, #f5f5f3)',
             border: '1px solid var(--border-color)',
             borderBottomLeftRadius: '4px',
+            opacity: 0.72,
           }}
         >
-          {/* Header */}
           <div
             className="px-4 py-2.5 flex items-center gap-2"
             style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
           >
             <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent, #C9A96E)' }} />
-            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Form submission
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Original form submission
             </span>
           </div>
-          {/* Fields */}
-          <div className="px-4 py-3 space-y-2">
+          <div className="px-4 py-3 space-y-1.5">
             {pairs.map(({ label, value }) => {
               const formattedValue = formatValueIfDate(value)
               const isEmail = isEmailLabel(label)
               return (
                 <div key={label} className="flex items-start gap-2">
                   <span
-                    className="text-[12px] font-semibold flex-shrink-0"
-                    style={{ color: 'var(--text-secondary)', minWidth: '90px' }}
+                    className="text-[11px] font-semibold flex-shrink-0"
+                    style={{ color: 'var(--text-muted)', minWidth: '90px' }}
                   >
                     {label}
                   </span>
-                  <span className="text-[12px]" style={{ color: 'var(--text-primary)' }}>
+                  <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                     {isEmail ? (
-                      <a
-                        href={`mailto:${value}`}
-                        className="underline"
-                        style={{ color: 'var(--accent, #C9A96E)' }}
-                      >
+                      <a href={`mailto:${value}`} className="underline" style={{ color: 'var(--accent, #C9A96E)' }}>
                         {value}
                       </a>
-                    ) : (
-                      formattedValue
-                    )}
+                    ) : formattedValue}
                   </span>
                 </div>
               )
@@ -215,57 +293,45 @@ function StructuredMessageBubble({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function InboxClient({ conversations, photographerEmail, emailTemplates }: Props) {
+export default function InboxClient({ conversations, photographerEmail: _photographerEmail, emailTemplates }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(
-    conversations.length > 0 ? conversations[0].id : null
+    conversations.length > 0 ? conversations[0].id : null,
   )
-
-  // Local messages state for optimistic updates — keyed by conversation id
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
-
-  // Reply state
-  const [replyText, setReplyText] = useState('')
-  const [isSending, setIsSending] = useState(false)
-
-  // Templates dropdown
+  const [replyText, setReplyText]         = useState('')
+  const [isSending, setIsSending]         = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
-  const templatesRef = useRef<HTMLDivElement>(null)
 
-  // Refs for scroll-to-bottom
+  const templatesRef  = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const textareaRef   = useRef<HTMLTextAreaElement>(null)
 
   const selected = conversations.find(c => c.id === selectedId) ?? null
 
-  // Merge server messages with local optimistic messages
   const getMessages = useCallback((convId: string): Message[] => {
     const conv = conversations.find(c => c.id === convId)
     const serverMsgs = conv ? getSortedMessages(conv.messages) : []
-    const localMsgs = localMessages[convId] ?? []
-    const serverIds = new Set(serverMsgs.map(m => m.id))
-    const newLocal = localMsgs.filter(m => !serverIds.has(m.id))
+    const localMsgs  = localMessages[convId] ?? []
+    const serverIds  = new Set(serverMsgs.map(m => m.id))
+    const newLocal   = localMsgs.filter(m => !serverIds.has(m.id))
     return [...serverMsgs, ...newLocal].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     )
   }, [conversations, localMessages])
 
   const displayMessages = selected ? getMessages(selected.id) : []
 
-  // Scroll to bottom when messages change or conversation changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [displayMessages.length, selectedId])
 
-  // Auto-focus textarea + clear reply text when switching conversations
   useEffect(() => {
     setReplyText('')
     setShowTemplates(false)
-    // Small delay so the panel has rendered
     const t = setTimeout(() => textareaRef.current?.focus(), 50)
     return () => clearTimeout(t)
   }, [selectedId])
 
-  // Close templates dropdown on outside click
   useEffect(() => {
     if (!showTemplates) return
     const handler = (e: MouseEvent) => {
@@ -289,11 +355,7 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
       created_at: new Date().toISOString(),
     }
 
-    // Optimistic update
-    setLocalMessages(prev => ({
-      ...prev,
-      [selected.id]: [...(prev[selected.id] ?? []), optimisticMsg],
-    }))
+    setLocalMessages(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] ?? []), optimisticMsg] }))
     setReplyText('')
     setIsSending(true)
 
@@ -303,7 +365,6 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId: selected.id, content }),
       })
-
       const data = await res.json()
 
       if (!res.ok) {
@@ -342,16 +403,12 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault()
-      handleSend()
-    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSend() }
   }
 
-  // Extract lead data from the first lead message (for placeholders + mini info)
-  const firstLeadMsg = displayMessages.find(m => m.sender === 'lead')
+  const firstLeadMsg    = displayMessages.find(m => m.sender === 'lead')
   const firstLeadParsed = firstLeadMsg ? parseFormMessage(firstLeadMsg.content) : null
-  const leadData = selected ? extractLeadData(selected.lead_name, firstLeadParsed) : null
+  const leadData: LeadData | null = selected ? extractLeadData(selected.lead_name, firstLeadParsed) : null
 
   const applyTemplate = (tpl: EmailTemplate) => {
     const body = leadData ? replacePlaceholders(tpl.body, leadData) : tpl.body
@@ -360,100 +417,116 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
     setTimeout(() => textareaRef.current?.focus(), 50)
   }
 
-  const quickActions = selected ? [
-    {
-      label: 'Angebot senden',
-      text: `Hallo ${selected.lead_name},\n\nvielen Dank für deine Anfrage! Ich freue mich über dein Interesse.\n\nGerne sende ich dir ein individuelles Angebot zu. Kannst du mir noch ein paar Details mitteilen?\n\nBeste Grüße`,
-    },
-    {
-      label: 'Termin vorschlagen',
-      text: `Hallo ${selected.lead_name},\n\nvielen Dank für deine Nachricht! Ich würde mich gerne mit dir für ein kurzes Kennenlerngespräch verabreden.\n\nWärst du verfügbar für einen kurzen Anruf diese Woche?\n\nBeste Grüße`,
-    },
-  ] : []
+  const fillQuickAction = (text: string) => {
+    setReplyText(text)
+    setTimeout(() => textareaRef.current?.focus(), 50)
+  }
 
+  // Status badge based on whether photographer has replied yet
+  const photographerMsgCount = selected
+    ? displayMessages.filter(m => m.sender === 'photographer').length
+    : 0
+  const statusBadge = selected
+    ? photographerMsgCount === 0
+      ? { label: 'New Lead',       color: '#10B981', bg: 'rgba(16,185,129,0.12)' }
+      : { label: 'In Conversation', color: '#C9A96E', bg: 'rgba(201,169,110,0.12)' }
+    : null
+
+  // Height fills available space: 52px header + py-8 (32px top + 32px bottom) = 116px
   return (
-    <div className="flex h-full" style={{ minHeight: 0 }}>
+    <div
+      className="flex overflow-hidden rounded-xl"
+      style={{
+        height: 'calc(100vh - 116px)',
+        border: '1px solid var(--border-color)',
+      }}
+    >
 
-      {/* ── Left: Conversation list ─────────────────────────────────────── */}
-      <div className="flex flex-col flex-shrink-0 overflow-y-auto"
+      {/* ── Left: Conversation list (independent scroll) ────────────────── */}
+      <div
+        className="flex flex-col flex-shrink-0"
         style={{
           width: '300px',
           borderRight: '1px solid var(--border-color)',
-          background: 'var(--bg-surface, var(--card-bg))',
-        }}>
-
-        {/* Header */}
+          background: 'var(--bg-surface)',
+        }}
+      >
+        {/* Sidebar header */}
         <div className="px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div className="flex items-center gap-2">
             <Inbox className="w-4 h-4" style={{ color: '#10B981' }} />
             <h1 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>Inbox</h1>
             {conversations.length > 0 && (
-              <span className="ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ background: 'rgba(16,185,129,0.12)', color: '#10B981' }}>
+              <span
+                className="ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded-full"
+                style={{ background: 'rgba(16,185,129,0.12)', color: '#10B981' }}
+              >
                 {conversations.length}
               </span>
             )}
           </div>
         </div>
 
-        {/* Empty state */}
-        {conversations.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 text-center">
-            <MessageCircle className="w-8 h-8 mb-2" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-            <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>No conversations yet</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-              Submissions from your forms will appear here.
-            </p>
-          </div>
-        )}
-
-        {/* Conversation rows */}
-        {conversations.map(conv => {
-          const allMsgs = getMessages(conv.id)
-          const last = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : getLastMessage(conv.messages)
-          const isActive = conv.id === selectedId
-          return (
-            <button
-              key={conv.id}
-              onClick={() => setSelectedId(conv.id)}
-              className="w-full text-left px-4 py-3.5 transition-all flex-shrink-0"
-              style={{
-                background: isActive ? 'rgba(16,185,129,0.08)' : 'transparent',
-                borderBottom: '1px solid var(--border-color)',
-                borderLeft: isActive ? '3px solid #10B981' : '3px solid transparent',
-              }}
-            >
-              <div className="flex items-center gap-2.5 mb-1">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold text-white"
-                  style={{ background: isActive ? '#10B981' : 'var(--accent, #C9A96E)' }}>
-                  {conv.lead_name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                      {conv.lead_name}
-                    </p>
-                    {last && (
-                      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                        {formatTime(last.created_at)}
-                      </span>
-                    )}
+        {/* Scrollable list */}
+        <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+          {conversations.length === 0 && (
+            <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+              <MessageCircle className="w-8 h-8 mb-2" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>No conversations yet</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                Submissions from your forms will appear here.
+              </p>
+            </div>
+          )}
+          {conversations.map(conv => {
+            const allMsgs = getMessages(conv.id)
+            const last    = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : getLastMessage(conv.messages)
+            const isActive = conv.id === selectedId
+            return (
+              <button
+                key={conv.id}
+                onClick={() => setSelectedId(conv.id)}
+                className="w-full text-left px-4 py-3.5 transition-all"
+                style={{
+                  background:   isActive ? 'rgba(16,185,129,0.08)' : 'transparent',
+                  borderBottom: '1px solid var(--border-color)',
+                  borderLeft:   isActive ? '3px solid #10B981' : '3px solid transparent',
+                }}
+              >
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold text-white"
+                    style={{ background: isActive ? '#10B981' : 'var(--accent, #C9A96E)' }}
+                  >
+                    {conv.lead_name.charAt(0).toUpperCase()}
                   </div>
-                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{conv.lead_email}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                        {conv.lead_name}
+                      </p>
+                      {last && (
+                        <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                          {formatTime(last.created_at)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{conv.lead_email}</p>
+                  </div>
                 </div>
-              </div>
-              {last && (
-                <p className="text-[12px] truncate pl-10" style={{ color: 'var(--text-secondary)' }}>
-                  {last.sender === 'photographer' ? 'You: ' : ''}{last.content}
-                </p>
-              )}
-            </button>
-          )
-        })}
+                {last && (
+                  <p className="text-[12px] truncate pl-10" style={{ color: 'var(--text-secondary)' }}>
+                    {last.sender === 'photographer' ? 'You: ' : ''}{last.content}
+                  </p>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* ── Right: Message thread ───────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
+      {/* ── Right: Message thread (independent scroll) ──────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0, background: 'var(--bg-surface)' }}>
 
         {!selected ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
@@ -462,65 +535,54 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
           </div>
         ) : (
           <>
-            {/* Thread header */}
-            <div className="px-6 py-3.5 flex-shrink-0"
-              style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
+            {/* ── Thread header ─────────────────────────────────────────── */}
+            <div
+              className="px-6 py-4 flex-shrink-0"
+              style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
-                  style={{ background: '#10B981' }}>
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold text-white flex-shrink-0"
+                  style={{ background: '#10B981' }}
+                >
                   {selected.lead_name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>
-                    {selected.lead_name}
-                  </p>
-                  <div className="flex items-center gap-3 flex-wrap mt-0.5">
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                      {selected.lead_email}
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                      {selected.lead_name}
                     </p>
-                    {leadData?.date && (
-                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        · {leadData.date}
-                      </span>
-                    )}
-                    {leadData?.location && (
-                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        · {leadData.location}
+                    {statusBadge && (
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: statusBadge.bg, color: statusBadge.color }}
+                      >
+                        {statusBadge.label}
                       </span>
                     )}
                   </div>
-                </div>
-                {/* Quick actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {quickActions.map(action => (
-                    <button
-                      key={action.label}
-                      onClick={() => { setReplyText(action.text); setTimeout(() => textareaRef.current?.focus(), 50) }}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
-                      style={{
-                        background: 'var(--bg-hover)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-secondary)',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {selected.lead_email}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            {/* ── Lead summary card + quick actions ─────────────────────── */}
+            {leadData && (
+              <>
+                <LeadSummaryCard data={leadData} />
+                <QuickActionBar data={leadData} onFill={fillQuickAction} />
+              </>
+            )}
+
+            {/* ── Messages (independent scroll) ─────────────────────────── */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4" style={{ minHeight: 0 }}>
               {displayMessages.length === 0 && (
                 <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>No messages yet.</p>
               )}
               {displayMessages.map(msg => {
                 const isLead = msg.sender === 'lead'
-
-                // Try to parse structured form data for lead messages
                 const parsed = isLead ? parseFormMessage(msg.content) : null
 
                 if (parsed) {
@@ -536,12 +598,13 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
 
                 return (
                   <div key={msg.id} className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
-                    <div className="max-w-[75%]">
+                    <div className="max-w-[70%]">
                       <div
-                        className="px-4 py-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap"
+                        className="px-4 py-4 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap"
                         style={isLead ? {
                           background: 'var(--bg-hover, #f5f5f3)',
                           color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)',
                           borderBottomLeftRadius: '4px',
                         } : {
                           background: 'var(--msg-sent-bg, #1A1A18)',
@@ -552,22 +615,24 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                       >
                         {msg.content}
                       </div>
-                      <p className={`text-[10px] mt-1 ${isLead ? 'text-left' : 'text-right'}`}
-                        style={{ color: 'var(--text-muted)' }}>
+                      <p
+                        className={`text-[10px] mt-1 ${isLead ? 'text-left' : 'text-right'}`}
+                        style={{ color: 'var(--text-muted)' }}
+                      >
                         {isLead ? selected.lead_name : 'You'} · {formatTime(msg.created_at)}
                       </p>
                     </div>
                   </div>
                 )
               })}
-              {/* Scroll anchor */}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Reply area ──────────────────────────────────────────────── */}
-            <div className="px-6 py-4 flex-shrink-0"
-              style={{ borderTop: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
-
+            {/* ── Reply area ─────────────────────────────────────────────── */}
+            <div
+              className="px-6 py-4 flex-shrink-0"
+              style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
+            >
               <div className="flex items-end gap-3">
                 <textarea
                   ref={textareaRef}
@@ -583,13 +648,11 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                     border: '1.5px solid var(--card-border)',
                     color: 'var(--text-primary)',
                   }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent, #C9A96E)' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
+                  onFocus={e  => { e.currentTarget.style.borderColor = 'var(--accent, #C9A96E)' }}
+                  onBlur={e   => { e.currentTarget.style.borderColor = 'var(--card-border)' }}
                 />
 
-                {/* Templates button + Send button */}
                 <div className="flex flex-col gap-2 flex-shrink-0">
-
                   {/* Templates dropdown */}
                   <div className="relative" ref={templatesRef}>
                     <button
@@ -602,11 +665,13 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                         color: 'var(--text-secondary)',
                         whiteSpace: 'nowrap',
                       }}
-                      title="Insert email template"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       Templates
-                      <ChevronDown className="w-3 h-3" style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
+                      <ChevronDown
+                        className="w-3 h-3"
+                        style={{ transform: showTemplates ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+                      />
                     </button>
 
                     {showTemplates && (
@@ -624,12 +689,9 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                             Email Templates
                           </p>
                         </div>
-
                         {emailTemplates.length === 0 ? (
                           <div className="px-4 py-4 text-center">
-                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                              No templates yet.
-                            </p>
+                            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>No templates yet.</p>
                             <a
                               href="/dashboard/email-vorlagen"
                               target="_blank"
@@ -652,12 +714,8 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                               >
-                                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                                  {tpl.name}
-                                </p>
-                                <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                                  {tpl.subject}
-                                </p>
+                                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
+                                <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{tpl.subject}</p>
                               </button>
                             ))}
                           </div>
@@ -666,22 +724,21 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                     )}
                   </div>
 
-                  {/* Send button */}
+                  {/* Send */}
                   <button
                     onClick={handleSend}
                     disabled={!replyText.trim() || isSending}
                     className="flex items-center justify-center w-full h-10 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
                       background: replyText.trim() && !isSending ? 'var(--accent, #C9A96E)' : 'var(--bg-hover)',
-                      color: replyText.trim() && !isSending ? '#fff' : 'var(--text-muted)',
+                      color:      replyText.trim() && !isSending ? '#fff' : 'var(--text-muted)',
                     }}
                     title="Send reply (Cmd+Enter)"
                   >
-                    {isSending ? (
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
+                    {isSending
+                      ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      : <Send className="w-4 h-4" />
+                    }
                   </button>
                 </div>
               </div>
