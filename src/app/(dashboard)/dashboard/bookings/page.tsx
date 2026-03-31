@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { CalendarDays, List, MapPin, User, ChevronLeft, ChevronRight, Plus, X, Check, FolderOpen } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
+import { generateToken } from '@/lib/utils'
 
 interface Booking {
   id: string
@@ -289,6 +290,7 @@ export default function BookingsPage() {
         photographer_id: photographerId,
         title: newProjectTitle.trim(),
         status: 'draft',
+        client_token: generateToken(32),
         ...(form.shoot_date ? { shoot_date: form.shoot_date } : {}),
         ...(form.client_id ? { client_id: form.client_id } : {}),
       })
@@ -354,6 +356,7 @@ export default function BookingsPage() {
         client_id: form.client_id || null,
         status: form.status,
         notes: form.notes.trim() || null,
+        client_token: generateToken(32),
       })
       .select('id, title, shoot_date, location, status, client:clients(full_name)')
       .single()
