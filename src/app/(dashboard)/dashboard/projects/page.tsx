@@ -363,7 +363,7 @@ export default function ProjectsPage() {
               className="w-8 h-8 flex items-center justify-center transition-all"
               style={{
                 background: viewMode === 'grid' ? 'var(--text-primary)' : 'transparent',
-                color: viewMode === 'grid' ? 'white' : 'var(--text-muted)',
+                color: viewMode === 'grid' ? 'var(--btn-primary-color)' : 'var(--text-muted)',
               }}
               title="Karten-Ansicht"
             >
@@ -374,7 +374,7 @@ export default function ProjectsPage() {
               className="w-8 h-8 flex items-center justify-center transition-all"
               style={{
                 background: viewMode === 'list' ? 'var(--text-primary)' : 'transparent',
-                color: viewMode === 'list' ? 'white' : 'var(--text-muted)',
+                color: viewMode === 'list' ? 'var(--btn-primary-color)' : 'var(--text-muted)',
               }}
               title="Listen-Ansicht"
             >

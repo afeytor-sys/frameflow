@@ -474,8 +474,8 @@ export default function ClientDetailPage() {
             </h2>
             <Link
               href={`/dashboard/projects/new?client=${id}`}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold text-white transition-all hover:opacity-90"
-              style={{ background: 'var(--text-primary)' }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-90"
+              style={{ background: 'var(--text-primary)', color: 'var(--btn-primary-color)' }}
             >
               <Plus className="w-3.5 h-3.5" />
               New project

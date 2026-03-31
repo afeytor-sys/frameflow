@@ -113,7 +113,7 @@ export default async function DashboardPage() {
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all hover:opacity-88 active:scale-[0.98]"
               style={{
                 background: 'var(--text-primary)',
-                color: '#FFFFFF',
+                color: 'var(--btn-primary-color)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
               }}
             >
@@ -348,7 +348,7 @@ export default async function DashboardPage() {
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-xl transition-all hover:opacity-88 active:scale-[0.98]"
                     style={{
                       background: 'var(--text-primary)',
-                      color: 'var(--bg-page)',
+                      color: 'var(--btn-primary-color)',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                     }}
                   >

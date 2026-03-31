@@ -83,6 +83,7 @@
   --sidebar-text:     #000000;
   --sidebar-text-hover: #000000;
   --mouse-glow:       rgba(196,150,80,0.16);
+  --btn-primary-color: #FFFFFF;
 }
 
 /* ─────────────────────────────────────────────
@@ -145,6 +146,7 @@
   --card-blur:        blur(6px);
   --sidebar-blur:     blur(8px);
   --mouse-glow:       rgba(255,255,255,0.11);
+  --btn-primary-color: #0A0A0A;
 }
 
 /* Mono background — deep black with sharp white glow spots */
@@ -217,6 +219,7 @@
   --sidebar-text:     #8A8680;
   --sidebar-text-hover: #F0EDE8;
   --mouse-glow:       rgba(180,140,80,0.13);
+  --btn-primary-color: #0A0A09;
 }
 
 @layer base {
@@ -480,7 +483,7 @@
     gap: 0.375rem;
     padding: 0.625rem 1.25rem;
     background: var(--text-primary);
-    color: var(--bg-page);
+    color: var(--btn-primary-color);
     font-size: 13.5px;
     font-weight: 600;
     border-radius: 10px;

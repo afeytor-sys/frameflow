@@ -288,7 +288,7 @@ export default function NewClientPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ background: 'var(--text-primary)', color: '#FFFFFF' }}
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ background: 'var(--text-primary)', color: 'var(--btn-primary-color)' }}
           >
             {loading ? (de ? 'Wird erstellt...' : 'Creating...') : (de ? 'Kunden erstellen' : 'Create client')}
           </button>
