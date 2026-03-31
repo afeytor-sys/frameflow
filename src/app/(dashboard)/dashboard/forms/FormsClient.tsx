@@ -474,7 +474,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
       {/* ── Forms list ────────────────────────────────────────────────────── */}
       <div className="space-y-3">
         {forms.map(form => (
-          <div key={form.id} className="rounded-2xl p-5"
+          <div key={form.id} className="rounded-2xl px-5 py-6"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
             <div className="flex items-start justify-between gap-4">
 

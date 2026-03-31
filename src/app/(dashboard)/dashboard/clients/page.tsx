@@ -116,7 +116,7 @@ export default async function ClientsPage() {
                     className="group transition-all duration-150 hover:bg-[var(--bg-hover)]"
                     style={{ borderBottom: '1px solid var(--border-color)' }}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3.5 group/name">
                         {/* Larger avatar */}
                         <div
@@ -133,17 +133,17 @@ export default async function ClientsPage() {
                         </div>
                       </Link>
                     </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
+                    <td className="px-6 py-5 hidden md:table-cell">
                       <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
                         {shootDate ? formatDate(shootDate, 'de') : '—'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
+                    <td className="px-6 py-5 hidden lg:table-cell">
                       <span className="text-[13px] capitalize" style={{ color: 'var(--text-muted)' }}>
                         {shootingType || '—'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <span
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold"
                         style={{ background: sc.bg, color: sc.color }}
@@ -152,12 +152,12 @@ export default async function ClientsPage() {
                         {statusLabels[client.status] || client.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
+                    <td className="px-6 py-5 hidden lg:table-cell">
                       <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
                         {formatRelative(client.created_at, 'de')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-5 text-right">
                       <Link
                         href={`/dashboard/clients/${client.id}`}
                         className="inline-flex items-center gap-1 text-[12.5px] font-semibold transition-all opacity-0 group-hover:opacity-100 px-3 py-1.5 rounded-lg"

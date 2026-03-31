@@ -86,6 +86,8 @@
   --btn-primary-color: #FFFFFF;
   --tab-inactive-bg:  #FFFFFF;
   --tab-inactive-border: rgba(0,0,0,0.09);
+  --msg-sent-bg:    #1A1A18;
+  --msg-sent-color: #FFFFFF;
 }
 
 /* ─────────────────────────────────────────────
@@ -151,6 +153,8 @@
   --btn-primary-color: #0A0A0A;
   --tab-inactive-bg:  #0A0A0A;
   --tab-inactive-border: rgba(255,255,255,0.12);
+  --msg-sent-bg:    rgba(255,255,255,0.12);
+  --msg-sent-color: #FFFFFF;
 }
 
 /* Mono background — deep black with sharp white glow spots */
@@ -226,6 +230,8 @@
   --btn-primary-color: #0A0A09;
   --tab-inactive-bg:  #111110;
   --tab-inactive-border: rgba(255,255,255,0.08);
+  --msg-sent-bg:    rgba(255,255,255,0.14);
+  --msg-sent-color: #FFFFFF;
 }
 
 @layer base {

@@ -461,8 +461,8 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                           color: 'var(--text-primary)',
                           borderBottomLeftRadius: '4px',
                         } : {
-                          background: 'var(--accent, #C9A96E)',
-                          color: '#fff',
+                          background: 'var(--msg-sent-bg, #1A1A18)',
+                          color: 'var(--msg-sent-color, #FFFFFF)',
                           borderBottomRightRadius: '4px',
                           opacity: msg.id.startsWith('optimistic-') ? 0.7 : 1,
                         }}

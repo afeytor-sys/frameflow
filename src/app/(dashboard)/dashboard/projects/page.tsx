@@ -227,7 +227,7 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6 animate-in">
+      <div className="space-y-6 animate-in">
         <div className="flex items-center justify-between">
           <div>
             <div className="h-8 w-32 rounded-lg shimmer mb-2" />
@@ -620,7 +620,7 @@ export default function ProjectsPage() {
                     {/* Full-row link — covers the whole card */}
                     <Link
                       href={`/dashboard/projects/${project.id}`}
-                      className="flex items-center gap-3 px-4 py-2.5 w-full"
+                      className="flex items-center gap-3 px-4 py-3.5 w-full"
                       style={{ display: 'grid', gridTemplateColumns: '20px 10px 1fr 130px 150px 120px 56px', alignItems: 'center', gap: '0 12px' }}
                     >
                       {/* Drag handle */}
