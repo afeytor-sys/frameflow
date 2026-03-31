@@ -614,9 +614,9 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
                         className="absolute bottom-full right-0 mb-2 rounded-xl overflow-hidden z-50"
                         style={{
                           width: '260px',
-                          background: 'var(--card-bg)',
-                          border: '1px solid var(--border-color)',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                          background: 'var(--dropdown-bg)',
+                          border: '1px solid var(--dropdown-border)',
+                          boxShadow: 'var(--dropdown-shadow)',
                         }}
                       >
                         <div className="px-3 py-2.5" style={{ borderBottom: '1px solid var(--border-color)' }}>

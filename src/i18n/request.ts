@@ -11,10 +11,10 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const localeCookie = cookieStore.get('locale')?.value
 
   const locale = (
-    locales.includes(requested as Locale)
-      ? requested
-      : locales.includes(localeCookie as Locale)
+    locales.includes(localeCookie as Locale)
       ? localeCookie
+      : locales.includes(requested as Locale)
+      ? requested
       : defaultLocale
   ) as Locale
 
