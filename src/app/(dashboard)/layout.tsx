@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import DashboardHeader from '@/components/layout/DashboardHeader'
 import { UploadProvider } from '@/contexts/UploadContext'
+import PushRegistrar from '@/components/layout/PushRegistrar'
 
 export default async function DashboardLayout({
   children,
@@ -32,6 +33,7 @@ export default async function DashboardLayout({
 
   return (
     <UploadProvider>
+      <PushRegistrar />
       <div className="flex h-screen overflow-hidden page-bg">
         {/* Sidebar */}
         <DashboardSidebar photographer={photographer} />

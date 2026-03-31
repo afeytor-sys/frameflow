@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { Resend } from 'resend'
+import { sendPushToPhotographer } from '@/lib/webpush'
 
 export interface FormField {
   id: string
@@ -194,7 +195,18 @@ export async function triggerInquiryNotifications(
     }
   }
 
-  // 3. Email notification
+  // 3. Web push notification
+  try {
+    await sendPushToPhotographer(photographerId, {
+      title: 'Neue Anfrage / New inquiry',
+      body: `${name}: ${message.slice(0, 80)}${message.length > 80 ? '…' : ''}`,
+      url: '/dashboard/inbox',
+    })
+  } catch (err) {
+    console.error('[notifications] push error:', err)
+  }
+
+  // 4. Email notification
   if (emailEnabled) {
     try {
       const { data: photographer } = await supabase

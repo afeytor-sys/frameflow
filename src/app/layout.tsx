@@ -69,6 +69,12 @@ export const metadata: Metadata = {
     images: [`${process.env.NEXT_PUBLIC_APP_URL}/og-image.png`],
   },
   robots: { index: true, follow: true },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Frameflow',
+  },
 }
 
 export default async function RootLayout({
