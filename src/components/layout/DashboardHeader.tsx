@@ -18,6 +18,7 @@ export default function DashboardHeader({ photographer }: Props) {
   const [langOpen, setLangOpen] = useState(false)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 })
   const langBtnRef = useRef<HTMLButtonElement>(null)
+  const langDropdownRef = useRef<HTMLDivElement>(null)
   const { theme, toggleTheme } = useTheme()
   const [currentLocale, setCurrentLocale] = useState<string>('en')
   const [mounted, setMounted] = useState(false)
@@ -38,9 +39,10 @@ export default function DashboardHeader({ photographer }: Props) {
   useEffect(() => {
     if (!langOpen) return
     const handler = (e: MouseEvent) => {
-      if (langBtnRef.current && !langBtnRef.current.contains(e.target as Node)) {
-        setLangOpen(false)
-      }
+      const target = e.target as Node
+      const inBtn = langBtnRef.current?.contains(target)
+      const inDropdown = langDropdownRef.current?.contains(target)
+      if (!inBtn && !inDropdown) setLangOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -83,6 +85,7 @@ export default function DashboardHeader({ photographer }: Props) {
         onClick={() => setLangOpen(false)}
       />
       <div
+        ref={langDropdownRef}
         className="dropdown-glass fixed rounded-xl overflow-hidden min-w-[140px]"
         style={{ top: dropdownPos.top, right: dropdownPos.right, zIndex: 99999 }}
       >
