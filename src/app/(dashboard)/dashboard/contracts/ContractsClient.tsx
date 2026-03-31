@@ -2,14 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getContractTemplatesForLocale } from '@/lib/contractTemplates'
 import { formatRelative } from '@/lib/utils'
 import {
-  FileText, Plus, X, ChevronRight, Check, Sparkles,
-  BookOpen, Send, Eye, BookMarked, Trash2, PenLine, Download,
+  FileText, Plus, X, ChevronRight, Check,
+  BookOpen, Send, Eye, BookMarked, Trash2, Download, LayoutTemplate,
 } from 'lucide-react'
-import ContractEditor from '@/components/dashboard/ContractEditor'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 
@@ -220,7 +220,7 @@ interface TemplateOption {
 export default function ContractsClient({
   contracts: initialContracts,
   projects,
-  userTemplates: initialUserTemplates = [],
+  userTemplates = [],
 }: Props) {
   const locale = useLocale()
   const t = T[locale]
@@ -235,7 +235,6 @@ export default function ContractsClient({
 
   const router = useRouter()
   const [contracts, setContracts] = useState<Contract[]>(initialContracts)
-  const [userTemplates, setUserTemplates] = useState<UserTemplate[]>(initialUserTemplates)
 
   // New contract modal
   const [showModal, setShowModal] = useState(false)
@@ -246,14 +245,6 @@ export default function ContractsClient({
 
   // Preview modal
   const [previewKey, setPreviewKey] = useState<TemplateKey | null>(null)
-
-  // New template modal
-  const [showNewTemplateModal, setShowNewTemplateModal] = useState(false)
-  const [newTplName, setNewTplName] = useState('')
-  const [newTplDesc, setNewTplDesc] = useState('')
-  const [newTplContent, setNewTplContent] = useState('')
-  const [editorKey, setEditorKey] = useState(0)
-  const [savingTemplate, setSavingTemplate] = useState(false)
 
   // PDF download
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -305,54 +296,6 @@ export default function ContractsClient({
     setShowModal(false)
     setSaving(false)
     router.push(`/dashboard/projects/${selectedProject}?tab=contracts`)
-  }
-
-  const handleDeleteUserTemplate = async (id: string) => {
-    if (!confirm(t.deleteTemplateConfirm)) return
-    const supabase = createClient()
-    await supabase.from('contract_templates').delete().eq('id', id)
-    setUserTemplates((prev) => prev.filter((t) => t.id !== id))
-    toast.success(t.templateDeleted)
-  }
-
-  const handleCreateTemplate = async () => {
-    if (!newTplName.trim()) { toast.error(t.errorName); return }
-    setSavingTemplate(true)
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setSavingTemplate(false); return }
-      const { data, error } = await supabase
-        .from('contract_templates')
-        .insert({
-          photographer_id: user.id,
-          name: newTplName.trim(),
-          description: newTplDesc.trim() || null,
-          content: newTplContent,
-        })
-        .select().single()
-      if (error) {
-        console.error('Template save error:', error)
-        if (error.code === '42P01') {
-          toast.error('Template feature not yet available. Please run migration.')
-        } else {
-          toast.error(`${t.errorSaving}: ${error.message}`)
-        }
-        setSavingTemplate(false)
-        return
-      }
-      setUserTemplates(prev => [...prev, data as UserTemplate])
-      setShowNewTemplateModal(false)
-      setNewTplName('')
-      setNewTplDesc('')
-      setNewTplContent('')
-      toast.success(t.successTemplateSaved)
-    } catch (err) {
-      console.error(err)
-      toast.error(t.errorSaving)
-    } finally {
-      setSavingTemplate(false)
-    }
   }
 
   const handleDeleteContract = async (e: React.MouseEvent, contractId: string) => {
@@ -525,14 +468,24 @@ export default function ContractsClient({
             {t.subtitle(contracts.length)}
           </p>
         </div>
-        <button
-          onClick={() => openNewContract()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
-          style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.30)' }}
-        >
-          <Plus className="w-4 h-4" />
-          {t.newContract}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link
+            href="/dashboard/contracts/templates"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold transition-all hover:opacity-88 active:scale-[0.98]"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+          >
+            <LayoutTemplate className="w-4 h-4" />
+            {locale === 'de' ? 'Vorlagen' : 'Templates'}
+          </Link>
+          <button
+            onClick={() => openNewContract()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
+            style={{ background: '#8B5CF6', boxShadow: '0 1px 8px rgba(139,92,246,0.30)' }}
+          >
+            <Plus className="w-4 h-4" />
+            {t.newContract}
+          </button>
+        </div>
       </div>
 
       <style>{`
@@ -547,289 +500,6 @@ export default function ContractsClient({
           transform: translateY(-2px) !important;
         }
       `}</style>
-
-      {/* ── My Templates (user-saved) ── */}
-      {userTemplates.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <BookMarked className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-              {t.myTemplates}
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {userTemplates.map((tpl, i) => {
-              const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
-              return (
-                <div
-                  key={tpl.id}
-                  className="contract-card rounded-xl overflow-hidden flex flex-col gap-0 group cursor-pointer"
-                  style={{
-                    background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
-                    border: `1px solid ${accent.color}28`,
-                    boxShadow: `0 2px 12px ${accent.color}10`,
-                    animation: 'fadeSlideUp 0.4s ease forwards',
-                    animationDelay: `${i * 60}ms`,
-                    opacity: 0,
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
-                    e.currentTarget.style.borderColor = accent.color + '45'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
-                    e.currentTarget.style.borderColor = accent.color + '28'
-                  }}
-                >
-                  <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
-                  <div className="p-4 flex flex-col gap-3 flex-1">
-                    <div className="flex items-start justify-between">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-                        style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
-                      >
-                        <BookMarked className="w-5 h-5" style={{ color: accent.color }} />
-                      </div>
-                      <button
-                        onClick={() => handleDeleteUserTemplate(tpl.id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                        style={{ color: 'var(--text-muted)' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                        title={locale === 'de' ? 'Vorlage löschen' : 'Delete template'}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
-                      {tpl.description && (
-                        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setPreviewKey(`user:${tpl.id}`)}
-                        className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
-                        style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
-                      >
-                        {t.preview}
-                      </button>
-                      <button
-                        onClick={() => openNewContract(`user:${tpl.id}`)}
-                        className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
-                        style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
-                      >
-                        {t.use}
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Standard Templates ── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-            {t.defaultTemplates}
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Create new template card */}
-          <button
-            onClick={() => setShowNewTemplateModal(true)}
-            className="rounded-xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01] text-left group"
-            style={{ background: 'var(--bg-surface)', border: '2px dashed var(--border-color)' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
-              style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
-            >
-              <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t.newTemplate}</p>
-              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{t.newTemplateDesc}</p>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--accent)' }}>
-              <PenLine className="w-3.5 h-3.5" />
-              {t.createTemplate}
-            </div>
-          </button>
-
-          {CONTRACT_TEMPLATES.map((tpl, i) => {
-            const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
-            return (
-              <div
-                key={tpl.id}
-                className="contract-card rounded-xl overflow-hidden flex flex-col gap-0 group"
-                style={{
-                  background: `linear-gradient(135deg, ${accent.color}12 0%, ${accent.color}04 100%)`,
-                  border: `1px solid ${accent.color}28`,
-                  boxShadow: `0 2px 12px ${accent.color}10`,
-                  animation: 'fadeSlideUp 0.4s ease forwards',
-                  animationDelay: `${(i + 1) * 60}ms`,
-                  opacity: 0,
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.boxShadow = `0 8px 24px ${accent.color}22`
-                  e.currentTarget.style.borderColor = accent.color + '45'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.boxShadow = `0 2px 12px ${accent.color}10`
-                  e.currentTarget.style.borderColor = accent.color + '28'
-                }}
-              >
-                <div className="h-[3px] w-full" style={{ background: accent.color, opacity: 0.7 }} />
-                <div className="p-4 flex flex-col gap-3 flex-1">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-                    style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
-                  >
-                    <BookOpen className="w-5 h-5" style={{ color: accent.color }} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
-                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{tpl.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPreviewKey(`builtin:${tpl.id}`)}
-                      className="flex-1 text-xs font-medium py-1.5 px-2 rounded-lg transition-colors"
-                      style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
-                    >
-                      {t.preview}
-                    </button>
-                    <button
-                      onClick={() => openNewContract(`builtin:${tpl.id}`)}
-                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-90"
-                      style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
-                    >
-                      {t.use}
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── New Template Modal ── */}
-      {showNewTemplateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
-          <div
-            className="modal-glass w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col"
-            style={{ height: 'min(92vh, 900px)' }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <div>
-                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{t.createNewTemplate}</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.createNewTemplateDesc}</p>
-              </div>
-              <button
-                onClick={() => setShowNewTemplateModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
-              {/* Name + Desc */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.nameLabel}</label>
-                  <input
-                    type="text"
-                    value={newTplName}
-                    onChange={e => setNewTplName(e.target.value)}
-                    placeholder={t.namePlaceholder}
-                    className="input-base w-full"
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.descLabel}</label>
-                  <input
-                    type="text"
-                    value={newTplDesc}
-                    onChange={e => setNewTplDesc(e.target.value)}
-                    placeholder={t.descPlaceholder}
-                    className="input-base w-full"
-                  />
-                </div>
-              </div>
-
-              {/* Quick-fill from builtin */}
-              <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{t.startFromTemplate}</label>
-                <div className="flex flex-wrap gap-2">
-                  {CONTRACT_TEMPLATES.map((tpl, i) => {
-                    const accent = TEMPLATE_ACCENTS[i % TEMPLATE_ACCENTS.length]
-                    return (
-                      <button
-                        key={tpl.id}
-                        onClick={() => {
-                          setNewTplName(tpl.name)
-                          setNewTplDesc(tpl.description)
-                          setNewTplContent(tpl.content)
-                          setEditorKey(k => k + 1)
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                        style={{ background: accent.bg, color: accent.color, border: `1px solid ${accent.border}` }}
-                      >
-                        <BookOpen className="w-3 h-3" />
-                        {tpl.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Rich text editor */}
-              <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.contractContent}</label>
-                <ContractEditor
-                  key={editorKey}
-                  content={newTplContent}
-                  onChange={setNewTplContent}
-                  placeholder={t.contentPlaceholder}
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowNewTemplateModal(false)} className="btn-secondary flex-1">{t.cancel}</button>
-              <button
-                onClick={handleCreateTemplate}
-                disabled={savingTemplate || !newTplName.trim()}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
-                style={{ background: 'var(--accent)' }}
-              >
-                {savingTemplate
-                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><BookMarked className="w-4 h-4" />{t.saveTemplate}</>
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Contracts List ── */}
       <div>
