@@ -106,6 +106,42 @@ function isEmailLabel(label: string): boolean {
   return /email|e-mail|mail/i.test(label)
 }
 
+/**
+ * Extract name / date / location from parsed form fields.
+ * Returns an object with whatever could be found (values may be undefined).
+ */
+function extractLeadData(
+  leadName: string,
+  pairs: Array<{ label: string; value: string }> | null
+): { name: string; date?: string; location?: string } {
+  const name = leadName
+  if (!pairs) return { name }
+
+  const dateEntry = pairs.find(p =>
+    /^(datum|date|event.?date|shoot.?date|hochzeit.?datum|wedding.?date)$/i.test(p.label.trim())
+  )
+  const locationEntry = pairs.find(p =>
+    /^(ort|location|venue|stadt|city|place|hochzeitsort)$/i.test(p.label.trim())
+  )
+
+  return {
+    name,
+    date: dateEntry ? formatValueIfDate(dateEntry.value) : undefined,
+    location: locationEntry?.value,
+  }
+}
+
+/** Replace {{name}}, {{date}}, {{location}} placeholders in a template body */
+function replacePlaceholders(
+  body: string,
+  data: { name: string; date?: string; location?: string }
+): string {
+  return body
+    .replace(/\{\{name\}\}/gi, data.name || '{{name}}')
+    .replace(/\{\{date\}\}/gi, data.date || '{{date}}')
+    .replace(/\{\{location\}\}/gi, data.location || '{{location}}')
+}
+
 // ── Structured message bubble ─────────────────────────────────────────────────
 
 function StructuredMessageBubble({
@@ -312,11 +348,28 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
     }
   }
 
+  // Extract lead data from the first lead message (for placeholders + mini info)
+  const firstLeadMsg = displayMessages.find(m => m.sender === 'lead')
+  const firstLeadParsed = firstLeadMsg ? parseFormMessage(firstLeadMsg.content) : null
+  const leadData = selected ? extractLeadData(selected.lead_name, firstLeadParsed) : null
+
   const applyTemplate = (tpl: EmailTemplate) => {
-    setReplyText(tpl.body)
+    const body = leadData ? replacePlaceholders(tpl.body, leadData) : tpl.body
+    setReplyText(body)
     setShowTemplates(false)
     setTimeout(() => textareaRef.current?.focus(), 50)
   }
+
+  const quickActions = selected ? [
+    {
+      label: 'Angebot senden',
+      text: `Hallo ${selected.lead_name},\n\nvielen Dank für deine Anfrage! Ich freue mich über dein Interesse.\n\nGerne sende ich dir ein individuelles Angebot zu. Kannst du mir noch ein paar Details mitteilen?\n\nBeste Grüße`,
+    },
+    {
+      label: 'Termin vorschlagen',
+      text: `Hallo ${selected.lead_name},\n\nvielen Dank für deine Nachricht! Ich würde mich gerne mit dir für ein kurzes Kennenlerngespräch verabreden.\n\nWärst du verfügbar für einen kurzen Anruf diese Woche?\n\nBeste Grüße`,
+    },
+  ] : []
 
   return (
     <div className="flex h-full" style={{ minHeight: 0 }}>
@@ -410,22 +463,52 @@ export default function InboxClient({ conversations, photographerEmail, emailTem
         ) : (
           <>
             {/* Thread header */}
-            <div className="px-6 py-4 flex-shrink-0 flex items-center gap-3"
+            <div className="px-6 py-3.5 flex-shrink-0"
               style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white"
-                style={{ background: '#10B981' }}>
-                {selected.lead_name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>
-                  {selected.lead_name}
-                </p>
-                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                  {selected.lead_email}
-                </p>
-              </div>
-              <div className="ml-auto text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {new Date(selected.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+                  style={{ background: '#10B981' }}>
+                  {selected.lead_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>
+                    {selected.lead_name}
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {selected.lead_email}
+                    </p>
+                    {leadData?.date && (
+                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        · {leadData.date}
+                      </span>
+                    )}
+                    {leadData?.location && (
+                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        · {leadData.location}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Quick actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {quickActions.map(action => (
+                    <button
+                      key={action.label}
+                      onClick={() => { setReplyText(action.text); setTimeout(() => textareaRef.current?.focus(), 50) }}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
+                      style={{
+                        background: 'var(--bg-hover)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-secondary)',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

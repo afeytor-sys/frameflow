@@ -1,7 +1,10 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Upload, X } from 'lucide-react'
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface UploadJob {
   id: string
@@ -9,14 +12,35 @@ interface UploadJob {
   total: number
   done: number
   failed: number
-  label: string // gallery title
+  label: string
+}
+
+export interface UploadedPhoto {
+  id: string
+  storage_url: string
+  thumbnail_url: string | null
+  filename: string
+  file_size: number
+  display_order: number
+}
+
+export interface EnqueueConfig {
+  galleryId: string
+  photographerId: string
+  sectionId?: string | null
+  galleryTitle: string
+  initialOrder: number
+  replaceMap?: Map<string, { id: string; storage_url: string }>
+  onFileDone?: (filename: string, photo: UploadedPhoto) => void
+  onFileError?: (filename: string, error: string) => void
+  onAllDone?: (photos: UploadedPhoto[]) => void
 }
 
 interface UploadContextValue {
-  startUpload: (galleryId: string, label: string, total: number) => string
-  tickDone: (jobId: string) => void
-  tickFailed: (jobId: string) => void
+  enqueueFiles: (files: File[], config: EnqueueConfig) => void
 }
+
+// ── Context ──────────────────────────────────────────────────────────────────
 
 export const UploadContext = createContext<UploadContextValue | null>(null)
 
@@ -26,15 +50,21 @@ export function useUpload() {
   return ctx
 }
 
+// ── Provider ─────────────────────────────────────────────────────────────────
+
 export function UploadProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<UploadJob[]>([])
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const isProcessing = useRef(false)
+  const queue = useRef<Array<{ files: File[]; config: EnqueueConfig }>>([])
 
-  const startUpload = useCallback((galleryId: string, label: string, total: number): string => {
+  // ── Internal job state ───────────────────────────────────────────────────
+
+  const addJob = (galleryId: string, label: string, total: number): string => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
     setJobs(prev => [...prev, { id, galleryId, total, done: 0, failed: 0, label }])
     return id
-  }, [])
+  }
 
   const removeJob = useCallback((jobId: string) => {
     setJobs(prev => prev.filter(j => j.id !== jobId))
@@ -47,7 +77,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       if (j.id !== jobId) return j
       const updated = { ...j, done: j.done + 1 }
       if (updated.done + updated.failed >= updated.total) {
-        // Auto-remove after 3s
         timers.current[jobId] = setTimeout(() => removeJob(jobId), 3000)
       }
       return updated
@@ -65,11 +94,108 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     }))
   }, [removeJob])
 
+  // ── Upload loop (runs in context — persists across navigation) ───────────
+
+  const processQueue = useCallback(async () => {
+    if (isProcessing.current) return
+    isProcessing.current = true
+
+    while (queue.current.length > 0) {
+      const { files, config } = queue.current.shift()!
+      const {
+        galleryId, sectionId, galleryTitle,
+        initialOrder, replaceMap,
+        onFileDone, onFileError, onAllDone,
+      } = config
+
+      const jobId = addJob(galleryId, galleryTitle, files.length)
+      const supabase = createClient()
+      const uploadedPhotos: UploadedPhoto[] = []
+      let orderOffset = initialOrder
+
+      for (const file of files) {
+        try {
+          // 1. Get presigned PUT URL
+          const presignRes = await fetch('/api/photos/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              galleryId,
+              filename: file.name,
+              contentType: file.type || 'image/jpeg',
+              fileSize: file.size,
+            }),
+          })
+          if (!presignRes.ok) {
+            const errData = await presignRes.json().catch(() => ({}))
+            throw new Error(errData.error || `Presign failed (${presignRes.status})`)
+          }
+          const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
+
+          // 2. PUT file directly to R2
+          const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
+          if (!putRes.ok) {
+            throw new Error(`R2 upload failed (${putRes.status})`)
+          }
+
+          // 3. Delete old photo if replacing
+          const oldPhoto = replaceMap?.get(file.name)
+          if (oldPhoto) {
+            await fetch(`/api/photos/${oldPhoto.id}/delete`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storageUrl: oldPhoto.storage_url }),
+            }).catch(() => {})
+          }
+
+          // 4. Insert photo record into Supabase
+          const { data: photo, error: dbError } = await supabase
+            .from('photos')
+            .insert({
+              gallery_id: galleryId,
+              filename: file.name,
+              storage_url: storageUrl,
+              thumbnail_url: storageUrl,
+              file_size: file.size,
+              display_order: orderOffset++,
+              ...(sectionId ? { section_id: sectionId } : {}),
+            })
+            .select()
+            .single()
+
+          if (dbError) throw dbError
+
+          const uploaded = photo as UploadedPhoto
+          uploadedPhotos.push(uploaded)
+          tickDone(jobId)
+          try { onFileDone?.(file.name, uploaded) } catch {}
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Upload failed'
+          console.error('[upload] failed:', file.name, err)
+          tickFailed(jobId)
+          try { onFileError?.(file.name, msg) } catch {}
+        }
+      }
+
+      try { onAllDone?.(uploadedPhotos) } catch {}
+    }
+
+    isProcessing.current = false
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickDone, tickFailed])
+
+  const enqueueFiles = useCallback((files: File[], config: EnqueueConfig) => {
+    if (files.length === 0) return
+    queue.current.push({ files, config })
+    processQueue()
+  }, [processQueue])
+
+  // ── Banner UI ────────────────────────────────────────────────────────────
+
   return (
-    <UploadContext.Provider value={{ startUpload, tickDone, tickFailed }}>
+    <UploadContext.Provider value={{ enqueueFiles }}>
       {children}
 
-      {/* Global upload banner — fixed bottom-right */}
       {jobs.length > 0 && (
         <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
           {jobs.map(job => {
@@ -87,7 +213,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                   animation: 'fadeSlideIn 0.3s ease forwards',
                 }}
               >
-                {/* Icon */}
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: finished ? 'rgba(42,155,104,0.12)' : 'rgba(196,164,124,0.12)' }}
@@ -98,7 +223,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                   }
                 </div>
 
-                {/* Text + bar */}
                 <div className="flex-1 min-w-0">
                   <p className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                     {finished
@@ -119,7 +243,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                   )}
                 </div>
 
-                {/* Close */}
                 <button
                   onClick={() => removeJob(job.id)}
                   className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
