@@ -108,11 +108,7 @@ export default function NewClientPage() {
     router.push(`/dashboard/clients/${data.id}`)
   }
 
-  const inputClass = cn(
-    'w-full px-3.5 py-2.5 rounded-lg border text-sm',
-    'border-[#E8E8E4] focus:border-[#C8A882] focus:ring-2 focus:ring-[#C8A882]/20',
-    'outline-none transition-all bg-white text-[#1A1A1A] placeholder-[#6B6B6B]'
-  )
+  const inputClass = 'input-base w-full'
 
   // ── Plan limit block ──
   if (!limitsLoading && !canCreateClient) {
@@ -159,20 +155,20 @@ export default function NewClientPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/dashboard/clients"
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-[#F0F0EC] transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
-          <h1 className="font-display text-2xl font-semibold text-[#1A1A1A]">{de ? 'Neuer Kunde' : 'New Client'}</h1>
-          <p className="text-[#6B6B6B] text-sm">{de ? 'Kundendaten eingeben' : 'Enter client details'}</p>
+          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>{de ? 'Neuer Kunde' : 'New Client'}</h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{de ? 'Kundendaten eingeben' : 'Enter client details'}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="modal-glass rounded-2xl p-6 space-y-5">
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
             {de ? 'Vollständiger Name' : 'Full Name'} <span className="text-[#E84C1A]">*</span>
           </label>
           <input
@@ -189,7 +185,7 @@ export default function NewClientPage() {
         {/* Email + Phone */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">E-Mail</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>E-Mail</label>
             <input
               type="email"
               name="email"
@@ -200,7 +196,7 @@ export default function NewClientPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Telefon' : 'Phone'}</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>{de ? 'Telefon' : 'Phone'}</label>
             <input
               type="tel"
               name="phone"
@@ -215,7 +211,7 @@ export default function NewClientPage() {
         {/* Shoot date + Location */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Shooting-Datum' : 'Shoot Date'}</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>{de ? 'Shooting-Datum' : 'Shoot Date'}</label>
             <input
               type="date"
               name="shoot_date"
@@ -225,7 +221,7 @@ export default function NewClientPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Ort' : 'Location'}</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>{de ? 'Ort' : 'Location'}</label>
             <input
               type="text"
               name="location"
@@ -240,7 +236,7 @@ export default function NewClientPage() {
         {/* Project type + Status */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Projekt-Typ' : 'Project Type'}</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>{de ? 'Projekt-Typ' : 'Project Type'}</label>
             <select
               name="project_type"
               value={form.project_type}
@@ -254,7 +250,7 @@ export default function NewClientPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Status</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Status</label>
             <select
               name="status"
               value={form.status}
@@ -270,7 +266,7 @@ export default function NewClientPage() {
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">{de ? 'Notizen' : 'Notes'}</label>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>{de ? 'Notizen' : 'Notes'}</label>
           <textarea
             name="notes"
             value={form.notes}
@@ -285,14 +281,14 @@ export default function NewClientPage() {
         <div className="flex items-center gap-3 pt-2">
           <Link
             href="/dashboard/clients"
-            className="px-4 py-2.5 rounded-lg border border-[#E8E8E4] text-sm font-medium text-[#6B6B6B] hover:bg-[#F0F0EC] transition-colors"
+            className="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
           >
             {de ? 'Abbrechen' : 'Cancel'}
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 py-2.5 rounded-lg bg-[#1A1A1A] text-white text-sm font-medium hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" style={{ background: 'var(--text-primary)', color: 'var(--bg-surface)' }}
           >
             {loading ? (de ? 'Wird erstellt...' : 'Creating...') : (de ? 'Kunden erstellen' : 'Create client')}
           </button>

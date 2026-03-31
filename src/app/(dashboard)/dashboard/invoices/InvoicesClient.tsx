@@ -904,7 +904,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
       {/* ── New invoice modal ── */}
       {showNew && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-md rounded-2xl overflow-hidden animate-scale-in"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>

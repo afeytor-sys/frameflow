@@ -357,7 +357,7 @@ export default function GalleryShareModal({
   // ── Main share modal ─────────────────────────────────────────────────────
   const mainModal = createPortal(
     <div
-      className="fixed inset-0 flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: 9999, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
