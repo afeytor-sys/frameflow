@@ -97,6 +97,7 @@ export default function DashboardHeader({ photographer }: Props) {
           return (
             <button
               key={code}
+              onMouseDown={e => e.stopPropagation()}
               onClick={() => switchLanguage(code)}
               className="header-icon-btn w-full text-left px-3.5 py-2.5 text-[13px] flex items-center gap-2.5"
               style={{
