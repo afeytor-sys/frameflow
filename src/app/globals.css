@@ -84,6 +84,8 @@
   --sidebar-text-hover: #000000;
   --mouse-glow:       rgba(196,150,80,0.16);
   --btn-primary-color: #FFFFFF;
+  --tab-inactive-bg:  #FFFFFF;
+  --tab-inactive-border: rgba(0,0,0,0.09);
 }
 
 /* ─────────────────────────────────────────────
@@ -147,6 +149,8 @@
   --sidebar-blur:     blur(8px);
   --mouse-glow:       rgba(255,255,255,0.11);
   --btn-primary-color: #0A0A0A;
+  --tab-inactive-bg:  #0A0A0A;
+  --tab-inactive-border: rgba(255,255,255,0.12);
 }
 
 /* Mono background — deep black with sharp white glow spots */
@@ -220,6 +224,8 @@
   --sidebar-text-hover: #F0EDE8;
   --mouse-glow:       rgba(180,140,80,0.13);
   --btn-primary-color: #0A0A09;
+  --tab-inactive-bg:  #111110;
+  --tab-inactive-border: rgba(255,255,255,0.08);
 }
 
 @layer base {

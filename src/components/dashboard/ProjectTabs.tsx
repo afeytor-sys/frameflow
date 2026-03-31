@@ -820,16 +820,16 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
               onClick={() => { setActiveTab(key); if (key !== 'gallery') setSelectedGalleryId(null) }}
               className="rounded-2xl p-4 text-left transition-all duration-200 hover:-translate-y-0.5"
               style={{
-                background: isActive ? bg : 'var(--bg-surface)',
-                border: isActive ? `1.5px solid ${color}40` : '1px solid var(--border-color)',
-                boxShadow: isActive ? `0 4px 20px ${color}18` : 'var(--card-shadow)',
+                background: isActive ? bg : 'var(--tab-inactive-bg)',
+                border: isActive ? `1.5px solid ${color}40` : '1px solid var(--tab-inactive-border)',
+                boxShadow: isActive ? `0 4px 20px ${color}18` : 'none',
                 animation: `fadeSlideUp 0.3s ease both`,
                 animationDelay: `${idx * 50}ms`,
               }}
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-all"
-                style={{ background: isActive ? bg : 'var(--bg-hover)' }}
+                style={{ background: isActive ? bg : 'var(--tab-inactive-bg)', opacity: isActive ? 1 : 0.7 }}
               >
                 <Icon className="w-4.5 h-4.5" style={{ color: isActive ? color : 'var(--text-muted)', width: '18px', height: '18px' }} />
               </div>
