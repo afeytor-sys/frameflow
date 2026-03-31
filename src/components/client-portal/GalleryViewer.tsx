@@ -80,12 +80,13 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
 // Always use storage_url — thumbnail_url equals storage_url anyway (no
 // separate thumbnail generation). getPhotoUrl applies Cloudflare Image
 // Resizing for photos.fotonizer.com URLs, delivering WebP at the right size.
-function getThumbnailUrl(photo: Photo): string {
-  return getPhotoUrl(photo.storage_url, 400, 75, 'cover')
+// width is driven by the imageSize slider (400–1200px)
+function getThumbnailUrl(photo: Photo, width = 800): string {
+  return getPhotoUrl(photo.storage_url, width, 82, 'cover', 1)
 }
 
 function getLightboxUrl(photo: Photo): string {
-  return getPhotoUrl(photo.storage_url, 1600, 85, 'contain')
+  return getPhotoUrl(photo.storage_url, 2400, 90, 'contain', 1)
 }
 
 // ── Lazy image component with skeleton ──────────────────────────────
@@ -169,6 +170,13 @@ export default function GalleryViewer({
   const [savingFavoriteName, setSavingFavoriteName] = useState(false)
   // Track if we've already asked for a name this session
   const hasAskedForNameRef = useRef(false)
+
+  // Swipe + auto-hide controls
+  const touchStartX    = useRef<number>(0)
+  const justSwiped     = useRef(false)
+  const hideTimer      = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isMobile, setIsMobile]           = useState(false)
+  const [hideControls, setHideControls]   = useState(false)
 
   const supabase = createClient()
 
@@ -265,6 +273,10 @@ export default function GalleryViewer({
     5: 'columns-2',
   }[imageSize] || 'columns-2 sm:columns-3 lg:columns-4'
 
+  // Map size slider (1–5) → thumbnail fetch width (used by getThumbnailUrl)
+  const THUMB_WIDTHS: Record<number, number> = { 1: 400, 2: 600, 3: 800, 4: 1000, 5: 1200 }
+  const thumbWidth = THUMB_WIDTHS[imageSize] ?? 800
+
   const columnHeight = {
     1: 'h-48',
     2: 'h-56',
@@ -316,6 +328,32 @@ export default function GalleryViewer({
   const presentPrev = () => { setPresentLoaded(false); setPresentIndex((i) => (i - 1 + photos.length) % photos.length) }
   const exitPresent = () => { setPresentMode(false); setPresentPlaying(true); if (presentTimer.current) clearInterval(presentTimer.current) }
   const startPresent = () => { setPresentIndex(0); setPresentLoaded(false); setPresentPlaying(true); setPresentMode(true) }
+
+  // ── Mobile detection (pointer: coarse = touch device) ────────────
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse), (max-width: 768px)')
+    setIsMobile(mq.matches)
+    const handler = () => setIsMobile(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // ── Auto-hide lightbox controls after 3 s of inactivity ──────────
+  const resetHideTimer = useCallback(() => {
+    setHideControls(false)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = setTimeout(() => setHideControls(true), 3000)
+  }, [])
+
+  useEffect(() => {
+    if (lightboxIndex !== null) {
+      resetHideTimer()
+    } else {
+      setHideControls(false)
+      if (hideTimer.current) clearTimeout(hideTimer.current)
+    }
+    return () => { if (hideTimer.current) clearTimeout(hideTimer.current) }
+  }, [lightboxIndex, resetHideTimer])
 
   // ── Save favorite list name ──────────────────────────────────────
   const saveFavoriteListName = async (name: string) => {
@@ -446,7 +484,7 @@ export default function GalleryViewer({
       onClick={() => openLightbox(index)}
     >
       <LazyImage
-        src={getThumbnailUrl(photo)}
+        src={getThumbnailUrl(photo, thumbWidth)}
         fallbackSrc={photo.thumbnail_url || photo.storage_url}
         alt={photo.filename}
         className="w-full h-full photo-img-hover"
@@ -891,8 +929,24 @@ export default function GalleryViewer({
 
       {/* ── LIGHTBOX ── */}
       {lightboxIndex !== null && currentPhoto && (
-        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center" onClick={closeLightbox}>
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/70 to-transparent z-10" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+          onClick={() => { if (justSwiped.current) { justSwiped.current = false; return } closeLightbox() }}
+          onMouseMove={resetHideTimer}
+          onTouchStart={e => { touchStartX.current = e.touches[0].clientX; resetHideTimer() }}
+          onTouchEnd={e => {
+            const delta = e.changedTouches[0].clientX - touchStartX.current
+            if (Math.abs(delta) > 50) {
+              justSwiped.current = true
+              if (delta > 0) prevPhoto(); else nextPhoto()
+            }
+          }}
+        >
+          {/* Top bar — auto-hides */}
+          <div
+            className={cn('absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/70 to-transparent z-10 transition-opacity duration-300', hideControls ? 'opacity-0 pointer-events-none' : 'opacity-100')}
+            onClick={(e) => e.stopPropagation()}
+          >
             <span className="text-white/40 text-sm">{lightboxIndex + 1} <span className="text-white/20">/ {filteredPhotos.length}</span></span>
             <div className="flex items-center gap-2">
               {downloadEnabled && (
@@ -905,24 +959,42 @@ export default function GalleryViewer({
               </button>
             </div>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); prevPhoto() }} className="absolute left-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="relative flex items-center justify-center w-full h-full px-16 py-16" onClick={(e) => e.stopPropagation()}>
+          {/* Left arrow — desktop only, auto-hides */}
+          {!isMobile && (
+            <button
+              onClick={(e) => { e.stopPropagation(); prevPhoto() }}
+              className={cn('absolute left-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all', hideControls ? 'opacity-0 pointer-events-none' : 'opacity-100')}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          {/* Image — fills full viewport, no padding */}
+          <div className="absolute inset-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             {!lightboxLoaded && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>}
             <img
               key={currentPhoto.id}
               src={getLightboxUrl(currentPhoto)}
               alt={currentPhoto.filename}
-              className={cn('max-w-full max-h-full object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
+              className={cn('object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
+              style={{ maxWidth: '100vw', maxHeight: '100vh', width: 'auto', height: 'auto' }}
               onLoad={() => setLightboxLoaded(true)}
               loading="eager"
             />
           </div>
-          <button onClick={(e) => { e.stopPropagation(); nextPhoto() }} className="absolute right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 pb-6 pt-12 bg-gradient-to-t from-black/70 to-transparent z-10" onClick={(e) => e.stopPropagation()}>
+          {/* Right arrow — desktop only, auto-hides */}
+          {!isMobile && (
+            <button
+              onClick={(e) => { e.stopPropagation(); nextPhoto() }}
+              className={cn('absolute right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all', hideControls ? 'opacity-0 pointer-events-none' : 'opacity-100')}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+          {/* Bottom bar — auto-hides */}
+          <div
+            className={cn('absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 pb-6 pt-12 bg-gradient-to-t from-black/70 to-transparent z-10 transition-opacity duration-300', hideControls ? 'opacity-0 pointer-events-none' : 'opacity-100')}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button onClick={() => toggleFavorite(currentPhoto.id)} className={cn('flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all', currentPhoto.is_favorite ? 'bg-rose-500 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white')}>
               <Heart className={cn('w-4 h-4', currentPhoto.is_favorite && 'fill-white')} />
               {currentPhoto.is_favorite ? 'Favorit ✓' : 'Favorit'}
@@ -1010,7 +1082,7 @@ export default function GalleryViewer({
                 return (
                   <button key={p.id} onClick={() => { setPresentLoaded(false); setPresentIndex(realIndex) }} className={cn('flex-shrink-0 rounded overflow-hidden transition-all', realIndex === presentIndex ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70')} style={{ width: 40, height: 28 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getThumbnailUrl(p)} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <img src={getThumbnailUrl(p, 120)} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 )
               })}

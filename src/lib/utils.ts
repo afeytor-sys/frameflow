@@ -143,7 +143,8 @@ export function getPhotoUrl(
   url: string,
   width: number,
   quality = 75,
-  resize: 'contain' | 'cover' | 'fill' = 'contain'
+  resize: 'contain' | 'cover' | 'fill' = 'contain',
+  sharpen = 0,
 ): string {
   if (!url) return url
 
@@ -159,7 +160,7 @@ export function getPhotoUrl(
   else if (url.includes('.r2.dev')) {
     path = new URL(url).pathname
   }
-  // Legacy Supabase URL → use Supabase Image Transform
+  // Legacy Supabase URL → use Supabase Image Transform (no sharpen support)
   else if (url.includes('/storage/v1/object/')) {
     return getSupabaseImageUrl(url, width, quality, resize)
   }
@@ -168,7 +169,8 @@ export function getPhotoUrl(
     return url
   }
 
-  return `${CF_DOMAIN}/cdn-cgi/image/width=${width},quality=${quality},format=auto,fit=${resize}${path}`
+  const sharpStr = sharpen > 0 ? `,sharpen=${sharpen}` : ''
+  return `${CF_DOMAIN}/cdn-cgi/image/width=${width},quality=${quality},format=auto,fit=${resize}${sharpStr}${path}`
 }
 
 // Debounce
