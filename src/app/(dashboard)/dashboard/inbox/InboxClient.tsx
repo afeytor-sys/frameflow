@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink,
-  MapPin, Calendar, Users, Clock, Tag, Globe, Zap,
+  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -136,25 +136,45 @@ function replacePlaceholders(body: string, data: LeadData): string {
     .replace(/\{\{location\}\}/gi, data.location || '{{location}}')
 }
 
-// ── LeadSummaryCard ───────────────────────────────────────────────────────────
+// ── Task 5: Response time calculation ─────────────────────────────────────────
+
+function calcResponseLabel(messages: Message[]): string {
+  const firstIn  = messages.find(m => m.sender === 'lead')
+  const firstOut = messages.find(m => m.sender === 'photographer')
+  if (!firstIn)  return ''
+  if (!firstOut) return 'Wartet auf Antwort'
+  const diffMs  = new Date(firstOut.created_at).getTime() - new Date(firstIn.created_at).getTime()
+  const diffMin = Math.max(0, Math.round(diffMs / 60000))
+  if (diffMin < 60)  return `Antwortzeit: ${diffMin} Min.`
+  const hours = Math.round(diffMin / 60)
+  return `Antwortzeit: ${hours} Std.`
+}
+
+// ── Task 2: LeadSummaryCard with visual hierarchy ─────────────────────────────
 
 function LeadSummaryCard({ data }: { data: LeadData }) {
-  const fields: Array<{ icon: React.ReactNode; label: string; value: string }> = [
-    data.date          && { icon: <Calendar className="w-3 h-3" />, label: 'Date',     value: data.date },
-    data.location      && { icon: <MapPin   className="w-3 h-3" />, label: 'Location', value: data.location },
-    data.guestCount    && { icon: <Users    className="w-3 h-3" />, label: 'Guests',   value: data.guestCount },
-    data.coverageHours && { icon: <Clock    className="w-3 h-3" />, label: 'Coverage', value: data.coverageHours },
-    data.type          && { icon: <Tag      className="w-3 h-3" />, label: 'Type',     value: data.type },
-    data.source        && { icon: <Globe    className="w-3 h-3" />, label: 'Source',   value: data.source },
+  // Primary fields (date, location) get prominent styling
+  // Secondary fields (guests, coverage, type, source) get muted styling
+  const primaryFields: Array<{ icon: React.ReactNode; label: string; value: string }> = [
+    data.date     && { icon: <Calendar className="w-3.5 h-3.5" />, label: 'Datum',    value: data.date },
+    data.location && { icon: <MapPin   className="w-3.5 h-3.5" />, label: 'Ort',      value: data.location },
   ].filter(Boolean) as Array<{ icon: React.ReactNode; label: string; value: string }>
 
-  if (fields.length === 0) return null
+  const secondaryFields: Array<{ icon: React.ReactNode; label: string; value: string }> = [
+    data.guestCount    && { icon: <Users className="w-3 h-3" />, label: 'Gäste',    value: data.guestCount },
+    data.coverageHours && { icon: <Clock className="w-3 h-3" />, label: 'Dauer',    value: data.coverageHours },
+    data.type          && { icon: <Tag   className="w-3 h-3" />, label: 'Art',       value: data.type },
+    data.source        && { icon: <Globe className="w-3 h-3" />, label: 'Quelle',   value: data.source },
+  ].filter(Boolean) as Array<{ icon: React.ReactNode; label: string; value: string }>
+
+  if (primaryFields.length === 0 && secondaryFields.length === 0) return null
 
   return (
     <div
       className="mx-6 mt-4 rounded-xl overflow-hidden flex-shrink-0"
       style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
     >
+      {/* Card title */}
       <div
         className="px-4 py-2 flex items-center gap-2"
         style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}
@@ -163,24 +183,41 @@ function LeadSummaryCard({ data }: { data: LeadData }) {
           Lead Summary
         </span>
       </div>
-      <div className="px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
-        {fields.map(({ icon, label, value }) => (
-          <div key={label} className="flex items-center gap-2 min-w-0">
-            <span style={{ color: 'var(--accent, #C9A96E)', flexShrink: 0 }}>{icon}</span>
-            <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-              {label}:
-            </span>
-            <span className="text-[12px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-              {value}
-            </span>
+
+      <div className="px-4 pt-3 pb-3 space-y-3">
+        {/* Primary: date + location — large, prominent */}
+        {primaryFields.length > 0 && (
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {primaryFields.map(({ icon, label, value }) => (
+              <div key={label} className="flex items-center gap-2 min-w-0">
+                <span style={{ color: 'var(--accent, #C9A96E)', flexShrink: 0 }}>{icon}</span>
+                <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{label}:</span>
+                <span className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                  {value}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+
+        {/* Secondary: guests/coverage/type/source — smaller, muted */}
+        {secondaryFields.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1.5">
+            {secondaryFields.map(({ icon, label, value }) => (
+              <div key={label} className="flex items-center gap-1.5 min-w-0">
+                <span style={{ color: 'var(--text-muted)', flexShrink: 0, opacity: 0.7 }}>{icon}</span>
+                <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{label}:</span>
+                <span className="text-[11px] font-medium truncate" style={{ color: 'var(--text-secondary)' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-// ── QuickActionBar ────────────────────────────────────────────────────────────
+// ── Task 1: QuickActionBar with enhanced behavior ─────────────────────────────
 
 function QuickActionBar({ data, onFill }: { data: LeadData; onFill: (text: string) => void }) {
   const actions = [
@@ -205,7 +242,7 @@ function QuickActionBar({ data, onFill }: { data: LeadData; onFill: (text: strin
         <button
           key={action.label}
           onClick={() => onFill(action.text)}
-          className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+          className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-[0.97]"
           style={{
             background: 'var(--bg-hover)',
             border: '1px solid var(--border-color)',
@@ -227,7 +264,9 @@ function QuickActionBar({ data, onFill }: { data: LeadData; onFill: (text: strin
   )
 }
 
-// ── StructuredMessageBubble ───────────────────────────────────────────────────
+// ── Task 4: StructuredMessageBubble (collapsible) ─────────────────────────────
+
+const PREVIEW_ROWS = 3
 
 function StructuredMessageBubble({
   pairs,
@@ -238,6 +277,14 @@ function StructuredMessageBubble({
   leadName: string
   createdAt: string
 }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasMore = pairs.length > PREVIEW_ROWS
+  const visiblePairs = expanded ? pairs : pairs.slice(0, PREVIEW_ROWS)
+  // Approx row height for smooth max-height animation
+  const rowPx = 26
+  const collapsedH = PREVIEW_ROWS * rowPx + 24   // +24 for py-3 padding
+  const expandedH  = pairs.length   * rowPx + 24
+
   return (
     <div className="flex justify-start">
       <div style={{ maxWidth: '80%', minWidth: '260px' }}>
@@ -250,6 +297,7 @@ function StructuredMessageBubble({
             opacity: 0.72,
           }}
         >
+          {/* Header */}
           <div
             className="px-4 py-2.5 flex items-center gap-2"
             style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
@@ -259,29 +307,56 @@ function StructuredMessageBubble({
               Original form submission
             </span>
           </div>
-          <div className="px-4 py-3 space-y-1.5">
-            {pairs.map(({ label, value }) => {
-              const formattedValue = formatValueIfDate(value)
-              const isEmail = isEmailLabel(label)
-              return (
-                <div key={label} className="flex items-start gap-2">
-                  <span
-                    className="text-[11px] font-semibold flex-shrink-0"
-                    style={{ color: 'var(--text-muted)', minWidth: '90px' }}
-                  >
-                    {label}
-                  </span>
-                  <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    {isEmail ? (
-                      <a href={`mailto:${value}`} className="underline" style={{ color: 'var(--accent, #C9A96E)' }}>
-                        {value}
-                      </a>
-                    ) : formattedValue}
-                  </span>
-                </div>
-              )
-            })}
+
+          {/* Animated rows */}
+          <div
+            style={{
+              maxHeight: expanded ? `${expandedH}px` : `${collapsedH}px`,
+              overflow: 'hidden',
+              transition: 'max-height 280ms ease',
+            }}
+          >
+            <div className="px-4 py-3 space-y-1.5">
+              {visiblePairs.map(({ label, value }) => {
+                const formattedValue = formatValueIfDate(value)
+                const isEmail = isEmailLabel(label)
+                return (
+                  <div key={label} className="flex items-start gap-2">
+                    <span
+                      className="text-[11px] font-semibold flex-shrink-0"
+                      style={{ color: 'var(--text-muted)', minWidth: '90px' }}
+                    >
+                      {label}
+                    </span>
+                    <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      {isEmail ? (
+                        <a href={`mailto:${value}`} className="underline" style={{ color: 'var(--accent, #C9A96E)' }}>
+                          {value}
+                        </a>
+                      ) : formattedValue}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
+
+          {/* Expand / collapse toggle */}
+          {hasMore && (
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="w-full px-4 py-2 text-[11px] font-medium transition-colors active:scale-[0.99]"
+              style={{
+                borderTop: '1px solid var(--border-color)',
+                color: 'var(--accent, #C9A96E)',
+                background: 'var(--bg-surface)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)' }}
+            >
+              {expanded ? 'Weniger anzeigen ↑' : `Details anzeigen (+${pairs.length - PREVIEW_ROWS}) ↓`}
+            </button>
+          )}
         </div>
         <p className="text-[10px] mt-1 text-left" style={{ color: 'var(--text-muted)' }}>
           {leadName} · {formatTime(createdAt)}
@@ -294,17 +369,22 @@ function StructuredMessageBubble({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function InboxClient({ conversations, photographerEmail: _photographerEmail, emailTemplates }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(
+  const [selectedId, setSelectedId]       = useState<string | null>(
     conversations.length > 0 ? conversations[0].id : null,
   )
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
   const [replyText, setReplyText]         = useState('')
   const [isSending, setIsSending]         = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
+  // Task 1: "ready to send" hint above textarea
+  const [showReadyHint, setShowReadyHint] = useState(false)
+  // Task 7: hover tracking for message bubbles
+  const [hoveredMsgId, setHoveredMsgId]   = useState<string | null>(null)
 
-  const templatesRef  = useRef<HTMLDivElement>(null)
+  const templatesRef   = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef   = useRef<HTMLTextAreaElement>(null)
+  const textareaRef    = useRef<HTMLTextAreaElement>(null)
+  const replyAreaRef   = useRef<HTMLDivElement>(null)
 
   const selected = conversations.find(c => c.id === selectedId) ?? null
 
@@ -328,6 +408,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
   useEffect(() => {
     setReplyText('')
     setShowTemplates(false)
+    setShowReadyHint(false)
     const t = setTimeout(() => textareaRef.current?.focus(), 50)
     return () => clearTimeout(t)
   }, [selectedId])
@@ -357,6 +438,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
 
     setLocalMessages(prev => ({ ...prev, [selected.id]: [...(prev[selected.id] ?? []), optimisticMsg] }))
     setReplyText('')
+    setShowReadyHint(false)
     setIsSending(true)
 
     try {
@@ -414,25 +496,44 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
     const body = leadData ? replacePlaceholders(tpl.body, leadData) : tpl.body
     setReplyText(body)
     setShowTemplates(false)
-    setTimeout(() => textareaRef.current?.focus(), 50)
+    setShowReadyHint(true)
+    setTimeout(() => {
+      const ta = textareaRef.current
+      if (ta) {
+        ta.focus()
+        ta.setSelectionRange(body.length, body.length)
+      }
+      replyAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 50)
   }
 
+  // Task 1: fill quick action with enhanced behavior
   const fillQuickAction = (text: string) => {
     setReplyText(text)
-    setTimeout(() => textareaRef.current?.focus(), 50)
+    setShowReadyHint(true)
+    setTimeout(() => {
+      const ta = textareaRef.current
+      if (ta) {
+        ta.focus()
+        ta.setSelectionRange(text.length, text.length)
+      }
+      replyAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 50)
   }
 
-  // Status badge based on whether photographer has replied yet
+  // Task 3: status badge — yellow for New Lead, blue for In Conversation
   const photographerMsgCount = selected
     ? displayMessages.filter(m => m.sender === 'photographer').length
     : 0
   const statusBadge = selected
     ? photographerMsgCount === 0
-      ? { label: 'New Lead',       color: '#10B981', bg: 'rgba(16,185,129,0.12)' }
-      : { label: 'In Conversation', color: '#C9A96E', bg: 'rgba(201,169,110,0.12)' }
+      ? { label: 'New Lead',        color: '#CA8A04', bg: 'rgba(234,179,8,0.13)' }
+      : { label: 'In Conversation', color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' }
     : null
 
-  // Height fills available space: 52px header + py-8 (32px top + 32px bottom) = 116px
+  // Task 5: response time label
+  const responseLabel = selected ? calcResponseLabel(displayMessages) : ''
+
   return (
     <div
       className="flex overflow-hidden rounded-xl"
@@ -451,7 +552,6 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
           background: 'var(--bg-surface)',
         }}
       >
-        {/* Sidebar header */}
         <div className="px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div className="flex items-center gap-2">
             <Inbox className="w-4 h-4" style={{ color: '#10B981' }} />
@@ -467,7 +567,6 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
           </div>
         </div>
 
-        {/* Scrollable list */}
         <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
           {conversations.length === 0 && (
             <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
@@ -479,14 +578,14 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
             </div>
           )}
           {conversations.map(conv => {
-            const allMsgs = getMessages(conv.id)
-            const last    = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : getLastMessage(conv.messages)
+            const allMsgs  = getMessages(conv.id)
+            const last     = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : getLastMessage(conv.messages)
             const isActive = conv.id === selectedId
             return (
               <button
                 key={conv.id}
                 onClick={() => setSelectedId(conv.id)}
-                className="w-full text-left px-4 py-3.5 transition-all"
+                className="w-full text-left px-4 py-3.5 transition-all active:scale-[0.99]"
                 style={{
                   background:   isActive ? 'rgba(16,185,129,0.08)' : 'transparent',
                   borderBottom: '1px solid var(--border-color)',
@@ -535,7 +634,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
           </div>
         ) : (
           <>
-            {/* ── Thread header ─────────────────────────────────────────── */}
+            {/* ── Thread header ──────────────────────────────────────────── */}
             <div
               className="px-6 py-4 flex-shrink-0"
               style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
@@ -552,6 +651,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                     <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                       {selected.lead_name}
                     </p>
+                    {/* Task 3: yellow / blue badge */}
                     {statusBadge && (
                       <span
                         className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -561,14 +661,23 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                       </span>
                     )}
                   </div>
-                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {selected.lead_email}
-                  </p>
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                      {selected.lead_email}
+                    </p>
+                    {/* Task 5: response time */}
+                    {responseLabel && (
+                      <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <Timer className="w-3 h-3" />
+                        {responseLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* ── Lead summary card + quick actions ─────────────────────── */}
+            {/* ── Lead summary card + quick actions ──────────────────────── */}
             {leadData && (
               <>
                 <LeadSummaryCard data={leadData} />
@@ -582,8 +691,9 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                 <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>No messages yet.</p>
               )}
               {displayMessages.map(msg => {
-                const isLead = msg.sender === 'lead'
-                const parsed = isLead ? parseFormMessage(msg.content) : null
+                const isLead  = msg.sender === 'lead'
+                const parsed  = isLead ? parseFormMessage(msg.content) : null
+                const isHover = hoveredMsgId === msg.id
 
                 if (parsed) {
                   return (
@@ -596,18 +706,27 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                   )
                 }
 
+                // Task 7: hover effect on plain message bubbles
+                const leadBg   = isHover ? 'var(--bg-surface, #ebebeb)' : 'var(--bg-hover, #f5f5f3)'
+                const sentBg   = 'var(--msg-sent-bg, #1A1A18)'
+
                 return (
-                  <div key={msg.id} className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
+                  <div
+                    key={msg.id}
+                    className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}
+                    onMouseEnter={() => setHoveredMsgId(msg.id)}
+                    onMouseLeave={() => setHoveredMsgId(null)}
+                  >
                     <div className="max-w-[70%]">
                       <div
-                        className="px-4 py-4 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap"
+                        className="px-4 py-4 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap transition-colors duration-150"
                         style={isLead ? {
-                          background: 'var(--bg-hover, #f5f5f3)',
+                          background: leadBg,
                           color: 'var(--text-primary)',
                           border: '1px solid var(--border-color)',
                           borderBottomLeftRadius: '4px',
                         } : {
-                          background: 'var(--msg-sent-bg, #1A1A18)',
+                          background: sentBg,
                           color: 'var(--msg-sent-color, #FFFFFF)',
                           borderBottomRightRadius: '4px',
                           opacity: msg.id.startsWith('optimistic-') ? 0.7 : 1,
@@ -628,16 +747,33 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
               <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Reply area ─────────────────────────────────────────────── */}
+            {/* ── Reply area ──────────────────────────────────────────────── */}
             <div
+              ref={replyAreaRef}
               className="px-6 py-4 flex-shrink-0"
               style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
             >
+              {/* Task 1: "ready to send" hint — fades out once user starts typing */}
+              <div
+                className="mb-1.5 transition-all duration-300 overflow-hidden"
+                style={{
+                  maxHeight: showReadyHint ? '20px' : '0px',
+                  opacity: showReadyHint ? 1 : 0,
+                }}
+              >
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  Bereit zum Senden 👇
+                </p>
+              </div>
+
               <div className="flex items-end gap-3">
                 <textarea
                   ref={textareaRef}
                   value={replyText}
-                  onChange={e => setReplyText(e.target.value)}
+                  onChange={e => {
+                    setReplyText(e.target.value)
+                    if (showReadyHint) setShowReadyHint(false)
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Write a reply… (Cmd+Enter to send)"
                   rows={3}
@@ -658,7 +794,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                     <button
                       onClick={() => setShowTemplates(v => !v)}
                       disabled={isSending}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all disabled:opacity-40"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all active:scale-[0.97] disabled:opacity-40"
                       style={{
                         background: showTemplates ? 'var(--accent-muted, rgba(201,169,110,0.12))' : 'var(--bg-hover)',
                         border: '1.5px solid var(--card-border)',
@@ -709,7 +845,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                               <button
                                 key={tpl.id}
                                 onClick={() => applyTemplate(tpl)}
-                                className="w-full text-left px-4 py-3 transition-colors"
+                                className="w-full text-left px-4 py-3 transition-colors active:scale-[0.99]"
                                 style={{ borderBottom: '1px solid var(--border-color)' }}
                                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
@@ -728,7 +864,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                   <button
                     onClick={handleSend}
                     disabled={!replyText.trim() || isSending}
-                    className="flex items-center justify-center w-full h-10 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center w-full h-10 rounded-xl transition-all active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
                       background: replyText.trim() && !isSending ? 'var(--accent, #C9A96E)' : 'var(--bg-hover)',
                       color:      replyText.trim() && !isSending ? '#fff' : 'var(--text-muted)',
