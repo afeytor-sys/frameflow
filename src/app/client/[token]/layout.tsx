@@ -62,7 +62,27 @@ export default async function ClientPortalLayout({
   const portalPassword = (project as { portal_password?: string | null }).portal_password ?? null
 
   const portalContent = (
-    <div style={{ minHeight: '100vh', background: '#FAFAF8' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: '#FAFAF8',
+      // Define CSS vars so child pages (which use var(--text-primary) etc.) work correctly
+      '--bg-page': '#FAFAF8',
+      '--bg-surface': '#FFFFFF',
+      '--bg-hover': 'rgba(0,0,0,0.04)',
+      '--text-primary': '#111827',
+      '--text-secondary': '#374151',
+      '--text-muted': '#6B7280',
+      '--border-color': '#E5E7EB',
+      '--accent': '#C4A47C',
+      '--accent-hover': '#B8966E',
+      '--accent-muted': 'rgba(196,164,124,0.12)',
+      '--card-bg': '#FFFFFF',
+      '--card-border': '#E5E7EB',
+      '--card-shadow': '0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
+      '--card-shadow-hover': '0 4px 20px rgba(0,0,0,0.10)',
+      '--input-bg': '#FFFFFF',
+      '--input-border': '#D1D5DB',
+    } as React.CSSProperties}>
       {/* Portal header */}
       <header style={{
         background: 'rgba(255,255,255,0.92)',
