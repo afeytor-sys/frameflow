@@ -4,15 +4,28 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
+import PipelineClient from '../pipeline/PipelineClient'
+
+const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAYS_DE = ['Mo','Di','Mi','Do','Fr','Sa','So']
+const DAYS_EN = ['Mo','Tu','We','Th','Fr','Sa','Su']
+
+function daysUntilCal(dateStr: string) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  const d = new Date(dateStr + 'T00:00:00')
+  return Math.round((d.getTime() - today.getTime()) / 86400000)
+}
 
 interface Project {
   id: string
   title: string
   status: string
   shoot_date: string | null
+  location?: string | null
   shooting_type: string | null
   sort_order: number
   client: { full_name: string } | { full_name: string }[] | null
@@ -118,6 +131,24 @@ export default function ProjectsPage() {
   const de = locale === 'de'
   const STATUS_CONFIG = de ? STATUS_CONFIG_DE : STATUS_CONFIG_EN
   const supabase = createClient()
+  // Tab state — persisted to localStorage
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'list' | 'calendar'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('projects_tab') as 'pipeline' | 'list' | 'calendar') || 'pipeline'
+    }
+    return 'pipeline'
+  })
+  const setTab = (tab: typeof activeTab) => {
+    setActiveTab(tab)
+    localStorage.setItem('projects_tab', tab)
+  }
+
+  // Calendar sub-state
+  const [calMonth, setCalMonth] = useState(() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() }
+  })
+  const [calSubView, setCalSubView] = useState<'list' | 'calendar'>('list')
 
   useEffect(() => {
     const load = async () => {
@@ -125,7 +156,7 @@ export default function ProjectsPage() {
       if (!user) return
       const { data } = await supabase
         .from('projects')
-        .select('id, title, status, shoot_date, shooting_type, sort_order, client:clients(full_name)')
+        .select('id, title, status, shoot_date, location, shooting_type, sort_order, client:clients(full_name)')
         .eq('photographer_id', user.id)
         .order('sort_order', { ascending: true })
       setProjects((data as Project[]) || [])
@@ -225,6 +256,38 @@ export default function ProjectsPage() {
     dragOverIndex.current = null
   }
 
+  // ── Calendar (Kalender tab) derived data ──────────────────────────────────
+  const MONTHS = de ? MONTHS_DE : MONTHS_EN
+  const DAYS = de ? DAYS_DE : DAYS_EN
+  type BookingItem = { id: string; title: string; shoot_date: string; location: string | null; status: string; client: { full_name: string } | null }
+  const bookings: BookingItem[] = projects
+    .filter(p => !!p.shoot_date)
+    .map(p => ({
+      id: p.id,
+      title: p.title,
+      shoot_date: p.shoot_date!,
+      location: p.location ?? null,
+      status: p.status,
+      client: p.client ? (Array.isArray(p.client) ? p.client[0] ?? null : p.client) : null,
+    }))
+    .sort((a, b) => a.shoot_date.localeCompare(b.shoot_date))
+
+  const calToday = new Date(); calToday.setHours(0,0,0,0)
+  const calUpcoming = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') >= calToday)
+  const calPast = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') < calToday)
+  const { year: calYear, month: calMonthNum } = calMonth
+  const calFirstDay = new Date(calYear, calMonthNum, 1)
+  const calLastDay = new Date(calYear, calMonthNum + 1, 0)
+  const calStartDow = (calFirstDay.getDay() + 6) % 7
+  const calTotalCells = Math.ceil((calStartDow + calLastDay.getDate()) / 7) * 7
+  const bookingsByDate: Record<string, BookingItem[]> = {}
+  bookings.forEach(b => {
+    const key = b.shoot_date.slice(0, 10)
+    if (!bookingsByDate[key]) bookingsByDate[key] = []
+    bookingsByDate[key].push(b)
+  })
+  // ──────────────────────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="space-y-6 animate-in">
@@ -252,8 +315,36 @@ export default function ProjectsPage() {
         .drag-over-left { outline: 2px solid var(--accent) !important; outline-offset: 2px; }
       `}</style>
 
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      {/* ── Tab Switcher ── */}
+      <div className="flex items-center gap-1 p-1 rounded-2xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', width: 'fit-content' }}>
+        {([
+          { id: 'pipeline', Icon: Kanban, label: 'Pipeline' },
+          { id: 'list',     Icon: FolderOpen, label: de ? 'Liste' : 'List' },
+          { id: 'calendar', Icon: CalendarDays, label: de ? 'Kalender' : 'Calendar' },
+        ] as const).map(({ id, Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold transition-all"
+            style={{
+              background: activeTab === id ? 'var(--bg-active)' : 'transparent',
+              color: activeTab === id ? 'var(--text-on-active)' : 'var(--text-muted)',
+            }}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Pipeline Tab ── */}
+      {activeTab === 'pipeline' && <PipelineClient projects={projects} />}
+
+      {/* ── Liste Tab ── */}
+      {activeTab === 'list' && (
+        <>
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between gap-4">
         <div>
           <h1
             className="font-black"
@@ -751,9 +842,245 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {/* Close status menu on outside click */}
-      {openStatusMenu && (
-        <div className="fixed inset-0 z-[9998]" onClick={() => setOpenStatusMenu(null)} />
+          {/* Close status menu on outside click */}
+          {openStatusMenu && (
+            <div className="fixed inset-0 z-[9998]" onClick={() => setOpenStatusMenu(null)} />
+          )}
+        </>
+      )}
+
+      {/* ── Kalender Tab ── */}
+      {activeTab === 'calendar' && (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="font-black" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+                {de ? 'Kalender' : 'Calendar'}
+              </h1>
+              <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                {calUpcoming.length} {de ? 'bevorstehend' : 'upcoming'} · {calPast.length} {de ? 'vergangen' : 'past'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <Link
+                href="/dashboard/projects/new"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
+                style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
+              >
+                <Plus className="w-4 h-4" />
+                {de ? 'Neues Projekt' : 'New project'}
+              </Link>
+              <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                <button
+                  onClick={() => setCalSubView('list')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                  style={{ background: calSubView === 'list' ? 'var(--bg-active)' : 'transparent', color: calSubView === 'list' ? 'var(--text-on-active)' : 'var(--text-muted)' }}
+                >
+                  <List className="w-3.5 h-3.5" />{de ? 'Liste' : 'List'}
+                </button>
+                <button
+                  onClick={() => setCalSubView('calendar')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                  style={{ background: calSubView === 'calendar' ? 'var(--bg-active)' : 'transparent', color: calSubView === 'calendar' ? 'var(--text-on-active)' : 'var(--text-muted)' }}
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />{de ? 'Kalender' : 'Calendar'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* List sub-view */}
+          {calSubView === 'list' && (
+            <div className="space-y-6">
+              {bookings.length === 0 ? (
+                <div className="rounded-2xl flex flex-col items-center justify-center py-20 text-center"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--bg-hover)' }}>
+                    <CalendarDays className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{de ? 'Keine Shootings' : 'No shoots scheduled'}</h3>
+                  <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{de ? 'Füge einem Projekt ein Datum hinzu' : 'Add a date to a project to see it here'}</p>
+                  <Link href="/dashboard/projects/new" className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#F59E0B' }}>
+                    <Plus className="w-3.5 h-3.5" />{de ? 'Neues Projekt' : 'New project'}
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <style>{`
+                    @keyframes bookingFadeUp {
+                      from { opacity: 0; transform: translateY(16px); }
+                      to   { opacity: 1; transform: translateY(0); }
+                    }
+                  `}</style>
+
+                  {calUpcoming.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>{de ? 'Bevorstehend' : 'Upcoming'}</p>
+                      <div className="space-y-2">
+                        {calUpcoming.map((b, i) => {
+                          const days = daysUntilCal(b.shoot_date)
+                          const st = STATUS_CONFIG[b.status] || STATUS_CONFIG.draft
+                          const isToday = days === 0
+                          return (
+                            <Link key={b.id} href={`/dashboard/projects/${b.id}`}
+                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                              style={{
+                                background: `linear-gradient(135deg, ${st.color}14 0%, ${st.color}05 100%)`,
+                                border: isToday ? `1px solid ${st.color}50` : `1px solid ${st.color}28`,
+                                boxShadow: isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`,
+                                animation: 'bookingFadeUp 0.4s ease forwards',
+                                animationDelay: `${i * 70}ms`,
+                                opacity: 0,
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 10px 30px ${st.color}25`; e.currentTarget.style.borderColor = st.color + '45' }}
+                              onMouseLeave={e => { e.currentTarget.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`; e.currentTarget.style.borderColor = isToday ? st.color + '50' : st.color + '28' }}
+                            >
+                              <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.7 }} />
+                              <div className="flex items-center gap-4 p-4 flex-1 min-w-0">
+                                <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
+                                  style={{ background: st.color + '18', border: `1px solid ${st.color}25` }}>
+                                  <span className="text-[11px] font-bold uppercase" style={{ color: st.color }}>
+                                    {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { month: 'short' })}
+                                  </span>
+                                  <span className="text-[22px] font-black leading-none" style={{ color: st.color }}>
+                                    {new Date(b.shoot_date + 'T00:00:00').getDate()}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <p className="font-bold text-[14.5px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0" style={{ background: st.color + '18', color: st.color }}>{st.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {b.client && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><User className="w-3 h-3" />{b.client.full_name}</span>}
+                                    {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
+                                  </div>
+                                </div>
+                                <div className="flex-shrink-0 text-right">
+                                  {isToday
+                                    ? <span className="text-[12px] font-black px-2.5 py-1 rounded-full" style={{ background: st.color + '20', color: st.color }}>{de ? 'Heute!' : 'Today!'}</span>
+                                    : <span className="text-[12px] font-medium" style={{ color: st.color + 'CC' }}>{de ? `in ${days} ${days === 1 ? 'Tag' : 'Tagen'}` : `in ${days} ${days === 1 ? 'day' : 'days'}`}</span>
+                                  }
+                                </div>
+                              </div>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {calPast.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>{de ? 'Vergangen' : 'Past'}</p>
+                      <div className="space-y-2">
+                        {[...calPast].reverse().map((b, i) => {
+                          const st = STATUS_CONFIG[b.status] || STATUS_CONFIG.draft
+                          return (
+                            <Link key={b.id} href={`/dashboard/projects/${b.id}`}
+                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+                              style={{ opacity: 0, animation: 'bookingFadeUp 0.4s ease forwards', animationDelay: `${(calUpcoming.length + i) * 70}ms` }}
+                              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                              onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                            >
+                              <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
+                              <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
+                                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderLeft: 'none', borderRadius: '0 16px 16px 0' }}>
+                                <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
+                                  <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>
+                                    {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { month: 'short' })}
+                                  </span>
+                                  <span className="text-[22px] font-black leading-none" style={{ color: 'var(--text-secondary)' }}>
+                                    {new Date(b.shoot_date + 'T00:00:00').getDate()}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {b.client && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><User className="w-3 h-3" />{b.client.full_name}</span>}
+                                    {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
+                                  </div>
+                                </div>
+                                <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                  {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              </div>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Calendar grid sub-view */}
+          {calSubView === 'calendar' && (
+            <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month - 1, 1); return { year: d.getFullYear(), month: d.getMonth() } })} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-hover)]">
+                  <ChevronLeft className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                </button>
+                <h2 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>{MONTHS[calMonthNum]} {calYear}</h2>
+                <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month + 1, 1); return { year: d.getFullYear(), month: d.getMonth() } })} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-hover)]">
+                  <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                </button>
+              </div>
+              <div className="grid grid-cols-7 px-2 pt-2">
+                {DAYS.map(d => <div key={d} className="text-center text-[11px] font-bold py-2" style={{ color: 'var(--text-muted)' }}>{d}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-px px-2 pb-3" style={{ background: 'var(--border-color)' }}>
+                {Array.from({ length: calTotalCells }).map((_, i) => {
+                  const dayNum = i - calStartDow + 1
+                  const isCurrentMonth = dayNum >= 1 && dayNum <= calLastDay.getDate()
+                  const dateKey = isCurrentMonth ? `${calYear}-${String(calMonthNum + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}` : ''
+                  const dayBookings = dateKey ? (bookingsByDate[dateKey] || []) : []
+                  const todayKey = new Date().toISOString().slice(0, 10)
+                  const isToday = dateKey === todayKey
+                  return (
+                    <div key={i} className="min-h-[80px] p-1.5 flex flex-col" style={{ background: isCurrentMonth ? 'var(--bg-surface)' : 'var(--bg-page)' }}>
+                      {isCurrentMonth && (
+                        <>
+                          <span className="text-[12px] font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1"
+                            style={{ background: isToday ? 'var(--accent)' : 'transparent', color: isToday ? '#fff' : 'var(--text-secondary)' }}>
+                            {dayNum}
+                          </span>
+                          <div className="space-y-0.5 flex-1">
+                            {dayBookings.slice(0, 2).map(b => {
+                              const st = STATUS_CONFIG[b.status] || STATUS_CONFIG.draft
+                              return (
+                                <Link key={b.id} href={`/dashboard/projects/${b.id}`}
+                                  className="block px-1.5 py-0.5 rounded text-[10px] font-semibold truncate"
+                                  style={{ background: st.bg, color: st.color }}>
+                                  {b.title}
+                                </Link>
+                              )
+                            })}
+                            {dayBookings.length > 2 && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{`+${dayBookings.length - 2} ${de ? 'mehr' : 'more'}`}</span>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="px-5 py-3 flex flex-wrap gap-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                {Object.entries(STATUS_CONFIG).slice(0, 5).map(([key, val]) => (
+                  <span key={key} className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <span className="w-2.5 h-2.5 rounded-sm" style={{ background: val.bg, border: `1px solid ${val.color}` }} />
+                    <span style={{ color: 'var(--text-muted)' }}>{val.label}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
