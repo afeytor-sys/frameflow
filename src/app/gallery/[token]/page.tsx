@@ -73,7 +73,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   let rawPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; is_private?: boolean }[] = []
   const { data: photosWithPrivate, error: photosError } = await supabase
     .from('photos')
-    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private')
+    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private, section_id')
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
@@ -81,13 +81,19 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     // Fallback: select without is_private (column may not exist yet)
     const { data: photosFallback } = await supabase
       .from('photos')
-      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order')
+      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
       .eq('gallery_id', gallery.id)
       .order('display_order', { ascending: true })
     rawPhotos = (photosFallback || []).map(p => ({ ...p, is_private: false }))
   } else {
     rawPhotos = (photosWithPrivate || []).map(p => ({ ...p, is_private: p.is_private === null ? undefined : p.is_private }))
   }
+
+  const { data: gallerySections } = await supabase
+    .from('gallery_sections')
+    .select('id, title, display_order')
+    .eq('gallery_id', gallery.id)
+    .order('display_order', { ascending: true })
 
   const allPhotos = rawPhotos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
 
@@ -183,6 +189,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               galleryTitle={gallery!.title || project!.title || 'Galerie'}
               clientName={client?.full_name || ''}
               initialPhotos={sortedPhotos}
+              initialSections={gallerySections ?? []}
               downloadEnabled={gallery!.download_enabled}
               commentsEnabled={false}
               showWatermark={false}

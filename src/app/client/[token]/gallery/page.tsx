@@ -81,7 +81,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
 
   const { data: photos } = await supabase
     .from('photos')
-    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order')
+    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
@@ -209,6 +209,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
             galleryTitle={gallery.title || project.title || 'Galerie'}
             clientName={client?.full_name || ''}
             initialPhotos={sortedPhotos}
+            initialSections={gallerySections}
             downloadEnabled={gallery.download_enabled}
             commentsEnabled={true}
             showWatermark={false}

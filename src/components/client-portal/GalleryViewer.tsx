@@ -6,6 +6,7 @@ import {
   Heart, Download, X, ChevronLeft, ChevronRight,
   ZoomIn, Loader2, Play, Pause, Maximize2,
   LayoutGrid, Columns2, AlignJustify, SlidersHorizontal, EyeOff,
+  Pencil, Trash2, Plus, Check,
 } from 'lucide-react'
 import { cn, getPhotoUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -14,6 +15,12 @@ import type { GalleryTheme } from '@/lib/galleryThemes'
 
 type PhotoTag = 'green' | 'yellow' | 'red' | null
 type GalleryLayout = 'masonry' | 'grid' | 'columns'
+
+interface Section {
+  id: string
+  title: string
+  display_order: number
+}
 
 interface Photo {
   id: string
@@ -24,6 +31,7 @@ interface Photo {
   is_private?: boolean
   display_order: number
   tag?: PhotoTag
+  section_id?: string | null
 }
 
 interface Props {
@@ -32,6 +40,7 @@ interface Props {
   galleryTitle: string
   clientName: string
   initialPhotos: Photo[]
+  initialSections?: Section[]
   downloadEnabled: boolean
   commentsEnabled: boolean
   showWatermark: boolean
@@ -125,6 +134,7 @@ export default function GalleryViewer({
   galleryTitle,
   clientName,
   initialPhotos,
+  initialSections = [],
   downloadEnabled,
   commentsEnabled,
   token,
@@ -135,6 +145,18 @@ export default function GalleryViewer({
   tagsEnabled = true,
 }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
+
+  // ── Sets / sections state ────────────────────────────────────────
+  const [sections, setSections]             = useState<Section[]>(initialSections)
+  const [activeSection, setActiveSection]   = useState<string | null>(null)
+  // Inline create
+  const [addingSet, setAddingSet]           = useState(false)
+  const [newSetTitle, setNewSetTitle]       = useState('')
+  // Inline rename
+  const [renamingId, setRenamingId]         = useState<string | null>(null)
+  const [renameTitle, setRenameTitle]       = useState('')
+  const newSetInputRef                      = useRef<HTMLInputElement>(null)
+  const renameInputRef                      = useRef<HTMLInputElement>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [lightboxLoaded, setLightboxLoaded] = useState(false)
   const [downloadingAll, setDownloadingAll] = useState(false)
@@ -217,11 +239,16 @@ export default function GalleryViewer({
     red:    photos.filter((p) => p.tag === 'red').length,
   }
 
-  const filteredBase = filterTag === 'favorite'
-    ? photos.filter((p) => p.is_favorite)
-    : filterTag
-    ? photos.filter((p) => p.tag === filterTag)
+  // Section filter applied first, then tag/favorite filter on top
+  const sectionBase = activeSection
+    ? photos.filter(p => p.section_id === activeSection)
     : photos
+
+  const filteredBase = filterTag === 'favorite'
+    ? sectionBase.filter((p) => p.is_favorite)
+    : filterTag
+    ? sectionBase.filter((p) => p.tag === filterTag)
+    : sectionBase
 
   const filteredPhotos = sortOrder === 'manual'
     ? filteredBase
@@ -328,6 +355,46 @@ export default function GalleryViewer({
   const presentPrev = () => { setPresentLoaded(false); setPresentIndex((i) => (i - 1 + photos.length) % photos.length) }
   const exitPresent = () => { setPresentMode(false); setPresentPlaying(true); if (presentTimer.current) clearInterval(presentTimer.current) }
   const startPresent = () => { setPresentIndex(0); setPresentLoaded(false); setPresentPlaying(true); setPresentMode(true) }
+
+  // ── Sets CRUD ────────────────────────────────────────────────────
+  const createSection = async () => {
+    const title = newSetTitle.trim()
+    if (!title) { setAddingSet(false); setNewSetTitle(''); return }
+    const display_order = sections.length
+    const { data, error } = await supabase
+      .from('gallery_sections')
+      .insert({ gallery_id: galleryId, title, display_order })
+      .select('id, title, display_order')
+      .single()
+    if (error) { toast.error('Fehler beim Erstellen'); return }
+    setSections(prev => [...prev, data as Section])
+    setNewSetTitle('')
+    setAddingSet(false)
+    setActiveSection((data as Section).id)
+  }
+
+  const commitRename = async (id: string) => {
+    const title = renameTitle.trim()
+    if (!title) { setRenamingId(null); return }
+    const { error } = await supabase.from('gallery_sections').update({ title }).eq('id', id)
+    if (error) { toast.error('Fehler beim Umbenennen'); return }
+    setSections(prev => prev.map(s => s.id === id ? { ...s, title } : s))
+    setRenamingId(null)
+  }
+
+  const deleteSection = async (id: string) => {
+    if (!confirm('Set löschen? Fotos bleiben erhalten, werden aber keinem Set zugeordnet.')) return
+    const { error } = await supabase.from('gallery_sections').delete().eq('id', id)
+    if (error) { toast.error('Fehler beim Löschen'); return }
+    // Detach photos locally
+    setPhotos(prev => prev.map(p => p.section_id === id ? { ...p, section_id: null } : p))
+    setSections(prev => prev.filter(s => s.id !== id))
+    if (activeSection === id) setActiveSection(null)
+  }
+
+  // ── Auto-focus inline set inputs ─────────────────────────────────
+  useEffect(() => { if (addingSet)   setTimeout(() => newSetInputRef.current?.focus(), 30) }, [addingSet])
+  useEffect(() => { if (renamingId) setTimeout(() => renameInputRef.current?.select(), 30) }, [renamingId])
 
   // ── Mobile detection (pointer: coarse = touch device) ────────────
   useEffect(() => {
@@ -638,6 +705,128 @@ export default function GalleryViewer({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Sets navigation bar ── */}
+      {sections.length > 0 && (
+        <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar">
+          {/* "Alle Fotos" pill */}
+          <button
+            onClick={() => setActiveSection(null)}
+            className={cn(
+              'flex-shrink-0 px-4 py-1.5 rounded-full text-[12.5px] font-semibold transition-all',
+              activeSection === null
+                ? 'text-white'
+                : 'hover:opacity-80'
+            )}
+            style={activeSection === null
+              ? { background: theme?.text ?? '#111110', color: theme?.bg ?? '#fff' }
+              : { background: theme ? `${theme.surface}CC` : 'rgba(0,0,0,0.06)', color: theme?.textMuted ?? '#7A7670', border: `1px solid ${theme?.border ?? '#E8E4DC'}` }
+            }
+          >
+            Alle Fotos
+          </button>
+
+          {/* One pill per section */}
+          {sections.map(sec => {
+            const isActive = activeSection === sec.id
+            const isRenaming = renamingId === sec.id
+            return (
+              <div key={sec.id} className="group flex-shrink-0 relative flex items-center">
+                {isRenaming ? (
+                  <input
+                    ref={renameInputRef}
+                    value={renameTitle}
+                    onChange={e => setRenameTitle(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitRename(sec.id)
+                      if (e.key === 'Escape') setRenamingId(null)
+                    }}
+                    onBlur={() => commitRename(sec.id)}
+                    className="px-3 py-1.5 rounded-full text-[12.5px] font-semibold outline-none min-w-0 w-28"
+                    style={{ background: theme?.surface ?? '#F5F4F1', color: theme?.text ?? '#111110', border: `1.5px solid ${theme?.text ?? '#111110'}` }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setActiveSection(isActive ? null : sec.id)}
+                    className={cn(
+                      'px-4 py-1.5 rounded-full text-[12.5px] font-semibold transition-all',
+                      isActive ? 'text-white' : 'hover:opacity-80'
+                    )}
+                    style={isActive
+                      ? { background: theme?.text ?? '#111110', color: theme?.bg ?? '#fff' }
+                      : { background: theme ? `${theme.surface}CC` : 'rgba(0,0,0,0.06)', color: theme?.textMuted ?? '#7A7670', border: `1px solid ${theme?.border ?? '#E8E4DC'}` }
+                    }
+                  >
+                    {sec.title}
+                    <span className="ml-1.5 text-[10px] opacity-50">
+                      {photos.filter(p => p.section_id === sec.id).length}
+                    </span>
+                  </button>
+                )}
+
+                {/* Edit / delete — only for non-public viewers, shown on hover */}
+                {!isPublic && !isRenaming && (
+                  <div className="absolute -top-1 -right-1 hidden group-hover:flex items-center gap-0.5 z-10">
+                    <button
+                      onClick={e => { e.stopPropagation(); setRenamingId(sec.id); setRenameTitle(sec.title) }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center transition-all"
+                      style={{ background: theme?.surface ?? '#F5F4F1', border: `1px solid ${theme?.border ?? '#E8E4DC'}`, color: theme?.textMuted ?? '#7A7670' }}
+                      title="Umbenennen"
+                    >
+                      <Pencil className="w-2.5 h-2.5" />
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); deleteSection(sec.id) }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center transition-all"
+                      style={{ background: theme?.surface ?? '#F5F4F1', border: `1px solid ${theme?.border ?? '#E8E4DC'}`, color: '#EF4444' }}
+                      title="Löschen"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* "+" inline create — only for non-public viewers */}
+          {!isPublic && (
+            addingSet ? (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <input
+                  ref={newSetInputRef}
+                  value={newSetTitle}
+                  onChange={e => setNewSetTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') createSection()
+                    if (e.key === 'Escape') { setAddingSet(false); setNewSetTitle('') }
+                  }}
+                  onBlur={() => { if (!newSetTitle.trim()) { setAddingSet(false); setNewSetTitle('') } }}
+                  placeholder="Neues Set…"
+                  className="px-3 py-1.5 rounded-full text-[12.5px] outline-none w-32"
+                  style={{ background: theme?.surface ?? '#F5F4F1', color: theme?.text ?? '#111110', border: `1.5px solid ${theme?.text ?? '#111110'}` }}
+                />
+                <button
+                  onClick={createSection}
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: theme?.text ?? '#111110', color: theme?.bg ?? '#fff' }}
+                >
+                  <Check className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingSet(true)}
+                className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:opacity-80"
+                style={{ background: theme ? `${theme.surface}CC` : 'rgba(0,0,0,0.06)', color: theme?.textMuted ?? '#7A7670', border: `1px solid ${theme?.border ?? '#E8E4DC'}` }}
+                title="Neues Set"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )
+          )}
         </div>
       )}
 
