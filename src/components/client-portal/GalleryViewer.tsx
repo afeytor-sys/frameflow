@@ -159,8 +159,7 @@ export default function GalleryViewer({
   const renameInputRef                      = useRef<HTMLInputElement>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [lightboxLoaded, setLightboxLoaded] = useState(false)
-  const [downloadingAll, setDownloadingAll] = useState(false)
-  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [downloadPending, setDownloadPending] = useState(false)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
   const [showTagFilters, setShowTagFilters] = useState(false)
@@ -505,31 +504,18 @@ export default function GalleryViewer({
     } catch { toast.error('Download fehlgeschlagen') }
   }
 
-  const downloadAll = async () => {
-    if (downloadingAll || photos.length === 0) return
-    setDownloadingAll(true); setDownloadProgress(0)
-    try {
-      const JSZip = (await import('jszip')).default
-      const zip = new JSZip()
-      const total = photos.length; let done = 0
-      for (let i = 0; i < photos.length; i += 5) {
-        const batch = photos.slice(i, i + 5)
-        await Promise.all(batch.map(async (photo) => {
-          try { const r = await fetch(photo.storage_url); zip.file(photo.filename, await r.blob()) } catch {}
-          done++; setDownloadProgress(Math.round((done / total) * 100))
-        }))
-      }
-      const zipBlob = await zip.generateAsync({ type: 'blob' })
-      const url = URL.createObjectURL(zipBlob)
-      const a = document.createElement('a')
-      a.href = url; a.download = `${galleryTitle || clientName || 'Galerie'}.zip`; a.click()
-      URL.revokeObjectURL(url)
-      try { await supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
-      // Notify photographer (fire & forget) — always notify, even for public galleries
-      notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
-      toast.success(`${total} Fotos heruntergeladen!`)
-    } catch { toast.error('Download fehlgeschlagen') }
-    finally { setDownloadingAll(false); setDownloadProgress(0) }
+  const downloadAll = () => {
+    if (downloadPending || photos.length === 0) return
+    setDownloadPending(true)
+    const a = document.createElement('a')
+    a.href = `/api/galleries/${galleryId}/download`
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    try { supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
+    notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
+    setTimeout(() => setDownloadPending(false), 3000)
   }
 
   // ── Lightbox ─────────────────────────────────────────────────────
@@ -1048,25 +1034,18 @@ export default function GalleryViewer({
           {downloadEnabled && photos.length > 0 && (
             <button
               onClick={downloadAll}
-              disabled={downloadingAll}
+              disabled={downloadPending}
               className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
               style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
             >
-              {downloadingAll
-                ? <><Loader2 className="w-4 h-4 animate-spin" /><span>{downloadProgress > 0 ? `${downloadProgress}%` : '...'}</span></>
+              {downloadPending
+                ? <><Loader2 className="w-4 h-4 animate-spin" /><span>...</span></>
                 : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
               }
             </button>
           )}
         </div>
       </div>
-
-      {/* Download progress */}
-      {downloadingAll && downloadProgress > 0 && (
-        <div className="w-full rounded-full h-1 overflow-hidden mb-5" style={{ background: '#E8E4DC' }}>
-          <div className="h-full rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%`, background: '#C4A47C' }} />
-        </div>
-      )}
 
       {/* ── Gallery Grid ── */}
       {filteredPhotos.length === 0 ? (
