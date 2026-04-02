@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, Image as ImageIcon } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, LayoutGrid, List } from 'lucide-react'
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
@@ -99,6 +99,8 @@ function SortablePhoto({
   onDelete,
   onTogglePrivate,
   onSetCover,
+  onDragStartSection,
+  onDragEndSection,
 }: {
   photo: Photo
   selected: boolean
@@ -107,6 +109,8 @@ function SortablePhoto({
   onDelete: (id: string) => void
   onTogglePrivate: (id: string) => void
   onSetCover: (id: string) => void
+  onDragStartSection?: (id: string) => void
+  onDragEndSection?: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.id })
 
@@ -120,6 +124,9 @@ function SortablePhoto({
     <div
       ref={setNodeRef}
       style={style}
+      draggable={true}
+      onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; onDragStartSection?.(photo.id) }}
+      onDragEnd={() => onDragEndSection?.()}
       className={cn(
         'relative group rounded-lg overflow-hidden border-2 transition-all',
         selected ? 'border-[#C8A882]' : isCover ? 'border-[#F59E0B]' : 'border-transparent'
@@ -214,6 +221,14 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [favDownloadProgress, setFavDownloadProgress] = useState(0)
   // Comment count
   const [commentCount, setCommentCount] = useState(0)
+  // Gallery UX
+  const [activeSection, setActiveSection] = useState<string>('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [favoritesExpanded, setFavoritesExpanded] = useState(false)
+  const [sectionDragOver, setSectionDragOver] = useState<string | null>(null)
+  const [globalDragOver, setGlobalDragOver] = useState(false)
+  const globalDragCounter = useRef(0)
+  const draggingPhotoRef = useRef<string | null>(null)
 
   // Settings form state
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
@@ -236,6 +251,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   )
 
   const supabase = createClient()
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
 
   // Load photos via API (service client, bypasses RLS) when component mounts
   // This ensures photos are always loaded regardless of RLS policies
@@ -613,7 +632,35 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const currentTheme = getTheme(selectedTheme)
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4 relative"
+      onDragEnter={e => {
+        if (e.dataTransfer.types.includes('Files')) {
+          globalDragCounter.current++
+          if (globalDragCounter.current === 1) setGlobalDragOver(true)
+        }
+      }}
+      onDragLeave={() => {
+        globalDragCounter.current--
+        if (globalDragCounter.current === 0) setGlobalDragOver(false)
+      }}
+      onDragOver={e => { if (e.dataTransfer.types.includes('Files')) e.preventDefault() }}
+      onDrop={e => {
+        e.preventDefault()
+        globalDragCounter.current = 0
+        setGlobalDragOver(false)
+        setUploadSectionId(null)
+        setShowUploader(true)
+      }}
+    >
+      {globalDragOver && photos.length > 0 && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center rounded-xl pointer-events-none" style={{ background: 'rgba(196,164,124,0.06)', border: '2px dashed var(--accent)' }}>
+          <div className="text-center">
+            <Images className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--accent)' }} />
+            <p className="text-sm font-bold" style={{ color: 'var(--accent)' }}>Fotos zum Hochladen ablegen</p>
+          </div>
+        </div>
+      )}
       {/* ── Share Gallery Modal ──────────────────────────────────────────── */}
       <GalleryShareModal
         open={shareModal}
@@ -937,76 +984,209 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         </div>
       )}
 
-      {/* ── Client Favorites List ── */}
+      {/* ── Client Favorites List (compact) ── */}
       {(() => {
         const favoritePhotos = photos.filter(p => p.is_favorite)
         if (favoritePhotos.length === 0) return null
         return (
-          <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}>
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center">
-                  <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {favoriteListName || 'Favoritenliste des Kunden'}
-                  </p>
-                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    {favoritePhotos.length} {favoritePhotos.length === 1 ? 'Foto' : 'Fotos'} ausgewählt
-                  </p>
-                </div>
+          <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none"
+              onClick={() => setFavoritesExpanded(f => !f)}
+            >
+              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 flex-shrink-0" />
+              <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {favoriteListName || 'Favoriten'}
+              </span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444' }}>
+                {favoritePhotos.length}
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); downloadFavorites() }}
+                  disabled={downloadingFavorites}
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg text-white disabled:opacity-50"
+                  style={{ background: '#111110' }}
+                >
+                  {downloadingFavorites
+                    ? <><Loader2 className="w-3 h-3 animate-spin" />{favDownloadProgress > 0 ? `${favDownloadProgress}%` : '...'}</>
+                    : <><Download className="w-3 h-3" />ZIP</>
+                  }
+                </button>
+                <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', favoritesExpanded ? 'rotate-180' : '')} style={{ color: 'var(--text-muted)' }} />
               </div>
-              <button
-                onClick={downloadFavorites}
-                disabled={downloadingFavorites}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg text-white disabled:opacity-50 transition-all"
-                style={{ background: '#111110' }}
-              >
-                {downloadingFavorites
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{favDownloadProgress > 0 ? `${favDownloadProgress}%` : '...'}</>
-                  : <><Download className="w-3.5 h-3.5" />ZIP herunterladen</>
-                }
-              </button>
             </div>
-            {/* Download progress bar */}
-            {downloadingFavorites && favDownloadProgress > 0 && (
-              <div className="w-full rounded-full h-1 overflow-hidden" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${favDownloadProgress}%`, background: '#EF4444' }} />
+            {favoritesExpanded && (
+              <div className="px-3 pb-3" style={{ borderTop: '1px solid rgba(239,68,68,0.12)' }}>
+                {downloadingFavorites && favDownloadProgress > 0 && (
+                  <div className="w-full rounded-full h-1 overflow-hidden mt-2 mb-2" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${favDownloadProgress}%`, background: '#EF4444' }} />
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {favoritePhotos.slice(0, 20).map(photo => (
+                    <div key={photo.id} className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 48, height: 48 }}>
+                      <img
+                        src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 100, 70, 'cover')}
+                        alt={photo.filename}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ))}
+                  {favoritePhotos.length > 20 && (
+                    <div className="rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ width: 48, height: 48, background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                      +{favoritePhotos.length - 20}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            {/* Thumbnails */}
-            <div className="flex flex-wrap gap-1.5">
-              {favoritePhotos.slice(0, 12).map(photo => (
-                <div key={photo.id} className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 52, height: 52 }}>
-                  <img
-                    src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 120, 70, 'cover')}
-                    alt={photo.filename}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              ))}
-              {favoritePhotos.length > 12 && (
-                <div className="w-[52px] h-[52px] rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-                  +{favoritePhotos.length - 12}
-                </div>
-              )}
-            </div>
           </div>
         )
       })()}
 
-      {/* Photo grid — grouped by sections */}
-      {photos.length === 0 ? (
-        <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
-          <Images className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--border-strong)' }} />
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos. Lade deine ersten Fotos hoch.</p>
+      {/* ── Sets pill nav + view toggle ── */}
+      {photos.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => setActiveSection('all')}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
+            style={activeSection === 'all'
+              ? { background: 'var(--accent)', color: '#fff' }
+              : { background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+          >
+            Alle <span className="font-bold tabular-nums">{photos.length}</span>
+          </button>
+          {sections.map(s => {
+            const cnt = photos.filter(p => p.section_id === s.id).length
+            const isActive = activeSection === s.id
+            const isDragTarget = sectionDragOver === s.id
+            return (
+              <button
+                key={s.id}
+                onClick={() => selected.size > 0 ? assignPhotosToSection(s.id) : setActiveSection(s.id)}
+                onDragOver={e => { if (draggingPhotoRef.current) { e.preventDefault(); setSectionDragOver(s.id) } }}
+                onDragLeave={() => setSectionDragOver(null)}
+                onDrop={e => { e.preventDefault(); if (draggingPhotoRef.current) assignPhotosToSection(s.id); setSectionDragOver(null) }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
+                style={{
+                  background: isActive ? 'var(--accent)' : isDragTarget ? 'rgba(196,164,124,0.18)' : selected.size > 0 ? 'rgba(196,164,124,0.08)' : 'var(--bg-hover)',
+                  color: isActive ? '#fff' : isDragTarget ? 'var(--accent)' : 'var(--text-muted)',
+                  border: isDragTarget ? '1px dashed rgba(196,164,124,0.6)' : selected.size > 0 && !isActive ? '1px dashed rgba(196,164,124,0.35)' : '1px solid var(--border-color)',
+                  transform: isDragTarget ? 'scale(1.06)' : 'none',
+                }}
+              >
+                {s.title} <span className="font-bold tabular-nums">{cnt}</span>
+                {selected.size > 0 && !isActive && <span style={{ opacity: 0.45, fontSize: '10px' }}>→</span>}
+              </button>
+            )
+          })}
+          <button
+            onClick={() => addSection()}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium transition-all"
+            style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px dashed var(--border-color)' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
+          >
+            <Plus className="w-3 h-3" />Set
+          </button>
+          {/* View toggle */}
+          <div className="ml-auto flex items-center gap-0.5 p-0.5 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
+            {([
+              { mode: 'grid' as const, Icon: LayoutGrid, title: 'Rasteransicht' },
+              { mode: 'list' as const, Icon: List, title: 'Listenansicht' },
+            ]).map(({ mode, Icon, title }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                title={title}
+                className="p-1.5 rounded-md transition-all"
+                style={{
+                  background: viewMode === mode ? 'var(--bg-surface)' : 'transparent',
+                  color: viewMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
+                  boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                }}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </button>
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Photo grid */}
+      {photos.length === 0 ? (
+        <div
+          className="text-center py-16 rounded-xl transition-all cursor-pointer"
+          style={{ border: globalDragOver ? '2px dashed var(--accent)' : '2px dashed var(--border-color)', background: globalDragOver ? 'rgba(196,164,124,0.04)' : 'transparent' }}
+          onClick={() => setShowUploader(true)}
+          onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setGlobalDragOver(true) } }}
+          onDragLeave={() => setGlobalDragOver(false)}
+          onDrop={e => { e.preventDefault(); setGlobalDragOver(false); setShowUploader(true) }}
+        >
+          <Images className="w-8 h-8 mx-auto mb-3" style={{ color: globalDragOver ? 'var(--accent)' : 'var(--border-strong)' }} />
+          <p className="text-sm font-medium" style={{ color: globalDragOver ? 'var(--accent)' : 'var(--text-muted)' }}>
+            {globalDragOver ? 'Loslassen zum Hochladen' : 'Fotos hierher ziehen oder klicken zum Hochladen'}
+          </p>
+        </div>
+      ) : activeSection !== 'all' ? (
+        /* Filtered single-section view */
+        (() => {
+          const filtered = photos.filter(p => p.section_id === activeSection)
+          if (filtered.length === 0) {
+            return (
+              <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
+                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Keine Fotos in diesem Set</p>
+                <button
+                  onClick={() => { setUploadSectionId(activeSection); setShowUploader(true) }}
+                  className="mt-2 text-[12px] font-medium"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  + Fotos hochladen
+                </button>
+              </div>
+            )
+          }
+          if (viewMode === 'list') {
+            return (
+              <div className="space-y-0.5">
+                {filtered.slice(0, visibleCount).map(photo => (
+                  <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
+                    <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
+                      {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </button>
+                    <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
+                    <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
+                    <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
+                    {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
+                    {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
+                      <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
+                      <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+          return (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={filtered.map(p => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
+                  {filtered.slice(0, visibleCount).map(photo => (
+                    <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )
+        })()
       ) : (
+        /* All sections grouped view */
         <div className="space-y-6">
-          {/* Sections with photos */}
           {sections.map(section => {
             const sectionPhotos = photos.filter(p => p.section_id === section.id)
             const isCollapsed = collapsedSections.has(section.id)
@@ -1027,12 +1207,32 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     <div className="text-center py-6 rounded-lg" style={{ border: '2px dashed var(--border-color)' }}>
                       <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Keine Fotos in diesem Set</p>
                     </div>
+                  ) : viewMode === 'list' ? (
+                    <div className="space-y-0.5">
+                      {sectionPhotos.slice(0, visibleCount).map(photo => (
+                        <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
+                          <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
+                            {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          </button>
+                          <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
+                          <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
+                          <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
+                          {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
+                          {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
+                            <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
+                            <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                       <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
                           {sectionPhotos.slice(0, visibleCount).map(photo => (
-                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} />
+                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
                           ))}
                         </div>
                       </SortableContext>
@@ -1052,19 +1252,41 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{unsectionedPhotos.length}</span>
                 </div>
               )}
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {unsectionedPhotos.slice(0, visibleCount).map(photo => (
-                      <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              {viewMode === 'list' ? (
+                <div className="space-y-0.5">
+                  {unsectionedPhotos.slice(0, visibleCount).map(photo => (
+                    <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
+                      <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
+                        {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </button>
+                      <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
+                      <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
+                      <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
+                      {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
+                      {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
+                        <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
+                        <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
+                      {unsectionedPhotos.slice(0, visibleCount).map(photo => (
+                        <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
             </div>
           )}
 
-          {/* ── Load More (dashboard) ── */}
+          {/* ── Load More ── */}
           {visibleCount < photos.length && (
             <div className="flex flex-col items-center gap-1.5 pt-2">
               <button
