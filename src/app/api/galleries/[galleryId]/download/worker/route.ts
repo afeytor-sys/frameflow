@@ -38,7 +38,7 @@ async function triggerNextBatch(base: string, galleryId: string, jobId: string, 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-internal-token': process.env.INTERNAL_TOKEN ?? '',
+      'Authorization': `Bearer ${process.env.INTERNAL_TOKEN ?? ''}`,
     },
     body: JSON.stringify({ jobId, batchIndex: nextIndex }),
   })
@@ -104,9 +104,15 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ galleryId: string }> },
 ) {
-  const token = req.headers.get('x-internal-token')
-  if (!token || token !== process.env.INTERNAL_TOKEN) {
-    console.error('[worker] Unauthorized — INTERNAL_TOKEN mismatch')
+  const authHeader = req.headers.get('authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
+  const expected = process.env.INTERNAL_TOKEN ?? ''
+
+  // Debug: log first 8 chars only — enough to spot mismatches without leaking the secret
+  console.log(`[worker] auth check — received="${token.slice(0, 8)}..." expected="${expected.slice(0, 8)}..." match=${token === expected} envDefined=${!!expected}`)
+
+  if (!token || !expected || token !== expected) {
+    console.error(`[worker] Unauthorized — token mismatch (envDefined=${!!expected})`)
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -89,13 +89,15 @@ export async function POST(
     process.env.NEXT_PUBLIC_APP_URL ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
+  console.log(`[prepare] triggering worker — jobId=${job.id} tokenDefined=${!!process.env.INTERNAL_TOKEN} base=${base}`)
+
   // waitUntil guarantees the fetch is sent before Vercel terminates this function.
   waitUntil(
     fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-internal-token': process.env.INTERNAL_TOKEN ?? '',
+        'Authorization': `Bearer ${process.env.INTERNAL_TOKEN ?? ''}`,
       },
       body: JSON.stringify({ jobId: job.id }),
     }).catch(err => console.error('[prepare] worker trigger failed:', err))
