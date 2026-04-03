@@ -159,7 +159,17 @@ export default function GalleryViewer({
   const renameInputRef                      = useRef<HTMLInputElement>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [lightboxLoaded, setLightboxLoaded] = useState(false)
-  const [downloadPending, setDownloadPending] = useState(false)
+  // ── Multi-part download state ────────────────────────────────────
+  interface DownloadPart { name: string; url: string; photo_count: number; part_number: number; total_parts: number }
+  type DownloadStatus = 'idle' | 'pending' | 'processing' | 'ready' | 'failed'
+  const [dlStatus, setDlStatus]         = useState<DownloadStatus>('idle')
+  const [dlJobId, setDlJobId]           = useState<string | null>(null)
+  const [dlParts, setDlParts]           = useState<DownloadPart[]>([])
+  const [dlProcessed, setDlProcessed]   = useState(0)
+  const [dlTotal, setDlTotal]           = useState(0)
+  const [dlError, setDlError]           = useState<string | null>(null)
+  const dlPollRef                       = useRef<ReturnType<typeof setInterval> | null>(null)
+  const downloadPending = dlStatus !== 'idle' && dlStatus !== 'ready' && dlStatus !== 'failed'
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
   const [showTagFilters, setShowTagFilters] = useState(false)
@@ -504,18 +514,72 @@ export default function GalleryViewer({
     } catch { toast.error('Download fehlgeschlagen') }
   }
 
-  const downloadAll = () => {
+  const stopPoll = () => {
+    if (dlPollRef.current) { clearInterval(dlPollRef.current); dlPollRef.current = null }
+  }
+
+  const pollStatus = (jobId: string) => {
+    stopPoll()
+    dlPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/galleries/${galleryId}/download/status/${jobId}`)
+        const json = await res.json()
+        if (json.status === 'ready') {
+          stopPoll()
+          setDlParts(json.parts ?? [])
+          setDlProcessed(json.processedParts ?? 0)
+          setDlStatus('ready')
+          try { supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
+          notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
+        } else if (json.status === 'failed' || json.status === 'expired') {
+          stopPoll()
+          setDlError(json.error ?? 'Vorbereitung fehlgeschlagen')
+          setDlStatus('failed')
+        } else {
+          setDlProcessed(json.processedParts ?? 0)
+          setDlTotal(json.parts?.length > 0 ? json.parts[json.parts.length - 1]?.total_parts ?? 0 : 0)
+          setDlStatus(json.status === 'processing' ? 'processing' : 'pending')
+        }
+      } catch { /* network hiccup — keep polling */ }
+    }, 2500)
+  }
+
+  const downloadAll = async () => {
     if (downloadPending || photos.length === 0) return
-    setDownloadPending(true)
+    setDlStatus('pending')
+    setDlError(null)
+    setDlParts([])
+    setDlProcessed(0)
+    try {
+      const res = await fetch(`/api/galleries/${galleryId}/download/prepare`, { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Fehler')
+      setDlJobId(json.jobId)
+      if (json.reused) {
+        // Job already exists — fetch status once then start polling
+        const statusRes = await fetch(`/api/galleries/${galleryId}/download/status/${json.jobId}`)
+        const statusJson = await statusRes.json()
+        if (statusJson.status === 'ready') {
+          setDlParts(statusJson.parts ?? [])
+          setDlStatus('ready')
+          return
+        }
+      }
+      pollStatus(json.jobId)
+    } catch (err) {
+      setDlError(err instanceof Error ? err.message : 'Fehler')
+      setDlStatus('failed')
+    }
+  }
+
+  const triggerPartDownload = (url: string, name: string) => {
     const a = document.createElement('a')
-    a.href = `/api/galleries/${galleryId}/download`
+    a.href = url
+    a.download = name
     a.style.display = 'none'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    try { supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
-    notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
-    setTimeout(() => setDownloadPending(false), 3000)
   }
 
   // ── Lightbox ─────────────────────────────────────────────────────
@@ -1032,17 +1096,84 @@ export default function GalleryViewer({
 
           {/* Download all */}
           {downloadEnabled && photos.length > 0 && (
-            <button
-              onClick={downloadAll}
-              disabled={downloadPending}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
-              style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
-            >
-              {downloadPending
-                ? <><Loader2 className="w-4 h-4 animate-spin" /><span>...</span></>
-                : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
-              }
-            </button>
+            <div className="relative">
+              {/* Trigger button */}
+              <button
+                onClick={dlStatus === 'ready' ? undefined : downloadAll}
+                disabled={downloadPending}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
+                style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
+              >
+                {dlStatus === 'pending' || dlStatus === 'processing'
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Wird vorbereitet…</span></>
+                  : dlStatus === 'ready'
+                    ? <><Download className="w-4 h-4" /><span>Download bereit</span></>
+                    : dlStatus === 'failed'
+                      ? <><Download className="w-4 h-4" /><span>Erneut versuchen</span></>
+                      : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
+                }
+              </button>
+
+              {/* Processing progress bar */}
+              {(dlStatus === 'pending' || dlStatus === 'processing') && dlTotal > 1 && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 px-1">
+                  <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${dlTotal > 0 ? Math.round((dlProcessed / dlTotal) * 100) : 0}%`, background: '#C4A47C' }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-center mt-0.5 text-white/50">
+                    {dlProcessed} / {dlTotal} Teile
+                  </p>
+                </div>
+              )}
+
+              {/* Ready: download parts panel */}
+              {dlStatus === 'ready' && dlParts.length > 0 && (
+                <div
+                  className="absolute top-full right-0 mt-2 rounded-xl overflow-hidden shadow-2xl"
+                  style={{ background: '#111110', border: '1px solid rgba(255,255,255,0.12)', minWidth: '240px', zIndex: 50 }}
+                >
+                  <div className="px-4 py-2.5 border-b border-white/10">
+                    <p className="text-[12px] font-bold text-white">Download bereit</p>
+                    <p className="text-[10px] text-white/40 mt-0.5">Links sind 24 Stunden gültig</p>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    {dlParts.map((part) => (
+                      <button
+                        key={part.part_number}
+                        onClick={() => triggerPartDownload(part.url, part.name)}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all hover:bg-white/8"
+                      >
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,164,124,0.15)' }}>
+                          <Download className="w-3.5 h-3.5" style={{ color: '#C4A47C' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-semibold text-white truncate">{part.name}</p>
+                          <p className="text-[10px] text-white/40">{part.photo_count} Fotos</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="px-3 pb-2">
+                    <button
+                      onClick={() => { setDlStatus('idle'); setDlParts([]); setDlJobId(null) }}
+                      className="w-full text-[10px] text-white/30 hover:text-white/60 py-1 transition-colors"
+                    >
+                      Schließen
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Error */}
+              {dlStatus === 'failed' && dlError && (
+                <div className="absolute top-full right-0 mt-2 rounded-xl px-3 py-2.5 text-[11px] text-white/70 shadow-xl" style={{ background: '#111110', border: '1px solid rgba(255,80,80,0.25)', minWidth: '200px', zIndex: 50 }}>
+                  {dlError}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
