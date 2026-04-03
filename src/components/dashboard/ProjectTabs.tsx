@@ -130,6 +130,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
     due_date: '',
     include_mwst: false,
     notes: '',
+    invoice_number: '',
+    verwendungszweck: '',
   })
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [invoiceCreated, setInvoiceCreated] = useState(false)
@@ -1489,8 +1491,8 @@ interface InvoiceTabProps {
   projectTitle: string
   clientName?: string
   clientEmail?: string
-  form: { amount: string; description: string; due_date: string; include_mwst: boolean; notes: string }
-  setForm: React.Dispatch<React.SetStateAction<{ amount: string; description: string; due_date: string; include_mwst: boolean; notes: string }>>
+  form: { amount: string; description: string; due_date: string; include_mwst: boolean; notes: string; invoice_number: string; verwendungszweck: string }
+  setForm: React.Dispatch<React.SetStateAction<{ amount: string; description: string; due_date: string; include_mwst: boolean; notes: string; invoice_number: string; verwendungszweck: string }>>
   saving: boolean
   setSaving: (v: boolean) => void
   created: boolean
@@ -1557,7 +1559,8 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
     setSaving(true)
 
     const amountCents = Math.round(gross * 100)
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`
+    const autoNumber = `INV-${Date.now().toString().slice(-6)}`
+    const invoiceNumber = form.invoice_number.trim() || autoNumber
     const descParts: string[] = []
     if (form.description) descParts.push(form.description)
     if (form.include_mwst) descParts.push(`incl. 19% VAT (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
@@ -1573,6 +1576,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
       due_date: form.due_date || null,
       invoice_number: invoiceNumber,
       notes: form.notes.trim() || null,
+      verwendungszweck: form.verwendungszweck.trim() || null,
     }).select('id, invoice_number, amount, currency, status, description, due_date, created_at').single()
 
     if (error) { console.error('Invoice error:', error); toast.error(inv_t.toastError(error.message)); setSaving(false); return }
@@ -1582,7 +1586,7 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
     setSaving(false)
     setCreated(true)
     setShowForm(false)
-    setForm({ amount: '', description: '', due_date: '', include_mwst: false, notes: '' })
+    setForm({ amount: '', description: '', due_date: '', include_mwst: false, notes: '', invoice_number: '', verwendungszweck: '' })
     toast.success(inv_t.toastCreated)
   }
 
@@ -1600,7 +1604,14 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
           </div>
         </div>
         <button
-          onClick={() => { setShowForm(f => !f); setCreated(false) }}
+          onClick={() => {
+            if (!showForm) {
+              const autoNum = `INV-${Date.now().toString().slice(-6)}`
+              setForm(f => ({ ...f, invoice_number: f.invoice_number || autoNum, verwendungszweck: f.verwendungszweck || autoNum }))
+            }
+            setShowForm(f => !f)
+            setCreated(false)
+          }}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90"
           style={{ background: '#F97316' }}
         >
@@ -1645,18 +1656,10 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                 </button>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{inv_t.description}</label>
-                  <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder={inv_t.descriptionPlaceholder} className="input-base w-full" />
-                </div>
-                <div>
-                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    <Clock className="w-3 h-3 inline mr-1" />Due date
-                  </label>
-                  <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="input-base w-full" />
-                </div>
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{inv_t.description}</label>
+                <input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder={inv_t.descriptionPlaceholder} className="input-base w-full" />
               </div>
 
               {/* Notes / Anmerkungen */}
@@ -1671,9 +1674,44 @@ function InvoiceTab({ projectId, photographerId, projectTitle, clientName, clien
                   rows={3}
                   className="input-base w-full resize-none text-[13px]"
                 />
-                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {inv_t.notesHint}
-                </p>
+              </div>
+
+              {/* Rechnungsnummer */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Rechnungsnummer</label>
+                <input
+                  type="text"
+                  value={form.invoice_number}
+                  onChange={e => {
+                    const val = e.target.value
+                    setForm(f => ({
+                      ...f,
+                      invoice_number: val,
+                      verwendungszweck: f.verwendungszweck === f.invoice_number ? val : f.verwendungszweck,
+                    }))
+                  }}
+                  placeholder="INV-000000"
+                  className="input-base w-full font-mono"
+                />
+              </div>
+
+              {/* Verwendungszweck */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>Verwendungszweck</label>
+                <input
+                  type="text"
+                  value={form.verwendungszweck}
+                  onChange={e => setForm(f => ({ ...f, verwendungszweck: e.target.value }))}
+                  placeholder={form.invoice_number || 'Rechnungsnummer als Verwendungszweck'}
+                  className="input-base w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <Clock className="w-3 h-3 inline mr-1" />Due date
+                </label>
+                <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="input-base w-full" />
               </div>
 
               {net > 0 && (

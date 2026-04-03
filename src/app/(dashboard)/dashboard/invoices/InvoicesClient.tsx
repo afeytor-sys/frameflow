@@ -17,7 +17,9 @@ interface Invoice {
   status: 'draft' | 'sent' | 'paid' | 'overdue'
   due_date: string | null
   description: string | null
+  notes: string | null
   invoice_number: string | null
+  verwendungszweck: string | null
   stripe_invoice_id: string | null
   sent_at?: string | null
   created_at: string
@@ -182,6 +184,13 @@ function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null)
     ${invoice.due_date ? `<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Due on: </span><span style="font-size:12px;font-weight:700;">${new Date(invoice.due_date).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</span></div>` : ''}
   </div>
 
+  ${invoice.notes ? `
+  <div style="margin-top:20px;margin-bottom:4px;">
+    <div class="section-label">Anmerkungen</div>
+    <p style="font-size:13px;color:#4A4A4A;white-space:pre-wrap;line-height:1.6;margin-top:6px;">${invoice.notes}</p>
+  </div>
+  ` : ''}
+
   ${hasBankDetails ? `
   <div class="divider"></div>
   <div class="bank-box">
@@ -192,7 +201,7 @@ function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null)
       ${photographer?.bank_iban ? `<div><div class="bank-label">IBAN</div><div class="bank-value bank-mono">${photographer.bank_iban}</div></div>` : ''}
       ${photographer?.bank_bic ? `<div><div class="bank-label">BIC / SWIFT</div><div class="bank-value bank-mono">${photographer.bank_bic}</div></div>` : ''}
     </div>
-    ${invoice.invoice_number ? `<div class="ref">Verwendungszweck: <strong>${invoice.invoice_number}</strong></div>` : ''}
+    ${(invoice.verwendungszweck || invoice.invoice_number) ? `<div class="ref">Verwendungszweck: <strong>${invoice.verwendungszweck || invoice.invoice_number}</strong></div>` : ''}
   </div>
   ` : ''}
 
@@ -356,6 +365,14 @@ function InvoicePreviewModal({
               )}
             </div>
 
+            {/* Anmerkungen */}
+            {invoice.notes && (
+              <div className="mb-5 px-1">
+                <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-1.5">Anmerkungen</p>
+                <p className="text-[13px] text-[#4A4A4A] whitespace-pre-wrap leading-relaxed">{invoice.notes}</p>
+              </div>
+            )}
+
             {/* Bank details */}
             {hasBankDetails && (
               <>
@@ -390,9 +407,9 @@ function InvoicePreviewModal({
                       </div>
                     )}
                   </div>
-                  {invoice.invoice_number && (
+                  {(invoice.verwendungszweck || invoice.invoice_number) && (
                     <p className="text-[11px] text-[#6B6B6B] mt-3">
-                      Verwendungszweck: <strong className="text-[#1A1A1A]">{invoice.invoice_number}</strong>
+                      Verwendungszweck: <strong className="text-[#1A1A1A]">{invoice.verwendungszweck || invoice.invoice_number}</strong>
                     </p>
                   )}
                 </div>
@@ -456,6 +473,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     amount: '',
     notes: '',
     description: '',
+    invoice_number: '',
+    verwendungszweck: '',
     due_date: '',
     include_mwst: false,
   })
@@ -556,7 +575,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     const net = parseFloat(form.amount.replace(',', '.'))
     const gross = form.include_mwst ? net * (1 + MWST_RATE) : net
     const amountCents = Math.round(gross * 100)
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`
+    const autoNumber = `INV-${Date.now().toString().slice(-6)}`
+    const invoiceNumber = form.invoice_number.trim() || autoNumber
 
     let descParts: string[] = []
     if (form.description) descParts.push(form.description)
@@ -575,6 +595,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         due_date: form.due_date || null,
         invoice_number: invoiceNumber,
         notes: form.notes || null,
+        verwendungszweck: form.verwendungszweck.trim() || null,
       })
       .select('*, project:projects(title, client:clients(full_name, email))')
       .single()
@@ -583,7 +604,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
     const newInvoice = data as Invoice
     setInvoices(prev => [newInvoice, ...prev])
-    setForm({ project_id: '', amount: '', notes: '', description: '', due_date: '', include_mwst: false })
+    setForm({ project_id: '', amount: '', notes: '', description: '', invoice_number: '', verwendungszweck: '', due_date: '', include_mwst: false })
     setShowNew(false)
     setSaving(false)
     setCreatedInvoice(newInvoice)
@@ -651,7 +672,11 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             {ti.subtitle}
           </p>
         </div>
-        <button onClick={() => setShowNew(true)}
+        <button onClick={() => {
+            const autoNum = `INV-${Date.now().toString().slice(-6)}`
+            setForm(f => ({ ...f, invoice_number: autoNum, verwendungszweck: autoNum }))
+            setShowNew(true)
+          }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
           style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
           <Plus className="w-4 h-4" />
@@ -727,7 +752,11 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
               {ti.noInvoicesDesc}
             </p>
-            <button onClick={() => setShowNew(true)}
+            <button onClick={() => {
+                const autoNum = `INV-${Date.now().toString().slice(-6)}`
+                setForm(f => ({ ...f, invoice_number: autoNum, verwendungszweck: autoNum }))
+                setShowNew(true)
+              }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
               style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}>
               <Plus className="w-4 h-4" />
@@ -1072,7 +1101,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 />
               </div>
 
-              {/* Notes */}
+              {/* Notes / Anmerkungen */}
               <div>
                 <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
                   Anmerkungen
@@ -1080,10 +1109,46 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 <textarea
                   value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Internal notes or hints for the client..."
+                  placeholder="Hinweise für den Kunden..."
                   rows={3}
                   className="input-base resize-none"
                   style={{ lineHeight: '1.5' }}
+                />
+              </div>
+
+              {/* Rechnungsnummer */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                  Rechnungsnummer
+                </label>
+                <input
+                  type="text"
+                  value={form.invoice_number}
+                  onChange={e => {
+                    const val = e.target.value
+                    setForm(f => ({
+                      ...f,
+                      invoice_number: val,
+                      // keep verwendungszweck in sync only if it matches old invoice_number
+                      verwendungszweck: f.verwendungszweck === f.invoice_number ? val : f.verwendungszweck,
+                    }))
+                  }}
+                  placeholder="INV-000000"
+                  className="input-base font-mono"
+                />
+              </div>
+
+              {/* Verwendungszweck */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                  Verwendungszweck
+                </label>
+                <input
+                  type="text"
+                  value={form.verwendungszweck}
+                  onChange={e => setForm(f => ({ ...f, verwendungszweck: e.target.value }))}
+                  placeholder={form.invoice_number || 'Rechnungsnummer als Verwendungszweck'}
+                  className="input-base"
                 />
               </div>
 

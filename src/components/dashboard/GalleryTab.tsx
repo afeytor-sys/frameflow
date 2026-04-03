@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, ChevronRight, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, LayoutGrid, List } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, LayoutGrid, List } from 'lucide-react'
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
@@ -697,7 +697,6 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
               { icon: Images, label: 'Fotos', value: photos.length, color: 'var(--text-muted)' },
-              { icon: Eye, label: 'Aufrufe', value: gallery.view_count, color: 'var(--text-muted)' },
               { icon: Download, label: 'Foto-DL', value: gallery.photo_download_count ?? 0, color: '#3B82F6', title: 'Einzelfoto-Downloads' },
               { icon: Download, label: 'Galerie-DL', value: gallery.download_count, color: '#8B5CF6', title: 'Galerie-Downloads (ZIP)' },
               { icon: Heart, label: 'Favoriten', value: photos.filter(p => p.is_favorite).length, color: '#EF4444' },
@@ -1189,21 +1188,16 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         <div className="space-y-6">
           {sections.map(section => {
             const sectionPhotos = photos.filter(p => p.section_id === section.id)
-            const isCollapsed = collapsedSections.has(section.id)
             return (
               <div key={section.id}>
                 <div className="flex items-center gap-2 mb-3">
-                  <button onClick={() => toggleCollapseSection(section.id)} className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    {section.title}
-                  </button>
+                  <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{section.title}</span>
                   <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{sectionPhotos.length}</span>
                   <button onClick={() => { setUploadSectionId(section.id); setShowUploader(true) }} className="ml-auto flex items-center gap-1 text-[11px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
                     <Plus className="w-3 h-3" />Fotos
                   </button>
                 </div>
-                {!isCollapsed && (
-                  sectionPhotos.length === 0 ? (
+                {sectionPhotos.length === 0 ? (
                     <div className="text-center py-6 rounded-lg" style={{ border: '2px dashed var(--border-color)' }}>
                       <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Keine Fotos in diesem Set</p>
                     </div>
@@ -1238,7 +1232,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       </SortableContext>
                     </DndContext>
                   )
-                )}
+                }
               </div>
             )
           })}

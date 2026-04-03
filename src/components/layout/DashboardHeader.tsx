@@ -47,20 +47,19 @@ export default function DashboardHeader({ photographer }: Props) {
     setLangOpen(o => !o)
   }
 
-  const switchLanguage = async (lang: string) => {
+  const switchLanguage = (lang: string) => {
     document.cookie = `locale=${lang}; path=/; max-age=31536000; SameSite=Lax`
     setCurrentLocale(lang)
     setLangOpen(false)
 
+    // Fire-and-forget — never block the reload
     try {
       const supabase = createClient()
-      await supabase
+      void supabase
         .from('photographers')
         .update({ language: lang, locale: lang })
         .eq('id', photographer.id)
-    } catch {
-      // non-critical
-    }
+    } catch { /* non-critical */ }
 
     window.location.reload()
   }

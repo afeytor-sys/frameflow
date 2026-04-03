@@ -13,14 +13,14 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Support both custom slugs and raw client_token UUIDs
   let { data: project } = await supabase
     .from('projects')
-    .select('id, title, photographer_id, shoot_date, location, photographer:photographers(studio_name, full_name, logo_url), client:clients(full_name)')
+    .select('id, title, photographer_id, shoot_date, location, photographer:photographers(studio_name, full_name, logo_url), client:clients(full_name, email)')
     .eq('custom_slug', token)
     .single()
 
   if (!project) {
     const { data: byToken } = await supabase
       .from('projects')
-      .select('id, title, photographer_id, shoot_date, location, photographer:photographers(studio_name, full_name, logo_url), client:clients(full_name)')
+      .select('id, title, photographer_id, shoot_date, location, photographer:photographers(studio_name, full_name, logo_url), client:clients(full_name, email)')
       .eq('client_token', token)
       .single()
     project = byToken
@@ -29,7 +29,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   if (!project) notFound()
 
   const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string; logo_url: string | null } | null
-  const client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string } | null
+  const client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string; email?: string | null } | null
 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
@@ -188,6 +188,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               projectId={project!.id}
               galleryTitle={gallery!.title || project!.title || 'Galerie'}
               clientName={client?.full_name || ''}
+              clientEmail={client?.email ?? undefined}
               initialPhotos={sortedPhotos}
               initialSections={gallerySections ?? []}
               downloadEnabled={gallery!.download_enabled}

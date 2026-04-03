@@ -39,6 +39,7 @@ interface Props {
   projectId: string
   galleryTitle: string
   clientName: string
+  clientEmail?: string
   initialPhotos: Photo[]
   initialSections?: Section[]
   downloadEnabled: boolean
@@ -133,6 +134,7 @@ export default function GalleryViewer({
   projectId,
   galleryTitle,
   clientName,
+  clientEmail,
   initialPhotos,
   initialSections = [],
   downloadEnabled,
@@ -159,17 +161,11 @@ export default function GalleryViewer({
   const renameInputRef                      = useRef<HTMLInputElement>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [lightboxLoaded, setLightboxLoaded] = useState(false)
-  // ── Multi-part download state ────────────────────────────────────
-  interface DownloadPart { name: string; url: string; photo_count: number; part_number: number; total_parts: number }
-  type DownloadStatus = 'idle' | 'pending' | 'processing' | 'ready' | 'failed'
-  const [dlStatus, setDlStatus]         = useState<DownloadStatus>('idle')
-  const [dlJobId, setDlJobId]           = useState<string | null>(null)
-  const [dlParts, setDlParts]           = useState<DownloadPart[]>([])
-  const [dlProcessed, setDlProcessed]   = useState(0)
-  const [dlTotal, setDlTotal]           = useState(0)
-  const [dlError, setDlError]           = useState<string | null>(null)
-  const dlPollRef                       = useRef<ReturnType<typeof setInterval> | null>(null)
-  const downloadPending = dlStatus !== 'idle' && dlStatus !== 'ready' && dlStatus !== 'failed'
+  // ── Download (email-based async) ────────────────────────────────
+  type DlState = 'idle' | 'asking-email' | 'submitting' | 'sent' | 'error'
+  const [dlState, setDlState]   = useState<DlState>('idle')
+  const [dlEmail, setDlEmail]   = useState(clientEmail ?? '')
+  const [dlError, setDlError]   = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
   const [showTagFilters, setShowTagFilters] = useState(false)
@@ -514,72 +510,34 @@ export default function GalleryViewer({
     } catch { toast.error('Download fehlgeschlagen') }
   }
 
-  const stopPoll = () => {
-    if (dlPollRef.current) { clearInterval(dlPollRef.current); dlPollRef.current = null }
-  }
-
-  const pollStatus = (jobId: string) => {
-    stopPoll()
-    dlPollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/galleries/${galleryId}/download/status/${jobId}`)
-        const json = await res.json()
-        if (json.status === 'ready') {
-          stopPoll()
-          setDlParts(json.parts ?? [])
-          setDlProcessed(json.processedParts ?? 0)
-          setDlStatus('ready')
-          try { supabase.rpc('increment_download_count', { gallery_id: galleryId }) } catch {}
-          notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
-        } else if (json.status === 'failed' || json.status === 'expired') {
-          stopPoll()
-          setDlError(json.error ?? 'Vorbereitung fehlgeschlagen')
-          setDlStatus('failed')
-        } else {
-          setDlProcessed(json.processedParts ?? 0)
-          setDlTotal(json.parts?.length > 0 ? json.parts[json.parts.length - 1]?.total_parts ?? 0 : 0)
-          setDlStatus(json.status === 'processing' ? 'processing' : 'pending')
-        }
-      } catch { /* network hiccup — keep polling */ }
-    }, 2500)
-  }
-
-  const downloadAll = async () => {
-    if (downloadPending || photos.length === 0) return
-    setDlStatus('pending')
+  const submitDownloadRequest = async (email: string) => {
+    setDlState('submitting')
     setDlError(null)
-    setDlParts([])
-    setDlProcessed(0)
     try {
-      const res = await fetch(`/api/galleries/${galleryId}/download/prepare`, { method: 'POST' })
+      const res = await fetch(`/api/galleries/${galleryId}/download/prepare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Fehler')
-      setDlJobId(json.jobId)
-      if (json.reused) {
-        // Job already exists — fetch status once then start polling
-        const statusRes = await fetch(`/api/galleries/${galleryId}/download/status/${json.jobId}`)
-        const statusJson = await statusRes.json()
-        if (statusJson.status === 'ready') {
-          setDlParts(statusJson.parts ?? [])
-          setDlStatus('ready')
-          return
-        }
-      }
-      pollStatus(json.jobId)
+      setDlState('sent')
+      notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
     } catch (err) {
       setDlError(err instanceof Error ? err.message : 'Fehler')
-      setDlStatus('failed')
+      setDlState('error')
     }
   }
 
-  const triggerPartDownload = (url: string, name: string) => {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    a.style.display = 'none'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+  const downloadAll = () => {
+    if (photos.length === 0) return
+    if (dlState === 'sent') return
+    // If we already have a valid email, skip the modal
+    if (dlEmail && dlEmail.includes('@')) {
+      submitDownloadRequest(dlEmail)
+    } else {
+      setDlState('asking-email')
+    }
   }
 
   // ── Lightbox ─────────────────────────────────────────────────────
@@ -752,6 +710,54 @@ export default function GalleryViewer({
                 style={{ background: '#F5F4F1', color: '#7A7670' }}
               >
                 Überspringen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Download email modal ── */}
+      {(dlState === 'asking-email' || dlState === 'submitting' || dlState === 'error') && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 pt-6 pb-2">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ background: '#F5F4F1' }}>
+                <Download className="w-6 h-6 text-[#111110]" />
+              </div>
+              <h3 className="text-[17px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
+                Fotos herunterladen
+              </h3>
+              <p className="text-[13px] text-[#7A7670] mb-5">
+                Wir schicken dir einen Download-Link per E-Mail, sobald deine Fotos fertig verpackt sind.
+              </p>
+              <input
+                autoFocus
+                type="email"
+                value={dlEmail}
+                onChange={e => setDlEmail(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && dlEmail.includes('@')) submitDownloadRequest(dlEmail) }}
+                placeholder="deine@email.de"
+                className="w-full px-4 py-3 text-[14px] border border-[#E8E4DC] rounded-xl focus:outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/15 transition-all"
+              />
+              {dlError && (
+                <p className="text-[12px] text-red-500 mt-2">{dlError}</p>
+              )}
+            </div>
+            <div className="flex gap-2 px-6 py-4">
+              <button
+                onClick={() => submitDownloadRequest(dlEmail)}
+                disabled={dlState === 'submitting' || !dlEmail.includes('@')}
+                className="flex-1 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50 transition-all"
+                style={{ background: '#111110' }}
+              >
+                {dlState === 'submitting' ? 'Wird gesendet…' : 'Link anfordern'}
+              </button>
+              <button
+                onClick={() => { setDlState('idle'); setDlError(null) }}
+                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                style={{ background: '#F5F4F1', color: '#7A7670' }}
+              >
+                Abbrechen
               </button>
             </div>
           </div>
@@ -1096,84 +1102,19 @@ export default function GalleryViewer({
 
           {/* Download all */}
           {downloadEnabled && photos.length > 0 && (
-            <div className="relative">
-              {/* Trigger button */}
-              <button
-                onClick={dlStatus === 'ready' ? undefined : downloadAll}
-                disabled={downloadPending}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
-                style={{ background: '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
-              >
-                {dlStatus === 'pending' || dlStatus === 'processing'
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Wird vorbereitet…</span></>
-                  : dlStatus === 'ready'
-                    ? <><Download className="w-4 h-4" /><span>Download bereit</span></>
-                    : dlStatus === 'failed'
-                      ? <><Download className="w-4 h-4" /><span>Erneut versuchen</span></>
-                      : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
-                }
-              </button>
-
-              {/* Processing progress bar */}
-              {(dlStatus === 'pending' || dlStatus === 'processing') && dlTotal > 1 && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 px-1">
-                  <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${dlTotal > 0 ? Math.round((dlProcessed / dlTotal) * 100) : 0}%`, background: '#C4A47C' }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-center mt-0.5 text-white/50">
-                    {dlProcessed} / {dlTotal} Teile
-                  </p>
-                </div>
-              )}
-
-              {/* Ready: download parts panel */}
-              {dlStatus === 'ready' && dlParts.length > 0 && (
-                <div
-                  className="absolute top-full right-0 mt-2 rounded-xl overflow-hidden shadow-2xl"
-                  style={{ background: '#111110', border: '1px solid rgba(255,255,255,0.12)', minWidth: '240px', zIndex: 50 }}
-                >
-                  <div className="px-4 py-2.5 border-b border-white/10">
-                    <p className="text-[12px] font-bold text-white">Download bereit</p>
-                    <p className="text-[10px] text-white/40 mt-0.5">Links sind 24 Stunden gültig</p>
-                  </div>
-                  <div className="p-2 space-y-1">
-                    {dlParts.map((part) => (
-                      <button
-                        key={part.part_number}
-                        onClick={() => triggerPartDownload(part.url, part.name)}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all hover:bg-white/8"
-                      >
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,164,124,0.15)' }}>
-                          <Download className="w-3.5 h-3.5" style={{ color: '#C4A47C' }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-semibold text-white truncate">{part.name}</p>
-                          <p className="text-[10px] text-white/40">{part.photo_count} Fotos</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="px-3 pb-2">
-                    <button
-                      onClick={() => { setDlStatus('idle'); setDlParts([]); setDlJobId(null) }}
-                      className="w-full text-[10px] text-white/30 hover:text-white/60 py-1 transition-colors"
-                    >
-                      Schließen
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Error */}
-              {dlStatus === 'failed' && dlError && (
-                <div className="absolute top-full right-0 mt-2 rounded-xl px-3 py-2.5 text-[11px] text-white/70 shadow-xl" style={{ background: '#111110', border: '1px solid rgba(255,80,80,0.25)', minWidth: '200px', zIndex: 50 }}>
-                  {dlError}
-                </div>
-              )}
-            </div>
+            <button
+              onClick={downloadAll}
+              disabled={dlState === 'submitting'}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
+              style={{ background: dlState === 'sent' ? '#2A7A5A' : '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
+            >
+              {dlState === 'submitting'
+                ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Wird gesendet…</span></>
+                : dlState === 'sent'
+                  ? <><Check className="w-4 h-4" /><span>E-Mail unterwegs</span></>
+                  : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
+              }
+            </button>
           )}
         </div>
       </div>

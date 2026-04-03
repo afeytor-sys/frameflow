@@ -19,21 +19,21 @@
 import { PassThrough } from 'node:stream'
 import { Zip, ZipPassThrough } from 'fflate'
 import { Upload } from '@aws-sdk/lib-storage'
-import { GetObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { r2, R2_BUCKET } from '@/lib/r2'
 import type { BatchPhoto } from './zipBatcher'
 
 const PART_SIZE = 10 * 1024 * 1024  // 10 MB per multipart part
 const STREAM_HWM  = 64 * 1024 * 1024 // 64 MB PassThrough high-water mark
 
+/**
+ * Streams a ZIP of photos to R2 and returns the R2 object key.
+ * The caller is responsible for generating presigned download URLs from the key.
+ */
 export async function streamZipToR2(
   photos: BatchPhoto[],
   key: string,
   filename: string,
 ): Promise<string> {
-  // Large high-water mark prevents back-pressure stalls when fflate's
-  // synchronous callback writes chunks faster than the upload can consume.
   const passThrough = new PassThrough({ highWaterMark: STREAM_HWM })
 
   const upload = new Upload({
@@ -46,29 +46,17 @@ export async function streamZipToR2(
       ContentDisposition: `attachment; filename="${filename}"`,
     },
     partSize: PART_SIZE,
-    queueSize: 2,          // 2 concurrent part uploads — enough without saturating
+    queueSize: 2,
     leavePartsOnError: false,
   })
 
-  // Run ZIP creation and upload concurrently.
-  // writeZip ends passThrough when done; the Upload sees EOF and completes.
   await Promise.all([
     writeZipToStream(photos, passThrough),
     upload.done(),
   ])
 
-  // Return a presigned GET URL so the browser downloads directly from R2.
-  // Content-Disposition:attachment is embedded in the presigned URL itself.
-  return getSignedUrl(
-    r2,
-    new GetObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      ResponseContentType: 'application/zip',
-      ResponseContentDisposition: `attachment; filename="${encodeURIComponent(filename)}"`,
-    }),
-    { expiresIn: 24 * 3600 }, // 24 h
-  )
+  // Return the R2 key — presigned URLs are generated on demand by the download page.
+  return key
 }
 
 // ---------------------------------------------------------------------------
