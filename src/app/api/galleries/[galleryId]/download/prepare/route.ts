@@ -2,8 +2,13 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendDownloadReadyEmail } from '@/lib/downloadEmail'
+import { waitUntil } from '@vercel/functions'
 
 export const maxDuration = 10
+
+// A job is considered "stuck" if it has been pending/processing for more than 8 minutes
+// without reaching 'ready'. This prevents zombie jobs from blocking new requests.
+const STUCK_THRESHOLD_MS = 8 * 60 * 1000
 
 export async function POST(
   req: NextRequest,
@@ -17,8 +22,6 @@ export async function POST(
     return Response.json({ error: 'Valid email required' }, { status: 400 })
   }
 
-  // Gallery read uses regular client — public SELECT via RLS is fine.
-  // All job writes go through service client to bypass RLS.
   const supabase = await createClient()
   const service = createServiceClient()
 
@@ -33,43 +36,43 @@ export async function POST(
 
   const downloadToken = crypto.randomUUID()
   const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const stuckCutoff = new Date(Date.now() - STUCK_THRESHOLD_MS).toISOString()
 
-  // Reuse an existing valid (non-expired) job — avoids re-zipping the same gallery.
+  // Only reuse a READY job, or a pending/processing job that is recent (< 8 min old).
+  // Stuck jobs (old pending/processing) are ignored so a fresh job + worker call is created.
   const { data: existingJob } = await service
     .from('gallery_download_jobs')
     .select('id, status, parts')
     .eq('gallery_id', galleryId)
     .in('status', ['pending', 'processing', 'ready'])
     .gt('expires_at', new Date().toISOString())
+    .gt('created_at', stuckCutoff)   // ignore jobs older than 8 min that never finished
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
   if (existingJob) {
-    // Stamp the new email + fresh token so the new recipient gets their own link.
     await service
       .from('gallery_download_jobs')
       .update({ email, download_token: downloadToken, token_expires_at: tokenExpiresAt })
       .eq('id', existingJob.id)
 
     if (existingJob.status === 'ready') {
-      // ZIPs already exist — send email immediately (fire-and-forget).
       const partCount = Array.isArray(existingJob.parts) ? existingJob.parts.length : 1
-      void sendDownloadReadyEmail(galleryId, email, downloadToken, partCount).catch(console.error)
+      waitUntil(sendDownloadReadyEmail(galleryId, email, downloadToken, partCount).catch(console.error))
     }
-    // If pending/processing — worker will pick up the updated email + token from DB when done.
+    // If pending/processing and recent — worker is still running, it will send email when done.
 
     return Response.json({ jobId: existingJob.id, reused: true })
   }
 
-  // No valid job — create one.
-  const expiresAt = tokenExpiresAt
+  // Create a fresh job
   const { data: job, error: insertErr } = await service
     .from('gallery_download_jobs')
     .insert({
       gallery_id: galleryId,
       status: 'pending',
-      expires_at: expiresAt,
+      expires_at: tokenExpiresAt,
       email,
       download_token: downloadToken,
       token_expires_at: tokenExpiresAt,
@@ -86,14 +89,17 @@ export async function POST(
     process.env.NEXT_PUBLIC_APP_URL ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-  fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-internal-token': process.env.INTERNAL_TOKEN ?? '',
-    },
-    body: JSON.stringify({ jobId: job.id }),
-  }).catch(() => {})
+  // waitUntil guarantees the fetch is sent before Vercel terminates this function.
+  waitUntil(
+    fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-token': process.env.INTERNAL_TOKEN ?? '',
+      },
+      body: JSON.stringify({ jobId: job.id }),
+    }).catch(err => console.error('[prepare] worker trigger failed:', err))
+  )
 
   return Response.json({ jobId: job.id })
 }
