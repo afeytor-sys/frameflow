@@ -9,10 +9,9 @@
  *   2. Process the batch at index `batchIndex` — stream photos → ZIP → R2
  *   3. Store the result key in the job record
  *   4. If more batches remain, fire a new invocation for batchIndex + 1
- *   5. Last batch sends the "download ready" email
- *
- * Each batch is ≤ BATCH_PHOTOS photos, small enough to finish in under 10s
- * on Vercel Hobby for typical photo sizes.
+ *   5. Last batch marks job 'ready', then sends email via waitUntil
+ *      (waitUntil keeps the function alive after Response is returned,
+ *      so the 10s Hobby limit does not kill the email send)
  */
 
 import { NextRequest } from 'next/server'
@@ -21,11 +20,9 @@ import { streamZipToR2 } from '@/lib/zipStreamUpload'
 import { sendDownloadReadyEmail } from '@/lib/downloadEmail'
 import { waitUntil } from '@vercel/functions'
 
-export const maxDuration = 300 // capped at 10s on Hobby, 300s on Pro
+export const maxDuration = 300
 export const runtime = 'nodejs'
 
-// Max photos per batch invocation — keep small enough to finish in < 9s on Hobby.
-// Each photo fetch+stream takes ~0.2–1s depending on size and connection.
 const BATCH_PHOTOS = 25
 
 interface DownloadPart {
@@ -36,12 +33,67 @@ interface DownloadPart {
   total_parts: number
 }
 
+async function triggerNextBatch(base: string, galleryId: string, jobId: string, nextIndex: number) {
+  const res = await fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-token': process.env.INTERNAL_TOKEN ?? '',
+    },
+    body: JSON.stringify({ jobId, batchIndex: nextIndex }),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    console.error(`[worker] next-batch ${nextIndex} trigger failed: ${res.status} ${text}`)
+  } else {
+    console.log(`[worker] next-batch ${nextIndex} triggered OK`)
+  }
+}
+
+async function sendEmailOnce(
+  supabase: ReturnType<typeof createServiceClient>,
+  galleryId: string,
+  jobId: string,
+  email: string,
+  downloadToken: string,
+  partCount: number,
+) {
+  // Guard: only send if email_sent_at is still null (prevent duplicates on retries)
+  const { data: check } = await supabase
+    .from('gallery_download_jobs')
+    .select('email_sent_at')
+    .eq('id', jobId)
+    .single()
+
+  if (check?.email_sent_at) {
+    console.log(`[worker] email already sent for job ${jobId} at ${check.email_sent_at} — skipping`)
+    return
+  }
+
+  console.log(`[worker] sending download-ready email to ${email} for job ${jobId}`)
+  try {
+    await sendDownloadReadyEmail(galleryId, email, downloadToken, partCount)
+
+    await supabase
+      .from('gallery_download_jobs')
+      .update({ email_sent_at: new Date().toISOString() })
+      .eq('id', jobId)
+
+    console.log(`[worker] email sent OK for job ${jobId}`)
+  } catch (err) {
+    console.error(`[worker] email send FAILED for job ${jobId}:`, err)
+    // Do not throw — a failed email should not mark the job as failed.
+    // The ZIP is ready; user can request again if needed.
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ galleryId: string }> },
 ) {
   const token = req.headers.get('x-internal-token')
   if (!token || token !== process.env.INTERNAL_TOKEN) {
+    console.error('[worker] Unauthorized — INTERNAL_TOKEN mismatch')
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -49,7 +101,8 @@ export async function POST(
   const { jobId, batchIndex = 0 } = (await req.json()) as { jobId: string; batchIndex?: number }
   const supabase = createServiceClient()
 
-  // Mark as processing on first batch only
+  console.log(`[worker] starting batchIndex=${batchIndex} jobId=${jobId} galleryId=${galleryId}`)
+
   if (batchIndex === 0) {
     await supabase
       .from('gallery_download_jobs')
@@ -58,7 +111,6 @@ export async function POST(
   }
 
   try {
-    // Load all photos + job metadata
     const [{ data: gallery }, { data: allPhotos }, { data: job }] = await Promise.all([
       supabase.from('galleries').select('title').eq('id', galleryId).single(),
       supabase
@@ -75,18 +127,20 @@ export async function POST(
 
     if (!allPhotos?.length) throw new Error('No photos found for this gallery')
 
+    console.log(`[worker] ${allPhotos.length} total photos, email=${job?.email ?? 'none'}`)
+
     const baseTitle =
       (gallery?.title ?? 'gallery').replace(/[^\w\s\-_.äöüÄÖÜß]/g, '').trim() || 'gallery'
 
-    // Split all photos into fixed-size batches
     const batches: typeof allPhotos[] = []
     for (let i = 0; i < allPhotos.length; i += BATCH_PHOTOS) {
       batches.push(allPhotos.slice(i, i + BATCH_PHOTOS))
     }
     const totalBatches = batches.length
 
+    console.log(`[worker] totalBatches=${totalBatches} batchIndex=${batchIndex}`)
+
     if (batchIndex >= totalBatches) {
-      // Shouldn't happen, but guard anyway
       await supabase
         .from('gallery_download_jobs')
         .update({ status: 'ready' })
@@ -101,23 +155,20 @@ export async function POST(
         ? `${baseTitle}.zip`
         : `${baseTitle} - Teil ${partNumber} von ${totalBatches}.zip`
 
-    const timestamp = job?.parts ?
-      // Reuse same timestamp prefix so all parts have a consistent key prefix
-      (() => {
-        const existingParts = Array.isArray(job.parts) ? job.parts as DownloadPart[] : []
-        if (existingParts.length > 0) {
+    const existingParts: DownloadPart[] = Array.isArray(job?.parts) ? job.parts as DownloadPart[] : []
+    const timestamp = existingParts.length > 0
+      ? (() => {
           const match = existingParts[0].key.match(/gallery-downloads\/[^/]+\/(\d+)-/)
           return match ? match[1] : String(Date.now())
-        }
-        return String(Date.now())
-      })()
+        })()
       : String(Date.now())
 
     const key = `gallery-downloads/${galleryId}/${timestamp}-part${partNumber}.zip`
-    const uploadedKey = await streamZipToR2(batch, key, partName)
+    console.log(`[worker] uploading ZIP part ${partNumber}/${totalBatches} key=${key}`)
 
-    // Merge new part into existing parts array
-    const existingParts: DownloadPart[] = Array.isArray(job?.parts) ? job.parts as DownloadPart[] : []
+    const uploadedKey = await streamZipToR2(batch, key, partName)
+    console.log(`[worker] ZIP part ${partNumber} uploaded OK`)
+
     const newPart: DownloadPart = {
       name: partName,
       key: uploadedKey,
@@ -125,7 +176,6 @@ export async function POST(
       part_number: partNumber,
       total_parts: totalBatches,
     }
-    // Replace if re-running same batch index, otherwise append
     const updatedParts = [
       ...existingParts.filter(p => p.part_number !== partNumber),
       newPart,
@@ -134,28 +184,23 @@ export async function POST(
     const isLastBatch = batchIndex === totalBatches - 1
 
     if (isLastBatch) {
-      // All done — mark ready and send email
+      // Mark ready BEFORE sending email so the job is complete even if email fails
       await supabase
         .from('gallery_download_jobs')
         .update({ status: 'ready', parts: updatedParts, processed_parts: totalBatches })
         .eq('id', jobId)
 
-      const { data: finalJob } = await supabase
-        .from('gallery_download_jobs')
-        .select('email, download_token')
-        .eq('id', jobId)
-        .single()
+      console.log(`[worker] job ${jobId} marked ready — scheduling email via waitUntil`)
 
-      const email = finalJob?.email ?? job?.email
-      const downloadToken = finalJob?.download_token ?? job?.download_token
+      const email = job?.email ?? ''
+      const downloadToken = job?.download_token ?? ''
 
-      if (email && downloadToken) {
-        await sendDownloadReadyEmail(galleryId, email, downloadToken, updatedParts.length)
-      } else {
-        console.warn('[worker] No email/token on job', jobId, '— skipping email')
-      }
+      // waitUntil keeps the Vercel function alive after we return the Response,
+      // so the 10s Hobby limit does not kill the email send.
+      waitUntil(
+        sendEmailOnce(supabase, galleryId, jobId, email, downloadToken, updatedParts.length)
+      )
     } else {
-      // Save progress and trigger next batch
       await supabase
         .from('gallery_download_jobs')
         .update({ parts: updatedParts, processed_parts: partNumber })
@@ -165,23 +210,13 @@ export async function POST(
         process.env.NEXT_PUBLIC_APP_URL ??
         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-      // waitUntil ensures the next-batch fetch is sent before this function terminates
-      waitUntil(
-        fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-internal-token': process.env.INTERNAL_TOKEN ?? '',
-          },
-          body: JSON.stringify({ jobId, batchIndex: batchIndex + 1 }),
-        }).catch(err => console.error('[worker] next-batch trigger failed:', err))
-      )
+      waitUntil(triggerNextBatch(base, galleryId, jobId, batchIndex + 1))
     }
 
     return Response.json({ ok: true, batchIndex, totalBatches })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    console.error('[worker] error at batchIndex', batchIndex, ':', message)
+    console.error(`[worker] FATAL error at batchIndex=${batchIndex}:`, message)
     await supabase
       .from('gallery_download_jobs')
       .update({ status: 'failed', error: `Batch ${batchIndex + 1}: ${message}` })
