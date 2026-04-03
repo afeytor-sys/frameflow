@@ -58,13 +58,14 @@ export async function sendDownloadReadyEmail(
     ? `<p style="margin:0 0 16px;font-size:13px;color:#7A7670;line-height:1.6;">Deine Fotos wurden in <strong style="color:#111110;">${partCount} ZIP-Dateien</strong> aufgeteilt. Du kannst alle Teile auf der Download-Seite herunterladen.</p>`
     : ''
 
-  await resend.emails.send({
+  console.log(`[downloadEmail] sending to=${email} gallery=${galleryId} token=${downloadToken.slice(0, 8)}...`)
+  console.log(`[downloadEmail] from="${studioName}" replyTo=${replyEmail ?? 'none'} partCount=${partCount}`)
+
+  const sendParams: Parameters<typeof resend.emails.send>[0] = {
     from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-    replyTo: replyEmail,
     to: email,
     subject: `Download bereit: ${galleryTitle}`,
-    html: `
-<!DOCTYPE html>
+    html: `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
@@ -154,5 +155,17 @@ export async function sendDownloadReadyEmail(
 </body>
 </html>
     `,
-  })
+  }
+
+  // Only add replyTo if we actually have an address — passing undefined breaks Resend
+  if (replyEmail) sendParams.replyTo = replyEmail
+
+  const { data: resendData, error: resendError } = await resend.emails.send(sendParams)
+
+  if (resendError) {
+    console.error(`[downloadEmail] Resend API error:`, JSON.stringify(resendError))
+    throw new Error(`Resend error: ${JSON.stringify(resendError)}`)
+  }
+
+  console.log(`[downloadEmail] sent OK — id=${resendData?.id}`)
 }

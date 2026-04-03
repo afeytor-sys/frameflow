@@ -58,21 +58,35 @@ async function sendEmailOnce(
   downloadToken: string,
   partCount: number,
 ) {
-  // Guard: only send if email_sent_at is still null (prevent duplicates on retries)
-  const { data: check } = await supabase
-    .from('gallery_download_jobs')
-    .select('email_sent_at')
-    .eq('id', jobId)
-    .single()
-
-  if (check?.email_sent_at) {
-    console.log(`[worker] email already sent for job ${jobId} at ${check.email_sent_at} — skipping`)
+  if (!email || !email.includes('@')) {
+    console.error(`[worker] sendEmailOnce: empty/invalid email on job ${jobId} — cannot send`)
+    return
+  }
+  if (!downloadToken) {
+    console.error(`[worker] sendEmailOnce: missing download_token on job ${jobId} — cannot send`)
     return
   }
 
-  console.log(`[worker] sending download-ready email to ${email} for job ${jobId}`)
+  // Re-read fresh from DB to get latest email/token (may have been updated by /prepare after job started)
+  const { data: freshJob } = await supabase
+    .from('gallery_download_jobs')
+    .select('email, download_token, email_sent_at')
+    .eq('id', jobId)
+    .single()
+
+  const finalEmail = freshJob?.email || email
+  const finalToken = freshJob?.download_token || downloadToken
+
+  console.log(`[worker] sendEmailOnce: job=${jobId} email=${finalEmail} token=${finalToken.slice(0, 8)}...`)
+
+  if (freshJob?.email_sent_at) {
+    console.log(`[worker] email already sent for job ${jobId} at ${freshJob.email_sent_at} — skipping`)
+    return
+  }
+
+  console.log(`[worker] sending download-ready email to ${finalEmail} for job ${jobId}`)
   try {
-    await sendDownloadReadyEmail(galleryId, email, downloadToken, partCount)
+    await sendDownloadReadyEmail(galleryId, finalEmail, finalToken, partCount)
 
     await supabase
       .from('gallery_download_jobs')
@@ -82,8 +96,7 @@ async function sendEmailOnce(
     console.log(`[worker] email sent OK for job ${jobId}`)
   } catch (err) {
     console.error(`[worker] email send FAILED for job ${jobId}:`, err)
-    // Do not throw — a failed email should not mark the job as failed.
-    // The ZIP is ready; user can request again if needed.
+    // Do not throw — ZIP is ready, email failure should not mark job failed.
   }
 }
 
