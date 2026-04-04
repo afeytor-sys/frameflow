@@ -32,9 +32,11 @@ export default function MoodBoard({ projectId, token }: Props) {
   // Photo tab state
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [uploadCaption, setUploadCaption] = useState('')
-  const [preview, setPreview] = useState<{ file: File; objectUrl: string } | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
+  const [previews, setPreviews] = useState<{ file: File; objectUrl: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const MAX_PHOTOS = 15
 
   const [lightbox, setLightbox] = useState<string | null>(null)
 
@@ -47,10 +49,10 @@ export default function MoodBoard({ projectId, token }: Props) {
     load()
   }, [projectId, token])
 
-  // Clean up object URL on unmount / change
+  // Clean up object URLs on unmount
   useEffect(() => {
-    return () => { if (preview) URL.revokeObjectURL(preview.objectUrl) }
-  }, [preview])
+    return () => { previews.forEach(p => URL.revokeObjectURL(p.objectUrl)) }
+  }, [previews])
 
   const isImageUrl = (url: string) =>
     /\.(jpg|jpeg|png|gif|webp|avif|svg)(\?.*)?$/i.test(url) ||
@@ -85,68 +87,65 @@ export default function MoodBoard({ projectId, token }: Props) {
   }
 
   // ── Photo upload ────────────────────────────────────────────────────────────
-  const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) return
-    if (preview) URL.revokeObjectURL(preview.objectUrl)
-    setPreview({ file, objectUrl: URL.createObjectURL(file) })
-  }, [preview])
+  const handleFiles = useCallback((files: FileList | File[]) => {
+    const images = Array.from(files).filter(f => f.type.startsWith('image/'))
+    setPreviews(prev => {
+      const remaining = MAX_PHOTOS - prev.length
+      const toAdd = images.slice(0, remaining).map(file => ({ file, objectUrl: URL.createObjectURL(file) }))
+      return [...prev, ...toAdd]
+    })
+  }, [])
+
+  const removePreview = (idx: number) => {
+    setPreviews(prev => {
+      URL.revokeObjectURL(prev[idx].objectUrl)
+      return prev.filter((_, i) => i !== idx)
+    })
+  }
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files)
   }
 
-  const uploadPhoto = async () => {
-    if (!preview || uploading) return
+  const uploadPhotos = async () => {
+    if (!previews.length || uploading) return
     setUploading(true)
-    try {
-      // 1. Get presigned URL
-      const presignRes = await fetch('/api/moodboard/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_id: projectId,
-          token,
-          filename: preview.file.name,
-          contentType: preview.file.type,
-        }),
-      })
-      if (!presignRes.ok) throw new Error('Presign failed')
-      const { presignedUrl, publicUrl } = await presignRes.json()
+    setUploadProgress({ done: 0, total: previews.length })
+    const uploaded: MoodBoardItem[] = []
 
-      // 2. Upload directly to R2
-      const putRes = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: preview.file,
-        headers: { 'Content-Type': preview.file.type },
-      })
-      if (!putRes.ok) throw new Error('Upload failed')
+    for (let i = 0; i < previews.length; i++) {
+      const { file, objectUrl } = previews[i]
+      try {
+        const presignRes = await fetch('/api/moodboard/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_id: projectId, token, filename: file.name, contentType: file.type }),
+        })
+        if (!presignRes.ok) continue
+        const { presignedUrl, publicUrl } = await presignRes.json()
 
-      // 3. Save to moodboard_items
-      const saveRes = await fetch('/api/moodboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_id: projectId,
-          token,
-          type: 'image',
-          url: publicUrl,
-          caption: uploadCaption.trim() || null,
-        }),
-      })
-      if (!saveRes.ok) throw new Error('Save failed')
+        const putRes = await fetch(presignedUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+        if (!putRes.ok) continue
 
-      const newItem = await saveRes.json()
-      setItems(prev => [...prev, newItem])
-      URL.revokeObjectURL(preview.objectUrl)
-      setPreview(null)
-      setUploadCaption('')
-      setShowAdd(false)
-    } catch (err) {
-      console.error('[moodboard upload]', err)
+        const saveRes = await fetch('/api/moodboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project_id: projectId, token, type: 'image', url: publicUrl, caption: null }),
+        })
+        if (saveRes.ok) uploaded.push(await saveRes.json())
+      } catch (err) {
+        console.error('[moodboard upload]', err)
+      }
+      URL.revokeObjectURL(objectUrl)
+      setUploadProgress({ done: i + 1, total: previews.length })
     }
+
+    setItems(prev => [...prev, ...uploaded])
+    setPreviews([])
+    setUploadProgress(null)
+    setShowAdd(false)
     setUploading(false)
   }
 
@@ -154,9 +153,8 @@ export default function MoodBoard({ projectId, token }: Props) {
     setShowAdd(false)
     setInputUrl('')
     setInputCaption('')
-    setUploadCaption('')
-    if (preview) URL.revokeObjectURL(preview.objectUrl)
-    setPreview(null)
+    previews.forEach(p => URL.revokeObjectURL(p.objectUrl))
+    setPreviews([])
   }
 
   if (loading) return null
@@ -204,56 +202,69 @@ export default function MoodBoard({ projectId, token }: Props) {
           <div className="p-4 space-y-3">
             {tab === 'photo' ? (
               <>
-                {/* Drop zone / preview */}
-                {preview ? (
-                  <div className="relative rounded-xl overflow-hidden aspect-video bg-[#F0EEE9]">
-                    <img src={preview.objectUrl} alt="preview" className="w-full h-full object-contain" />
-                    <button
-                      onClick={() => { URL.revokeObjectURL(preview.objectUrl); setPreview(null) }}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={onDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
-                    style={{ borderColor: dragOver ? '#C4A47C' : '#E2DED8', background: dragOver ? 'rgba(196,164,124,0.05)' : '#FAFAF9' }}
-                  >
-                    <Upload className="w-6 h-6 mx-auto mb-2 text-[#C4C0BA]" />
-                    <p className="text-[12.5px] font-medium text-[#6E6A63]">Foto hierher ziehen</p>
-                    <p className="text-[11px] text-[#A8A49E] mt-0.5">oder klicken zum Auswählen</p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-                    />
+                {/* Drop zone — always visible so more files can be added */}
+                <div
+                  onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors"
+                  style={{ borderColor: dragOver ? '#C4A47C' : '#E2DED8', background: dragOver ? 'rgba(196,164,124,0.05)' : '#FAFAF9' }}
+                >
+                  <Upload className="w-5 h-5 mx-auto mb-1.5 text-[#C4C0BA]" />
+                  <p className="text-[12.5px] font-medium text-[#6E6A63]">Fotos hierher ziehen</p>
+                  <p className="text-[11px] text-[#A8A49E] mt-0.5">oder klicken · bis zu {MAX_PHOTOS} Fotos</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={e => { if (e.target.files) handleFiles(e.target.files); e.target.value = '' }}
+                  />
+                </div>
+
+                {/* Preview grid */}
+                {previews.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {previews.map((p, i) => (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-[#F0EEE9]">
+                        <img src={p.objectUrl} alt="" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removePreview(i)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                <input
-                  value={uploadCaption}
-                  onChange={e => setUploadCaption(e.target.value)}
-                  placeholder="Beschreibung (optional)"
-                  className="w-full px-3 py-2 text-[13px] border border-[#E2DED8] rounded-xl focus:outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/10 transition-all"
-                  maxLength={200}
-                />
+                {/* Progress bar */}
+                {uploadProgress && (
+                  <div>
+                    <div className="flex justify-between text-[11px] text-[#A8A49E] mb-1">
+                      <span>Hochladen…</span>
+                      <span>{uploadProgress.done}/{uploadProgress.total}</span>
+                    </div>
+                    <div className="h-1.5 bg-[#F0EEE9] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#111827] rounded-full transition-all"
+                        style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <button
-                    onClick={uploadPhoto}
-                    disabled={!preview || uploading}
+                    onClick={uploadPhotos}
+                    disabled={!previews.length || uploading}
                     className="flex items-center gap-1.5 px-4 py-2 bg-[#111827] text-white rounded-xl text-[12.5px] font-semibold hover:opacity-85 disabled:opacity-40 transition-all"
                   >
                     {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                    {uploading ? 'Hochladen…' : 'Hochladen'}
+                    {uploading ? 'Hochladen…' : `${previews.length} Foto${previews.length !== 1 ? 's' : ''} hochladen`}
                   </button>
                   <button onClick={resetForm} className="px-4 py-2 text-[12.5px] text-[#A8A49E] hover:text-[#0D0D0C] transition-colors">
                     Abbrechen
