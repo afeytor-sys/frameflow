@@ -8,17 +8,6 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-interface GalleryInfo {
-  title: string | null
-  project: {
-    photographer: {
-      studio_name: string | null
-      full_name: string | null
-      email: string | null
-      website: string | null
-    } | null
-  } | null
-}
 
 export async function sendDownloadReadyEmail(
   galleryId: string,
@@ -28,27 +17,34 @@ export async function sendDownloadReadyEmail(
 ) {
   const service = createServiceClient()
 
-  // Load gallery + photographer info for branding
-  const { data: gallery } = await service
+  // Identical nested pattern to src/app/download/[token]/page.tsx — confirmed working
+  const { data: raw } = await service
     .from('galleries')
     .select(`
       title,
       project:projects(
-        photographer:photographers(studio_name, full_name, email, website)
+        photographer:photographers(studio_name, full_name, email)
       )
     `)
     .eq('id', galleryId)
-    .single() as { data: GalleryInfo | null }
+    .single()
 
-  const project = Array.isArray(gallery?.project) ? gallery?.project[0] : gallery?.project
+  const gallery = raw as {
+    title: string | null
+    project: { photographer: { studio_name: string | null; full_name: string | null; email: string | null } | null } | null
+  } | null
+
+  const project      = Array.isArray(gallery?.project) ? gallery?.project[0] : gallery?.project
   const photographerRaw = project?.photographer
   const photographer = Array.isArray(photographerRaw) ? photographerRaw[0] : photographerRaw
 
-  const studioName = photographer?.studio_name || photographer?.full_name || 'Ihr Fotograf'
+  const studioName      = photographer?.studio_name || photographer?.full_name || 'Ihr Fotograf'
   const photographerName = photographer?.full_name || photographer?.studio_name || 'Ihr Fotograf'
-  const replyEmail = photographer?.email || undefined
-  const galleryTitle = gallery?.title || 'deine Galerie'
-  const galleryName = galleryTitle
+  const replyEmail      = photographer?.email || undefined
+  const galleryTitle    = gallery?.title || 'deine Galerie'
+  const galleryName     = galleryTitle
+
+  console.log(`[downloadEmail] studioName="${studioName}" gallery="${galleryName}" photographer=${JSON.stringify(photographer)}`)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fotonizer.com'
   const downloadUrl = `${appUrl}/download/${downloadToken}`
@@ -57,95 +53,100 @@ export async function sendDownloadReadyEmail(
     .toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const partNote = partCount > 1
-    ? `<p style="margin:0 0 16px;font-size:13px;color:#7A7670;line-height:1.6;">Deine Fotos wurden in <strong style="color:#111110;">${partCount} ZIP-Dateien</strong> aufgeteilt. Du kannst alle Teile auf der Download-Seite herunterladen.</p>`
+    ? `<p style="margin:0 0 24px;font-size:14px;color:#888;line-height:1.7;">Deine Fotos wurden in <strong style="color:#111;">${partCount} Teile</strong> aufgeteilt — du kannst alle auf der Download-Seite herunterladen.</p>`
+    : ''
+
+  // Gallery line shown below title if we have a real name
+  const hasRealGalleryName = gallery?.title && gallery.title.trim().length > 0
+  const galleryLine = hasRealGalleryName
+    ? `<p style="margin:6px 0 0;font-size:13px;color:#aaa;letter-spacing:0.01em;">Galerie: ${galleryName}</p>`
     : ''
 
   console.log(`[downloadEmail] sending to=${email} gallery=${galleryId} token=${downloadToken.slice(0, 8)}...`)
   console.log(`[downloadEmail] from="${studioName}" replyTo=${replyEmail ?? 'none'} partCount=${partCount}`)
 
   const sendParams: Parameters<typeof resend.emails.send>[0] = {
-    from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
+    from: `${studioName} <noreply@fotonizer.com>`,
     to: email,
-    subject: `${photographerName}: Deine Fotos von ${galleryName} sind bereit`,
+    subject: `Deine Fotos sind fertig ✨`,
     html: `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body style="margin:0;padding:0;background:#F8F7F4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8F7F4;min-height:100vh;">
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5;">
     <tr>
-      <td align="center" style="padding:48px 16px;">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#FFFFFF;border-radius:20px;border:1px solid #E8E4DC;overflow:hidden;">
+      <td align="center" style="padding:48px 16px 64px;">
 
-          <!-- Top accent bar -->
-          <tr><td style="height:3px;background:linear-gradient(90deg,#C4A47C,#E8C99A,#C4A47C);"></td></tr>
+        <!-- Card -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 24px rgba(0,0,0,0.07);">
 
-          <!-- Header -->
+          <!-- Top bar — thin accent -->
+          <tr><td style="height:4px;background:#111;"></td></tr>
+
+          <!-- Photographer name — subtle top label -->
           <tr>
-            <td style="padding:32px 40px 24px;">
-              <p style="margin:0;font-size:20px;font-weight:700;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
-              <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Fotos von ${galleryName} sind fertig</p>
+            <td style="padding:32px 48px 0;">
+              <p style="margin:0;font-size:12px;color:#bbb;letter-spacing:0.08em;text-transform:uppercase;">${studioName}</p>
             </td>
           </tr>
 
-          <!-- Divider -->
-          <tr><td style="padding:0 40px;"><div style="height:1px;background:#E8E4DC;"></div></td></tr>
-
-          <!-- Body -->
+          <!-- Main title -->
           <tr>
-            <td style="padding:28px 40px;">
-              <p style="margin:0 0 20px;font-size:15px;color:#7A7670;line-height:1.6;">
-                Deine Fotos aus <strong style="color:#111110;">${galleryName}</strong> stehen jetzt zum Download bereit. Klicke unten, um sie herunterzuladen.
-              </p>
+            <td style="padding:16px 48px 0;">
+              <h1 style="margin:0;font-size:28px;font-weight:700;color:#111;letter-spacing:-0.02em;line-height:1.2;">Deine Fotos<br>sind fertig ✨</h1>
+              ${galleryLine}
+            </td>
+          </tr>
 
-              ${partNote}
-
-              <!-- CTA button -->
-              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
-                <tr>
-                  <td align="center">
-                    <a href="${downloadUrl}"
-                       style="display:inline-block;background:#111110;color:#F8F7F4;font-size:14px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;letter-spacing:-0.01em;">
-                      Fotos herunterladen →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Info box -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;margin-bottom:20px;">
-                <tr>
-                  <td style="padding:16px 20px;">
-                    <p style="margin:0 0 8px;font-size:12px;color:#7A7670;line-height:1.6;">
-                      ⏱ <strong style="color:#111110;">Gültig bis ${expiryDate}</strong> — Der Link läuft nach 7 Tagen ab. Bitte lade deine Fotos rechtzeitig herunter.
-                    </p>
-                    <p style="margin:0;font-size:12px;color:#7A7670;line-height:1.6;">
-                      💬 Bei Fragen antworte einfach auf diese E-Mail.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin:0;font-size:12px;color:#B0ACA6;line-height:1.6;">
-                Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-                <a href="${downloadUrl}" style="color:#C4A47C;word-break:break-all;">${downloadUrl}</a>
+          <!-- Body text -->
+          <tr>
+            <td style="padding:28px 48px 0;">
+              <p style="margin:0;font-size:16px;color:#555;line-height:1.75;">
+                Deine Fotos stehen jetzt für dich bereit.<br>
+                Ich wünsche dir ganz viel Freude beim Anschauen ✨
               </p>
             </td>
           </tr>
 
-          <!-- Divider -->
-          <tr><td style="padding:0 40px;"><div style="height:1px;background:#E8E4DC;"></div></td></tr>
+          ${partNote ? `<tr><td style="padding:20px 48px 0;">${partNote}</td></tr>` : ''}
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:36px 48px 0;">
+              <a href="${downloadUrl}"
+                 style="display:inline-block;background:#111;color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:15px 40px;border-radius:999px;letter-spacing:-0.01em;">
+                Fotos ansehen
+              </a>
+            </td>
+          </tr>
+
+          <!-- Expiry note -->
+          <tr>
+            <td style="padding:24px 48px 0;">
+              <p style="margin:0;font-size:13px;color:#bbb;line-height:1.6;">
+                Der Link ist gültig bis <strong style="color:#888;">${expiryDate}</strong>.<br>
+                Bei Fragen antworte einfach auf diese E-Mail.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Fallback link -->
+          <tr>
+            <td style="padding:16px 48px 0;">
+              <p style="margin:0;font-size:11px;color:#ccc;line-height:1.6;word-break:break-all;">
+                <a href="${downloadUrl}" style="color:#ccc;">${downloadUrl}</a>
+              </p>
+            </td>
+          </tr>
 
           <!-- Footer -->
           <tr>
-            <td align="center" style="padding:20px 40px 28px;">
-              <p style="margin:0 0 6px;font-size:12px;color:#B0ACA6;">
-                Diese E-Mail wurde von <strong>${studioName}</strong> über Fotonizer verschickt.
-              </p>
-              <p style="margin:0;font-size:12px;color:#B0ACA6;">
-                © ${new Date().getFullYear()} Fotonizer · Studio management for photographers
+            <td style="padding:40px 48px 36px;">
+              <p style="margin:0;font-size:11px;color:#ccc;">
+                Bereitgestellt von deinem Fotografen
               </p>
             </td>
           </tr>
@@ -155,8 +156,7 @@ export async function sendDownloadReadyEmail(
     </tr>
   </table>
 </body>
-</html>
-    `,
+</html>`,
   }
 
   // Only add replyTo if we actually have an address — passing undefined breaks Resend
