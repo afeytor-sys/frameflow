@@ -105,14 +105,13 @@ export async function POST(
   { params }: { params: Promise<{ galleryId: string }> },
 ) {
   const authHeader = req.headers.get('authorization') ?? ''
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
-  const expected = process.env.INTERNAL_TOKEN ?? ''
+  const token = (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader).trim()
+  const expected = (process.env.INTERNAL_TOKEN ?? '').trim()
 
-  // Debug: log first 8 chars only — enough to spot mismatches without leaking the secret
-  console.log(`[worker] auth check — received="${token.slice(0, 8)}..." expected="${expected.slice(0, 8)}..." match=${token === expected} envDefined=${!!expected}`)
+  console.log(`[worker] auth — received="${token.slice(0, 8)}..." expected="${expected.slice(0, 8)}..." len=${token.length}/${expected.length} match=${token === expected}`)
 
   if (!token || !expected || token !== expected) {
-    console.error(`[worker] Unauthorized — token mismatch (envDefined=${!!expected})`)
+    console.error(`[worker] Unauthorized — token mismatch`)
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
