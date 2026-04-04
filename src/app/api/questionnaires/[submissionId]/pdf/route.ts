@@ -9,6 +9,37 @@ interface Question {
   type: string
 }
 
+/**
+ * Strip characters that Helvetica (WinAnsiEncoding, codepoints 0–255) cannot render.
+ * Emojis and other Unicode > U+00FF would throw inside pdf-lib — replace with '?'.
+ */
+function safe(text: string): string {
+  // Replace newlines with space (handled separately via splitLines)
+  // Replace any char with codepoint > 255 with '?'
+  return text.replace(/[^\x00-\xFF]/g, '?')
+}
+
+/** Split on real newlines first, then word-wrap each line. */
+function splitLines(text: string, maxChars: number): string[] {
+  const result: string[] = []
+  for (const rawLine of text.split('\n')) {
+    const line = safe(rawLine)
+    if (!line.trim()) { result.push(''); continue }
+    const words = line.split(' ')
+    let current = ''
+    for (const word of words) {
+      if (current && current.length + word.length + 1 > maxChars) {
+        result.push(current)
+        current = word
+      } else {
+        current = current ? `${current} ${word}` : word
+      }
+    }
+    if (current) result.push(current)
+  }
+  return result.length ? result : ['']
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ submissionId: string }> },
@@ -63,22 +94,8 @@ export async function GET(
   let page = pdfDoc.addPage([W, H])
   let y = H - margin
 
-  // Word-wrap helper
-  const wrapText = (text: string, maxChars: number): string[] => {
-    const words = text.split(' ')
-    const lines: string[] = []
-    let current = ''
-    for (const word of words) {
-      if (current && current.length + word.length + 1 > maxChars) {
-        lines.push(current)
-        current = word
-      } else {
-        current = current ? `${current} ${word}` : word
-      }
-    }
-    if (current) lines.push(current)
-    return lines.length ? lines : ['']
-  }
+  const maxLabelChars  = Math.floor(contentW / (10  * 0.52))
+  const maxAnswerChars = Math.floor(contentW / (9.5 * 0.52))
 
   const ensurePage = (neededHeight: number) => {
     if (y - neededHeight < margin + 40) {
@@ -115,47 +132,45 @@ export async function GET(
     x: 0, y: H - 54, width: W, height: 54,
     color: rgb(0.067, 0.067, 0.063),   // #111110
   })
-  page.drawText('FRAGEBOGEN', {
+  page.drawText(safe('FRAGEBOGEN'), {
     x: margin, y: H - 34,
     font: boldFont, size: 16,
     color: rgb(0.97, 0.97, 0.96),
   })
-  page.drawText('Fotonizer', {
+  page.drawText(safe('Fotonizer'), {
     x: W - margin - 52, y: H - 34,
     font, size: 10,
-    color: rgb(0.77, 0.65, 0.49),  // #C4A47C
+    color: rgb(0.77, 0.65, 0.49),
   })
   y = H - 54 - 28
 
   // ── Meta ────────────────────────────────────────────────────────────────
-  drawText(`${questionnaire?.title ?? 'Fragebogen'} – ${clientName}`, { bold: true, size: 15 })
+  drawText(safe(`${questionnaire?.title ?? 'Fragebogen'} – ${clientName}`), { bold: true, size: 15 })
   y -= 2
-  drawText(`Eingereicht am: ${submittedAt}`, { size: 9, color: [0.48, 0.46, 0.44] })
+  drawText(safe(`Eingereicht am: ${submittedAt}`), { size: 9, color: [0.48, 0.46, 0.44] })
   y -= 4
   drawLine()
 
   // ── Questions & answers ────────────────────────────────────────────────
   const questions: Question[] = questionnaire?.questions ?? []
   const answers = submission.answers as Record<string, string>
-  const maxLabelChars = Math.floor(contentW / (10 * 0.52))
-  const maxAnswerChars = Math.floor(contentW / (9.5 * 0.52))
 
   questions.forEach((q, idx) => {
     ensurePage(60)
 
-    // Question label
-    const labelLines = wrapText(`${idx + 1}. ${q.label}`, maxLabelChars)
-    labelLines.forEach(line => drawText(line, { bold: true, size: 10 }))
+    // Question label — strip emojis, then word-wrap
+    const labelLines = splitLines(`${idx + 1}. ${q.label}`, maxLabelChars)
+    labelLines.forEach(line => { if (line) drawText(line, { bold: true, size: 10 }) })
 
-    // Answer
+    // Answer — normalise multi-select separator, then split on newlines + word-wrap
     const raw = answers[q.id] ?? ''
     const answer = raw.includes('|||')
       ? raw.split('|||').filter(Boolean).join(', ')
       : raw || '—'
 
-    const answerLines = wrapText(answer, maxAnswerChars)
+    const answerLines = splitLines(answer, maxAnswerChars)
     answerLines.forEach(line => {
-      drawText(line, { size: 9.5, color: [0.33, 0.33, 0.33], x: margin + 12 })
+      drawText(line || ' ', { size: 9.5, color: [0.33, 0.33, 0.33], x: margin + 12 })
     })
     y -= 6
 
@@ -167,7 +182,7 @@ export async function GET(
   const totalPages = pdfDoc.getPageCount()
   for (let i = 0; i < totalPages; i++) {
     const p = pdfDoc.getPage(i)
-    p.drawText(`Erstellt mit Fotonizer · Seite ${i + 1} von ${totalPages}`, {
+    p.drawText(safe(`Erstellt mit Fotonizer · Seite ${i + 1} von ${totalPages}`), {
       x: margin, y: 24,
       font, size: 8,
       color: rgb(0.7, 0.7, 0.7),
