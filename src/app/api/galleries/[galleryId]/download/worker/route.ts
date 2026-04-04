@@ -21,8 +21,8 @@ import { waitUntil } from '@vercel/functions'
 export const maxDuration = 300
 export const runtime = 'nodejs'
 
-/** Photos per ZIP file. */
-const ZIP_CHUNK_SIZE = 250
+/** Photos per ZIP file. Kept at 100 to stay within Hobby plan RAM (1 GB). */
+const ZIP_CHUNK_SIZE = 100
 
 interface DownloadPart {
   name: string

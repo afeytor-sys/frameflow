@@ -23,7 +23,7 @@ import { r2, R2_BUCKET } from '@/lib/r2'
 import type { BatchPhoto } from './zipBatcher'
 
 const PART_SIZE = 10 * 1024 * 1024  // 10 MB per multipart part
-const STREAM_HWM  = 64 * 1024 * 1024 // 64 MB PassThrough high-water mark
+const STREAM_HWM  = 16 * 1024 * 1024 // 16 MB PassThrough HWM — keeps peak RAM low on Hobby (1 GB)
 
 /**
  * Streams a ZIP of photos to R2 and returns the R2 object key.
@@ -46,7 +46,7 @@ export async function streamZipToR2(
       ContentDisposition: `attachment; filename="${filename}"`,
     },
     partSize: PART_SIZE,
-    queueSize: 2,
+    queueSize: 1,          // one part in flight — halves peak upload-buffer RAM
     leavePartsOnError: false,
   })
 
@@ -68,15 +68,19 @@ async function writeZipToStream(
   out: PassThrough,
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
+    // Track whether the last write to PassThrough signalled backpressure.
+    // Checked after each photo so we drain before fetching the next one.
+    let needsDrain = false
+
     const zip = new Zip((err, chunk, final) => {
       if (err) {
         out.destroy(err)
         reject(err)
         return
       }
-      // PassThrough.write() is safe to call synchronously; the 64 MB HWM
-      // ensures we never stall here under normal photo sizes.
-      out.write(Buffer.from(chunk))
+      // Use the Uint8Array directly — no Buffer.from() copy.
+      const ok = out.write(chunk)
+      if (!ok) needsDrain = true   // PassThrough buffer is full; drain before next photo
       if (final) {
         out.end()
         resolve()
@@ -110,6 +114,14 @@ async function writeZipToStream(
           }
         } catch {
           // Skip unreadable/failed photos — never abort the entire batch.
+        }
+
+        // After each photo: if the PassThrough signalled backpressure, wait
+        // for it to drain before fetching the next photo. This keeps RAM bounded
+        // to ≈ one photo in flight + the 16 MB PassThrough buffer.
+        if (needsDrain) {
+          needsDrain = false
+          await new Promise<void>(r => out.once('drain', r))
         }
       }
 
