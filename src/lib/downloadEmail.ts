@@ -47,7 +47,8 @@ export async function sendDownloadReadyEmail(
   const studioName = photographer?.studio_name || photographer?.full_name || 'Ihr Fotograf'
   const photographerName = photographer?.full_name || photographer?.studio_name || 'Ihr Fotograf'
   const replyEmail = photographer?.email || undefined
-  const galleryTitle = gallery?.title || 'Ihre Galerie'
+  const galleryTitle = gallery?.title || 'deine Galerie'
+  const galleryName = galleryTitle
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://fotonizer.com'
   const downloadUrl = `${appUrl}/download/${downloadToken}`
@@ -65,7 +66,7 @@ export async function sendDownloadReadyEmail(
   const sendParams: Parameters<typeof resend.emails.send>[0] = {
     from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
     to: email,
-    subject: `${photographerName}: Deine Fotos sind bereit`,
+    subject: `${photographerName}: Deine Fotos von ${galleryName} sind bereit`,
     html: `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -85,7 +86,7 @@ export async function sendDownloadReadyEmail(
           <tr>
             <td style="padding:32px 40px 24px;">
               <p style="margin:0;font-size:20px;font-weight:700;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
-              <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Download steht bereit</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Fotos von ${galleryName} sind fertig</p>
             </td>
           </tr>
 
@@ -96,7 +97,7 @@ export async function sendDownloadReadyEmail(
           <tr>
             <td style="padding:28px 40px;">
               <p style="margin:0 0 20px;font-size:15px;color:#7A7670;line-height:1.6;">
-                Deine Fotos aus <strong style="color:#111110;">${galleryTitle}</strong> stehen jetzt zum Download bereit. Klicke unten, um sie herunterzuladen.
+                Deine Fotos aus <strong style="color:#111110;">${galleryName}</strong> stehen jetzt zum Download bereit. Klicke unten, um sie herunterzuladen.
               </p>
 
               ${partNote}

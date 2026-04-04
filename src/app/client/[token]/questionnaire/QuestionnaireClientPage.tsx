@@ -74,6 +74,13 @@ export default function QuestionnaireClientPage({ questionnaire, projectId, stud
       return
     }
 
+    // Notify photographer — fire-and-forget, never blocks submission success
+    fetch('/api/questionnaires/notify-submitted', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionnaireId: questionnaire.id, projectId }),
+    }).catch(() => {})
+
     setSubmitted(true)
     setSubmitting(false)
   }
