@@ -137,7 +137,8 @@ export default function MoodBoard({ projectId, token }: Props) {
       })
       if (!saveRes.ok) throw new Error('Save failed')
 
-      setItems(prev => [...prev, await saveRes.json()])
+      const newItem = await saveRes.json()
+      setItems(prev => [...prev, newItem])
       URL.revokeObjectURL(preview.objectUrl)
       setPreview(null)
       setUploadCaption('')
