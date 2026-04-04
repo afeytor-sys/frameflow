@@ -75,7 +75,8 @@ export default function MoodBoard({ projectId, token }: Props) {
       }),
     })
     if (res.ok) {
-      setItems(prev => [...prev, await res.json()])
+      const newItem = await res.json()
+      setItems(prev => [...prev, newItem])
       setInputUrl('')
       setInputCaption('')
       setShowAdd(false)
