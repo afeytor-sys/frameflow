@@ -45,6 +45,7 @@ export async function sendDownloadReadyEmail(
   const photographer = Array.isArray(photographerRaw) ? photographerRaw[0] : photographerRaw
 
   const studioName = photographer?.studio_name || photographer?.full_name || 'Ihr Fotograf'
+  const photographerName = photographer?.full_name || photographer?.studio_name || 'Ihr Fotograf'
   const replyEmail = photographer?.email || undefined
   const galleryTitle = gallery?.title || 'Ihre Galerie'
 
@@ -64,7 +65,7 @@ export async function sendDownloadReadyEmail(
   const sendParams: Parameters<typeof resend.emails.send>[0] = {
     from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
     to: email,
-    subject: `Download bereit: ${galleryTitle}`,
+    subject: `${photographerName}: Deine Fotos sind bereit`,
     html: `<!DOCTYPE html>
 <html lang="de">
 <head>
