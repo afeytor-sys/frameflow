@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen,
   Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine, BookmarkCheck, Trash2,
-  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar,
+  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar, Search,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getQuestionnaireTemplatesForLocale, type Question } from '@/lib/questionnaireTemplates'
@@ -19,8 +19,8 @@ interface QuestionnaireRow {
   sent_at: string | null
   created_at: string
   scheduled_at?: string | null
-  project: { id: string; title: string } | null
-  submission: { submitted_at: string } | null
+  project: { id: string; title: string; client?: { full_name: string } | null } | null
+  submission: { submitted_at: string; submission_status?: string } | null
 }
 
 interface CustomTemplate {
@@ -200,6 +200,7 @@ export default function QuestionnairesPage() {
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'draft' | 'not_sent' | 'scheduled' | 'completed'>('all')
+  const [search, setSearch] = useState('')
   const [creating, setCreating] = useState<string | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
   const [deletingRow, setDeletingRow] = useState<string | null>(null)
@@ -221,8 +222,8 @@ export default function QuestionnairesPage() {
           .from('questionnaires')
           .select(`
             id, title, sent_at, created_at,
-            project:projects(id, title),
-            submission:questionnaire_submissions(submitted_at)
+            project:projects(id, title, client:clients(full_name)),
+            submission:questionnaire_submissions(submitted_at, submission_status)
           `)
           .eq('photographer_id', user.id)
           .order('created_at', { ascending: false }),
@@ -368,7 +369,16 @@ export default function QuestionnairesPage() {
     setDeletingTemplate(null)
   }
 
-  const filtered = filter === 'all' ? rows : rows.filter(r => getStatus(r) === filter)
+  const filtered = rows
+    .filter(r => filter === 'all' || getStatus(r) === filter)
+    .filter(r => {
+      if (!search.trim()) return true
+      const term = search.toLowerCase()
+      const project = Array.isArray(r.project) ? r.project[0] : r.project
+      const clientRaw = Array.isArray(project?.client) ? project?.client[0] : project?.client
+      const clientName = ((clientRaw as { full_name?: string } | null)?.full_name ?? '').toLowerCase()
+      return r.title.toLowerCase().includes(term) || clientName.includes(term)
+    })
 
   const counts = {
     all:       rows.length,
@@ -644,6 +654,23 @@ export default function QuestionnairesPage() {
         })}
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={locale === 'de' ? 'Nach Kunde oder Titel suchen…' : 'Search by client or title…'}
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-[13px] outline-none transition-all"
+          style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)',
+          }}
+        />
+      </div>
+
       {/* List */}
       {filtered.length > 0 ? (
         <div className="space-y-2">
@@ -695,6 +722,16 @@ export default function QuestionnairesPage() {
                     }
                   </p>
                 </div>
+
+                {status === 'completed' && (() => {
+                  const sub = Array.isArray(q.submission) ? q.submission[0] : q.submission
+                  return sub?.submission_status === 'new'
+                })() && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black flex-shrink-0"
+                    style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.30)' }}>
+                    NEU
+                  </span>
+                )}
 
                 <div
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0 text-[11px] font-bold"

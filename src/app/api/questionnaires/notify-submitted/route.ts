@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServiceClient()
 
-    const [{ data: questionnaire }, { data: project }] = await Promise.all([
-      supabase.from('questionnaires').select('title').eq('id', questionnaireId).single(),
+    const [{ data: questionnaire }, { data: project }, { data: latestSubmission }] = await Promise.all([
+      supabase.from('questionnaires').select('title, questions').eq('id', questionnaireId).single(),
       supabase
         .from('projects')
         .select(`
@@ -24,6 +24,13 @@ export async function POST(req: NextRequest) {
         `)
         .eq('id', projectId)
         .single(),
+      supabase
+        .from('questionnaire_submissions')
+        .select('answers')
+        .eq('questionnaire_id', questionnaireId)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
 
     const photographerRaw = Array.isArray(project?.photographer) ? project?.photographer[0] : project?.photographer
@@ -42,6 +49,31 @@ export async function POST(req: NextRequest) {
     const questionnaireTitle = questionnaire?.title || 'Fragebogen'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fotonizer.com'
     const dashboardUrl = `${appUrl}/dashboard/questionnaires/${questionnaireId}`
+
+    // Build answer preview — first 5 questions with non-empty answers
+    interface QuestionItem { id: string; label: string }
+    const questions: QuestionItem[] = Array.isArray(questionnaire?.questions) ? questionnaire.questions as QuestionItem[] : []
+    const submissionAnswers = (latestSubmission?.answers ?? {}) as Record<string, string>
+    const previewRows = questions
+      .slice(0, 10)
+      .map(q => ({ label: q.label, answer: (submissionAnswers[q.id] ?? '').replace(/\|\|\|/g, ', ') }))
+      .filter(r => r.answer.trim())
+      .slice(0, 5)
+
+    const previewHtml = previewRows.length > 0 ? `
+      <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#7A7670;text-transform:uppercase;letter-spacing:0.06em;">
+        Vorschau der Antworten
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;margin-bottom:24px;">
+        <tr><td style="padding:12px 20px;">
+          ${previewRows.map((r, i) => `
+            <div style="padding-bottom:${i < previewRows.length - 1 ? '10px;border-bottom:1px solid #E8E4DC;margin-bottom:10px' : '0'};">
+              <p style="margin:0 0 2px;font-size:11px;color:#9A9690;">${r.label}</p>
+              <p style="margin:0;font-size:13px;color:#111110;font-weight:600;">${r.answer.length > 120 ? r.answer.slice(0, 120) + '…' : r.answer}</p>
+            </div>
+          `).join('')}
+        </td></tr>
+      </table>` : ''
 
     const { error: resendError } = await resend.emails.send({
       from: `Fotonizer <noreply@fotonizer.com>`,
@@ -81,7 +113,7 @@ export async function POST(req: NextRequest) {
               </p>
 
               <!-- Info box -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;margin-bottom:24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;margin-bottom:20px;">
                 <tr>
                   <td style="padding:16px 20px;">
                     <p style="margin:0 0 8px;font-size:13px;color:#7A7670;line-height:1.6;">
@@ -96,6 +128,8 @@ export async function POST(req: NextRequest) {
                   </td>
                 </tr>
               </table>
+
+              ${previewHtml}
 
               <!-- CTA button -->
               <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:20px;">

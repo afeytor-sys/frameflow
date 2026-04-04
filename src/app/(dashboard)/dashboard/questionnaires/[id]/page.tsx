@@ -8,7 +8,7 @@ import {
   ArrowLeft, ClipboardList, Pencil, Trash2, Send, CheckCircle2,
   Plus, X, ChevronDown, AlignLeft, List, ToggleLeft, Clock, FolderOpen,
   BookmarkPlus, CheckSquare, Search, User, Folder, Calendar, ChevronRight,
-  ChevronUp, Download,
+  ChevronUp, Download, FileDown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
@@ -43,6 +43,7 @@ interface Submission {
   id: string
   answers: Record<string, string>
   submitted_at: string
+  submission_status: string
 }
 
 interface ProjectOption {
@@ -101,7 +102,16 @@ export default function QuestionnaireDetailPage() {
       .order('submitted_at', { ascending: false })
       .limit(1)
       .single()
-    if (sub) setSubmission(sub as Submission)
+    if (sub) {
+      setSubmission(sub as Submission)
+      // Mark as viewed the first time photographer opens it
+      if ((sub as Submission).submission_status === 'new') {
+        await supabase
+          .from('questionnaire_submissions')
+          .update({ submission_status: 'viewed' })
+          .eq('id', sub.id)
+      }
+    }
     setLoading(false)
   }
 
@@ -625,13 +635,22 @@ export default function QuestionnaireDetailPage() {
               Submitted by {clientName || 'Client'} on {new Date(submission.submitted_at).toLocaleDateString('en-US')}
             </span>
             <a
-              href={`/api/questionnaires/${submission.id}/download`}
+              href={`/api/questionnaires/${submission.id}/pdf`}
               download
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all"
               style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)', textDecoration: 'none' }}
             >
+              <FileDown className="w-3.5 h-3.5" />
+              PDF
+            </a>
+            <a
+              href={`/api/questionnaires/${submission.id}/download`}
+              download
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all"
+              style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981', border: '1px solid rgba(16,185,129,0.15)', textDecoration: 'none' }}
+            >
               <Download className="w-3.5 h-3.5" />
-              Download
+              JSON
             </a>
           </div>
         ) : questionnaire.sent_at ? (
