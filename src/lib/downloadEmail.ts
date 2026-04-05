@@ -23,6 +23,7 @@ export async function sendDownloadReadyEmail(
     .select(`
       title,
       project:projects(
+        portal_locale,
         photographer:photographers(studio_name, full_name, email, locale)
       )
     `)
@@ -31,14 +32,19 @@ export async function sendDownloadReadyEmail(
 
   const gallery = raw as {
     title: string | null
-    project: { photographer: { studio_name: string | null; full_name: string | null; email: string | null; locale: string | null } | null } | null
+    project: {
+      portal_locale: string | null
+      photographer: { studio_name: string | null; full_name: string | null; email: string | null; locale: string | null } | null
+    } | null
   } | null
 
   const project      = Array.isArray(gallery?.project) ? gallery?.project[0] : gallery?.project
   const photographerRaw = project?.photographer
   const photographer = Array.isArray(photographerRaw) ? photographerRaw[0] : photographerRaw
 
-  const locale           = photographer?.locale === 'en' ? 'en' : 'de'
+  // portal_locale wins (per-project), then photographer locale, then default 'de'
+  const effectiveLocale  = project?.portal_locale || photographer?.locale || 'de'
+  const locale           = effectiveLocale === 'en' ? 'en' : 'de'
   const studioName      = photographer?.studio_name || photographer?.full_name || (locale === 'en' ? 'Your Photographer' : 'Ihr Fotograf')
   const photographerName = photographer?.full_name || photographer?.studio_name || (locale === 'en' ? 'Your Photographer' : 'Ihr Fotograf')
   const replyEmail      = photographer?.email || undefined
