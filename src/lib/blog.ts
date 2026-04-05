@@ -381,6 +381,142 @@ export const blogPosts: BlogPost[] = [
 <p><a href="/signup">Try Fotonizer free</a> — no credit card required. See what it feels like to use a platform that was actually built for photographers like you.</p>
     `.trim(),
   },
+  {
+    slug: 'online-galerie-hochzeitsfotos-moderne-loesung-2026',
+    title: 'Online Galerie für Hochzeitsfotos – Die moderne Lösung 2026',
+    excerpt: 'WeTransfer läuft ab, Google Drive verwirrt deine Kunden, und Dropbox fühlt sich unprofessionell an. Es gibt eine bessere Art, Hochzeitsfotos zu übergeben.',
+    date: '2026-04-05',
+    category: 'Workflow',
+    readTime: 6,
+    tags: [
+      'Online Galerie Hochzeitsfotos',
+      'Hochzeitsfotos online teilen',
+      'Fotogalerie Hochzeit',
+      'Fotos an Kunden übergeben',
+      'Hochzeitsfotograf Workflow',
+      'Bilderübergabe Hochzeit',
+      'WeTransfer Alternative Fotograf',
+      'professionelle Fotogalerie',
+      'Kunden Portal Fotograf',
+      'Hochzeitsfotos präsentieren',
+    ],
+    content: `
+<p style="font-size:1.15rem;line-height:1.8;color:var(--text-secondary);margin-bottom:2rem;">Es ist 23 Uhr. Die Bearbeitung ist fertig. 847 Fotos, drei Wochen Arbeit, ein Hochzeitstag, den du nie vergessen wirst.</p>
+
+<p>Und jetzt? Du öffnest WeTransfer, lädst alles hoch, schickst einen Link. Hoffst, dass er nicht in zwei Wochen abläuft. Hoffst, dass der Kunde versteht, wie er die Fotos herunterlädt. Hoffst, dass keine E-Mail kommt mit: <em>"Der Link funktioniert nicht mehr."</em></p>
+
+<p>Das kennen wir alle.</p>
+
+<h2>Das Problem mit den alten Lösungen</h2>
+
+<p>WeTransfer, Google Drive, Dropbox – sie alle haben das gleiche Problem: Sie wurden nicht für Fotografen gebaut.</p>
+
+<p><strong>WeTransfer</strong> läuft ab. Nach zwei Wochen ist der Link weg. Kein Backup, kein zweiter Download, keine Erinnerung. Der Kunde meldet sich drei Monate später – und du darfst alles neu hochladen.</p>
+
+<p><strong>Google Drive</strong> ist ein Chaos. Ordner in Ordnern, Freigabeoptionen die niemand versteht, und am Ende bekommst du eine Anfrage: <em>"Ich sehe nur einen leeren Ordner."</em></p>
+
+<p><strong>Dropbox</strong> wirkt unprofessionell. Es sieht aus wie ein Büro-Speicher. Kein Design, kein Erlebnis – nichts, das dem emotionalen Wert deiner Arbeit gerecht wird.</p>
+
+<p>Und dann die E-Mails. <em>"Wie wähle ich meine Lieblingsfotos aus?"</em> – <em>"Kannst du mir Foto Nummer 312 nochmal schicken?"</em> – <em>"Welche darf ich drucken?"</em></p>
+
+<p>Fünf Stunden Arbeit für eine Übergabe, die in zehn Minuten erledigt sein sollte.</p>
+
+<div style="background:var(--bg-hover);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;padding:1.25rem 1.5rem;margin:2rem 0;">
+  <p style="margin:0;color:var(--text-secondary);font-style:italic;">"Der Link ist abgelaufen" – drei Wörter, die kein Hochzeitsfotograf jemals hören will.</p>
+</div>
+
+<h2>Die moderne Lösung: Eine Online-Galerie, die für Fotografen gebaut wurde</h2>
+
+<p>Eine professionelle Online-Galerie ist kein kompliziertes Tool. Es ist der Unterschied zwischen einem Umschlag voller loser Fotos und einem sorgfältig gebundenen Fotoalbum.</p>
+
+<p>Der Kunde öffnet einen Link. Die Galerie lädt sofort. Die Fotos sind groß, scharf, wunderschön präsentiert. Kein Log-in nötig, kein Account, keine Verwirrung.</p>
+
+<p>Das ist der erste Eindruck, den du hinterlässt – auch nach der Hochzeit.</p>
+
+<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
+  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Galerie-Ansicht</p>
+  <p style="margin:0;color:var(--text-secondary);">Eine aufgeräumte, moderne Hochzeitsgalerie. Großformatige Fotos in einem Grid-Layout, weißer Hintergrund, minimale Navigation oben. Keine Ablenkung, nur die Bilder. Unten rechts ein dezenter Download-Button. Fühlt sich an wie eine Designagentur – nicht wie ein Cloud-Speicher.</p>
+</div>
+
+<h2>Was eine gute Galerie heute können muss</h2>
+
+<h3>Schnelles Laden, auch auf dem Handy</h3>
+
+<p>Die meisten deiner Kunden öffnen die Galerie zum ersten Mal auf dem Handy – im Bett, in der Mittagspause, mit zitternden Händen vor Aufregung. Die Galerie muss sofort da sein. Kein Warten, kein Ruckeln.</p>
+
+<p>Gute Galerie-Plattformen liefern Bilder in optimierter Qualität aus – für jeden Bildschirm, automatisch. Das Original bleibt unberührt und kann jederzeit heruntergeladen werden.</p>
+
+<h3>Templates, die zu deinem Stil passen</h3>
+
+<p>Ein Hochzeitsfotograf mit 300 € Einstiegspreisen braucht eine andere Präsentation als jemand, der 3.500 € aufwärts berechnet. Das Design deiner Galerie ist ein Teil deiner Marke.</p>
+
+<p>Wähle Templates, die zu deiner Ästhetik passen – klassisch weiß, dunkel und elegant, modern und minimalistisch. Was dein Kunde sieht, spricht für dich.</p>
+
+<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
+  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Favoriten auswählen</p>
+  <p style="margin:0;color:var(--text-secondary);">Eine Braut wählt auf ihrem Telefon Lieblingsfotos aus. Ein kleines Herz-Icon erscheint unten rechts auf jedem Foto. Ausgewählte Fotos leuchten leicht auf. Oben ein Zähler: "14 Favoriten ausgewählt". Einfach, intuitiv – kein Tutorial nötig.</p>
+</div>
+
+<h3>Favoriten auswählen – ohne Excel-Liste</h3>
+
+<p>Früher: Kunden schicken dir eine Liste wie <em>"Bild 45, 112, 267, ach und das mit der Oma, weißt du welches ich meine?"</em></p>
+
+<p>Heute: Der Kunde markiert Favoriten direkt in der Galerie. Du siehst sie sofort, geordnet, übersichtlich. Keine E-Mails, keine Missverständnisse. Das spart dir jede Woche Stunden – und deinen Kunden jede Menge Frust.</p>
+
+<h3>Kommentare direkt am Foto</h3>
+
+<p>Manchmal hat der Kunde eine Frage zu einem bestimmten Bild. Oder er möchte Feedback geben: <em>"Dieses würden wir gerne größer drucken."</em></p>
+
+<p>Statt einer langen E-Mail mit ungenauen Beschreibungen – einfach ein Kommentar direkt unter dem Foto hinterlassen. Du antwortest direkt. Keine Verwirrung darüber, welches Foto gemeint war.</p>
+
+<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
+  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Kommentar-Funktion</p>
+  <p style="margin:0;color:var(--text-secondary);">Ein Hochzeitsfoto ist in der Vollansicht geöffnet. Darunter ein kleines, elegantes Kommentarfeld. Eine Nachricht ist bereits da: "Dieses Foto würden wir gerne als Leinwand – ist das möglich?" Der Fotograf hat geantwortet: "Natürlich, sehr gerne!" Dezent, professionell, direkt am Bild.</p>
+</div>
+
+<h3>Sets für die Übersicht</h3>
+
+<p>Hochzeiten haben viele Momente: Getting Ready, Zeremonie, Portraits, Feier. Wenn alle 847 Fotos in einem Haufen landen, verliert sich das Schönste darin.</p>
+
+<p>Strukturiere deine Galerie in Sets. Der Kunde findet sich sofort zurecht. Du wirkst nicht nur kreativ – sondern auch professionell organisiert.</p>
+
+<h2>Das Erlebnis für deinen Kunden</h2>
+
+<p>Stell dir vor, wie das Brautpaar den Link zum ersten Mal öffnet.</p>
+
+<p>Kein Loading-Screen, der ewig dauert. Kein verwirrtes Suchen nach einem Download-Button. Stattdessen: ihre Hochzeit, groß und schön, auf dem Bildschirm – exakt so, wie du sie dir vorgestellt hast, als du auf den Auslöser gedrückt hast.</p>
+
+<p>Das Brautpaar zeigt es der Familie. Die Familie zeigt es Freunden. Dein Name steht dran. Das ist kostenlose Weiterempfehlung – ausgelöst durch ein gutes Erlebnis bei der Übergabe.</p>
+
+<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
+  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Client Portal</p>
+  <p style="margin:0;color:var(--text-secondary);">Ein elegantes Client-Dashboard. Oben der Projektname: "Hochzeit Marc & Laura – 14. Juni 2026". Darunter drei übersichtliche Kacheln: "Galerie ansehen", "Favoriten verwalten", "Dokumente". Ein kleiner Download-Bereich am Ende. Alles in ruhigen Tönen, keine Ablenkung. Fühlt sich an wie ein persönlicher Bereich – gebaut für dieses eine Paar.</p>
+</div>
+
+<h2>Dein Workflow, vereinfacht</h2>
+
+<p>Du lädst hoch. Du schickst einen Link. Fertig.</p>
+
+<p>Kein Ablaufdatum. Kein Support-Aufwand. Keine peinlichen Momente, wenn der Link nicht funktioniert. Dein Kunde hat einen eigenen Bereich – mit seinen Fotos, seinen Favoriten, seinen Dokumenten.</p>
+
+<p>Du wirkst nicht wie jemand, der einfach Fotos schickt. Du wirkst wie jemand, der ein vollständiges Erlebnis liefert.</p>
+
+<h2>Zum Schluss</h2>
+
+<p>Die Qualität deiner Fotos ist das eine. Wie du sie übergibst, ist das andere.</p>
+
+<p>Wer 2026 noch mit WeTransfer-Links arbeitet, verschenkt Professionalität. Nicht weil das Tool schlecht ist – sondern weil es nicht zu dem Niveau passt, auf dem du arbeitest.</p>
+
+<p>Eine gute Online-Galerie kostet wenig. Was sie gibt, ist mehr wert: Zeit, Professionalität, und ein letzter guter Eindruck bei deinen Kunden.</p>
+
+<p><strong>Den hast du dir verdient.</strong></p>
+
+<div style="background:var(--accent-muted);border:1px solid rgba(196,164,124,0.25);border-radius:16px;padding:1.5rem 2rem;margin:3rem 0;">
+  <p style="margin:0 0 0.5rem;font-weight:700;color:var(--text-primary);">Du willst sehen, wie das in der Praxis aussieht?</p>
+  <p style="margin:0;color:var(--text-secondary);">Fotonizer bietet genau das – eine Galerie-Lösung, die für Fotografen gebaut wurde, nicht für Büros. Kostenlos starten, keine Kreditkarte nötig.</p>
+</div>
+`,
+  },
 ]
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
