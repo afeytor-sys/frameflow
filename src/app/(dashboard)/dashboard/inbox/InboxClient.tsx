@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink,
-  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer,
+  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer, ArrowLeft,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -380,6 +380,8 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
   const [showReadyHint, setShowReadyHint] = useState(false)
   // Task 7: hover tracking for message bubbles
   const [hoveredMsgId, setHoveredMsgId]   = useState<string | null>(null)
+  // Mobile: toggle between list and thread views
+  const [showThread, setShowThread]       = useState(false)
 
   const templatesRef   = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -545,9 +547,8 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
 
       {/* ── Left: Conversation list (independent scroll) ────────────────── */}
       <div
-        className="flex flex-col flex-shrink-0"
+        className={`${showThread ? 'hidden' : 'flex'} sm:flex flex-col flex-shrink-0 w-full sm:w-[300px]`}
         style={{
-          width: '300px',
           borderRight: '1px solid var(--border-color)',
           background: 'var(--bg-surface)',
         }}
@@ -584,7 +585,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
             return (
               <button
                 key={conv.id}
-                onClick={() => setSelectedId(conv.id)}
+                onClick={() => { setSelectedId(conv.id); setShowThread(true) }}
                 className={`w-full text-left px-4 py-4 sm:py-3.5 transition-all active:scale-[0.99] inbox-conv-item${isActive ? ' inbox-conv-item--active' : ''}`}
                 style={{ borderBottom: '1px solid var(--border-color)' }}
               >
@@ -621,7 +622,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
       </div>
 
       {/* ── Right: Message thread (independent scroll) ──────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0, background: 'var(--bg-surface)' }}>
+      <div className={`${showThread ? 'flex' : 'hidden'} sm:flex flex-1 flex-col overflow-hidden`} style={{ minWidth: 0, background: 'var(--bg-surface)' }}>
 
         {!selected ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
@@ -636,6 +637,13 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
               style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
             >
               <div className="flex items-center gap-3">
+                <button
+                  className="sm:hidden p-1.5 rounded-lg flex-shrink-0 transition-colors"
+                  style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+                  onClick={() => setShowThread(false)}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold text-white flex-shrink-0"
                   style={{ background: '#10B981' }}
