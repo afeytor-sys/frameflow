@@ -109,7 +109,7 @@ export default async function DashboardPage() {
             <p className="text-[14.5px] mt-2" style={{ color: 'var(--text-muted)' }}>{h.studioOverview}</p>
           </div>
           <div className="hidden sm:flex items-center gap-2 flex-shrink-0 mt-1">
-            <Link href="/dashboard/clients/new" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all hover:opacity-88 active:scale-[0.98]" style={{ background: 'var(--text-primary)', color: 'var(--btn-primary-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+            <Link href="/dashboard/clients/new" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all hover:opacity-88 active:scale-[0.98]" style={{ background: 'var(--cta-bg)', color: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
               <Plus className="w-3.5 h-3.5" />{h.newClient}
             </Link>
             <Link href="/dashboard/projects/new" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
@@ -347,7 +347,7 @@ export default async function DashboardPage() {
                     <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: '#C4A47C' }}>{plan.charAt(0).toUpperCase() + plan.slice(1)} Plan</span>
                   </div>
                   <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>{h.upgradePlan}</p>
-                  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-xl transition-all hover:opacity-88 active:scale-[0.98]" style={{ background: 'var(--text-primary)', color: 'var(--btn-primary-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+                  <Link href="/dashboard/billing" className="inline-flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-xl transition-all hover:opacity-88 active:scale-[0.98]" style={{ background: 'var(--cta-bg)', color: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
                     {h.viewUpgrade}<ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

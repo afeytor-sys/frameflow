@@ -216,7 +216,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-          style={{ background: 'var(--accent, #C9A96E)', color: '#fff' }}
+          style={{ background: 'var(--cta-bg)', color: '#fff' }}
         >
           <Plus className="w-4 h-4" />
           Create Form
@@ -255,7 +255,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                 </button>
                 <button type="submit" disabled={creating || !newName.trim()}
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-                  style={{ background: 'var(--accent, #C9A96E)', color: '#fff' }}>
+                  style={{ background: 'var(--cta-bg)', color: '#fff' }}>
                   {creating ? 'Creating…' : 'Create'}
                 </button>
               </div>
@@ -383,7 +383,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                               type="button"
                               onClick={() => addOption(field.id, idx)}
                               className="px-3 py-1.5 rounded-lg text-[12px] font-semibold flex-shrink-0"
-                              style={{ background: 'var(--accent, #C9A96E)', color: '#fff' }}
+                              style={{ background: 'var(--cta-bg)', color: '#fff' }}
                             >
                               + Add
                             </button>
@@ -447,7 +447,7 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                 </button>
                 <button type="submit" disabled={saving}
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-                  style={{ background: 'var(--accent, #C9A96E)', color: '#fff' }}>
+                  style={{ background: 'var(--cta-bg)', color: '#fff' }}>
                   {saving ? 'Saving…' : 'Save Fields'}
                 </button>
               </div>

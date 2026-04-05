@@ -721,7 +721,7 @@ export default function BookingsPage() {
                     />
                     <button type="button" onClick={handleCreateClient} disabled={!newClientName.trim() || creatingClient}
                       className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 disabled:opacity-40"
-                      style={{ background: 'var(--accent)', color: '#fff' }}>
+                      style={{ background: 'var(--cta-bg)', color: '#fff' }}>
                       {creatingClient ? <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                     </button>
                     <button type="button" onClick={() => setShowNewClient(false)}

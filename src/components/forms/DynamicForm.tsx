@@ -352,7 +352,7 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
         type="submit"
         disabled={loading}
         className="w-full py-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{ background: 'var(--accent, #C9A96E)', color: '#fff' }}
+        style={{ background: 'var(--cta-bg)', color: '#fff' }}
       >
         {loading ? (
           <>

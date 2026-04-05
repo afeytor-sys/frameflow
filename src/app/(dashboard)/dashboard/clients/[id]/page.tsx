@@ -475,7 +475,7 @@ export default function ClientDetailPage() {
             <Link
               href={`/dashboard/projects/new?client=${id}`}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-90"
-              style={{ background: 'var(--text-primary)', color: 'var(--btn-primary-color)' }}
+              style={{ background: 'var(--cta-bg)', color: '#fff' }}
             >
               <Plus className="w-3.5 h-3.5" />
               New project

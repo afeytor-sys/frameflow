@@ -374,7 +374,7 @@ export default function GalleriesPage() {
         <button
           onClick={openModal}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
-          style={{ background: '#10B981', boxShadow: '0 1px 8px rgba(16,185,129,0.30)' }}
+          style={{ background: 'var(--cta-bg)', boxShadow: '0 1px 8px rgba(0,0,0,0.15)' }}
         >
           <Plus className="w-4 h-4" />
           {t.newGallery}
@@ -503,7 +503,7 @@ export default function GalleriesPage() {
           </div>
           <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t.noGalleries}</h3>
           <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{t.noGalleriesDesc}</p>
-          <button onClick={openModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#10B981' }}>
+          <button onClick={openModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: 'var(--cta-bg)' }}>
             <Plus className="w-3.5 h-3.5" />{t.newGallery}
           </button>
         </div>

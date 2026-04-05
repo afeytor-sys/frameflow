@@ -560,7 +560,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             <Images className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
           </div>
           <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No gallery for this project yet</p>
-          <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--text-primary)' }}>
+          <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--cta-bg)' }}>
             Galerie erstellen
           </button>
         </div>
@@ -616,7 +616,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   onClick={createGallery}
                   disabled={creating}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50"
-                  style={{ background: 'var(--accent)' }}
+                  style={{ background: 'var(--cta-bg)' }}
                 >
                   {creating ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Sparkles className="w-4 h-4" />Galerie erstellen</>}
                 </button>
@@ -723,7 +723,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <Settings className="w-3.5 h-3.5" />Einstellungen
           </button>
-          <button onClick={() => { setUploadSectionId(null); setShowUploader(!showUploader) }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white" style={{ background: 'var(--accent)' }} onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+          <button onClick={() => { setUploadSectionId(null); setShowUploader(!showUploader) }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white" style={{ background: 'var(--cta-bg)' }} onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
             + Fotos hochladen
           </button>
         </div>
@@ -907,7 +907,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       {editingSectionId === section.id ? (
                         <div className="flex items-center gap-1.5 flex-1">
                           <input autoFocus value={editingSectionTitle} onChange={e => setEditingSectionTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameSection(section.id); if (e.key === 'Escape') setEditingSectionId(null) }} className="input-base py-1 text-[13px] flex-1" />
-                          <button onClick={() => renameSection(section.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--accent)', color: '#fff' }}><Check className="w-3 h-3" /></button>
+                          <button onClick={() => renameSection(section.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--cta-bg)', color: '#fff' }}><Check className="w-3 h-3" /></button>
                           <button onClick={() => setEditingSectionId(null)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}><X className="w-3 h-3" /></button>
                         </div>
                       ) : (
@@ -1053,7 +1053,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             onClick={() => setActiveSection('all')}
             className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
             style={activeSection === 'all'
-              ? { background: 'var(--accent)', color: '#fff' }
+              ? { background: 'var(--cta-bg)', color: '#fff' }
               : { background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
           >
             Alle <span className="font-bold tabular-nums">{photos.length}</span>
@@ -1071,8 +1071,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                 onDrop={e => { e.preventDefault(); if (draggingPhotoRef.current) assignPhotosToSection(s.id); setSectionDragOver(null) }}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
                 style={{
-                  background: isActive ? 'var(--accent)' : isDragTarget ? 'rgba(196,164,124,0.18)' : selected.size > 0 ? 'rgba(196,164,124,0.08)' : 'var(--bg-hover)',
-                  color: isActive ? '#fff' : isDragTarget ? 'var(--accent)' : 'var(--text-muted)',
+                  background: isActive ? 'var(--cta-bg)' : isDragTarget ? 'rgba(196,164,124,0.18)' : selected.size > 0 ? 'rgba(196,164,124,0.08)' : 'var(--bg-hover)',
+                  color: isActive ? '#fff' : isDragTarget ? 'var(--cta-bg)' : 'var(--text-muted)',
                   border: isDragTarget ? '1px dashed rgba(196,164,124,0.6)' : selected.size > 0 && !isActive ? '1px dashed rgba(196,164,124,0.35)' : '1px solid var(--border-color)',
                   transform: isDragTarget ? 'scale(1.06)' : 'none',
                 }}

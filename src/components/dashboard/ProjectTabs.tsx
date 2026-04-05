@@ -469,7 +469,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                         onKeyDown={e => { if (e.key === 'Enter') saveRename(g.id); if (e.key === 'Escape') setEditingTitleId(null) }}
                         className="input-base py-1 text-[13px] flex-1"
                       />
-                      <button onClick={() => saveRename(g.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--accent)', color: '#fff' }}>
+                      <button onClick={() => saveRename(g.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--cta-bg)', color: '#fff' }}>
                         <Check className="w-3 h-3" />
                       </button>
                       <button onClick={() => setEditingTitleId(null)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
