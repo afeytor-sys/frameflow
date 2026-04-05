@@ -236,7 +236,7 @@ function QuickActionBar({ data, onFill }: { data: LeadData; onFill: (text: strin
   ]
 
   return (
-    <div className="mx-6 mt-3 mb-1 flex items-center gap-2 flex-shrink-0 flex-wrap">
+    <div className="mx-6 mt-3 mb-1 hidden sm:flex items-center gap-2 flex-shrink-0 flex-wrap">
       <Zap className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
       {actions.map(action => (
         <button
@@ -585,12 +585,8 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
               <button
                 key={conv.id}
                 onClick={() => setSelectedId(conv.id)}
-                className="w-full text-left px-4 py-3.5 transition-all active:scale-[0.99]"
-                style={{
-                  background:   isActive ? 'rgba(16,185,129,0.08)' : 'transparent',
-                  borderBottom: '1px solid var(--border-color)',
-                  borderLeft:   isActive ? '3px solid #10B981' : '3px solid transparent',
-                }}
+                className={`w-full text-left px-4 py-4 sm:py-3.5 transition-all active:scale-[0.99] inbox-conv-item${isActive ? ' inbox-conv-item--active' : ''}`}
+                style={{ borderBottom: '1px solid var(--border-color)' }}
               >
                 <div className="flex items-center gap-2.5 mb-1">
                   <div
@@ -610,7 +606,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{conv.lead_email}</p>
+                    <p className="hidden sm:block text-[11px]" style={{ color: 'var(--text-muted)' }}>{conv.lead_email}</p>
                   </div>
                 </div>
                 {last && (

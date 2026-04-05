@@ -9,7 +9,7 @@ export default async function BillingPage() {
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('plan, stripe_customer_id, stripe_sub_id, full_name, email')
+    .select('plan, stripe_customer_id, stripe_sub_id, stripe_sub_status, trial_ends_at, full_name, email')
     .eq('id', user.id)
     .single()
 
@@ -17,6 +17,8 @@ export default async function BillingPage() {
     <BillingClient
       plan={(photographer?.plan as 'free' | 'starter' | 'pro' | 'studio') || 'free'}
       hasStripeCustomer={!!photographer?.stripe_customer_id}
+      trialEndsAt={photographer?.trial_ends_at ?? null}
+      stripeSubStatus={photographer?.stripe_sub_status ?? null}
     />
   )
 }

@@ -12,9 +12,19 @@ interface Props {
   photographer: Photographer
 }
 
+function getTrialDaysLeft(trialEndsAt: string | null | undefined): number | null {
+  if (!trialEndsAt) return null
+  const diff = new Date(trialEndsAt).getTime() - Date.now()
+  if (diff <= 0) return null
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
 export default function DashboardHeader({ photographer }: Props) {
   const { theme, toggleTheme } = useTheme()
   const [currentLocale, setCurrentLocale] = useState<string>('de')
+
+  const trialDaysLeft = getTrialDaysLeft(photographer.trial_ends_at)
+  const isTrialing = (photographer.stripe_sub_status === 'trialing' || trialDaysLeft !== null) && photographer.plan !== 'free'
 
   useEffect(() => {
     const match = document.cookie.match(/(?:^|;\s*)locale=([^;]*)/)
@@ -47,7 +57,20 @@ export default function DashboardHeader({ photographer }: Props) {
         boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
       }}
     >
-      <div />
+      {/* Trial countdown pill — left side */}
+      {isTrialing && trialDaysLeft !== null ? (
+        <a
+          href="/dashboard/billing"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-opacity hover:opacity-80"
+          style={{ background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.20)' }}
+        >
+          <span>🎁</span>
+          <span className="hidden sm:inline">Noch {trialDaysLeft} Tage kostenlos</span>
+          <span className="sm:hidden">{trialDaysLeft}d</span>
+        </a>
+      ) : (
+        <div />
+      )}
 
       <div className="flex items-center gap-2">
         <WeatherWidget />

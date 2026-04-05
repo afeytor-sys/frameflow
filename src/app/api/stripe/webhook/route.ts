@@ -48,18 +48,25 @@ export async function POST(request: NextRequest) {
         const plan = planFromPriceId(priceId)
         const status = subscription.status
 
-        // Only update to paid plan if subscription is active
+        // Only update to paid plan if subscription is active or in trial
         const effectivePlan = status === 'active' || status === 'trialing' ? plan : 'free'
+
+        // Convert Stripe trial_end (Unix seconds) to ISO string
+        const trialEndsAt = subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : null
 
         await supabase
           .from('photographers')
           .update({
             plan: effectivePlan,
             stripe_sub_id: subscription.id,
+            stripe_sub_status: status,
+            trial_ends_at: trialEndsAt,
           })
           .eq('stripe_customer_id', customerId)
 
-        console.log(`Subscription ${event.type}: customer ${customerId} → plan ${effectivePlan}`)
+        console.log(`Subscription ${event.type}: customer ${customerId} → plan ${effectivePlan} status=${status} trial_ends_at=${trialEndsAt}`)
         break
       }
 
@@ -72,6 +79,8 @@ export async function POST(request: NextRequest) {
           .update({
             plan: 'free',
             stripe_sub_id: null,
+            stripe_sub_status: 'canceled',
+            trial_ends_at: null,
           })
           .eq('stripe_customer_id', customerId)
 

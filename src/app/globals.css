@@ -942,3 +942,21 @@ img:not(.photo-img-hover) {
   font-weight: 600;
   color: var(--text-primary);
 }
+
+/* ── Inbox conversation list items ── */
+.inbox-conv-item {
+  border-left: 3px solid transparent;
+  background: transparent;
+}
+
+.inbox-conv-item--active {
+  background: rgba(16,185,129,0.08);
+  border-left-color: #10B981;
+}
+
+@media (max-width: 639px) {
+  .inbox-conv-item--active {
+    background: rgba(16,185,129,0.04);
+    border-left-color: rgba(16,185,129,0.45);
+  }
+}

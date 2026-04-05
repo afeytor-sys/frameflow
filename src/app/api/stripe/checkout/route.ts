@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Get or create Stripe customer
     const { data: photographer } = await supabase
       .from('photographers')
-      .select('stripe_customer_id, email, full_name')
+      .select('stripe_customer_id, stripe_sub_id, email, full_name')
       .eq('id', user.id)
       .single()
 
@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+    // Give 60-day trial only to users with no prior subscription
+    const isNewSubscriber = !photographer.stripe_sub_id
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -67,10 +70,8 @@ export async function POST(request: NextRequest) {
           photographer_id: user.id,
           plan,
         },
-        // Apply launch promo coupon automatically (50% off first 3 months)
-        ...(process.env.STRIPE_PROMO_COUPON_ID
-          ? { coupon: process.env.STRIPE_PROMO_COUPON_ID }
-          : {}),
+        // 60-day free trial for first-time subscribers
+        ...(isNewSubscriber ? { trial_period_days: 60 } : {}),
       },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',

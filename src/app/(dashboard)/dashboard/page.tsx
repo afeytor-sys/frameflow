@@ -56,6 +56,14 @@ export default async function DashboardPage() {
   const unpaidCount = allInvoices.filter(i => i.status === 'sent' || i.status === 'overdue').length
 
   const fmt = (n: number) => new Intl.NumberFormat(dateLocale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+  const fmtCompact = (n: number) => {
+    if (n >= 1000) {
+      const k = n / 1000
+      const val = Number.isInteger(k) ? `${k}K` : `${k.toFixed(1)}K`
+      return locale === 'de' ? `${val} €` : `€${val}`
+    }
+    return fmt(n)
+  }
 
   // ── Inbox ────────────────────────────────────────────────────────────────────
   const allConvs = conversations ?? []
@@ -152,17 +160,20 @@ export default async function DashboardPage() {
         {/* ── Revenue strip ── */}
         <div className="anim-2 grid grid-cols-3 gap-3">
           {[
-            { label: isDE ? 'Einnahmen (Monat)' : 'Revenue (month)', value: fmt(paidThisMonth), icon: TrendingUp, color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
-            { label: isDE ? 'Offen / Ausstehend' : 'Open invoices', value: fmt(openTotal), sub: unpaidCount > 0 ? `${unpaidCount} ${isDE ? 'Rechnung' + (unpaidCount > 1 ? 'en' : '') : 'invoice' + (unpaidCount > 1 ? 's' : '')}` : undefined, icon: Euro, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
-            { label: isDE ? 'Überfällig' : 'Overdue', value: fmt(allInvoices.filter(i => i.status === 'overdue').reduce((s, i) => s + (i.amount ?? 0), 0)), sub: overdueCount > 0 ? `${overdueCount} ${isDE ? 'Rechnung' + (overdueCount > 1 ? 'en' : '') : 'invoice' + (overdueCount > 1 ? 's' : '')}` : (isDE ? 'Alles ok' : 'All clear'), icon: Clock, color: overdueCount > 0 ? '#EF4444' : '#6B7280', bg: overdueCount > 0 ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)' },
-          ].map(({ label, value, sub, icon: Icon, color, bg }) => (
+            { label: isDE ? 'Einnahmen (Monat)' : 'Revenue (month)', rawValue: paidThisMonth, value: fmt(paidThisMonth), icon: TrendingUp, color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
+            { label: isDE ? 'Offen / Ausstehend' : 'Open invoices', rawValue: openTotal, value: fmt(openTotal), sub: unpaidCount > 0 ? `${unpaidCount} ${isDE ? 'Rechnung' + (unpaidCount > 1 ? 'en' : '') : 'invoice' + (unpaidCount > 1 ? 's' : '')}` : undefined, icon: Euro, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
+            { label: isDE ? 'Überfällig' : 'Overdue', rawValue: allInvoices.filter(i => i.status === 'overdue').reduce((s, i) => s + (i.amount ?? 0), 0), value: fmt(allInvoices.filter(i => i.status === 'overdue').reduce((s, i) => s + (i.amount ?? 0), 0)), sub: overdueCount > 0 ? `${overdueCount} ${isDE ? 'Rechnung' + (overdueCount > 1 ? 'en' : '') : 'invoice' + (overdueCount > 1 ? 's' : '')}` : (isDE ? 'Alles ok' : 'All clear'), icon: Clock, color: overdueCount > 0 ? '#EF4444' : '#6B7280', bg: overdueCount > 0 ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)' },
+          ].map(({ label, rawValue, value, sub, icon: Icon, color, bg }) => (
             <Link key={label} href="/dashboard/invoices" className="rounded-2xl px-5 py-4 flex items-center gap-4 transition-all hover:opacity-90 group" style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
                 <Icon className="w-4 h-4" style={{ color }} />
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>{label}</p>
-                <p className="text-[18px] font-black leading-tight tabular-nums" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>{value}</p>
+                <p className="text-[18px] font-black leading-tight tabular-nums" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+                  <span className="hidden sm:inline">{value}</span>
+                  <span className="sm:hidden">{fmtCompact(rawValue)}</span>
+                </p>
                 {sub && <p className="text-[11px] mt-0.5 font-medium" style={{ color }}>{sub}</p>}
               </div>
             </Link>
@@ -329,7 +340,10 @@ export default async function DashboardPage() {
                           <p className="text-[12.5px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{clientName}</p>
                           <p className="text-[11px] capitalize" style={{ color: statusColor }}>{inv.status}</p>
                         </div>
-                        <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>{fmt(inv.amount ?? 0)}</span>
+                        <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+                          <span className="hidden sm:inline">{fmt(inv.amount ?? 0)}</span>
+                          <span className="sm:hidden">{fmtCompact(inv.amount ?? 0)}</span>
+                        </span>
                       </Link>
                     )
                   })}

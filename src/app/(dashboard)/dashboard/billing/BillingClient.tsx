@@ -17,6 +17,8 @@ import toast from 'react-hot-toast'
 interface Props {
   plan: PlanKey
   hasStripeCustomer: boolean
+  trialEndsAt: string | null
+  stripeSubStatus: string | null
 }
 
 const PLAN_COLORS: Record<PlanKey, { accent: string; bg: string; border: string; badge: string }> = {
@@ -75,7 +77,14 @@ const FEATURES: FeatureRow[] = [
   },
 ]
 
-export default function BillingClient({ plan, hasStripeCustomer }: Props) {
+function trialDaysLeft(trialEndsAt: string | null): number | null {
+  if (!trialEndsAt) return null
+  const diff = new Date(trialEndsAt).getTime() - Date.now()
+  if (diff <= 0) return null
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
+export default function BillingClient({ plan, hasStripeCustomer, trialEndsAt, stripeSubStatus }: Props) {
   const locale = useLocale()
   const tb = dashboardT(locale).settingsPage.billing
   const [showUpgrade, setShowUpgrade] = useState(false)
@@ -87,6 +96,8 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
 
   const display = PLAN_DISPLAY[plan]
   const colors = PLAN_COLORS[plan]
+  const daysLeft = trialDaysLeft(trialEndsAt)
+  const isTrialing = stripeSubStatus === 'trialing' || (daysLeft !== null && plan !== 'free')
 
   const openPortal = async () => {
     setPortalLoading(true)
@@ -134,6 +145,16 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
         </div>
       )}
 
+      {/* Trial countdown banner */}
+      {isTrialing && daysLeft !== null && (
+        <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.20)' }}>
+          <span className="text-base flex-shrink-0">🎁</span>
+          <p className="text-[13px] font-semibold" style={{ color: '#10B981' }}>
+            Noch <strong>{daysLeft} Tage</strong> kostenlos testen — danach wird dein Abo automatisch aktiv.
+          </p>
+        </div>
+      )}
+
       {/* ── Current plan card ── */}
       <div
         className="rounded-2xl overflow-hidden"
@@ -166,15 +187,20 @@ export default function BillingClient({ plan, hasStripeCustomer }: Props) {
                   {plan !== 'free' && (
                     <span
                       className="px-2 py-0.5 rounded-full text-[10px] font-black"
-                      style={{ background: colors.bg, color: colors.accent, border: `1px solid ${colors.border}` }}
+                      style={isTrialing
+                        ? { background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }
+                        : { background: colors.bg, color: colors.accent, border: `1px solid ${colors.border}` }
+                      }
                     >
-                      {tb.active}
+                      {isTrialing ? 'Testzeitraum' : tb.active}
                     </span>
                   )}
                 </div>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[12px] mt-0.5" style={{ color: isTrialing ? '#10B981' : 'var(--text-muted)' }}>
                   {plan === 'free'
                     ? tb.free
+                    : isTrialing && daysLeft !== null
+                    ? `Noch ${daysLeft} Tage kostenlos`
                     : `€${display.price}${tb.perMonth}`}
                 </p>
               </div>

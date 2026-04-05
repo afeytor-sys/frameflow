@@ -17,6 +17,8 @@ export interface Photographer {
   plan: Plan
   stripe_customer_id: string | null
   stripe_sub_id: string | null
+  stripe_sub_status: string | null
+  trial_ends_at: string | null
   language: Language
   onboarding_completed: boolean
   // migration 016: bank details

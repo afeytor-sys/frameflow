@@ -2,54 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Check, X, Zap } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ── Feature rows shown on every plan card ────────────────────────────────────
-// Each entry: { label, included: Set of plan keys that have it }
-const ALL_FEATURES: { label: string; plans: ('free' | 'starter' | 'pro' | 'studio')[] }[] = [
-  { label: 'Bis zu 2 aktive Kunden',                plans: ['free'] },
-  { label: 'Bis zu 10 aktive Kunden',               plans: ['starter'] },
-  { label: 'Unbegrenzte Kunden',                    plans: ['pro', 'studio'] },
-  { label: 'Bis zu 2 Projekte & Galerien',          plans: ['free'] },
-  { label: 'Bis zu 10 Projekte & Galerien',         plans: ['starter'] },
-  { label: 'Unbegrenzte Projekte & Galerien',       plans: ['pro', 'studio'] },
-  { label: 'Bis zu 2 Verträge',                     plans: ['free'] },
-  { label: 'Bis zu 10 Verträge',                    plans: ['starter'] },
-  { label: 'Unbegrenzte Verträge',                  plans: ['pro', 'studio'] },
-  { label: '5 GB Speicherplatz',                    plans: ['free'] },
-  { label: '150 GB Speicherplatz',                  plans: ['starter'] },
-  { label: '1 TB Speicherplatz',                    plans: ['pro'] },
-  { label: '3 TB Speicherplatz',                    plans: ['studio'] },
-  { label: 'Kunden-Portal',                         plans: ['starter', 'pro', 'studio'] },
-  { label: 'Vertrags-Vorlagen mit E-Signatur',      plans: ['starter', 'pro', 'studio'] },
-  { label: 'Rechnungen',                            plans: ['starter', 'pro', 'studio'] },
-  { label: '"Fotonizer" Badge ausblenden',          plans: ['starter', 'pro', 'studio'] },
-  { label: 'Analytics-Dashboard',                   plans: ['pro', 'studio'] },
-  { label: 'E-Mail Automationen',                   plans: ['pro', 'studio'] },
-  { label: 'Fragebögen',                            plans: ['pro', 'studio'] },
-  { label: 'Pipeline (CRM)',                        plans: ['pro', 'studio'] },
-  { label: 'Bis zu 3 Fotografen-Accounts',          plans: ['studio'] },
-  { label: 'Priority support',                      plans: ['pro', 'studio'] },
-]
+type PlanKey = 'starter' | 'pro' | 'studio'
 
-type PlanKey = 'free' | 'starter' | 'pro' | 'studio'
-
-// Features shown per plan card (subset relevant to that plan)
+// Features shown per plan card
 const PLAN_FEATURE_ROWS: Record<PlanKey, string[]> = {
-  free: [
-    'Bis zu 2 aktive Kunden',
-    'Bis zu 2 Projekte & Galerien',
-    'Bis zu 2 Verträge',
-    '5 GB Speicherplatz',
-    'Kunden-Portal',
-    'Vertrags-Vorlagen mit E-Signatur',
-    'Rechnungen',
-    'Analytics-Dashboard',
-    'E-Mail Automationen',
-    'Fragebögen',
-    'Pipeline (CRM)',
-  ],
   starter: [
     'Bis zu 10 aktive Kunden',
     'Bis zu 10 Projekte & Galerien',
@@ -97,14 +56,7 @@ const PLAN_FEATURE_ROWS: Record<PlanKey, string[]> = {
   ],
 }
 
-// Which features are INCLUDED (✓) for each plan
 const INCLUDED: Record<PlanKey, Set<string>> = {
-  free: new Set([
-    'Bis zu 2 aktive Kunden',
-    'Bis zu 2 Projekte & Galerien',
-    'Bis zu 2 Verträge',
-    '5 GB Speicherplatz',
-  ]),
   starter: new Set([
     'Bis zu 10 aktive Kunden',
     'Bis zu 10 Projekte & Galerien',
@@ -150,26 +102,12 @@ const INCLUDED: Record<PlanKey, Set<string>> = {
 
 const PLANS = [
   {
-    key: 'free' as PlanKey,
-    name: 'Free',
-    monthly: 0,
-    annual: 0,
-    description: 'Zum Ausprobieren',
-    badge: null,
-    cta: 'Kostenlos starten',
-    href: '/signup',
-    highlight: false,
-    comingSoon: false,
-  },
-  {
     key: 'starter' as PlanKey,
     name: 'Starter',
     monthly: 17,
     annual: 160,
     description: 'Für wachsende Studios',
     badge: null,
-    cta: 'Starter wählen',
-    href: '/signup?plan=starter',
     highlight: false,
     comingSoon: false,
   },
@@ -180,8 +118,6 @@ const PLANS = [
     annual: 230,
     description: 'Für professionelle Fotografen',
     badge: 'Beliebteste Wahl',
-    cta: 'Pro wählen',
-    href: '/signup?plan=pro',
     highlight: true,
     comingSoon: false,
   },
@@ -192,8 +128,6 @@ const PLANS = [
     annual: 690,
     description: 'Für Teams & Agenturen',
     badge: null,
-    cta: 'Demnächst verfügbar',
-    href: '/signup?plan=studio',
     highlight: false,
     comingSoon: true,
   },
@@ -204,12 +138,14 @@ export default function PricingSection() {
 
   return (
     <div>
-      {/* Promo banner */}
-      <div className="flex items-center justify-center gap-2.5 mb-8 px-4 py-3 rounded-2xl max-w-xl mx-auto"
-        style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
-        <Zap className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
+      {/* Trial banner */}
+      <div
+        className="flex items-center justify-center gap-2.5 mb-8 px-4 py-3 rounded-2xl max-w-xl mx-auto"
+        style={{ background: 'linear-gradient(135deg, #10B98115 0%, #3B82F615 100%)', border: '1px solid #10B98130' }}
+      >
+        <span className="text-base">🎁</span>
         <p className="text-sm font-semibold text-center" style={{ color: '#1A1A1A' }}>
-          🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>3 months 50% off</strong> on all paid plans — automatically!
+          <span style={{ color: '#10B981' }}>2 Monate kostenlos testen</span> — kein Risiko, jederzeit kündbar
         </p>
       </div>
 
@@ -242,13 +178,12 @@ export default function PricingSection() {
       </div>
 
       {/* Plan cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
         {PLANS.map((plan) => {
           const pricePerMonth = billing === 'annual' && plan.annual > 0
             ? Math.round(plan.annual / 12)
             : plan.monthly
           const annualTotal = plan.annual
-          const promoPrice = pricePerMonth > 0 ? Math.round(pricePerMonth * 0.5) : 0
           const features = PLAN_FEATURE_ROWS[plan.key]
           const included = INCLUDED[plan.key]
 
@@ -287,42 +222,36 @@ export default function PricingSection() {
                   {plan.description}
                 </p>
 
-                {pricePerMonth > 0 ? (
-                  <>
-                    <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
-                      <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
-                        €{promoPrice}
-                      </span>
-                      <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
-                      <span className={cn('text-sm line-through', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>€{pricePerMonth}</span>
-                    </div>
-                    <p className="text-[10px] font-semibold mb-1 text-[#F59E0B]">
-                      🎉 50% off — erste 3 Monate
-                    </p>
-                    <p className={cn('text-[10px]', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
-                      danach €{pricePerMonth}/Monat zzgl. MwSt.
-                    </p>
-                    {billing === 'annual' && annualTotal > 0 && (
-                      <p className={cn('text-xs mt-0.5 font-medium', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>
-                        €{annualTotal}/Jahr (gesamt)
-                      </p>
-                    )}
-                    {billing === 'monthly' && plan.annual > 0 && (
-                      <p className={cn('text-[10px] mt-0.5', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
-                        oder €{Math.round(plan.annual / 12)}/Monat bei jährlicher Zahlung
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex items-baseline gap-1 flex-wrap">
-                    <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
-                      Gratis
-                    </span>
-                  </div>
+                {/* Trial badge */}
+                <div className="mb-3">
+                  <span
+                    className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      background: plan.highlight ? 'rgba(16,185,129,0.20)' : 'rgba(16,185,129,0.10)',
+                      color: '#10B981',
+                    }}
+                  >
+                    2 Monate kostenlos testen
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
+                  <span className={cn('font-display text-3xl font-bold', plan.highlight ? 'text-white' : 'text-[#1A1A1A]')}>
+                    €{pricePerMonth}
+                  </span>
+                  <span className={cn('text-xs', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>/Monat</span>
+                </div>
+                <p className={cn('text-[10px]', plan.highlight ? 'text-white/40' : 'text-[#9CA3AF]')}>
+                  Danach €{pricePerMonth}/Monat zzgl. MwSt.
+                </p>
+                {billing === 'annual' && annualTotal > 0 && (
+                  <p className={cn('text-xs mt-0.5 font-medium', plan.highlight ? 'text-white/60' : 'text-[#6B6B6B]')}>
+                    €{annualTotal}/Jahr (gesamt)
+                  </p>
                 )}
               </div>
 
-              {/* Feature list with ✓ included and ✗ locked */}
+              {/* Feature list */}
               <ul className="space-y-2 flex-1 mb-6">
                 {features.map((feature) => {
                   const isIncluded = included.has(feature)
@@ -355,21 +284,26 @@ export default function PricingSection() {
                 </button>
               ) : (
                 <Link
-                  href={plan.href}
+                  href={`/signup?plan=${plan.key}`}
                   className={cn(
-                    'block text-center py-2.5 rounded-xl text-sm font-medium transition-all',
+                    'block text-center py-2.5 rounded-xl text-sm font-semibold transition-all',
                     plan.highlight
                       ? 'bg-[#C8A882] text-[#1A1A1A] hover:bg-[#D4B896]'
                       : 'border border-[#E8E8E4] text-[#1A1A1A] hover:bg-[#F0F0EC]'
                   )}
                 >
-                  {plan.cta}
+                  Kostenlos starten
                 </Link>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* Trust line */}
+      <p className="text-center text-xs mt-6" style={{ color: '#9CA3AF' }}>
+        Keine Kreditkarte im Voraus · Jederzeit kündbar · 60 Tage kostenlos
+      </p>
     </div>
   )
 }
