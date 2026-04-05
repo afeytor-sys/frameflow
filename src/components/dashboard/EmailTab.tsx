@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Plus, Send, Clock, X, AlertCircle, Sparkles, Loader2 } from 'lucide-react'
+import { Mail, Plus, Send, Clock, X, AlertCircle, Sparkles, Loader2, CalendarClock, Check } from 'lucide-react'
 import SendEmailModal from './SendEmailModal'
 import toast from 'react-hot-toast'
 
@@ -47,6 +47,9 @@ export default function EmailTab({
   const [showModal, setShowModal] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null)
+  const [rescheduleValue, setRescheduleValue] = useState('')
+  const [savingReschedule, setSavingReschedule] = useState(false)
 
   const supabase = createClient()
 
@@ -62,6 +65,30 @@ export default function EmailTab({
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  const openReschedule = (id: string, currentScheduledAt: string) => {
+    // pre-fill with current scheduled time
+    const local = new Date(currentScheduledAt).toISOString().slice(0, 16)
+    setRescheduleValue(local)
+    setReschedulingId(id)
+  }
+
+  const saveReschedule = async (id: string) => {
+    if (!rescheduleValue) return
+    setSavingReschedule(true)
+    const { error } = await supabase
+      .from('scheduled_emails')
+      .update({ scheduled_at: new Date(rescheduleValue).toISOString() })
+      .eq('id', id)
+    if (error) {
+      toast.error('Fehler beim Umplanen')
+    } else {
+      setEmails(prev => prev.map(e => e.id === id ? { ...e, scheduled_at: new Date(rescheduleValue).toISOString() } : e))
+      toast.success('Email umgeplant')
+      setReschedulingId(null)
+    }
+    setSavingReschedule(false)
+  }
 
   const cancelEmail = async (id: string) => {
     if (!confirm('Email-Planung wirklich abbrechen?')) return
@@ -205,22 +232,66 @@ export default function EmailTab({
                     </span>
                   </div>
 
-                  {/* Cancel button for pending */}
+                  {/* Reschedule + Cancel buttons for pending */}
                   {isPending && (
-                    <button
-                      onClick={e => { e.stopPropagation(); cancelEmail(email.id) }}
-                      disabled={cancellingId === email.id}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex-shrink-0"
-                      style={{ background: 'rgba(239,68,68,0.10)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.20)' }}
-                    >
-                      {cancellingId === email.id
-                        ? <Loader2 className="w-3 h-3 animate-spin" />
-                        : <X className="w-3 h-3" />
-                      }
-                      Abbrechen
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={e => { e.stopPropagation(); openReschedule(email.id, email.scheduled_at) }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                        style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.20)' }}
+                      >
+                        <CalendarClock className="w-3 h-3" />
+                        Umplanen
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); cancelEmail(email.id) }}
+                        disabled={cancellingId === email.id}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                        style={{ background: 'rgba(239,68,68,0.10)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.20)' }}
+                      >
+                        {cancellingId === email.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <X className="w-3 h-3" />
+                        }
+                        Abbrechen
+                      </button>
+                    </div>
                   )}
                 </div>
+
+                {/* Inline reschedule picker */}
+                {reschedulingId === email.id && (
+                  <div
+                    className="px-4 pb-4 pt-3 flex items-center gap-2"
+                    style={{ borderTop: '1px solid var(--border-color)' }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <CalendarClock className="w-4 h-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                    <input
+                      type="datetime-local"
+                      value={rescheduleValue}
+                      onChange={e => setRescheduleValue(e.target.value)}
+                      min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                      className="input-base flex-1 text-[12px]"
+                    />
+                    <button
+                      onClick={() => saveReschedule(email.id)}
+                      disabled={savingReschedule || !rescheduleValue}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all disabled:opacity-40"
+                      style={{ background: '#8B5CF6', color: '#fff' }}
+                    >
+                      {savingReschedule ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Speichern
+                    </button>
+                    <button
+                      onClick={() => setReschedulingId(null)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                      style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Expanded body preview */}
                 {isExpanded && email.plain_body && (
