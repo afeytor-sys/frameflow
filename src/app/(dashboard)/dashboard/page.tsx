@@ -58,11 +58,12 @@ export default async function DashboardPage() {
   const fmt = (n: number) => new Intl.NumberFormat(dateLocale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
   const fmtCompact = (n: number) => {
     if (n >= 1000) {
-      const k = n / 1000
-      const val = Number.isInteger(k) ? `${k}K` : `${k.toFixed(1)}K`
+      const k = Math.floor(n / 100) / 10   // floor to 1 decimal (e.g. 29350 → 29.3)
+      const val = k % 1 === 0 ? `${k.toFixed(0)}K` : `${k.toFixed(1)}K`
       return locale === 'de' ? `${val} €` : `€${val}`
     }
-    return fmt(n)
+    // below 1000: show as "€X" without decimals
+    return `${Math.round(n)} €`
   }
 
   // ── Inbox ────────────────────────────────────────────────────────────────────

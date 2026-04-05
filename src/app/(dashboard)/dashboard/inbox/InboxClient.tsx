@@ -586,35 +586,42 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
               <button
                 key={conv.id}
                 onClick={() => { setSelectedId(conv.id); setShowThread(true) }}
-                className={`w-full text-left px-4 py-4 sm:py-3.5 transition-all active:scale-[0.99] inbox-conv-item${isActive ? ' inbox-conv-item--active' : ''}`}
+                className={`w-full text-left px-4 py-3.5 sm:py-3.5 min-h-[72px] sm:min-h-0 flex flex-col justify-center transition-all active:scale-[0.99] inbox-conv-item${isActive ? ' inbox-conv-item--active' : ''}`}
                 style={{ borderBottom: '1px solid var(--border-color)' }}
               >
-                <div className="flex items-center gap-2.5 mb-1">
+                <div className="flex items-center gap-3">
+                  {/* Avatar — larger on mobile */}
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold text-white"
+                    className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] sm:text-[12px] font-bold text-white"
                     style={{ background: isActive ? '#10B981' : 'var(--accent, #C9A96E)' }}
                   >
                     {conv.lead_name.charAt(0).toUpperCase()}
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                    {/* Name + date row */}
+                    <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                      <p className="text-[14px] sm:text-[13px] font-bold sm:font-semibold truncate leading-snug" style={{ color: 'var(--text-primary)' }}>
                         {conv.lead_name}
                       </p>
                       {last && (
-                        <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[11px] sm:text-[10px] flex-shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>
                           {formatTime(last.created_at)}
                         </span>
                       )}
                     </div>
+
+                    {/* Email — desktop only */}
                     <p className="hidden sm:block text-[11px]" style={{ color: 'var(--text-muted)' }}>{conv.lead_email}</p>
+
+                    {/* Preview line */}
+                    {last && (
+                      <p className="text-[12px] sm:text-[12px] truncate leading-snug" style={{ color: 'var(--text-muted)' }}>
+                        {last.sender === 'photographer' ? <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>You: </span> : null}{last.content}
+                      </p>
+                    )}
                   </div>
                 </div>
-                {last && (
-                  <p className="text-[12px] truncate pl-10" style={{ color: 'var(--text-secondary)' }}>
-                    {last.sender === 'photographer' ? 'You: ' : ''}{last.content}
-                  </p>
-                )}
               </button>
             )
           })}
