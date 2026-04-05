@@ -291,7 +291,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
   const isDelivered = project.status === 'delivered' || project.status === 'completed'
   const isPostShooting = project.status === 'editing' || isDelivered
-  const firstName = client.full_name.split(' ')[0]
+  const firstName = project.title || client.full_name.split(' ')[0]
   const latestContract = contracts?.[0]
   const contractSigned = latestContract?.status === 'signed'
   const timelineEvents = (timeline?.events as { id: string; time: string; title: string; phase: string }[]) || []
