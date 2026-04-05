@@ -511,9 +511,12 @@ export const blogPosts: BlogPost[] = [
 
 <p><strong>Den hast du dir verdient.</strong></p>
 
-<div style="background:var(--accent-muted);border:1px solid rgba(196,164,124,0.25);border-radius:16px;padding:1.5rem 2rem;margin:3rem 0;">
-  <p style="margin:0 0 0.5rem;font-weight:700;color:var(--text-primary);">Du willst sehen, wie das in der Praxis aussieht?</p>
-  <p style="margin:0;color:var(--text-secondary);">Fotonizer bietet genau das – eine Galerie-Lösung, die für Fotografen gebaut wurde, nicht für Büros. Kostenlos starten, keine Kreditkarte nötig.</p>
+<div style="background:var(--accent-muted);border:1px solid rgba(196,164,124,0.25);border-radius:16px;padding:1.5rem 2rem;margin:3rem 0;text-align:center;">
+  <p style="margin:0 0 0.5rem;font-weight:700;font-size:1.1rem;color:var(--text-primary);">Du willst sehen, wie das in der Praxis aussieht?</p>
+  <p style="margin:0 0 1.25rem;color:var(--text-secondary);">Fotonizer bietet genau das – eine Galerie-Lösung, die für Fotografen gebaut wurde, nicht für Büros. Kostenlos starten, keine Kreditkarte nötig.</p>
+  <a href="/signup" style="display:inline-flex;align-items:center;gap:0.5rem;background:#C4A47C;color:#fff;font-weight:700;font-size:0.95rem;padding:0.75rem 2rem;border-radius:12px;text-decoration:none;">
+    Kostenlos starten →
+  </a>
 </div>
 `,
   },
