@@ -154,11 +154,15 @@ export default function SettingsClient({ photographer, userId }: Props) {
     setSaving(true)
     const { error } = await supabase
       .from('photographers')
-      .update({ full_name: fullName, language, photography_types: photoTypes })
+      .update({ full_name: fullName, language, locale: language, photography_types: photoTypes })
       .eq('id', userId)
     setSaving(false)
-    if (error) toast.error(ts.profile.error)
-    else toast.success(ts.profile.saved)
+    if (error) { toast.error(ts.profile.error); return }
+
+    // Apply locale cookie so UI + emails reflect the new language immediately
+    document.cookie = `locale=${language}; path=/; max-age=31536000; SameSite=Lax`
+    toast.success(ts.profile.saved)
+    window.location.reload()
   }
 
   const saveStudio = async () => {
