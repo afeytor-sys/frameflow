@@ -22,13 +22,13 @@ export default function DashboardHeader({ photographer }: Props) {
     setCurrentLocale(val === 'en' ? 'en' : 'de')
   }, [])
 
-  const toggleLocale = () => {
+  const toggleLocale = async () => {
     const next = currentLocale === 'de' ? 'en' : 'de'
     document.cookie = `locale=${next}; path=/; max-age=31536000; SameSite=Lax`
     setCurrentLocale(next)
     try {
       const supabase = createClient()
-      void supabase
+      await supabase
         .from('photographers')
         .update({ language: next, locale: next })
         .eq('id', photographer.id)
