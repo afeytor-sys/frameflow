@@ -405,7 +405,7 @@ export default function GalleriesPage() {
             return (
               <div key={gallery.id} className="relative group">
                 <Link
-                  href={project ? `/dashboard/projects/${project.id}?tab=gallery` : '#'}
+                  href={project ? `/dashboard/projects/${project.id}?tab=gallery&galleryId=${gallery.id}` : '#'}
                   className="block rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5"
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
                   onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.18)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.30)' }}

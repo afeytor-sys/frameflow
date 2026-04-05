@@ -102,9 +102,15 @@ const SET_SUGGESTIONS = ['Getting Ready', 'Ceremony', 'Reception', 'Portraits', 
 export default function ProjectTabs({ project, contracts, galleries: initialGalleries, invoicesInitial = [], plan, userTemplates = [], photographerName, photographerMessageTemplates, clientUrl, hasTimeline = false }: Props) {
   const locale = useLocale()
   const t = dashboardT(locale)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'overview'
+    return new URLSearchParams(window.location.search).get('tab') || 'overview'
+  })
   const [galleries, setGalleries] = useState<GalleryItem[]>(initialGalleries)
-  const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(null)
+  const [selectedGalleryId, setSelectedGalleryId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('galleryId') || null
+  })
 
   // Full create modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
