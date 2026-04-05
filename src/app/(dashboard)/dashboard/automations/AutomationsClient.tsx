@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/useLocale'
 import {
   Mail, Clock, CheckCircle2, XCircle, AlertCircle,
   CalendarDays, User, ChevronRight, Bell, BellOff,
-  Zap, History, Send, Trash2, FileText, ClipboardList,
+  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -226,6 +226,32 @@ export default function AutomationsClient({
 }: Props) {
   const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>(initialScheduledEmails)
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null)
+  const [rescheduleValue, setRescheduleValue] = useState('')
+  const [savingReschedule, setSavingReschedule] = useState(false)
+
+  const openReschedule = (id: string, currentScheduledAt: string) => {
+    setRescheduleValue(new Date(currentScheduledAt).toISOString().slice(0, 16))
+    setReschedulingId(id)
+  }
+
+  const saveReschedule = async (id: string) => {
+    if (!rescheduleValue) return
+    setSavingReschedule(true)
+    const res = await fetch('/api/emails/schedule', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, scheduled_at: new Date(rescheduleValue).toISOString() }),
+    })
+    if (res.ok) {
+      setScheduledEmails(prev => prev.map(e => e.id === id ? { ...e, scheduled_at: new Date(rescheduleValue).toISOString() } : e))
+      toast.success(locale === 'de' ? 'Email umgeplant' : 'Email rescheduled')
+      setReschedulingId(null)
+    } else {
+      toast.error(locale === 'de' ? 'Fehler beim Umplanen' : 'Failed to reschedule')
+    }
+    setSavingReschedule(false)
+  }
 
   const handleCancelScheduled = async (id: string) => {
     if (!confirm('Geplanten Versand wirklich abbrechen?')) return
@@ -437,20 +463,30 @@ export default function AutomationsClient({
                         <StatusBadge label={locale === 'de' ? 'Fehlgeschlagen' : 'Failed'} color="#EF4444" icon={AlertCircle} />
                       )}
 
-                      {/* Cancel button — only for pending */}
+                      {/* Reschedule + Cancel — only for pending */}
                       {isPending && (
-                        <button
-                          onClick={() => handleCancelScheduled(email.id)}
-                          disabled={cancelling === email.id}
-                          className="flex items-center gap-1 text-[11px] font-medium transition-colors disabled:opacity-50"
-                          style={{ color: '#EF4444' }}
-                        >
-                          {cancelling === email.id
-                            ? <span className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" />
-                            : <Trash2 className="w-3 h-3" />
-                          }
-                          {locale === 'de' ? 'Abbrechen' : 'Cancel'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openReschedule(email.id, email.scheduled_at)}
+                            className="flex items-center gap-1 text-[11px] font-medium transition-colors"
+                            style={{ color: '#8B5CF6' }}
+                          >
+                            <CalendarClock className="w-3 h-3" />
+                            {locale === 'de' ? 'Umplanen' : 'Reschedule'}
+                          </button>
+                          <button
+                            onClick={() => handleCancelScheduled(email.id)}
+                            disabled={cancelling === email.id}
+                            className="flex items-center gap-1 text-[11px] font-medium transition-colors disabled:opacity-50"
+                            style={{ color: '#EF4444' }}
+                          >
+                            {cancelling === email.id
+                              ? <span className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" />
+                              : <Trash2 className="w-3 h-3" />
+                            }
+                            {locale === 'de' ? 'Abbrechen' : 'Cancel'}
+                          </button>
+                        </div>
                       )}
 
                       {/* Link to project */}
@@ -466,6 +502,39 @@ export default function AutomationsClient({
                       )}
                     </div>
                   </div>
+
+                  {/* Inline reschedule picker */}
+                  {reschedulingId === email.id && (
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <CalendarClock className="w-4 h-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                      <input
+                        type="datetime-local"
+                        value={rescheduleValue}
+                        onChange={e => setRescheduleValue(e.target.value)}
+                        min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                        className="input-base text-[12px] flex-1 min-w-[200px]"
+                      />
+                      <button
+                        onClick={() => saveReschedule(email.id)}
+                        disabled={savingReschedule || !rescheduleValue}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold disabled:opacity-40 transition-all"
+                        style={{ background: '#8B5CF6', color: '#fff' }}
+                      >
+                        {savingReschedule
+                          ? <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                          : <Check className="w-3 h-3" />
+                        }
+                        {locale === 'de' ? 'Speichern' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => setReschedulingId(null)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                        style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+                      >
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}

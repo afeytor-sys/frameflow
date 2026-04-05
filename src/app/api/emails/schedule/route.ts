@@ -54,6 +54,26 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true, scheduledEmail: data })
 }
 
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id, scheduled_at } = await request.json()
+  if (!id || !scheduled_at) return NextResponse.json({ error: 'Missing id or scheduled_at' }, { status: 400 })
+
+  const { error } = await supabase
+    .from('scheduled_emails')
+    .update({ scheduled_at })
+    .eq('id', id)
+    .eq('photographer_id', user.id)
+    .eq('status', 'pending')
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ success: true })
+}
+
 export async function DELETE(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
