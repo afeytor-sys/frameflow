@@ -23,7 +23,7 @@ export async function sendDownloadReadyEmail(
     .select(`
       title,
       project:projects(
-        photographer:photographers(studio_name, full_name, email)
+        photographer:photographers(studio_name, full_name, email, locale)
       )
     `)
     .eq('id', galleryId)
@@ -31,17 +31,18 @@ export async function sendDownloadReadyEmail(
 
   const gallery = raw as {
     title: string | null
-    project: { photographer: { studio_name: string | null; full_name: string | null; email: string | null } | null } | null
+    project: { photographer: { studio_name: string | null; full_name: string | null; email: string | null; locale: string | null } | null } | null
   } | null
 
   const project      = Array.isArray(gallery?.project) ? gallery?.project[0] : gallery?.project
   const photographerRaw = project?.photographer
   const photographer = Array.isArray(photographerRaw) ? photographerRaw[0] : photographerRaw
 
-  const studioName      = photographer?.studio_name || photographer?.full_name || 'Ihr Fotograf'
-  const photographerName = photographer?.full_name || photographer?.studio_name || 'Ihr Fotograf'
+  const locale           = photographer?.locale === 'en' ? 'en' : 'de'
+  const studioName      = photographer?.studio_name || photographer?.full_name || (locale === 'en' ? 'Your Photographer' : 'Ihr Fotograf')
+  const photographerName = photographer?.full_name || photographer?.studio_name || (locale === 'en' ? 'Your Photographer' : 'Ihr Fotograf')
   const replyEmail      = photographer?.email || undefined
-  const galleryTitle    = gallery?.title || 'deine Galerie'
+  const galleryTitle    = gallery?.title || (locale === 'en' ? 'your gallery' : 'deine Galerie')
   const galleryName     = galleryTitle
 
   console.log(`[downloadEmail] studioName="${studioName}" gallery="${galleryName}" photographer=${JSON.stringify(photographer)}`)
@@ -50,11 +51,25 @@ export async function sendDownloadReadyEmail(
   const downloadUrl = `${appUrl}/download/${downloadToken}`
 
   const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    .toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
+    .toLocaleDateString(locale === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
 
-  const partNote = partCount > 1
-    ? `<p style="margin:0 0 24px;font-size:14px;color:#888;line-height:1.7;">Deine Fotos wurden in <strong style="color:#111;">${partCount} Teile</strong> aufgeteilt — du kannst alle auf der Download-Seite herunterladen.</p>`
-    : ''
+  const t = {
+    subject:     locale === 'en' ? 'Your photos are ready ✨'       : 'Deine Fotos sind fertig ✨',
+    heading:     locale === 'en' ? 'Your photos<br>are ready ✨'     : 'Deine Fotos<br>sind fertig ✨',
+    body:        locale === 'en'
+      ? 'Your photos are now ready for you.<br>I hope you enjoy looking through them ✨'
+      : 'Deine Fotos stehen jetzt für dich bereit.<br>Ich wünsche dir ganz viel Freude beim Anschauen ✨',
+    cta:         locale === 'en' ? 'View photos'                     : 'Fotos ansehen',
+    expiryLine:  locale === 'en'
+      ? `The link is valid until <strong style="color:#888;">${expiryDate}</strong>.<br>If you have any questions, just reply to this email.`
+      : `Der Link ist gültig bis <strong style="color:#888;">${expiryDate}</strong>.<br>Bei Fragen antworte einfach auf diese E-Mail.`,
+    footer:      locale === 'en' ? 'Delivered by your photographer' : 'Bereitgestellt von deinem Fotografen',
+    partsNote:   locale === 'en'
+      ? `<p style="margin:0 0 24px;font-size:14px;color:#888;line-height:1.7;">Your photos were split into <strong style="color:#111;">${partCount} parts</strong> — you can download all of them on the download page.</p>`
+      : `<p style="margin:0 0 24px;font-size:14px;color:#888;line-height:1.7;">Deine Fotos wurden in <strong style="color:#111;">${partCount} Teile</strong> aufgeteilt — du kannst alle auf der Download-Seite herunterladen.</p>`,
+  }
+
+  const partNote = partCount > 1 ? t.partsNote : ''
 
   // Gallery line shown below title if we have a real name
   const hasRealGalleryName = gallery?.title && gallery.title.trim().length > 0
@@ -68,7 +83,7 @@ export async function sendDownloadReadyEmail(
   const sendParams: Parameters<typeof resend.emails.send>[0] = {
     from: `${studioName} <noreply@fotonizer.com>`,
     to: email,
-    subject: `Deine Fotos sind fertig ✨`,
+    subject: t.subject,
     html: `<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -96,7 +111,7 @@ export async function sendDownloadReadyEmail(
           <!-- Main title -->
           <tr>
             <td style="padding:16px 48px 0;">
-              <h1 style="margin:0;font-size:28px;font-weight:700;color:#111;letter-spacing:-0.02em;line-height:1.2;">Deine Fotos<br>sind fertig ✨</h1>
+              <h1 style="margin:0;font-size:28px;font-weight:700;color:#111;letter-spacing:-0.02em;line-height:1.2;">${t.heading}</h1>
               ${galleryLine}
             </td>
           </tr>
@@ -104,10 +119,7 @@ export async function sendDownloadReadyEmail(
           <!-- Body text -->
           <tr>
             <td style="padding:28px 48px 0;">
-              <p style="margin:0;font-size:16px;color:#555;line-height:1.75;">
-                Deine Fotos stehen jetzt für dich bereit.<br>
-                Ich wünsche dir ganz viel Freude beim Anschauen ✨
-              </p>
+              <p style="margin:0;font-size:16px;color:#555;line-height:1.75;">${t.body}</p>
             </td>
           </tr>
 
@@ -118,7 +130,7 @@ export async function sendDownloadReadyEmail(
             <td style="padding:36px 48px 0;">
               <a href="${downloadUrl}"
                  style="display:inline-block;background:#111;color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:15px 40px;border-radius:999px;letter-spacing:-0.01em;">
-                Fotos ansehen
+                ${t.cta}
               </a>
             </td>
           </tr>
@@ -126,10 +138,7 @@ export async function sendDownloadReadyEmail(
           <!-- Expiry note -->
           <tr>
             <td style="padding:24px 48px 0;">
-              <p style="margin:0;font-size:13px;color:#bbb;line-height:1.6;">
-                Der Link ist gültig bis <strong style="color:#888;">${expiryDate}</strong>.<br>
-                Bei Fragen antworte einfach auf diese E-Mail.
-              </p>
+              <p style="margin:0;font-size:13px;color:#bbb;line-height:1.6;">${t.expiryLine}</p>
             </td>
           </tr>
 
@@ -146,7 +155,7 @@ export async function sendDownloadReadyEmail(
           <tr>
             <td style="padding:40px 48px 36px;">
               <p style="margin:0;font-size:11px;color:#ccc;">
-                Bereitgestellt von deinem Fotografen
+                ${t.footer}
               </p>
             </td>
           </tr>
