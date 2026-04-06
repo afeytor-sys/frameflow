@@ -4,12 +4,17 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// Called every hour by Vercel Cron
+// Called every hour by Vercel Cron (vercel.json: "0 * * * *")
 // Finds all pending scheduled emails where scheduled_at <= now() and sends them
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Accept requests from Vercel Cron (which sends CRON_SECRET if set),
+  // OR a direct internal call with a matching secret, OR no auth if secret not configured.
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const supabase = createServiceClient()

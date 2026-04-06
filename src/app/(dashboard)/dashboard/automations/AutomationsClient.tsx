@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/useLocale'
 import {
   Mail, Clock, CheckCircle2, XCircle, AlertCircle,
   CalendarDays, User, ChevronRight, Bell, BellOff,
-  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check,
+  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check, SendHorizonal,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -254,6 +254,7 @@ export default function AutomationsClient({
 }: Props) {
   const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>(initialScheduledEmails)
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [sendingNow, setSendingNow] = useState<string | null>(null)
   const [reschedulingId, setReschedulingId] = useState<string | null>(null)
   const [rescheduleValue, setRescheduleValue] = useState('')
   const [savingReschedule, setSavingReschedule] = useState(false)
@@ -292,6 +293,29 @@ export default function AutomationsClient({
       toast.error('Fehler beim Abbrechen')
     }
     setCancelling(null)
+  }
+
+  const handleSendNow = async (id: string) => {
+    setSendingNow(id)
+    try {
+      const res = await fetch('/api/emails/process-pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailId: id }),
+      })
+      const data = await res.json()
+      if (res.ok && data.sent > 0) {
+        setScheduledEmails(prev => prev.map(e => e.id === id ? { ...e, status: 'sent' as const, sent_at: new Date().toISOString() } : e))
+        toast.success(locale === 'de' ? 'E-Mail gesendet!' : 'Email sent!')
+      } else if (res.ok && data.failed > 0) {
+        toast.error(locale === 'de' ? 'Fehler beim Senden — prüfe Resend-Einstellungen' : 'Send failed — check Resend settings')
+      } else {
+        toast.error(locale === 'de' ? 'Fehler' : 'Error')
+      }
+    } catch {
+      toast.error(locale === 'de' ? 'Netzwerkfehler' : 'Network error')
+    }
+    setSendingNow(null)
   }
   const hookLocale = useLocale()
   const locale = initialLocale ?? hookLocale
@@ -443,6 +467,12 @@ export default function AutomationsClient({
                     )}
                     {isPending && (
                       <div className="flex items-center gap-4 mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
+                        {isOverdue && (
+                          <button onClick={() => handleSendNow(email.id)} disabled={sendingNow === email.id} className="flex items-center gap-1 text-[12px] font-bold disabled:opacity-50" style={{ color: '#10B981' }}>
+                            {sendingNow === email.id ? <span className="w-3.5 h-3.5 border border-current/30 border-t-current rounded-full animate-spin" /> : <SendHorizonal className="w-3.5 h-3.5" />}
+                            {locale === 'de' ? 'Jetzt senden' : 'Send now'}
+                          </button>
+                        )}
                         <button onClick={() => openReschedule(email.id, email.scheduled_at)} className="flex items-center gap-1 text-[12px] font-medium" style={{ color: '#8B5CF6' }}>
                           <CalendarClock className="w-3.5 h-3.5" />{locale === 'de' ? 'Umplanen' : 'Reschedule'}
                         </button>
@@ -503,6 +533,12 @@ export default function AutomationsClient({
                       {isFailed && <StatusBadge label={locale === 'de' ? 'Fehlgeschlagen' : 'Failed'} color="#EF4444" icon={AlertCircle} />}
                       {isPending && (
                         <div className="flex items-center gap-2">
+                          {isOverdue && (
+                            <button onClick={() => handleSendNow(email.id)} disabled={sendingNow === email.id} className="flex items-center gap-1 text-[11px] font-bold transition-colors disabled:opacity-50" style={{ color: '#10B981' }}>
+                              {sendingNow === email.id ? <span className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" /> : <SendHorizonal className="w-3 h-3" />}
+                              {locale === 'de' ? 'Jetzt senden' : 'Send now'}
+                            </button>
+                          )}
                           <button onClick={() => openReschedule(email.id, email.scheduled_at)} className="flex items-center gap-1 text-[11px] font-medium transition-colors" style={{ color: '#8B5CF6' }}>
                             <CalendarClock className="w-3 h-3" />{locale === 'de' ? 'Umplanen' : 'Reschedule'}
                           </button>

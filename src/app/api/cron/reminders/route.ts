@@ -8,9 +8,12 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // Called daily by Vercel Cron: vercel.json → { "crons": [{ "path": "/api/cron/reminders", "schedule": "0 8 * * *" }] }
 // Also protected by CRON_SECRET header
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const supabase = createServiceClient()
