@@ -512,9 +512,9 @@ export default function ContractsClient({
 
         {contracts.length > 0 ? (
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-            {/* Table header */}
+            {/* Table header — desktop only */}
             <div
-              className="grid px-5 py-3"
+              className="hidden sm:grid px-5 py-3"
               style={{ borderBottom: '1px solid var(--border-color)', gridTemplateColumns: '1fr 160px 130px 150px auto' }}
             >
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colContract}</span>
@@ -531,7 +531,7 @@ export default function ContractsClient({
                 <a
                   key={contract.id}
                   href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
-                  className="group grid items-center px-5 py-3.5 transition-all duration-150 cursor-pointer"
+                  className="group flex sm:grid items-center px-4 sm:px-5 py-3.5 transition-all duration-150 cursor-pointer gap-3 sm:gap-0"
                   style={{
                     gridTemplateColumns: '1fr 160px 130px 150px auto',
                     borderBottom: '1px solid var(--border-color)',
@@ -542,51 +542,55 @@ export default function ContractsClient({
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  {/* Title */}
-                  <div className="flex items-center gap-3 min-w-0">
+                  {/* Icon + title + mobile meta */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: sc.bg }}>
                       <FileText className="w-4 h-4" style={{ color: sc.color }} />
                     </div>
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
+                      {/* Mobile: show client + date below name */}
+                      <p className="sm:hidden text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                        {project?.clients?.full_name || '—'} · {formatRelative(contract.created_at, locale)}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Client */}
-                  <span className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
+                  {/* Client — desktop only */}
+                  <span className="hidden sm:block text-sm truncate" style={{ color: 'var(--text-muted)' }}>{project?.clients?.full_name || '—'}</span>
 
                   {/* Status */}
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit" style={{ background: sc.bg, color: sc.color }}>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 w-fit" style={{ background: sc.bg, color: sc.color }}>
                     {STATUS_ICONS[contract.status]}
-                    {STATUS_LABELS[contract.status]}
+                    <span className="hidden sm:inline">{STATUS_LABELS[contract.status]}</span>
                   </span>
 
-                  {/* Date */}
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, locale)}</span>
+                  {/* Date — desktop only */}
+                  <span className="hidden sm:block text-xs" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, locale)}</span>
 
-                  {/* Hover actions */}
+                  {/* Actions */}
                   <div className="flex items-center justify-end gap-1.5">
-                    {/* Download PDF — only if both signed */}
                     {canDownload && (
                       <button
                         onClick={(e) => handleDownloadPDF(e, contract)}
                         disabled={downloadingId === contract.id}
                         title={locale === 'de' ? 'PDF herunterladen' : 'Download PDF'}
-                        className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 disabled:opacity-40"
+                        className="sm:opacity-0 sm:group-hover:opacity-100 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 disabled:opacity-40"
                         style={{ background: 'rgba(61,186,111,0.12)', color: '#3DBA6F', border: '1px solid rgba(61,186,111,0.25)' }}
                       >
                         {downloadingId === contract.id
                           ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                           : <Download className="w-3 h-3" />
                         }
-                        PDF
+                        <span className="hidden sm:inline">PDF</span>
                       </button>
                     )}
 
-                    {/* Delete contract */}
                     <button
                       onClick={(e) => handleDeleteContract(e, contract.id)}
                       disabled={deletingId === contract.id}
                       title={locale === 'de' ? 'Vertrag löschen' : 'Delete contract'}
-                      className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 disabled:opacity-40"
+                      className="hidden sm:flex sm:opacity-0 sm:group-hover:flex w-7 h-7 items-center justify-center rounded-lg transition-all duration-150 disabled:opacity-40"
                       style={{ color: 'var(--text-muted)', background: 'transparent' }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
@@ -597,7 +601,6 @@ export default function ContractsClient({
                       }
                     </button>
 
-                    {/* Arrow */}
                     <ChevronRight className="w-4 h-4 flex-shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" style={{ color: 'var(--text-muted)' }} />
                   </div>
                 </a>

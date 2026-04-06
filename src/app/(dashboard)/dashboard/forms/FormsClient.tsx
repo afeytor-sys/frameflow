@@ -474,66 +474,64 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
       {/* ── Forms list ────────────────────────────────────────────────────── */}
       <div className="space-y-3">
         {forms.map(form => (
-          <div key={form.id} className="rounded-2xl px-5 py-6"
+          <div key={form.id} className="rounded-2xl px-5 py-5"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
-            <div className="flex items-start justify-between gap-4">
 
-              {/* Left: info */}
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(6,182,212,0.10)' }}>
-                  <FileText className="w-4 h-4" style={{ color: '#06B6D4' }} />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-[15px] truncate" style={{ color: 'var(--text-primary)' }}>
-                    {form.name}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Created {formatDate(form.created_at)} · {(form.fields?.length || 0) > 0 ? form.fields.length : DEFAULT_FIELDS.length} fields
-                  </p>
-                  <p className="text-xs mt-1 truncate font-mono" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                    {formUrl(form.id)}
-                  </p>
-                </div>
+            {/* Info row */}
+            <div className="flex items-start gap-3 min-w-0 mb-4">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(6,182,212,0.10)' }}>
+                <FileText className="w-4 h-4" style={{ color: '#06B6D4' }} />
               </div>
-
-              {/* Right: actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => openEdit(form)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--card-border)' }}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit Fields
-                </button>
-
-                <button
-                  onClick={() => handleCopy(form.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={{
-                    background: copiedId === form.id ? 'rgba(42,155,104,0.10)' : 'var(--bg-hover)',
-                    color: copiedId === form.id ? '#2A9B68' : 'var(--text-secondary)',
-                    border: '1px solid var(--card-border)',
-                  }}
-                >
-                  {copiedId === form.id
-                    ? <><Check className="w-3.5 h-3.5" /> Copied</>
-                    : <><Copy className="w-3.5 h-3.5" /> Copy Link</>
-                  }
-                </button>
-
-                <a
-                  href={formUrl(form.id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={{ background: 'rgba(6,182,212,0.08)', color: '#06B6D4', border: '1px solid rgba(6,182,212,0.20)' }}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Test Form
-                </a>
+              <div className="min-w-0">
+                <p className="font-bold text-[15px] truncate" style={{ color: 'var(--text-primary)' }}>
+                  {form.name}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Created {formatDate(form.created_at)} · {(form.fields?.length || 0) > 0 ? form.fields.length : DEFAULT_FIELDS.length} fields
+                </p>
+                <p className="hidden sm:block text-xs mt-1 truncate font-mono" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                  {formUrl(form.id)}
+                </p>
               </div>
+            </div>
+
+            {/* Action buttons — full width on mobile */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => openEdit(form)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--card-border)' }}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit Fields
+              </button>
+
+              <button
+                onClick={() => handleCopy(form.id)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                style={{
+                  background: copiedId === form.id ? 'rgba(42,155,104,0.10)' : 'var(--bg-hover)',
+                  color: copiedId === form.id ? '#2A9B68' : 'var(--text-secondary)',
+                  border: '1px solid var(--card-border)',
+                }}
+              >
+                {copiedId === form.id
+                  ? <><Check className="w-3.5 h-3.5" /> Copied</>
+                  : <><Copy className="w-3.5 h-3.5" /> Copy Link</>
+                }
+              </button>
+
+              <a
+                href={formUrl(form.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                style={{ background: 'rgba(6,182,212,0.08)', color: '#06B6D4', border: '1px solid rgba(6,182,212,0.20)' }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Test Form
+              </a>
             </div>
           </div>
         ))}

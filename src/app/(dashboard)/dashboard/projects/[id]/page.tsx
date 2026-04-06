@@ -90,7 +90,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         <div className="px-5 pt-4 pb-5">
           {/* Back + title row */}
-          <div className="flex items-start gap-3 mb-4">
+          <div className="flex items-start gap-3 mb-3">
             <Link
               href="/dashboard/projects"
               className="w-8 h-8 flex items-center justify-center rounded-lg transition-all hover:opacity-80 flex-shrink-0 mt-0.5"
@@ -144,19 +144,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Action buttons — desktop only inline */}
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
               {clientUrl && (
                 <a
                   href={clientUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12.5px] font-bold transition-all hover:opacity-80"
-                  style={{
-                    background: 'var(--bg-hover)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                  }}
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   Client Portal
@@ -173,6 +169,32 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </a>
               )}
             </div>
+          </div>
+
+          {/* Action buttons — mobile only, below title */}
+          <div className="flex sm:hidden items-center gap-2 mb-3">
+            {clientUrl && (
+              <a
+                href={clientUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold transition-all hover:opacity-80"
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Client Portal
+              </a>
+            )}
+            {client.email && (
+              <a
+                href={`mailto:${client.email}`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-white transition-all hover:opacity-90"
+                style={{ background: 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.25)' }}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                Send Email
+              </a>
+            )}
           </div>
 
           {/* Portal link + QR */}
