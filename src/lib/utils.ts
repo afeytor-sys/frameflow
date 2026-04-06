@@ -64,6 +64,16 @@ export function formatCurrency(amount: number, currency: string = 'EUR'): string
   }).format(amount / 100)
 }
 
+// Compact currency format: 1K, 1.3K €
+export function formatCompact(n: number, locale: 'de' | 'en' = 'de'): string {
+  if (n >= 1000) {
+    const k = Math.floor(n / 100) / 10
+    const val = k % 1 === 0 ? `${k.toFixed(0)}K` : `${k.toFixed(1)}K`
+    return locale === 'de' ? `${val} €` : `€${val}`
+  }
+  return locale === 'de' ? `${Math.round(n)} €` : `€${Math.round(n)}`
+}
+
 // Truncate text
 export function truncate(text: string, length: number): string {
   if (text.length <= length) return text

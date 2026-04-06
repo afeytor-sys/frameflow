@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import EmailVorlagePicker from '@/components/dashboard/EmailVorlagePicker'
 import { useLocale } from '@/hooks/useLocale'
 import { dashboardT } from '@/lib/dashboardTranslations'
+import { formatCompact } from '@/lib/utils'
 
 interface Invoice {
   id: string
@@ -693,10 +694,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       `}</style>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {([
-          { label: ti.stats.paid,    value: formatEur(totalPaid),    color: '#2A9B68', desc: totalPaid > 0 ? ti.stats.paidDesc : ti.stats.paidDescEmpty,          Icon: CheckCircle2, delay: 0 },
-          { label: ti.stats.pending, value: formatEur(totalPending), color: '#C4A47C', desc: totalPending > 0 ? ti.stats.pendingDesc : ti.stats.pendingDescEmpty,  Icon: Clock,        delay: 90 },
-          { label: ti.stats.overdue, value: formatEur(totalOverdue), color: '#C43B2C', desc: totalOverdue > 0 ? ti.stats.overdueDesc : ti.stats.overdueDescEmpty,  Icon: AlertCircle,  delay: 180 },
-          { label: ti.stats.vat,     value: formatEur(totalMwst),    color: '#8B5CF6', desc: ti.stats.vatDesc,                                                     Icon: Percent,      delay: 270 },
+          { label: ti.stats.paid,    value: formatCompact(totalPaid / 100, 'de'),    color: '#2A9B68', desc: totalPaid > 0 ? ti.stats.paidDesc : ti.stats.paidDescEmpty,          Icon: CheckCircle2, delay: 0 },
+          { label: ti.stats.pending, value: formatCompact(totalPending / 100, 'de'), color: '#C4A47C', desc: totalPending > 0 ? ti.stats.pendingDesc : ti.stats.pendingDescEmpty,  Icon: Clock,        delay: 90 },
+          { label: ti.stats.overdue, value: formatCompact(totalOverdue / 100, 'de'), color: '#C43B2C', desc: totalOverdue > 0 ? ti.stats.overdueDesc : ti.stats.overdueDescEmpty,  Icon: AlertCircle,  delay: 180 },
+          { label: ti.stats.vat,     value: formatCompact(totalMwst / 100, 'de'),    color: '#8B5CF6', desc: ti.stats.vatDesc,                                                     Icon: Percent,      delay: 270 },
         ] as const).map(({ label, value, color, desc, Icon, delay }) => (
           <div
             key={label}
@@ -806,7 +807,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 {/* Amount + status */}
                 <div className="text-right flex-shrink-0">
                   <p className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    {formatEur(inv.amount)}
+                    {formatCompact(inv.amount / 100, 'de')}
                   </p>
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                     style={{ background: cfg.bg, color: cfg.color }}>
@@ -1072,7 +1073,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                     <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Mehrwertsteuer 19%</p>
                     {form.include_mwst && netAmount > 0 && (
                       <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        Netto {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(netAmount)} + MwSt {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(mwstAmount)} = <strong style={{ color: 'var(--accent)' }}>{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(grossAmount)}</strong>
+                        Netto {formatCompact(netAmount, 'de')} + MwSt {formatCompact(mwstAmount, 'de')} = <strong style={{ color: 'var(--accent)' }}>{formatCompact(grossAmount, 'de')}</strong>
                       </p>
                     )}
                   </div>

@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import { TrendingUp, Users, FileText, Euro, CheckCircle2, ArrowUpRight } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
+import { formatCompact } from '@/lib/utils'
 
 interface Invoice  { amount: number; status: string; created_at: string }
 interface Client   { created_at: string; status: string }
@@ -114,13 +115,6 @@ const T = {
     signed: 'Unterzeichnet',
     revenue: 'Umsatz',
   },
-}
-
-function formatEur(cents: number, locale: 'en' | 'de') {
-  if (locale === 'de') {
-    return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
-  }
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', currencyDisplay: 'symbol' }).format(cents / 100)
 }
 
 // Build last-N-months labels — respects locale
@@ -233,13 +227,13 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
   const kpis = [
     {
       label: t.totalRevenue,
-      display: formatEur(totalRevenue, locale),
+      display: formatCompact(totalRevenue / 100, locale),
       description: totalRevenue > 0 ? t.paidInvoices : t.noRevenueYet,
       icon: Euro, color: '#10B981',
     },
     {
       label: t.outstanding,
-      display: formatEur(pendingRevenue, locale),
+      display: formatCompact(pendingRevenue / 100, locale),
       description: pendingRevenue > 0 ? t.openInvoices : t.allPaid,
       icon: TrendingUp, color: '#F59E0B',
     },
@@ -263,7 +257,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
     },
     {
       label: t.avgPerProject,
-      display: formatEur(avgRevenue * 100, locale),
+      display: formatCompact(avgRevenue, locale),
       description: projects.length > 0 ? t.averageRevenue : t.noDataYet,
       icon: Euro, color: '#EC4899',
     },
@@ -376,10 +370,10 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={revenueByMonth} barSize={28}>
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => formatCompact(Number(v), locale)} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v) => [`€${v}`, t.revenue]}
+                  formatter={(v) => [formatCompact(Number(v), locale), t.revenue]}
                   cursor={{ fill: 'rgba(196,164,124,0.06)', radius: 8 }}
                 />
                 <Bar dataKey="value" fill="#C4A47C" radius={[6, 6, 0, 0]} />
@@ -504,10 +498,10 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={revenueByMonthFull} barSize={20}>
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => formatCompact(Number(v), locale)} />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(v) => [`€${v}`, t.revenue]}
+                  formatter={(v) => [formatCompact(Number(v), locale), t.revenue]}
                   cursor={{ fill: 'rgba(196,164,124,0.06)', radius: 8 }}
                 />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
@@ -531,10 +525,10 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                 <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
                   {locale === 'de' ? 'Bester Monat:' : 'Best month:'}
                   <span className="font-bold ml-1" style={{ color: 'var(--text-primary)' }}>{best.label}</span>
-                  <span className="ml-1" style={{ color: '#C4A47C' }}>(€{best.value.toLocaleString()})</span>
+                  <span className="ml-1" style={{ color: '#C4A47C' }}>({formatCompact(best.value, locale)})</span>
                 </span>
                 <span className="ml-auto text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  €{totalRev.toLocaleString()} {locale === 'de' ? 'gesamt' : 'total'}
+                  {formatCompact(totalRev, locale)} {locale === 'de' ? 'gesamt' : 'total'}
                 </span>
               </div>
             )
@@ -674,7 +668,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
                   <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{label}</span>
                   <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{count}</span>
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatEur(amount, locale)}</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatCompact(amount / 100, locale)}</span>
                 </div>
               )
             })}
@@ -702,7 +696,7 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#EC4899' }} />
               <span className="text-[12px] flex-1" style={{ color: 'var(--text-secondary)' }}>{t.avgRevenueProject}</span>
-              <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{formatEur(avgRevenue * 100, locale)}</span>
+              <span className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{formatCompact(avgRevenue, locale)}</span>
             </div>
           </div>
         </div>

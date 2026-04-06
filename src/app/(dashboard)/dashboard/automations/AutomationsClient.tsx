@@ -166,6 +166,34 @@ function StatusBadge({ label, color, icon: Icon }: { label: string; color: strin
   )
 }
 
+function MobileStatusPill({ status, locale }: { status: ScheduledEmail['status'] | 'blocked'; locale: 'en' | 'de' }) {
+  if (status === 'sent') return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#10B98115', color: '#10B981' }}>
+      {locale === 'de' ? 'Gesendet' : 'Sent'}
+    </span>
+  )
+  if (status === 'pending') return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#3B82F615', color: '#3B82F6' }}>
+      {locale === 'de' ? 'Ausstehend' : 'Pending'}
+    </span>
+  )
+  if (status === 'cancelled') return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#EF444415', color: '#EF4444' }}>
+      {locale === 'de' ? 'Abgebrochen' : 'Cancelled'}
+    </span>
+  )
+  if (status === 'blocked') return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#F59E0B15', color: '#F59E0B' }}>
+      {locale === 'de' ? 'Blockiert' : 'Blocked'}
+    </span>
+  )
+  return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#EF444415', color: '#EF4444' }}>
+      {locale === 'de' ? 'Fehler' : 'Failed'}
+    </span>
+  )
+}
+
 function SettingRow({ label, active, t }: { label: string; active: boolean; t: typeof T['en'] }) {
   return (
     <div className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -324,26 +352,26 @@ export default function AutomationsClient({
   scheduledRows.sort((a, b) => a.willSendOn.localeCompare(b.willSendOn))
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-4 md:space-y-8">
       {/* Header */}
       <div>
         <h1
           className="font-black"
-          style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+          style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
         >
           {t.title}
         </h1>
-        <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[13px] md:text-[14px] mt-0.5 md:mt-1" style={{ color: 'var(--text-muted)' }}>
           {t.subtitle}
         </p>
       </div>
 
       {/* Cron info banner */}
       <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl text-[13px]"
-        style={{ background: 'rgba(196,164,124,0.10)', border: '1px solid rgba(196,164,124,0.25)', color: '#C4A47C' }}
+        className="flex items-center gap-2.5 px-3.5 py-2.5 md:px-4 md:py-3 rounded-xl text-[12px] md:text-[13px]"
+        style={{ background: 'rgba(196,164,124,0.10)', border: '1px solid rgba(196,164,124,0.20)', color: '#C4A47C' }}
       >
-        <Zap className="w-4 h-4 flex-shrink-0" />
+        <Zap className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
         <span>{t.cronInfo}</span>
       </div>
 
@@ -353,16 +381,16 @@ export default function AutomationsClient({
           className="rounded-2xl overflow-hidden"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <div className="px-4 py-3 md:px-6 md:py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
-                <Send className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+              <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                <Send className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: '#8B5CF6' }} />
               </div>
               <div>
-                <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="font-bold text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
                   {locale === 'de' ? 'Manuell geplante E-Mails' : 'Manually Scheduled Emails'}
                 </h2>
-                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                <p className="hidden md:block text-[12px]" style={{ color: 'var(--text-muted)' }}>
                   {locale === 'de' ? 'Von dir geplante Versendungen (Fragebogen, Vertrag, etc.)' : 'Emails you scheduled manually (questionnaire, contract, etc.)'}
                 </p>
               </div>
@@ -379,8 +407,55 @@ export default function AutomationsClient({
               const isOverdue = isPending && scheduledDate < new Date()
 
               return (
-                <div key={email.id} className="px-6 py-4">
-                  <div className="flex items-start gap-3">
+                <div key={email.id} className="px-4 py-3.5 md:px-6 md:py-4">
+
+                  {/* ── Mobile layout (hidden md+) ── */}
+                  <div className="md:hidden">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="font-bold text-[14px] leading-snug flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                        {email.to_name || email.to_email}
+                      </p>
+                      <MobileStatusPill status={email.status} locale={locale} />
+                    </div>
+                    <p className="text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
+                      <span className="font-semibold capitalize" style={{ color }}>{email.type}</span>
+                      {email.to_name && <span> · {email.to_email}</span>}
+                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        {isSent ? (locale === 'de' ? 'Gesendet' : 'Sent') : isPending ? (locale === 'de' ? 'Geplant' : 'Scheduled') : isCancelled ? (locale === 'de' ? 'Abgebrochen' : 'Cancelled') : (locale === 'de' ? 'Fehler' : 'Failed')}
+                        {' · '}
+                        {new Date(isSent ? (email.sent_at ?? email.scheduled_at) : isCancelled ? (email.cancelled_at ?? email.scheduled_at) : email.scheduled_at).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {email.project_id && (
+                        <Link href={`/dashboard/projects/${email.project_id}`} className="flex items-center gap-0.5 text-[11px] font-medium flex-shrink-0 transition-colors" style={{ color: 'var(--text-muted)' }}>
+                          {locale === 'de' ? 'Projekt' : 'Project'}<ChevronRight className="w-3 h-3" />
+                        </Link>
+                      )}
+                    </div>
+                    {isOverdue && (
+                      <p className="text-[11px] font-semibold mt-1" style={{ color: '#EF4444' }}>
+                        {locale === 'de' ? 'Überfällig' : 'Overdue'}
+                      </p>
+                    )}
+                    {isFailed && email.error_message && (
+                      <p className="text-[11px] mt-1" style={{ color: '#EF4444' }}>{email.error_message}</p>
+                    )}
+                    {isPending && (
+                      <div className="flex items-center gap-4 mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
+                        <button onClick={() => openReschedule(email.id, email.scheduled_at)} className="flex items-center gap-1 text-[12px] font-medium" style={{ color: '#8B5CF6' }}>
+                          <CalendarClock className="w-3.5 h-3.5" />{locale === 'de' ? 'Umplanen' : 'Reschedule'}
+                        </button>
+                        <button onClick={() => handleCancelScheduled(email.id)} disabled={cancelling === email.id} className="flex items-center gap-1 text-[12px] font-medium disabled:opacity-50" style={{ color: '#EF4444' }}>
+                          {cancelling === email.id ? <span className="w-3.5 h-3.5 border border-current/30 border-t-current rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          {locale === 'de' ? 'Abbrechen' : 'Cancel'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Desktop layout (hidden on mobile) ── */}
+                  <div className="hidden md:flex items-start gap-3">
                     {/* Type icon */}
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -390,120 +465,62 @@ export default function AutomationsClient({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      {/* Subject */}
                       <p className="font-semibold text-[13.5px] truncate mb-0.5" style={{ color: 'var(--text-primary)' }}>
                         {email.subject}
                       </p>
-
-                      {/* To + type */}
                       <div className="flex items-center gap-3 flex-wrap text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
                           {email.to_name ? `${email.to_name} (${email.to_email})` : email.to_email}
                         </span>
-                        <span
-                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-md capitalize"
-                          style={{ background: color + '18', color }}
-                        >
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md capitalize" style={{ background: color + '18', color }}>
                           {email.type}
                         </span>
                       </div>
-
-                      {/* Scheduled date */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
                           <CalendarDays className="w-3 h-3" />
-                          {isPending
-                            ? (locale === 'de' ? 'Geplant für: ' : 'Scheduled for: ')
-                            : isSent
-                            ? (locale === 'de' ? 'Gesendet am: ' : 'Sent on: ')
-                            : isCancelled
-                            ? (locale === 'de' ? 'Abgebrochen am: ' : 'Cancelled on: ')
-                            : (locale === 'de' ? 'Fehlgeschlagen: ' : 'Failed: ')
-                          }
+                          {isPending ? (locale === 'de' ? 'Geplant für: ' : 'Scheduled for: ') : isSent ? (locale === 'de' ? 'Gesendet am: ' : 'Sent on: ') : isCancelled ? (locale === 'de' ? 'Abgebrochen am: ' : 'Cancelled on: ') : (locale === 'de' ? 'Fehlgeschlagen: ' : 'Failed: ')}
                           <strong style={{ color: 'var(--text-secondary)' }}>
-                            {new Date(
-                              isSent ? (email.sent_at ?? email.scheduled_at) :
-                              isCancelled ? (email.cancelled_at ?? email.scheduled_at) :
-                              email.scheduled_at
-                            ).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', {
-                              weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit',
-                            })}
+                            {new Date(isSent ? (email.sent_at ?? email.scheduled_at) : isCancelled ? (email.cancelled_at ?? email.scheduled_at) : email.scheduled_at).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </strong>
                         </span>
                         {isOverdue && (
-                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#EF444418', color: '#EF4444' }}>
-                            {locale === 'de' ? 'Überfällig' : 'Overdue'}
-                          </span>
+                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#EF444418', color: '#EF4444' }}>{locale === 'de' ? 'Überfällig' : 'Overdue'}</span>
                         )}
                       </div>
-
-                      {/* Error message */}
                       {isFailed && email.error_message && (
                         <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#EF4444' }}>
-                          <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                          {email.error_message}
+                          <AlertCircle className="w-3 h-3 flex-shrink-0" />{email.error_message}
                         </p>
                       )}
                     </div>
 
-                    {/* Status + actions */}
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      {isPending && (
-                        <StatusBadge label={locale === 'de' ? 'Ausstehend' : 'Pending'} color="#3B82F6" icon={Clock} />
-                      )}
-                      {isSent && (
-                        <StatusBadge label={locale === 'de' ? 'Gesendet' : 'Sent'} color="#10B981" icon={CheckCircle2} />
-                      )}
-                      {isCancelled && (
-                        <StatusBadge label={locale === 'de' ? 'Abgebrochen' : 'Cancelled'} color="#6B7280" icon={XCircle} />
-                      )}
-                      {isFailed && (
-                        <StatusBadge label={locale === 'de' ? 'Fehlgeschlagen' : 'Failed'} color="#EF4444" icon={AlertCircle} />
-                      )}
-
-                      {/* Reschedule + Cancel — only for pending */}
+                      {isPending && <StatusBadge label={locale === 'de' ? 'Ausstehend' : 'Pending'} color="#3B82F6" icon={Clock} />}
+                      {isSent && <StatusBadge label={locale === 'de' ? 'Gesendet' : 'Sent'} color="#10B981" icon={CheckCircle2} />}
+                      {isCancelled && <StatusBadge label={locale === 'de' ? 'Abgebrochen' : 'Cancelled'} color="#6B7280" icon={XCircle} />}
+                      {isFailed && <StatusBadge label={locale === 'de' ? 'Fehlgeschlagen' : 'Failed'} color="#EF4444" icon={AlertCircle} />}
                       {isPending && (
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openReschedule(email.id, email.scheduled_at)}
-                            className="flex items-center gap-1 text-[11px] font-medium transition-colors"
-                            style={{ color: '#8B5CF6' }}
-                          >
-                            <CalendarClock className="w-3 h-3" />
-                            {locale === 'de' ? 'Umplanen' : 'Reschedule'}
+                          <button onClick={() => openReschedule(email.id, email.scheduled_at)} className="flex items-center gap-1 text-[11px] font-medium transition-colors" style={{ color: '#8B5CF6' }}>
+                            <CalendarClock className="w-3 h-3" />{locale === 'de' ? 'Umplanen' : 'Reschedule'}
                           </button>
-                          <button
-                            onClick={() => handleCancelScheduled(email.id)}
-                            disabled={cancelling === email.id}
-                            className="flex items-center gap-1 text-[11px] font-medium transition-colors disabled:opacity-50"
-                            style={{ color: '#EF4444' }}
-                          >
-                            {cancelling === email.id
-                              ? <span className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" />
-                              : <Trash2 className="w-3 h-3" />
-                            }
+                          <button onClick={() => handleCancelScheduled(email.id)} disabled={cancelling === email.id} className="flex items-center gap-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ color: '#EF4444' }}>
+                            {cancelling === email.id ? <span className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" /> : <Trash2 className="w-3 h-3" />}
                             {locale === 'de' ? 'Abbrechen' : 'Cancel'}
                           </button>
                         </div>
                       )}
-
-                      {/* Link to project */}
                       {email.project_id && (
-                        <Link
-                          href={`/dashboard/projects/${email.project_id}`}
-                          className="flex items-center gap-1 text-[11px] font-medium transition-colors"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          {locale === 'de' ? 'Projekt' : 'Project'}
-                          <ChevronRight className="w-3 h-3" />
+                        <Link href={`/dashboard/projects/${email.project_id}`} className="flex items-center gap-1 text-[11px] font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>
+                          {locale === 'de' ? 'Projekt' : 'Project'}<ChevronRight className="w-3 h-3" />
                         </Link>
                       )}
                     </div>
                   </div>
 
-                  {/* Inline reschedule picker */}
+                  {/* Inline reschedule picker (both layouts) */}
                   {reschedulingId === email.id && (
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                       <CalendarClock className="w-4 h-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
@@ -551,14 +568,14 @@ export default function AutomationsClient({
             className="rounded-2xl overflow-hidden"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
           >
-            <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+            <div className="px-4 py-3 md:px-6 md:py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#3B82F618' }}>
-                  <Clock className="w-4 h-4" style={{ color: '#3B82F6' }} />
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center" style={{ background: '#3B82F618' }}>
+                  <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: '#3B82F6' }} />
                 </div>
                 <div>
-                  <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>{t.scheduledTitle}</h2>
-                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{t.scheduledSubtitle}</p>
+                  <h2 className="font-bold text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--text-primary)' }}>{t.scheduledTitle}</h2>
+                  <p className="hidden md:block text-[12px]" style={{ color: 'var(--text-muted)' }}>{t.scheduledSubtitle}</p>
                 </div>
               </div>
             </div>
@@ -578,92 +595,82 @@ export default function AutomationsClient({
                   const accentColor = row.type === '7d' ? '#3B82F6' : '#8B5CF6'
                   const daysLeft = row.daysLeft
 
+                  const blockReason = row.project.reminders_disabled
+                    ? (locale === 'de' ? 'Erinnerungen deaktiviert' : 'Reminders disabled')
+                    : !row.project.client_url
+                    ? (locale === 'de' ? 'Kein Portal-Link' : 'No portal link')
+                    : !row.clientRow?.email
+                    ? (locale === 'de' ? 'Keine Kunden-E-Mail' : 'No client email')
+                    : (locale === 'de' ? 'Automation deaktiviert' : 'Automation disabled')
+
                   return (
-                    <div key={`${row.project.id}-${row.type}-${i}`} className="px-6 py-4">
-                      <div className="flex items-start gap-3">
-                        {/* Type badge */}
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{ background: accentColor + '18' }}
-                        >
+                    <div key={`${row.project.id}-${row.type}-${i}`} className="px-4 py-3.5 md:px-6 md:py-4">
+
+                      {/* ── Mobile layout ── */}
+                      <div className="md:hidden">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p className="font-bold text-[14px] leading-snug flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                            {row.project.title}
+                          </p>
+                          <MobileStatusPill status={isBlocked ? 'blocked' : 'pending'} locale={locale} />
+                        </div>
+                        <p className="text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
+                          <span className="font-semibold" style={{ color: accentColor }}>{row.type === '7d' ? t.reminder7d : t.reminder1d}</span>
+                          {row.clientRow?.full_name && <span> · {row.clientRow.full_name}</span>}
+                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            {locale === 'de' ? 'Sendet am' : 'Sends on'} · {formatDate(row.willSendOn, locale)}
+                            {' '}
+                            <span className="font-semibold" style={{ color: daysLeft <= 2 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#10B981' }}>
+                              ({t.daysUntil(daysLeft)})
+                            </span>
+                          </p>
+                          <Link href={`/dashboard/projects/${row.project.id}`} className="flex items-center gap-0.5 text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                            {locale === 'de' ? 'Projekt' : 'Project'}<ChevronRight className="w-3 h-3" />
+                          </Link>
+                        </div>
+                        {isBlocked && (
+                          <p className="text-[11px] mt-1.5 font-medium" style={{ color: '#F59E0B' }}>{blockReason}</p>
+                        )}
+                      </div>
+
+                      {/* ── Desktop layout ── */}
+                      <div className="hidden md:flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: accentColor + '18' }}>
                           <Mail className="w-4 h-4" style={{ color: accentColor }} />
                         </div>
-
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-semibold text-[13.5px] truncate" style={{ color: 'var(--text-primary)' }}>
-                              {row.project.title}
-                            </span>
-                            <span
-                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-                              style={{ background: accentColor + '18', color: accentColor }}
-                            >
+                            <span className="font-semibold text-[13.5px] truncate" style={{ color: 'var(--text-primary)' }}>{row.project.title}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: accentColor + '18', color: accentColor }}>
                               {row.type === '7d' ? t.reminder7d : t.reminder1d}
                             </span>
                           </div>
-
                           <div className="flex items-center gap-3 flex-wrap text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                            {/* Client */}
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {row.clientRow?.full_name ?? '—'}
-                            </span>
-                            {/* Shoot date */}
-                            <span className="flex items-center gap-1">
-                              <CalendarDays className="w-3 h-3" />
-                              {formatDate(row.project.shoot_date, locale)}
-                            </span>
+                            <span className="flex items-center gap-1"><User className="w-3 h-3" />{row.clientRow?.full_name ?? '—'}</span>
+                            <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />{formatDate(row.project.shoot_date, locale)}</span>
                           </div>
-
-                          {/* Send date */}
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
                             <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                               {locale === 'de' ? 'Sendet am:' : 'Sends on:'}{' '}
-                              <strong style={{ color: 'var(--text-secondary)' }}>
-                                {formatDate(row.willSendOn, locale)}
-                              </strong>
+                              <strong style={{ color: 'var(--text-secondary)' }}>{formatDate(row.willSendOn, locale)}</strong>
                             </span>
-                            <span
-                              className="text-[11px] font-bold px-1.5 py-0.5 rounded-md"
-                              style={{
-                                background: daysLeft <= 2 ? '#EF444418' : daysLeft <= 7 ? '#F59E0B18' : '#10B98118',
-                                color: daysLeft <= 2 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#10B981',
-                              }}
-                            >
+                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: daysLeft <= 2 ? '#EF444418' : daysLeft <= 7 ? '#F59E0B18' : '#10B98118', color: daysLeft <= 2 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#10B981' }}>
                               {t.daysUntil(daysLeft)}
                             </span>
                           </div>
-
-                          {/* Warnings */}
                           {isBlocked && (
                             <div className="mt-2 flex items-center gap-1.5 text-[11px]" style={{ color: '#F59E0B' }}>
                               <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                              <span>
-                                {row.project.reminders_disabled
-                                  ? (locale === 'de' ? 'Erinnerungen deaktiviert' : 'Reminders disabled')
-                                  : !row.project.client_url
-                                  ? (locale === 'de' ? 'Kein Portal-Link' : 'No portal link')
-                                  : !row.clientRow?.email
-                                  ? (locale === 'de' ? 'Keine Kunden-E-Mail' : 'No client email')
-                                  : (locale === 'de' ? 'Automation deaktiviert' : 'Automation disabled')}
-                              </span>
+                              <span>{blockReason}</span>
                             </div>
                           )}
                         </div>
-
-                        {/* Status + link */}
                         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          {isBlocked
-                            ? <StatusBadge label={t.disabled} color="#F59E0B" icon={XCircle} />
-                            : <StatusBadge label={t.pending} color="#3B82F6" icon={Clock} />
-                          }
-                          <Link
-                            href={`/dashboard/projects/${row.project.id}`}
-                            className="flex items-center gap-1 text-[11px] font-medium transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            {t.openProject}
-                            <ChevronRight className="w-3 h-3" />
+                          {isBlocked ? <StatusBadge label={t.disabled} color="#F59E0B" icon={XCircle} /> : <StatusBadge label={t.pending} color="#3B82F6" icon={Clock} />}
+                          <Link href={`/dashboard/projects/${row.project.id}`} className="flex items-center gap-1 text-[11px] font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>
+                            {t.openProject}<ChevronRight className="w-3 h-3" />
                           </Link>
                         </div>
                       </div>
@@ -679,14 +686,14 @@ export default function AutomationsClient({
             className="rounded-2xl overflow-hidden"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
           >
-            <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+            <div className="px-4 py-3 md:px-6 md:py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#10B98118' }}>
-                  <History className="w-4 h-4" style={{ color: '#10B981' }} />
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center" style={{ background: '#10B98118' }}>
+                  <History className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: '#10B981' }} />
                 </div>
                 <div>
-                  <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>{t.historyTitle}</h2>
-                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{t.historySubtitle}</p>
+                  <h2 className="font-bold text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--text-primary)' }}>{t.historyTitle}</h2>
+                  <p className="hidden md:block text-[12px]" style={{ color: 'var(--text-muted)' }}>{t.historySubtitle}</p>
                 </div>
               </div>
             </div>
@@ -704,51 +711,56 @@ export default function AutomationsClient({
                 {sentProjects.map((project) => {
                   const clientRow = getClient(project.client)
                   return (
-                    <div key={project.id} className="px-6 py-4">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{ background: '#10B98118' }}
-                        >
-                          <CheckCircle2 className="w-4 h-4" style={{ color: '#10B981' }} />
-                        </div>
+                    <div key={project.id} className="px-4 py-3.5 md:px-6 md:py-4">
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-semibold text-[13.5px] truncate" style={{ color: 'var(--text-primary)' }}>
-                              {project.title}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-3 flex-wrap text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {clientRow?.full_name ?? '—'}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <CalendarDays className="w-3 h-3" />
-                              {formatDate(project.shoot_date, locale)}
-                            </span>
-                          </div>
-
-                          {/* Which reminders were sent */}
-                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      {/* ── Mobile layout ── */}
+                      <div className="md:hidden">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p className="font-bold text-[14px] leading-snug flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                            {clientRow?.full_name ?? project.title}
+                          </p>
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             {project.reminder_7d_sent && (
-                              <StatusBadge label={t.reminder7d} color="#10B981" icon={CheckCircle2} />
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#10B98115', color: '#10B981' }}>7d ✓</span>
                             )}
                             {project.reminder_1d_sent && (
-                              <StatusBadge label={t.reminder1d} color="#10B981" icon={CheckCircle2} />
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#10B98115', color: '#10B981' }}>1d ✓</span>
                             )}
                           </div>
                         </div>
+                        <p className="text-[12px] mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                          {project.title}
+                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            {formatDate(project.shoot_date, locale)}
+                          </p>
+                          <Link href={`/dashboard/projects/${project.id}`} className="flex items-center gap-0.5 text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                            {locale === 'de' ? 'Projekt' : 'Project'}<ChevronRight className="w-3 h-3" />
+                          </Link>
+                        </div>
+                      </div>
 
-                        <Link
-                          href={`/dashboard/projects/${project.id}`}
-                          className="flex items-center gap-1 text-[11px] font-medium flex-shrink-0 transition-colors"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          {t.openProject}
-                          <ChevronRight className="w-3 h-3" />
+                      {/* ── Desktop layout ── */}
+                      <div className="hidden md:flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#10B98118' }}>
+                          <CheckCircle2 className="w-4 h-4" style={{ color: '#10B981' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-semibold text-[13.5px] truncate" style={{ color: 'var(--text-primary)' }}>{project.title}</span>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                            <span className="flex items-center gap-1"><User className="w-3 h-3" />{clientRow?.full_name ?? '—'}</span>
+                            <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />{formatDate(project.shoot_date, locale)}</span>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            {project.reminder_7d_sent && <StatusBadge label={t.reminder7d} color="#10B981" icon={CheckCircle2} />}
+                            {project.reminder_1d_sent && <StatusBadge label={t.reminder1d} color="#10B981" icon={CheckCircle2} />}
+                          </div>
+                        </div>
+                        <Link href={`/dashboard/projects/${project.id}`} className="flex items-center gap-1 text-[11px] font-medium flex-shrink-0 transition-colors" style={{ color: 'var(--text-muted)' }}>
+                          {t.openProject}<ChevronRight className="w-3 h-3" />
                         </Link>
                       </div>
                     </div>
