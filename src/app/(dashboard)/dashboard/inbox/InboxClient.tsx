@@ -286,15 +286,15 @@ function StructuredMessageBubble({
   const expandedH  = pairs.length   * rowPx + 24
 
   return (
-    <div className="flex justify-start">
-      <div style={{ maxWidth: '80%', minWidth: '260px' }}>
+    <div className="flex justify-start w-full sm:w-auto">
+      <div className="w-full sm:w-auto" style={{ maxWidth: '100%' }}>
         <div
-          className="rounded-2xl overflow-hidden"
+          className="rounded-2xl overflow-hidden w-full"
           style={{
             background: 'var(--bg-hover, #f5f5f3)',
             border: '1px solid var(--border-color)',
             borderBottomLeftRadius: '4px',
-            opacity: 0.72,
+            opacity: 0.85,
           }}
         >
           {/* Header */}
@@ -304,7 +304,7 @@ function StructuredMessageBubble({
           >
             <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent, #C9A96E)' }} />
             <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Original form submission
+              Formular-Einsendung
             </span>
           </div>
 
@@ -316,19 +316,20 @@ function StructuredMessageBubble({
               transition: 'max-height 280ms ease',
             }}
           >
-            <div className="px-4 py-3 space-y-1.5">
+            <div className="px-4 py-3 space-y-2.5">
               {visiblePairs.map(({ label, value }) => {
                 const formattedValue = formatValueIfDate(value)
                 const isEmail = isEmailLabel(label)
                 return (
-                  <div key={label} className="flex items-start gap-2">
+                  /* Stacked layout on mobile, side-by-side on desktop */
+                  <div key={label} className="flex flex-col sm:flex-row sm:items-start sm:gap-2">
                     <span
-                      className="text-[11px] font-semibold flex-shrink-0"
+                      className="text-[10px] font-bold uppercase tracking-wide leading-snug"
                       style={{ color: 'var(--text-muted)', minWidth: '90px' }}
                     >
                       {label}
                     </span>
-                    <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[12px] sm:text-[11px] font-medium leading-snug mt-0.5 sm:mt-0" style={{ color: 'var(--text-primary)' }}>
                       {isEmail ? (
                         <a href={`mailto:${value}`} className="underline" style={{ color: 'var(--accent, #C9A96E)' }}>
                           {value}
@@ -345,7 +346,7 @@ function StructuredMessageBubble({
           {hasMore && (
             <button
               onClick={() => setExpanded(v => !v)}
-              className="w-full px-4 py-2 text-[11px] font-medium transition-colors active:scale-[0.99]"
+              className="w-full px-4 py-2.5 text-[12px] font-semibold transition-colors active:scale-[0.99]"
               style={{
                 borderTop: '1px solid var(--border-color)',
                 color: 'var(--accent, #C9A96E)',
@@ -354,7 +355,7 @@ function StructuredMessageBubble({
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)' }}
             >
-              {expanded ? 'Weniger anzeigen ↑' : `Details anzeigen (+${pairs.length - PREVIEW_ROWS}) ↓`}
+              {expanded ? 'Weniger anzeigen ↑' : `Alle ${pairs.length} Felder anzeigen ↓`}
             </button>
           )}
         </div>
@@ -640,7 +641,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
           <>
             {/* ── Thread header ──────────────────────────────────────────── */}
             <div
-              className="px-6 py-4 flex-shrink-0"
+              className="px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0"
               style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
             >
               <div className="flex items-center gap-3">
@@ -697,7 +698,7 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
             )}
 
             {/* ── Messages (independent scroll) ─────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4" style={{ minHeight: 0 }}>
+            <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-5 space-y-4" style={{ minHeight: 0 }}>
               {displayMessages.length === 0 && (
                 <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>No messages yet.</p>
               )}
