@@ -53,12 +53,8 @@ export default async function BlogPostPage({ params }: Props) {
       <nav style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                <path d="M4 14V7.5L10 4L16 7.5V14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 14V10.5H12.5V14" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Fotonizer" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Fotonizer</span>
           </Link>
           <div className="flex items-center gap-4">

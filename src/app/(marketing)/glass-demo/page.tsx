@@ -186,12 +186,8 @@ export default function GlassDemoPage() {
             boxShadow: '0 1px 0 rgba(255,255,255,0.5), 0 4px 24px rgba(0,0,0,0.06)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(168,132,92,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,132,92,0.2)' }}>
-                <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Fotonizer" style={{ width: 30, height: 30, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
               <span style={{ fontSize: 17, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.03em' }}>Fotonizer</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
@@ -400,12 +396,8 @@ export default function GlassDemoPage() {
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 7, background: 'rgba(168,132,92,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
-                    <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Fotonizer" style={{ width: 24, height: 24, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
                 <span style={{ fontSize: 15, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em' }}>Fotonizer</span>
               </div>
               <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>Studio management for professional photographers.</p>

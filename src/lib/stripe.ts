@@ -140,13 +140,13 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
 }
 
 // ── Display prices (monthly, in €) ───────────────────────────────────────────
-// Starter: €17/month · €160/year
-// Pro:     €24/month · €230/year
+// Starter: €14/month · €134/year (~20% off)
+// Pro:     €22/month · €211/year (~20% off)
 // Studio:  €69/month · €690/year
 export const PLAN_DISPLAY = {
   free:    { name: 'Free',    price: 0,  annualPrice: 0,   color: '#6B6B6B' },
-  starter: { name: 'Starter', price: 17, annualPrice: 160, color: '#C8A882' },
-  pro:     { name: 'Pro',     price: 24, annualPrice: 230, color: '#1A1A1A' },
+  starter: { name: 'Starter', price: 14, annualPrice: 134, color: '#C8A882' },
+  pro:     { name: 'Pro',     price: 22, annualPrice: 211, color: '#1A1A1A' },
   studio:  { name: 'Studio',  price: 69, annualPrice: 690, color: '#0F0F0F' },
 }
 

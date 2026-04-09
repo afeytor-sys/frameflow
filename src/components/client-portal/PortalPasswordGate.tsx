@@ -75,11 +75,8 @@ export default function PortalPasswordGate({ password, studioName, logoUrl, chil
               />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.15"/>
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Fotonizer" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
                 <span style={{ fontFamily: '"DM Sans", system-ui, sans-serif', fontWeight: 700, fontSize: '16px', color: '#111827', letterSpacing: '-0.01em' }}>
                   {studioName}
                 </span>

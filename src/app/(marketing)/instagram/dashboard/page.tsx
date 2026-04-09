@@ -595,12 +595,8 @@ export default function DashboardReelsPage() {
           }}>
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 90% 45% at 50% -5%, rgba(196,164,124,0.18) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0 }} />
             <div style={{ position: 'absolute', top: 32, left: 24, zIndex: 20, display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(196,164,124,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Fotonizer" style={{ width: 26, height: 26, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
               <span style={{ fontSize: 14, fontWeight: 800, color: '#F0EDE8', letterSpacing: '-0.02em' }}>Fotonizer</span>
             </div>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 354, zIndex: 10 }}>
@@ -625,12 +621,8 @@ export default function DashboardReelsPage() {
           }}>
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 90% 45% at 50% -5%, rgba(196,164,124,0.14) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0 }} />
             <div style={{ position: 'absolute', top: 32, left: 24, zIndex: 20, display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(196,164,124,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Fotonizer" style={{ width: 26, height: 26, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
               <span style={{ fontSize: 14, fontWeight: 800, color: '#1A1A18', letterSpacing: '-0.02em' }}>Fotonizer</span>
             </div>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 354, zIndex: 10 }}>

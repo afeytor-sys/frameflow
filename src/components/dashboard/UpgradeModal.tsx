@@ -133,12 +133,12 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           </div>
         </div>
 
-        {/* Promo banner */}
+        {/* Trial banner */}
         <div className="mx-6 mt-5 flex items-center gap-2 px-3 py-2.5 rounded-xl"
-          style={{ background: 'linear-gradient(135deg, #F59E0B15 0%, #EC489915 100%)', border: '1px solid #F59E0B30' }}>
-          <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F59E0B' }} />
+          style={{ background: '#10B98112', border: '1px solid #10B98130' }}>
+          <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10B981' }} />
           <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
-            🎉 <span style={{ color: '#F59E0B' }}>Launch offer:</span> First <strong>3 months 50% off</strong> — automatisch!
+            🎁 <span style={{ color: '#10B981' }}>2 Monate kostenlos testen</span> — kein Risiko, jederzeit kündbar
           </p>
         </div>
 
@@ -195,7 +195,6 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
             const monthlyPrice = display.price
             const annualPrice = getAnnualTotal(plan)
             const displayPrice = billing === 'annual' ? Math.round(annualPrice / 12) : monthlyPrice
-            const promoPrice = Math.round(displayPrice * 0.5)
 
             return (
               <div
@@ -223,17 +222,20 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
 
                 <div className="mb-3">
                   <p className="font-semibold text-[#1A1A1A] text-sm">{display.name}</p>
+                  <div className="mt-1 mb-1.5">
+                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#10B98115', color: '#10B981' }}>
+                      2 Monate kostenlos
+                    </span>
+                  </div>
                   <div className="flex items-baseline gap-1 mt-1 flex-wrap">
                     <span className="font-display text-2xl font-bold text-[#1A1A1A]">
-                      €{promoPrice}
+                      €{displayPrice}
                     </span>
                     <span className="text-xs text-[#6B6B6B]">/Monat</span>
-                    <span className="text-sm line-through text-[#9CA3AF]">€{displayPrice}</span>
                   </div>
-                  <p className="text-[10px] font-semibold text-[#F59E0B] mt-0.5">🎉 50% off — erste 3 Monate</p>
-                  <p className="text-[10px] text-[#9CA3AF]">danach €{displayPrice}/Monat zzgl. MwSt.</p>
+                  <p className="text-[10px] text-[#9CA3AF] mt-0.5">Danach €{displayPrice}/Monat zzgl. MwSt.</p>
                   {billing === 'annual' && (
-                    <p className="text-xs text-[#6B6B6B] mt-0.5">€{annualPrice}/Jahr</p>
+                    <p className="text-xs text-[#6B6B6B] mt-0.5">€{annualPrice}/Jahr (gesamt)</p>
                   )}
                 </div>
 
@@ -270,7 +272,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                       ? 'Weiterleitung...'
                       : isCurrentOrLower
                       ? 'Aktueller Plan'
-                      : `Auf ${display.name} upgraden`}
+                      : 'Kostenlos starten'}
                   </button>
                 )}
               </div>

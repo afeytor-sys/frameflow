@@ -116,12 +116,8 @@ export default function ReelsPage() {
           opacity: scene === 'hook' ? 0 : 1,
           transition: 'opacity 0.4s ease',
         }}>
-          <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(196,164,124,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-              <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Fotonizer" style={{ width: 26, height: 26, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
           <span style={{ fontSize: 15, fontWeight: 800, color: '#F0EDE8', letterSpacing: '-0.02em' }}>Fotonizer</span>
         </div>
 
@@ -151,12 +147,8 @@ export default function ReelsPage() {
           {/* ── INTRO ────────────────────────────────────── */}
           {scene === 'intro' && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(196,164,124,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px' }}>
-                <svg width="32" height="32" viewBox="0 0 20 20" fill="none">
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Fotonizer" style={{ width: 64, height: 64, borderRadius: 18, objectFit: 'cover', display: 'block', margin: '0 auto 28px' }} />
               <p style={{ fontSize: 14, fontWeight: 700, color: '#C4A47C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 14 }}>Meet Fotonizer</p>
               <h1 style={{ fontSize: 44, fontWeight: 900, color: '#F0EDE8', letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 20 }}>
                 Your studio.<br /><span style={{ color: '#C4A47C' }}>All in one place.</span>

@@ -73,7 +73,6 @@ export async function POST(request: NextRequest) {
         // 60-day free trial for first-time subscribers
         ...(isNewSubscriber ? { trial_period_days: 60 } : {}),
       },
-      allow_promotion_codes: true,
       billing_address_collection: 'auto',
     })
 

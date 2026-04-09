@@ -104,8 +104,8 @@ const PLANS = [
   {
     key: 'starter' as PlanKey,
     name: 'Starter',
-    monthly: 17,
-    annual: 160,
+    monthly: 14,
+    annual: 134,
     description: 'Für wachsende Studios',
     badge: null,
     highlight: false,
@@ -114,8 +114,8 @@ const PLANS = [
   {
     key: 'pro' as PlanKey,
     name: 'Pro',
-    monthly: 24,
-    annual: 230,
+    monthly: 22,
+    annual: 211,
     description: 'Für professionelle Fotografen',
     badge: 'Beliebteste Wahl',
     highlight: true,

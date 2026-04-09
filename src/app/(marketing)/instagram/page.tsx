@@ -50,34 +50,8 @@ function Slide({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              background: 'rgba(196,164,124,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-              <path
-                d="M4 14V7.5L10 4L16 7.5V14"
-                stroke="#C4A47C"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M7.5 14V10.5H12.5V14"
-                stroke="#C4A47C"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Fotonizer" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
           <span
             style={{
               fontSize: 22,

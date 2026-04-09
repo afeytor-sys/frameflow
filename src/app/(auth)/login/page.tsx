@@ -42,12 +42,8 @@ export default function LoginPage() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 relative z-10">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.15)' }}>
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-              <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Fotonizer" className="w-8 h-8 rounded-xl object-cover" />
           <span className="font-bold text-[18px] text-white" style={{ letterSpacing: '-0.025em' }}>
             Fotonizer
           </span>
@@ -86,12 +82,8 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                <path d="M4 14V7.5L10 4L16 7.5V14" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 14V10.5H12.5V14" stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Fotonizer" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>Fotonizer</span>
           </Link>
 
