@@ -28,6 +28,16 @@ export interface Photographer {
   bank_bic: string | null
   // migration 025: storage usage
   storage_used_bytes: number
+  // migration 065: extended profile for invoices
+  company_name: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+  phone: string | null
+  website: string | null
+  tax_number: string | null
+  tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7'
   created_at: string
 }
 
@@ -47,6 +57,8 @@ export interface Client {
   address_city: string | null
   address_zip: string | null
   address_country: string | null
+  // migration 066: company name
+  company_name: string | null
   created_at: string
 }
 
@@ -190,19 +202,69 @@ export interface Timeline {
   updated_at: string
 }
 
+export interface InvoiceItem {
+  id: string
+  invoice_id: string
+  position: number
+  description: string
+  quantity: number
+  unit_price: number  // cents
+  total: number       // cents
+  created_at: string
+}
+
+export interface InvoiceSnapshot {
+  studio_name: string | null
+  full_name: string | null
+  company_name: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+  phone: string | null
+  website: string | null
+  email: string | null
+  tax_number: string | null
+  bank_account_holder: string | null
+  bank_name: string | null
+  bank_iban: string | null
+  bank_bic: string | null
+}
+
+export interface ClientSnapshot {
+  full_name: string
+  company_name: string | null
+  email: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+}
+
 export interface Invoice {
   id: string
   project_id: string
   photographer_id: string
   invoice_number: string | null
-  amount: number
+  amount: number       // gross total in cents
   currency: string
   status: InvoiceStatus
   description: string | null
   due_date: string | null
   // migration 023: notes
   notes: string | null
+  // migration 060: payment reference
+  verwendungszweck: string | null
   stripe_invoice_id: string | null
+  // migration 067: snapshots + tax
+  photographer_snapshot: InvoiceSnapshot | null
+  client_snapshot: ClientSnapshot | null
+  tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7'
+  tax_rate: number
+  subtotal: number     // cents
+  tax_amount: number   // cents
+  // joined
+  items?: InvoiceItem[]
   created_at: string
 }
 

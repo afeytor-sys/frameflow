@@ -433,9 +433,8 @@ export const blogPosts: BlogPost[] = [
 
 <p>Das ist der erste Eindruck, den du hinterlässt – auch nach der Hochzeit.</p>
 
-<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
-  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Galerie-Ansicht</p>
-  <p style="margin:0;color:var(--text-secondary);">Eine aufgeräumte, moderne Hochzeitsgalerie. Großformatige Fotos in einem Grid-Layout, weißer Hintergrund, minimale Navigation oben. Keine Ablenkung, nur die Bilder. Unten rechts ein dezenter Download-Button. Fühlt sich an wie eine Designagentur – nicht wie ein Cloud-Speicher.</p>
+<div style="margin:2.5rem 0;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);border:1px solid var(--border-color);">
+  <img src="/gallery/gallery-grid.png" alt="Fotonizer Galerie-Ansicht – Foto-Grid mit Sets und Favoriten-Funktion" style="width:100%;display:block;" loading="lazy" />
 </div>
 
 <h2>Was eine gute Galerie heute können muss</h2>
@@ -452,9 +451,8 @@ export const blogPosts: BlogPost[] = [
 
 <p>Wähle Templates, die zu deiner Ästhetik passen – klassisch weiß, dunkel und elegant, modern und minimalistisch. Was dein Kunde sieht, spricht für dich.</p>
 
-<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
-  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Favoriten auswählen</p>
-  <p style="margin:0;color:var(--text-secondary);">Eine Braut wählt auf ihrem Telefon Lieblingsfotos aus. Ein kleines Herz-Icon erscheint unten rechts auf jedem Foto. Ausgewählte Fotos leuchten leicht auf. Oben ein Zähler: "14 Favoriten ausgewählt". Einfach, intuitiv – kein Tutorial nötig.</p>
+<div style="margin:2.5rem 0;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);border:1px solid var(--border-color);">
+  <img src="/gallery/gallery-themes.png" alt="Fotonizer Design-Templates – Galerie-Themes für jeden Stil auswählen" style="width:100%;display:block;" loading="lazy" />
 </div>
 
 <h3>Favoriten auswählen – ohne Excel-Liste</h3>
@@ -469,9 +467,13 @@ export const blogPosts: BlogPost[] = [
 
 <p>Statt einer langen E-Mail mit ungenauen Beschreibungen – einfach ein Kommentar direkt unter dem Foto hinterlassen. Du antwortest direkt. Keine Verwirrung darüber, welches Foto gemeint war.</p>
 
-<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
-  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Kommentar-Funktion</p>
-  <p style="margin:0;color:var(--text-secondary);">Ein Hochzeitsfoto ist in der Vollansicht geöffnet. Darunter ein kleines, elegantes Kommentarfeld. Eine Nachricht ist bereits da: "Dieses Foto würden wir gerne als Leinwand – ist das möglich?" Der Fotograf hat geantwortet: "Natürlich, sehr gerne!" Dezent, professionell, direkt am Bild.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2.5rem 0;">
+  <div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.10);border:1px solid var(--border-color);">
+    <img src="/gallery/gallery-settings.png" alt="Fotonizer Galerie-Einstellungen – Kommentare, Downloads und Ablaufdatum steuern" style="width:100%;display:block;" loading="lazy" />
+  </div>
+  <div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.10);border:1px solid var(--border-color);">
+    <img src="/gallery/gallery-layout.png" alt="Fotonizer Galerie-Layout – Bildgröße und Anordnung frei wählen" style="width:100%;display:block;" loading="lazy" />
+  </div>
 </div>
 
 <h3>Sets für die Übersicht</h3>
@@ -488,9 +490,8 @@ export const blogPosts: BlogPost[] = [
 
 <p>Das Brautpaar zeigt es der Familie. Die Familie zeigt es Freunden. Dein Name steht dran. Das ist kostenlose Weiterempfehlung – ausgelöst durch ein gutes Erlebnis bei der Übergabe.</p>
 
-<div style="background:var(--bg-hover);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin:2.5rem 0;">
-  <p style="margin:0 0 0.5rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Mockup: Client Portal</p>
-  <p style="margin:0;color:var(--text-secondary);">Ein elegantes Client-Dashboard. Oben der Projektname: "Hochzeit Marc & Laura – 14. Juni 2026". Darunter drei übersichtliche Kacheln: "Galerie ansehen", "Favoriten verwalten", "Dokumente". Ein kleiner Download-Bereich am Ende. Alles in ruhigen Tönen, keine Ablenkung. Fühlt sich an wie ein persönlicher Bereich – gebaut für dieses eine Paar.</p>
+<div style="margin:2.5rem 0;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);border:1px solid var(--border-color);">
+  <img src="/gallery/gallery-share.png" alt="Fotonizer Galerie teilen – Link und E-Mail-Versand direkt aus der Galerie" style="width:100%;display:block;" loading="lazy" />
 </div>
 
 <h2>Dein Workflow, vereinfacht</h2>

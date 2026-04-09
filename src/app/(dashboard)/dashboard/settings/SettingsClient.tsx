@@ -5,7 +5,7 @@ import { dashboardT } from '@/lib/dashboardTranslations'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User, Building2, Palette, Bell, CreditCard, Zap, Link2, Mail, Calendar, CheckCircle2, XCircle } from 'lucide-react'
+import { User, Building2, Palette, Bell, CreditCard, Zap, Link2, Mail, Calendar, CheckCircle2, XCircle, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -22,6 +22,16 @@ interface Photographer {
   bank_name: string | null
   bank_iban: string | null
   bank_bic: string | null
+  // invoice extended profile
+  company_name: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+  phone: string | null
+  website: string | null
+  tax_number: string | null
+  tax_status: string | null
 }
 
 interface Props {
@@ -53,6 +63,17 @@ export default function SettingsClient({ photographer, userId }: Props) {
   const [bankName, setBankName] = useState(photographer?.bank_name || '')
   const [bankIban, setBankIban] = useState(photographer?.bank_iban || '')
   const [bankBic, setBankBic] = useState(photographer?.bank_bic || '')
+
+  // Invoice / Rechnung profile
+  const [companyName, setCompanyName] = useState(photographer?.company_name || '')
+  const [addressStreet, setAddressStreet] = useState(photographer?.address_street || '')
+  const [addressZip, setAddressZip] = useState(photographer?.address_zip || '')
+  const [addressCity, setAddressCity] = useState(photographer?.address_city || '')
+  const [addressCountry, setAddressCountry] = useState(photographer?.address_country || 'Deutschland')
+  const [phoneNum, setPhoneNum] = useState(photographer?.phone || '')
+  const [website, setWebsite] = useState(photographer?.website || '')
+  const [taxNumber, setTaxNumber] = useState(photographer?.tax_number || '')
+  const [taxStatus, setTaxStatus] = useState<string>(photographer?.tax_status || 'kleinunternehmer')
 
   // Automation settings
   const [autoSettings, setAutoSettings] = useState({
@@ -192,6 +213,27 @@ export default function SettingsClient({ photographer, userId }: Props) {
     else toast.success(ts.bank.saved)
   }
 
+  const saveInvoiceProfile = async () => {
+    setSaving(true)
+    const { error } = await supabase
+      .from('photographers')
+      .update({
+        company_name: companyName.trim() || null,
+        address_street: addressStreet.trim() || null,
+        address_zip: addressZip.trim() || null,
+        address_city: addressCity.trim() || null,
+        address_country: addressCountry.trim() || null,
+        phone: phoneNum.trim() || null,
+        website: website.trim() || null,
+        tax_number: taxNumber.trim() || null,
+        tax_status: taxStatus,
+      })
+      .eq('id', userId)
+    setSaving(false)
+    if (error) toast.error('Fehler beim Speichern')
+    else toast.success('Rechnungsprofil gespeichert')
+  }
+
   const uploadLogo = async (file: File) => {
     const ext = file.name.split('.').pop()
     const path = `logos/${userId}/logo.${ext}`
@@ -215,6 +257,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           { id: 'profile', label: ts.tabs.profile, icon: User },
           { id: 'studio', label: ts.tabs.studio, icon: Building2 },
           { id: 'bank', label: ts.tabs.bank, icon: CreditCard },
+          { id: 'rechnung', label: isDE ? 'Rechnung' : 'Invoices', icon: Receipt },
           { id: 'branding', label: ts.tabs.branding, icon: Palette },
           { id: 'automations', label: isDE ? 'Automationen' : 'Automations', icon: Zap },
         { id: 'notifications', label: ts.tabs.notifications, icon: Bell },
@@ -436,6 +479,163 @@ export default function SettingsClient({ photographer, userId }: Props) {
             className="px-4 py-2 bg-[#1A1A1A] text-white text-sm font-medium rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
           >
             {saving ? ts.bank.saving : ts.bank.saveBtn}
+          </button>
+        </div>
+      )}
+
+      {/* ── Rechnung tab ── */}
+      {activeTab === 'rechnung' && (
+        <div className="bg-white rounded-xl border border-[#E8E8E4] p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-[#1A1A1A]">{isDE ? 'Rechnungsprofil' : 'Invoice Profile'}</h2>
+            <p className="text-xs text-[#6B6B6B] mt-1">
+              {isDE
+                ? 'Diese Daten erscheinen auf allen Rechnungen als Absenderadresse.'
+                : 'These details appear on all invoices as the sender address.'}
+            </p>
+          </div>
+
+          {/* Steuer-Status */}
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-2">
+              {isDE ? 'Steuerstatus' : 'Tax Status'} <span className="text-[#E84C1A]">*</span>
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              {([
+                { value: 'kleinunternehmer', label: isDE ? 'Kleinunternehmer (§19 UStG)' : 'Small business (§19 UStG)', desc: isDE ? 'Keine Mehrwertsteuer — Hinweispflicht auf Rechnung' : 'No VAT — disclaimer required on invoices' },
+                { value: 'vat_19', label: isDE ? '19% MwSt (Regelbesteuerung)' : '19% VAT (standard)', desc: isDE ? 'MwSt wird automatisch berechnet und ausgewiesen' : 'VAT is calculated and shown automatically' },
+                { value: 'vat_7', label: isDE ? '7% MwSt (ermäßigt)' : '7% VAT (reduced)', desc: isDE ? 'Für bestimmte Leistungen (z.B. Pressefotos)' : 'For certain services (e.g. press photos)' },
+              ] as const).map(opt => (
+                <label
+                  key={opt.value}
+                  className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
+                  style={{
+                    borderColor: taxStatus === opt.value ? '#F97316' : '#E8E8E4',
+                    background: taxStatus === opt.value ? 'rgba(249,115,22,0.04)' : '#fff',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="tax_status"
+                    value={opt.value}
+                    checked={taxStatus === opt.value}
+                    onChange={() => setTaxStatus(opt.value)}
+                    className="mt-0.5 accent-[#F97316]"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-[#1A1A1A]">{opt.label}</p>
+                    <p className="text-xs text-[#6B6B6B] mt-0.5">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Firmenname */}
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+              {isDE ? 'Firmenname (optional)' : 'Company name (optional)'}
+            </label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              placeholder={isDE ? 'z.B. Lichtblick Photography GbR' : 'e.g. Lichtblick Photography GbR'}
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+            />
+          </div>
+
+          {/* Adresse */}
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+              {isDE ? 'Straße & Hausnummer' : 'Street & number'}
+            </label>
+            <input
+              type="text"
+              value={addressStreet}
+              onChange={e => setAddressStreet(e.target.value)}
+              placeholder="Musterstraße 42"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">PLZ</label>
+              <input
+                type="text"
+                value={addressZip}
+                onChange={e => setAddressZip(e.target.value)}
+                placeholder="10115"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">{isDE ? 'Stadt' : 'City'}</label>
+              <input
+                type="text"
+                value={addressCity}
+                onChange={e => setAddressCity(e.target.value)}
+                placeholder="Berlin"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">{isDE ? 'Land' : 'Country'}</label>
+            <input
+              type="text"
+              value={addressCountry}
+              onChange={e => setAddressCountry(e.target.value)}
+              placeholder="Deutschland"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+            />
+          </div>
+
+          {/* Kontakt */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">{isDE ? 'Telefon' : 'Phone'}</label>
+              <input
+                type="tel"
+                value={phoneNum}
+                onChange={e => setPhoneNum(e.target.value)}
+                placeholder="+49 30 123456"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#6B6B6B] mb-1">Website</label>
+              <input
+                type="url"
+                value={website}
+                onChange={e => setWebsite(e.target.value)}
+                placeholder="www.meinestudio.de"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Steuernummer */}
+          <div>
+            <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+              {isDE ? 'Steuernummer / USt-ID' : 'Tax number / VAT ID'}
+            </label>
+            <input
+              type="text"
+              value={taxNumber}
+              onChange={e => setTaxNumber(e.target.value)}
+              placeholder="DE123456789"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white font-mono"
+            />
+          </div>
+
+          <button
+            onClick={saveInvoiceProfile}
+            disabled={saving}
+            className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            style={{ background: '#F97316' }}
+          >
+            {saving ? 'Speichern...' : (isDE ? 'Rechnungsprofil speichern' : 'Save invoice profile')}
           </button>
         </div>
       )}

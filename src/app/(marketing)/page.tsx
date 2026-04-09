@@ -1012,12 +1012,8 @@ export default function HomePage() {
           boxShadow: '0 1px 0 rgba(255,255,255,0.5), 0 4px 24px rgba(0,0,0,0.06)',
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(168,132,92,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,132,92,0.2)' }}>
-              <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
-                <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Fotonizer" style={{ width: 30, height: 30, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
             <span style={{ fontSize: 17, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.03em' }}>Fotonizer</span>
           </Link>
 
@@ -1217,6 +1213,117 @@ export default function HomePage() {
         </div>
       </GlassSection>
 
+      {/* ── GALLERY SHOWCASE ── transparent */}
+      <section style={{ padding: '96px 48px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#A8845C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 16 }}>
+              {lang === 'de' ? 'Galerien' : 'Galleries'}
+            </p>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, color: '#1A1510', letterSpacing: '-0.035em', lineHeight: 1.1, marginBottom: 16 }}>
+              {lang === 'de'
+                ? 'Galerien, die für sich sprechen.'
+                : 'Galleries that speak for themselves.'}
+            </h2>
+            <p style={{ fontSize: 17, color: 'rgba(0,0,0,0.48)', maxWidth: 540, margin: '0 auto', lineHeight: 1.65 }}>
+              {lang === 'de'
+                ? 'Wähle aus 10 eleganten Designs, steuere Downloads und Kommentare, teile per Link oder E-Mail — alles in einer Plattform.'
+                : 'Choose from 10 elegant themes, control downloads and comments, share by link or email — all in one platform.'}
+            </p>
+          </div>
+
+          {/* Main screenshot: full-width grid view */}
+          <GlassCard level="light" style={{ overflow: 'hidden', marginBottom: 16 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/gallery/gallery-grid.png"
+              alt="Fotonizer gallery grid view with sets and favorites"
+              style={{ width: '100%', display: 'block', borderRadius: 0 }}
+            />
+          </GlassCard>
+
+          {/* 2-col row: themes + share */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <GlassCard level="light" style={{ overflow: 'hidden' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/gallery/gallery-themes.png"
+                alt="Fotonizer gallery theme picker"
+                style={{ width: '100%', display: 'block' }}
+              />
+              <div style={{ padding: '20px 24px 24px' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em', marginBottom: 6 }}>
+                  {lang === 'de' ? '10 elegante Design-Themes' : '10 elegant design themes'}
+                </h3>
+                <p style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.5)', lineHeight: 1.6 }}>
+                  {lang === 'de'
+                    ? 'Classic White, Midnight Black, Warm Ivory und mehr — eines passt immer zu deiner Marke.'
+                    : 'Classic White, Midnight Black, Warm Ivory and more — one always fits your brand.'}
+                </p>
+              </div>
+            </GlassCard>
+            <GlassCard level="light" style={{ overflow: 'hidden' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/gallery/gallery-share.png"
+                alt="Fotonizer gallery share modal"
+                style={{ width: '100%', display: 'block' }}
+              />
+              <div style={{ padding: '20px 24px 24px' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em', marginBottom: 6 }}>
+                  {lang === 'de' ? 'Per Link oder E-Mail teilen' : 'Share by link or email'}
+                </h3>
+                <p style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.5)', lineHeight: 1.6 }}>
+                  {lang === 'de'
+                    ? 'Einmal klicken, Galerie versenden. Optional mit Passwort gesichert.'
+                    : 'One click, gallery delivered. Optional password protection included.'}
+                </p>
+              </div>
+            </GlassCard>
+          </div>
+
+          {/* 2-col row: settings + layout */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <GlassCard level="light" style={{ overflow: 'hidden' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/gallery/gallery-settings.png"
+                alt="Fotonizer gallery settings toggles"
+                style={{ width: '100%', display: 'block' }}
+              />
+              <div style={{ padding: '20px 24px 24px' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em', marginBottom: 6 }}>
+                  {lang === 'de' ? 'Du behältst die Kontrolle' : 'You stay in control'}
+                </h3>
+                <p style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.5)', lineHeight: 1.6 }}>
+                  {lang === 'de'
+                    ? 'Downloads, Kommentare, Ablaufdatum, Favoriten — alles ein- oder ausschaltbar.'
+                    : 'Downloads, comments, expiry date, favorites — every option togglable.'}
+                </p>
+              </div>
+            </GlassCard>
+            <GlassCard level="light" style={{ overflow: 'hidden' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/gallery/gallery-layout.png"
+                alt="Fotonizer gallery layout picker"
+                style={{ width: '100%', display: 'block' }}
+              />
+              <div style={{ padding: '20px 24px 24px' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em', marginBottom: 6 }}>
+                  {lang === 'de' ? 'Layout nach deinem Geschmack' : 'Layout to your taste'}
+                </h3>
+                <p style={{ fontSize: 13.5, color: 'rgba(0,0,0,0.5)', lineHeight: 1.6 }}>
+                  {lang === 'de'
+                    ? 'Masonry, Rahmen oder Spalten — wähle das Layout, das deine Fotos am besten zeigt.'
+                    : 'Masonry, frame or columns — pick the layout that shows your work best.'}
+                </p>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      </section>
+
       {/* ── FEATURES GRID ── transparent */}
       <section style={{ padding: '96px 48px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -1332,12 +1439,8 @@ export default function HomePage() {
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 7, background: 'rgba(168,132,92,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
-                  <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7.5 14V10.5H12.5V14" stroke="#A8845C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Fotonizer" style={{ width: 24, height: 24, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
               <span style={{ fontSize: 15, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em' }}>Fotonizer</span>
             </div>
             <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>{t.footer.tagline}</p>

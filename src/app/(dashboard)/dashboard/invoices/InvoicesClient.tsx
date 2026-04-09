@@ -1,19 +1,60 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer, Mail } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer, Mail, GripVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EmailVorlagePicker from '@/components/dashboard/EmailVorlagePicker'
 import { useLocale } from '@/hooks/useLocale'
 import { dashboardT } from '@/lib/dashboardTranslations'
 import { formatCompact } from '@/lib/utils'
 
+interface InvoiceLineItem {
+  id?: string
+  position: number
+  description: string
+  quantity: number      // e.g. 1, 2.5
+  unit_price: number    // euros (not cents) — only in form state
+  total: number         // euros — auto-calculated
+}
+
+interface InvoiceSnapshot {
+  studio_name: string | null
+  full_name: string | null
+  company_name: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+  phone: string | null
+  website: string | null
+  email: string | null
+  tax_number: string | null
+  bank_account_holder: string | null
+  bank_name: string | null
+  bank_iban: string | null
+  bank_bic: string | null
+}
+
+interface ClientSnapshot {
+  full_name: string
+  company_name: string | null
+  email: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+}
+
 interface Invoice {
   id: string
   project_id: string
   photographer_id: string
-  amount: number
+  amount: number          // gross total in cents
+  subtotal: number        // net subtotal in cents
+  tax_amount: number      // tax in cents
+  tax_rate: number        // 0 | 7 | 19
+  tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7'
   currency: string
   status: 'draft' | 'sent' | 'paid' | 'overdue'
   due_date: string | null
@@ -24,9 +65,12 @@ interface Invoice {
   stripe_invoice_id: string | null
   sent_at?: string | null
   created_at: string
+  photographer_snapshot: InvoiceSnapshot | null
+  client_snapshot: ClientSnapshot | null
+  items?: { position: number; description: string; quantity: number; unit_price: number; total: number }[]
   project?: {
     title: string
-    client?: { full_name: string; email?: string } | { full_name: string; email?: string }[]
+    client?: { full_name: string; email?: string; company_name?: string | null; address_street?: string | null; address_zip?: string | null; address_city?: string | null } | { full_name: string; email?: string; company_name?: string | null }[]
   }
 }
 
@@ -48,6 +92,15 @@ interface Photographer {
   full_name: string | null
   studio_name: string | null
   email: string | null
+  company_name: string | null
+  address_street: string | null
+  address_zip: string | null
+  address_city: string | null
+  address_country: string | null
+  phone: string | null
+  website: string | null
+  tax_number: string | null
+  tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7' | null
   bank_account_holder: string | null
   bank_name: string | null
   bank_iban: string | null
@@ -90,129 +143,212 @@ function getClientEmail(project?: Invoice['project']): string | null {
 
 const MWST_RATE = 0.19
 
-// ── Print invoice in a new window ─────────────────────────────────────────
-function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null) {
-  const clientName = getClientName(invoice.project)
-  const clientEmail = getClientEmail(invoice.project)
-  const cfg = STATUS_CONFIG[invoice.status]
-  const hasBankDetails = photographer?.bank_iban || photographer?.bank_account_holder
+// ── Format helpers ─────────────────────────────────────────────────────────
+function fmtEurText(euros: number) {
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(euros)
+}
+function fmtCentsText(cents: number) { return fmtEurText(cents / 100) }
 
-  const html = `<!DOCTYPE html>
+// ── Build A4 HTML invoice ──────────────────────────────────────────────────
+function buildInvoiceHtml(invoice: Invoice, photographer: Photographer | null, autoPrint = false): string {
+  // Use snapshot if available, fall back to current photographer
+  const snap = invoice.photographer_snapshot
+  const csnap = invoice.client_snapshot
+  const ph = {
+    studio_name: snap?.studio_name ?? photographer?.studio_name,
+    full_name: snap?.full_name ?? photographer?.full_name,
+    company_name: snap?.company_name ?? photographer?.company_name,
+    address_street: snap?.address_street ?? photographer?.address_street,
+    address_zip: snap?.address_zip ?? photographer?.address_zip,
+    address_city: snap?.address_city ?? photographer?.address_city,
+    address_country: snap?.address_country ?? photographer?.address_country,
+    phone: snap?.phone ?? photographer?.phone,
+    website: snap?.website ?? photographer?.website,
+    email: snap?.email ?? photographer?.email,
+    tax_number: snap?.tax_number ?? photographer?.tax_number,
+    bank_account_holder: snap?.bank_account_holder ?? photographer?.bank_account_holder,
+    bank_name: snap?.bank_name ?? photographer?.bank_name,
+    bank_iban: snap?.bank_iban ?? photographer?.bank_iban,
+    bank_bic: snap?.bank_bic ?? photographer?.bank_bic,
+  }
+
+  const client = {
+    full_name: csnap?.full_name ?? getClientName(invoice.project),
+    company_name: csnap?.company_name ?? null,
+    email: csnap?.email ?? getClientEmail(invoice.project),
+    address_street: csnap?.address_street ?? null,
+    address_zip: csnap?.address_zip ?? null,
+    address_city: csnap?.address_city ?? null,
+    address_country: csnap?.address_country ?? null,
+  }
+
+  const taxStatus = invoice.tax_status || photographer?.tax_status || 'kleinunternehmer'
+  const taxRate = invoice.tax_rate || 0
+  const subtotalCents = invoice.subtotal || invoice.amount
+  const taxCents = invoice.tax_amount || 0
+  const totalCents = invoice.amount
+  const hasItems = invoice.items && invoice.items.length > 0
+  const hasBankDetails = ph.bank_iban || ph.bank_account_holder
+  const invoiceDate = new Date(invoice.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
+  const dueDate = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : null
+  const studioDisplay = ph.studio_name || ph.full_name || 'Fotograf'
+
+  const itemsHtml = hasItems
+    ? invoice.items!.map(it => `
+      <tr>
+        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;color:#3A3A3A;">${it.position}</td>
+        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;color:#1A1A1A;">${it.description}</td>
+        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;color:#3A3A3A;">${String(it.quantity).replace('.', ',')}</td>
+        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;color:#3A3A3A;">${fmtCentsText(it.unit_price)}</td>
+        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;font-weight:700;color:#1A1A1A;">${fmtCentsText(it.total)}</td>
+      </tr>`).join('')
+    : `<tr>
+        <td colspan="5" style="padding:14px 14px;font-size:13px;border-top:1px solid #E8E8E4;color:#1A1A1A;">${invoice.description || invoice.project?.title || 'Fotografieleistungen'}</td>
+      </tr>`
+
+  const taxRowsHtml = taxStatus === 'kleinunternehmer'
+    ? `<tr>
+        <td colspan="4" style="padding:8px 14px;font-size:12px;font-weight:700;text-align:right;color:#6B6B6B;">Gesamt (netto)</td>
+        <td style="padding:8px 14px;font-size:13px;font-weight:700;text-align:right;color:#1A1A1A;">${fmtCentsText(totalCents)}</td>
+      </tr>`
+    : `<tr>
+        <td colspan="4" style="padding:8px 14px;font-size:12px;text-align:right;color:#6B6B6B;">Nettobetrag</td>
+        <td style="padding:8px 14px;font-size:13px;text-align:right;color:#1A1A1A;">${fmtCentsText(subtotalCents)}</td>
+      </tr>
+      <tr>
+        <td colspan="4" style="padding:8px 14px;font-size:12px;text-align:right;color:#6B6B6B;">MwSt ${taxRate}%</td>
+        <td style="padding:8px 14px;font-size:13px;text-align:right;color:#1A1A1A;">${fmtCentsText(taxCents)}</td>
+      </tr>
+      <tr>
+        <td colspan="4" style="padding:10px 14px;font-size:13px;font-weight:900;text-align:right;color:#1A1A1A;border-top:2px solid #E8E8E4;">Gesamtbetrag</td>
+        <td style="padding:10px 14px;font-size:16px;font-weight:900;text-align:right;color:#F97316;border-top:2px solid #E8E8E4;">${fmtCentsText(totalCents)}</td>
+      </tr>`
+
+  const kleinunternehmerText = taxStatus === 'kleinunternehmer'
+    ? `<p style="font-size:11px;color:#6B6B6B;margin-top:14px;line-height:1.6;">Gemäß §19 UStG wird keine Umsatzsteuer berechnet.</p>`
+    : ''
+
+  return `<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
   <title>Rechnung ${invoice.invoice_number || ''}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; color: #1A1A1A; background: #fff; padding: 48px; max-width: 800px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-    .studio-name { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; }
-    .meta { font-size: 12px; color: #6B6B6B; margin-top: 4px; }
-    .invoice-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6B6B6B; margin-bottom: 4px; text-align: right; }
-    .invoice-number { font-family: monospace; font-size: 16px; font-weight: 700; text-align: right; }
-    .invoice-date { font-size: 12px; color: #6B6B6B; text-align: right; margin-top: 4px; }
-    .divider { height: 1px; background: #E8E8E4; margin: 24px 0; }
-    .section-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6B6B6B; margin-bottom: 8px; }
-    .client-name { font-size: 16px; font-weight: 700; }
-    .client-meta { font-size: 13px; color: #6B6B6B; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; border: 1px solid #E8E8E4; border-radius: 8px; overflow: hidden; margin: 24px 0; }
-    thead tr { background: #F8F8F6; }
-    th { padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; color: #6B6B6B; text-align: left; }
-    th:last-child { text-align: right; }
-    td { padding: 16px; font-size: 14px; border-top: 1px solid #E8E8E4; }
-    td:last-child { text-align: right; font-weight: 700; }
-    tfoot tr { background: #F8F8F6; border-top: 2px solid #E8E8E4; }
-    tfoot td { font-size: 14px; font-weight: 900; }
-    tfoot td:last-child { font-size: 18px; color: #F97316; }
-    .status-row { display: flex; gap: 24px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; background: ${cfg.bg}; color: ${cfg.color}; }
-    .bank-box { background: #F8F8F6; border: 1px solid #E8E8E4; border-radius: 12px; padding: 20px; margin-top: 24px; }
-    .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; margin-top: 12px; }
-    .bank-label { font-size: 10px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; }
-    .bank-value { font-size: 13px; font-weight: 700; margin-top: 2px; }
-    .bank-mono { font-family: monospace; }
-    .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #E8E8E4; text-align: center; font-size: 11px; color: #6B6B6B; }
-    .ref { font-size: 11px; color: #6B6B6B; margin-top: 12px; }
-    @media print { body { padding: 24px; } }
+    body { font-family: system-ui, -apple-system, 'Helvetica Neue', sans-serif; color: #1A1A1A; background: #fff; }
+    .page { max-width: 794px; margin: 0 auto; padding: 52px 56px; }
+    @media print {
+      body { background: #fff; }
+      .page { padding: 28mm 24mm; }
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="studio-name">${photographer?.studio_name || photographer?.full_name || 'Fotograf'}</div>
-      ${photographer?.studio_name && photographer?.full_name ? `<div class="meta">${photographer.full_name}</div>` : ''}
-      ${photographer?.email ? `<div class="meta">${photographer.email}</div>` : ''}
-    </div>
-    <div>
-      <div class="invoice-label">Rechnung</div>
-      <div class="invoice-number">${invoice.invoice_number || '—'}</div>
-      <div class="invoice-date">${new Date(invoice.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-    </div>
+<div class="page">
+
+  <!-- Top: sender + invoice meta -->
+  <table style="width:100%;margin-bottom:32px;">
+    <tr>
+      <td style="vertical-align:top;width:55%;">
+        <div style="font-size:20px;font-weight:900;letter-spacing:-0.03em;color:#1A1A1A;margin-bottom:2px;">${studioDisplay}</div>
+        ${ph.company_name && ph.company_name !== studioDisplay ? `<div style="font-size:12px;color:#6B6B6B;">${ph.company_name}</div>` : ''}
+        ${ph.full_name && ph.full_name !== studioDisplay ? `<div style="font-size:12px;color:#6B6B6B;">${ph.full_name}</div>` : ''}
+        <div style="height:8px;"></div>
+        ${ph.address_street ? `<div style="font-size:12px;color:#6B6B6B;">${ph.address_street}</div>` : ''}
+        ${(ph.address_zip || ph.address_city) ? `<div style="font-size:12px;color:#6B6B6B;">${[ph.address_zip, ph.address_city].filter(Boolean).join(' ')}</div>` : ''}
+        ${ph.address_country ? `<div style="font-size:12px;color:#6B6B6B;">${ph.address_country}</div>` : ''}
+        <div style="height:6px;"></div>
+        ${ph.phone ? `<div style="font-size:12px;color:#6B6B6B;">Tel: ${ph.phone}</div>` : ''}
+        ${ph.email ? `<div style="font-size:12px;color:#6B6B6B;">${ph.email}</div>` : ''}
+        ${ph.website ? `<div style="font-size:12px;color:#6B6B6B;">${ph.website}</div>` : ''}
+        ${ph.tax_number ? `<div style="font-size:11px;color:#9B9B9B;margin-top:6px;">Steuernr.: ${ph.tax_number}</div>` : ''}
+      </td>
+      <td style="vertical-align:top;text-align:right;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#F97316;margin-bottom:6px;">RECHNUNG</div>
+        <div style="font-family:monospace;font-size:17px;font-weight:900;color:#1A1A1A;">${invoice.invoice_number || '—'}</div>
+        <div style="font-size:12px;color:#6B6B6B;margin-top:4px;">Datum: ${invoiceDate}</div>
+        ${dueDate ? `<div style="font-size:12px;color:#6B6B6B;margin-top:2px;">Fällig: ${dueDate}</div>` : ''}
+      </td>
+    </tr>
+  </table>
+
+  <!-- Divider -->
+  <div style="height:2px;background:linear-gradient(90deg,#F97316,#E8E8E4);margin-bottom:28px;border-radius:1px;"></div>
+
+  <!-- Bill to -->
+  <div style="margin-bottom:28px;">
+    <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#9B9B9B;margin-bottom:8px;">Rechnungsempfänger</div>
+    ${client.company_name ? `<div style="font-size:14px;font-weight:700;color:#1A1A1A;">${client.company_name}</div>` : ''}
+    <div style="font-size:14px;font-weight:${client.company_name ? '400' : '700'};color:#1A1A1A;">${client.full_name}</div>
+    ${client.address_street ? `<div style="font-size:12px;color:#6B6B6B;margin-top:2px;">${client.address_street}</div>` : ''}
+    ${(client.address_zip || client.address_city) ? `<div style="font-size:12px;color:#6B6B6B;">${[client.address_zip, client.address_city].filter(Boolean).join(' ')}</div>` : ''}
+    ${client.address_country ? `<div style="font-size:12px;color:#6B6B6B;">${client.address_country}</div>` : ''}
+    ${client.email ? `<div style="font-size:12px;color:#6B6B6B;margin-top:2px;">${client.email}</div>` : ''}
   </div>
 
-  <div class="divider"></div>
-
-  <div style="margin-bottom:24px">
-    <div class="section-label">Bill to</div>
-    <div class="client-name">${clientName}</div>
-    ${clientEmail ? `<div class="client-meta">${clientEmail}</div>` : ''}
-    ${invoice.project?.title ? `<div class="client-meta">Projekt: ${invoice.project.title}</div>` : ''}
-  </div>
-
-  <table>
+  <!-- Items table -->
+  <table style="width:100%;border-collapse:collapse;border:1px solid #E8E8E4;border-radius:10px;overflow:hidden;margin-bottom:0;">
     <thead>
-      <tr>
-        <th>Beschreibung</th>
-        <th>Betrag</th>
+      <tr style="background:#F8F8F6;">
+        <th style="padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9B9B9B;text-align:left;width:6%;">Pos.</th>
+        <th style="padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9B9B9B;text-align:left;">Beschreibung</th>
+        <th style="padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9B9B9B;text-align:right;width:10%;">Menge</th>
+        <th style="padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9B9B9B;text-align:right;width:16%;">Einzelpreis</th>
+        <th style="padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9B9B9B;text-align:right;width:16%;">Gesamt</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>${invoice.description || invoice.project?.title || 'Fotografieleistungen'}</td>
-        <td>${formatEur(invoice.amount)}</td>
-      </tr>
+      ${itemsHtml}
     </tbody>
-    <tfoot>
-      <tr>
-        <td>Gesamt</td>
-        <td>${formatEur(invoice.amount)}</td>
-      </tr>
+    <tfoot style="background:#F8F8F6;">
+      ${taxRowsHtml}
     </tfoot>
   </table>
 
-  <div class="status-row">
-    <div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Status: </span><span class="status-badge">${cfg.label}</span></div>
-    ${invoice.due_date ? `<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:#6B6B6B;">Due on: </span><span style="font-size:12px;font-weight:700;">${new Date(invoice.due_date).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}</span></div>` : ''}
-  </div>
+  ${kleinunternehmerText}
 
+  <!-- Notes -->
   ${invoice.notes ? `
-  <div style="margin-top:20px;margin-bottom:4px;">
-    <div class="section-label">Anmerkungen</div>
-    <p style="font-size:13px;color:#4A4A4A;white-space:pre-wrap;line-height:1.6;margin-top:6px;">${invoice.notes}</p>
-  </div>
-  ` : ''}
+  <div style="margin-top:20px;">
+    <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#9B9B9B;margin-bottom:6px;">Anmerkungen</div>
+    <p style="font-size:12.5px;color:#4A4A4A;line-height:1.65;white-space:pre-wrap;">${invoice.notes}</p>
+  </div>` : ''}
 
+  <!-- Bank details -->
   ${hasBankDetails ? `
-  <div class="divider"></div>
-  <div class="bank-box">
-    <div class="section-label">Bank details — Please transfer the amount to the following account:</div>
-    <div class="bank-grid">
-      ${photographer?.bank_account_holder ? `<div><div class="bank-label">Kontoinhaber</div><div class="bank-value">${photographer.bank_account_holder}</div></div>` : ''}
-      ${photographer?.bank_name ? `<div><div class="bank-label">Bank</div><div class="bank-value">${photographer.bank_name}</div></div>` : ''}
-      ${photographer?.bank_iban ? `<div><div class="bank-label">IBAN</div><div class="bank-value bank-mono">${photographer.bank_iban}</div></div>` : ''}
-      ${photographer?.bank_bic ? `<div><div class="bank-label">BIC / SWIFT</div><div class="bank-value bank-mono">${photographer.bank_bic}</div></div>` : ''}
-    </div>
-    ${(invoice.verwendungszweck || invoice.invoice_number) ? `<div class="ref">Verwendungszweck: <strong>${invoice.verwendungszweck || invoice.invoice_number}</strong></div>` : ''}
+  <div style="margin-top:28px;padding:18px 20px;background:#F8F8F6;border:1px solid #E8E8E4;border-radius:12px;">
+    <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#9B9B9B;margin-bottom:12px;">Bankverbindung — Bitte überweisen Sie den Betrag auf folgendes Konto</div>
+    <table style="width:100%;">
+      <tr>
+        ${ph.bank_account_holder ? `<td style="padding-right:32px;padding-bottom:8px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">Kontoinhaber</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${ph.bank_account_holder}</div></td>` : ''}
+        ${ph.bank_name ? `<td style="padding-right:32px;padding-bottom:8px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">Bank</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${ph.bank_name}</div></td>` : ''}
+      </tr>
+      <tr>
+        ${ph.bank_iban ? `<td style="padding-right:32px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">IBAN</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">${ph.bank_iban}</div></td>` : ''}
+        ${ph.bank_bic ? `<td><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">BIC / SWIFT</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">${ph.bank_bic}</div></td>` : ''}
+      </tr>
+    </table>
+    ${(invoice.verwendungszweck || invoice.invoice_number) ? `<div style="margin-top:10px;font-size:11px;color:#6B6B6B;">Verwendungszweck: <strong style="color:#1A1A1A;">${invoice.verwendungszweck || invoice.invoice_number}</strong></div>` : ''}
+  </div>` : ''}
+
+  <!-- Footer -->
+  <div style="margin-top:36px;padding-top:16px;border-top:1px solid #E8E8E4;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:11px;color:#9B9B9B;">${studioDisplay}</span>
+    <span style="font-size:11px;color:#9B9B9B;">Danke für Ihr Vertrauen!</span>
+    <span style="font-size:11px;color:#9B9B9B;">${invoice.invoice_number || ''}</span>
   </div>
-  ` : ''}
 
-  <div class="footer">Thank you for your trust! · ${photographer?.studio_name || photographer?.full_name || 'Fotonizer'}</div>
-
-  <script>window.onload = function() { window.print(); }</script>
+</div>
+${autoPrint ? '<script>window.onload=function(){window.print()}</script>' : ''}
 </body>
 </html>`
+}
 
-  const win = window.open('', '_blank', 'width=900,height=700')
+// ── Print invoice in a new window ─────────────────────────────────────────
+function printInvoiceWindow(invoice: Invoice, photographer: Photographer | null) {
+  const html = buildInvoiceHtml(invoice, photographer, true)
+  const win = window.open('', '_blank', 'width=900,height=750')
   if (win) {
     win.document.write(html)
     win.document.close()
@@ -231,11 +367,6 @@ function InvoicePreviewModal({
   onClose: () => void
   autoPrint: boolean
 }) {
-  const cfg = STATUS_CONFIG[invoice.status]
-  const clientName = getClientName(invoice.project)
-  const clientEmail = getClientEmail(invoice.project)
-  const hasBankDetails = photographer?.bank_iban || photographer?.bank_account_holder
-
   // Auto-trigger print in new window after mount
   if (typeof window !== 'undefined' && autoPrint) {
     setTimeout(() => printInvoiceWindow(invoice, photographer), 200)
@@ -277,152 +408,14 @@ function InvoicePreviewModal({
             </div>
           </div>
 
-          {/* ── Invoice document ── */}
-          <div className="p-8 bg-white" style={{ fontFamily: 'DM Sans, system-ui, sans-serif' }}>
-
-            {/* Top: Photographer info + Invoice number */}
-            <div className="flex items-start justify-between mb-8">
-              <div>
-                <p className="font-black text-[20px] text-[#1A1A1A]" style={{ letterSpacing: '-0.03em' }}>
-                  {photographer?.studio_name || photographer?.full_name || 'Fotograf'}
-                </p>
-                {photographer?.studio_name && photographer?.full_name && (
-                  <p className="text-[13px] text-[#6B6B6B] mt-0.5">{photographer.full_name}</p>
-                )}
-                {photographer?.email && (
-                  <p className="text-[12px] text-[#6B6B6B] mt-0.5">{photographer.email}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-1">Rechnung</p>
-                <p className="font-mono font-bold text-[15px] text-[#1A1A1A]">{invoice.invoice_number || '—'}</p>
-                <p className="text-[12px] text-[#6B6B6B] mt-1">
-                  {new Date(invoice.created_at).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="h-px bg-[#E8E8E4] mb-6" />
-
-            {/* Bill to */}
-            <div className="mb-6">
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-2">Bill to</p>
-              <p className="font-bold text-[15px] text-[#1A1A1A]">{clientName}</p>
-              {clientEmail && <p className="text-[13px] text-[#6B6B6B] mt-0.5">{clientEmail}</p>}
-              {invoice.project?.title && (
-                <p className="text-[12px] text-[#6B6B6B] mt-0.5">Projekt: {invoice.project.title}</p>
-              )}
-            </div>
-
-            {/* Invoice table */}
-            <div className="rounded-xl overflow-hidden border border-[#E8E8E4] mb-6">
-              <table className="w-full">
-                <thead>
-                  <tr style={{ background: '#F8F8F6' }}>
-                    <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Beschreibung</th>
-                    <th className="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Betrag</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-t border-[#E8E8E4]">
-                    <td className="px-4 py-4 text-[14px] text-[#1A1A1A]">
-                      {invoice.description || invoice.project?.title || 'Fotografieleistungen'}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-[14px] text-[#1A1A1A]">
-                      {formatEur(invoice.amount)}
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr style={{ background: '#F8F8F6', borderTop: '2px solid #E8E8E4' }}>
-                    <td className="px-4 py-3 font-black text-[14px] text-[#1A1A1A]">Gesamt</td>
-                    <td className="px-4 py-3 text-right font-black text-[18px]" style={{ color: '#F97316' }}>
-                      {formatEur(invoice.amount)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            {/* Status + Due date row */}
-            <div className="flex items-center gap-4 mb-6 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Status:</span>
-                <span
-                  className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-                  style={{ background: cfg.bg, color: cfg.color }}
-                >
-                  {cfg.label}
-                </span>
-              </div>
-              {invoice.due_date && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.10em] text-[#6B6B6B]">Due on:</span>
-                  <span className="text-[12px] font-bold text-[#1A1A1A]">
-                    {new Date(invoice.due_date).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Anmerkungen */}
-            {invoice.notes && (
-              <div className="mb-5 px-1">
-                <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-1.5">Anmerkungen</p>
-                <p className="text-[13px] text-[#4A4A4A] whitespace-pre-wrap leading-relaxed">{invoice.notes}</p>
-              </div>
-            )}
-
-            {/* Bank details */}
-            {hasBankDetails && (
-              <>
-                <div className="h-px bg-[#E8E8E4] mb-5" />
-                <div className="rounded-xl p-5" style={{ background: '#F8F8F6', border: '1px solid #E8E8E4' }}>
-                  <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#6B6B6B] mb-3">
-                    Bank details — Please transfer the amount to the following account:
-                  </p>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-                    {photographer?.bank_account_holder && (
-                      <div>
-                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">Kontoinhaber</p>
-                        <p className="text-[13px] font-bold text-[#1A1A1A]">{photographer.bank_account_holder}</p>
-                      </div>
-                    )}
-                    {photographer?.bank_name && (
-                      <div>
-                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">Bank</p>
-                        <p className="text-[13px] font-bold text-[#1A1A1A]">{photographer.bank_name}</p>
-                      </div>
-                    )}
-                    {photographer?.bank_iban && (
-                      <div>
-                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">IBAN</p>
-                        <p className="text-[13px] font-bold text-[#1A1A1A] font-mono">{photographer.bank_iban}</p>
-                      </div>
-                    )}
-                    {photographer?.bank_bic && (
-                      <div>
-                        <p className="text-[10px] text-[#6B6B6B] uppercase tracking-wide">BIC / SWIFT</p>
-                        <p className="text-[13px] font-bold text-[#1A1A1A] font-mono">{photographer.bank_bic}</p>
-                      </div>
-                    )}
-                  </div>
-                  {(invoice.verwendungszweck || invoice.invoice_number) && (
-                    <p className="text-[11px] text-[#6B6B6B] mt-3">
-                      Verwendungszweck: <strong className="text-[#1A1A1A]">{invoice.verwendungszweck || invoice.invoice_number}</strong>
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Footer */}
-            <div className="mt-6 pt-4 border-t border-[#E8E8E4] text-center">
-              <p className="text-[11px] text-[#6B6B6B]">
-                Thank you for your trust! · {photographer?.studio_name || photographer?.full_name || 'Fotonizer'}
-              </p>
-            </div>
+          {/* ── Invoice document via iframe ── */}
+          <div style={{ background: '#E0E0DB', padding: '12px 16px' }}>
+            <iframe
+              srcDoc={buildInvoiceHtml(invoice, photographer)}
+              title="Invoice Preview"
+              style={{ width: '100%', height: '620px', border: 'none', borderRadius: '8px', background: '#fff', display: 'block' }}
+              sandbox="allow-same-origin"
+            />
           </div>
 
           {/* Bottom print button */}
@@ -471,14 +464,32 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const [form, setForm] = useState({
     project_id: '',
-    amount: '',
-    notes: '',
     description: '',
+    notes: '',
     invoice_number: '',
     verwendungszweck: '',
     due_date: '',
-    include_mwst: false,
   })
+
+  const [items, setItems] = useState<InvoiceLineItem[]>([
+    { position: 1, description: '', quantity: 1, unit_price: 0, total: 0 },
+  ])
+
+  const addItem = () => setItems(prev => [
+    ...prev,
+    { position: prev.length + 1, description: '', quantity: 1, unit_price: 0, total: 0 },
+  ])
+  const removeItem = (idx: number) => setItems(prev =>
+    prev.filter((_, i) => i !== idx).map((it, i) => ({ ...it, position: i + 1 }))
+  )
+  const updateItem = useCallback((idx: number, field: keyof InvoiceLineItem, value: string | number) => {
+    setItems(prev => prev.map((it, i) => {
+      if (i !== idx) return it
+      const updated = { ...it, [field]: value }
+      updated.total = Number((updated.quantity * updated.unit_price).toFixed(4))
+      return updated
+    }))
+  }, [])
 
   // Quick-create project
   const [showNewProject, setShowNewProject] = useState(false)
@@ -558,31 +569,76 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0)
   const totalPending = invoices.filter(i => i.status === 'sent' || i.status === 'draft').reduce((s, i) => s + i.amount, 0)
   const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + i.amount, 0)
-  // Only sum MwSt for paid invoices that explicitly include 19% MwSt (detected via description)
   const totalMwst = invoices
-    .filter(i => i.status === 'paid' && i.description?.includes('inkl. 19% MwSt'))
-    .reduce((s, i) => s + Math.round(i.amount * MWST_RATE / (1 + MWST_RATE)), 0)
+    .filter(i => i.status === 'paid')
+    .reduce((s, i) => {
+      if (i.tax_amount > 0) return s + i.tax_amount
+      if (i.description?.includes('inkl. 19% MwSt')) return s + Math.round(i.amount * MWST_RATE / (1 + MWST_RATE))
+      return s
+    }, 0)
 
-  const netAmount = parseFloat(form.amount.replace(',', '.')) || 0
-  const mwstAmount = form.include_mwst ? netAmount * MWST_RATE : 0
-  const grossAmount = netAmount + mwstAmount
+  // Form totals
+  const formTaxStatus = photographer?.tax_status || 'kleinunternehmer'
+  const formTaxRate = formTaxStatus === 'vat_19' ? 19 : formTaxStatus === 'vat_7' ? 7 : 0
+  const subtotalEur = items.reduce((s, it) => s + it.total, 0)
+  const taxEur = formTaxStatus !== 'kleinunternehmer' ? subtotalEur * formTaxRate / 100 : 0
+  const grossEur = subtotalEur + taxEur
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.project_id) { toast.error(ti.selectProjectError); return }
-    if (!form.amount) { toast.error(ti.enterAmount); return }
+    const validItems = items.filter(it => it.description.trim())
+    if (validItems.length === 0) { toast.error('Bitte mindestens eine Position ausfüllen'); return }
     setSaving(true)
 
-    const net = parseFloat(form.amount.replace(',', '.'))
-    const gross = form.include_mwst ? net * (1 + MWST_RATE) : net
-    const amountCents = Math.round(gross * 100)
+    const taxStatus = photographer?.tax_status || 'kleinunternehmer'
+    const taxRate = taxStatus === 'vat_19' ? 19 : taxStatus === 'vat_7' ? 7 : 0
+    const subtotalCents = Math.round(validItems.reduce((s, it) => s + it.total, 0) * 100)
+    const taxCents = taxStatus !== 'kleinunternehmer' ? Math.round(subtotalCents * taxRate / 100) : 0
+    const amountCents = subtotalCents + taxCents
+
     const autoNumber = `INV-${Date.now().toString().slice(-6)}`
     const invoiceNumber = form.invoice_number.trim() || autoNumber
 
-    let descParts: string[] = []
-    if (form.description) descParts.push(form.description)
-    if (form.include_mwst) descParts.push(`inkl. 19% MwSt (Netto: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(net)})`)
-    const finalDescription = descParts.join(' · ') || null
+    // Build photographer snapshot
+    const photographerSnapshot: InvoiceSnapshot = {
+      studio_name: photographer?.studio_name || null,
+      full_name: photographer?.full_name || null,
+      company_name: photographer?.company_name || null,
+      address_street: photographer?.address_street || null,
+      address_zip: photographer?.address_zip || null,
+      address_city: photographer?.address_city || null,
+      address_country: photographer?.address_country || null,
+      phone: photographer?.phone || null,
+      website: photographer?.website || null,
+      email: photographer?.email || null,
+      tax_number: photographer?.tax_number || null,
+      bank_account_holder: photographer?.bank_account_holder || null,
+      bank_name: photographer?.bank_name || null,
+      bank_iban: photographer?.bank_iban || null,
+      bank_bic: photographer?.bank_bic || null,
+    }
+
+    // Fetch full client data from the selected project for snapshot
+    let clientSnapshot: ClientSnapshot | null = null
+    const { data: projectData } = await supabase
+      .from('projects')
+      .select('client:clients(full_name, company_name, email, address_street, address_zip, address_city, address_country)')
+      .eq('id', form.project_id)
+      .single()
+    const rawClient = projectData?.client
+    const clientObj = Array.isArray(rawClient) ? rawClient[0] : rawClient
+    if (clientObj) {
+      clientSnapshot = {
+        full_name: clientObj.full_name,
+        company_name: (clientObj as { company_name?: string | null }).company_name || null,
+        email: (clientObj as { email?: string | null }).email || null,
+        address_street: (clientObj as { address_street?: string | null }).address_street || null,
+        address_zip: (clientObj as { address_zip?: string | null }).address_zip || null,
+        address_city: (clientObj as { address_city?: string | null }).address_city || null,
+        address_country: (clientObj as { address_country?: string | null }).address_country || null,
+      }
+    }
 
     const { data, error } = await supabase
       .from('invoices')
@@ -590,22 +646,42 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         project_id: form.project_id,
         photographer_id: photographerId,
         amount: amountCents,
+        subtotal: subtotalCents,
+        tax_amount: taxCents,
+        tax_rate: taxRate,
+        tax_status: taxStatus,
         currency: 'eur',
         status: 'draft',
-        description: finalDescription,
+        description: form.description || null,
         due_date: form.due_date || null,
         invoice_number: invoiceNumber,
         notes: form.notes || null,
-        verwendungszweck: form.verwendungszweck.trim() || null,
+        verwendungszweck: form.verwendungszweck.trim() || invoiceNumber,
+        photographer_snapshot: photographerSnapshot,
+        client_snapshot: clientSnapshot,
       })
       .select('*, project:projects(title, client:clients(full_name, email))')
       .single()
 
     if (error) { toast.error('Error creating'); setSaving(false); return }
 
-    const newInvoice = data as Invoice
+    // Insert line items
+    const itemsToInsert = validItems.map(it => ({
+      invoice_id: data.id,
+      position: it.position,
+      description: it.description.trim(),
+      quantity: it.quantity,
+      unit_price: Math.round(it.unit_price * 100),
+      total: Math.round(it.total * 100),
+    }))
+    if (itemsToInsert.length > 0) {
+      await supabase.from('invoice_items').insert(itemsToInsert)
+    }
+
+    const newInvoice = { ...data, items: itemsToInsert } as Invoice
     setInvoices(prev => [newInvoice, ...prev])
-    setForm({ project_id: '', amount: '', notes: '', description: '', invoice_number: '', verwendungszweck: '', due_date: '', include_mwst: false })
+    setForm({ project_id: '', description: '', notes: '', invoice_number: '', verwendungszweck: '', due_date: '' })
+    setItems([{ position: 1, description: '', quantity: 1, unit_price: 0, total: 0 }])
     setShowNew(false)
     setSaving(false)
     setCreatedInvoice(newInvoice)
@@ -1043,49 +1119,103 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 </select>
               </div>
 
-              {/* Amount */}
+              {/* Line items */}
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                  Betrag (€) *
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-primary)' }}>
+                  Positionen *
                 </label>
-                <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
-                  <span className="flex-shrink-0 px-3 text-[14px] font-bold select-none" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
-                  <input
-                    type="text"
-                    value={form.amount}
-                    onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                    required
-                    placeholder="0,00"
-                    className="flex-1 px-3 py-2.5 bg-transparent text-[14px] outline-none"
-                    style={{ color: 'var(--text-primary)' }}
-                  />
-                </div>
-              </div>
-
-              {/* MwSt toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl"
-                style={{ background: form.include_mwst ? 'rgba(196,164,124,0.10)' : 'var(--bg-hover)', border: `1px solid ${form.include_mwst ? 'var(--accent)' : 'var(--border-color)'}` }}>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: form.include_mwst ? 'var(--accent-muted)' : 'var(--border-color)' }}>
-                    <Percent className="w-3.5 h-3.5" style={{ color: form.include_mwst ? 'var(--accent)' : 'var(--text-muted)' }} />
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
+                  {/* Header */}
+                  <div className="grid px-2 py-2 text-[10px] font-bold uppercase tracking-wide"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', gridTemplateColumns: '1fr 52px 80px 24px' }}>
+                    <span className="pl-1">Beschreibung</span>
+                    <span className="text-right">Menge</span>
+                    <span className="text-right pr-1">Einzelpreis</span>
+                    <span></span>
                   </div>
-                  <div>
-                    <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Mehrwertsteuer 19%</p>
-                    {form.include_mwst && netAmount > 0 && (
-                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        Netto {formatCompact(netAmount, 'de')} + MwSt {formatCompact(mwstAmount, 'de')} = <strong style={{ color: 'var(--accent)' }}>{formatCompact(grossAmount, 'de')}</strong>
-                      </p>
-                    )}
-                  </div>
+                  {items.map((item, idx) => (
+                    <div key={idx} className="grid items-center gap-1 px-2 py-1.5"
+                      style={{ borderTop: '1px solid var(--border-color)', gridTemplateColumns: '1fr 52px 80px 24px' }}>
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={e => updateItem(idx, 'description', e.target.value)}
+                        placeholder={`Position ${item.position}`}
+                        className="px-2 py-1.5 rounded-lg text-[13px] outline-none w-full"
+                        style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                      />
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={e => updateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                        min="0.001"
+                        step="0.5"
+                        className="px-2 py-1.5 rounded-lg text-[13px] outline-none text-right w-full"
+                        style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                      />
+                      <input
+                        type="number"
+                        value={item.unit_price || ''}
+                        onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="px-2 py-1.5 rounded-lg text-[13px] outline-none text-right w-full"
+                        style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeItem(idx)}
+                        disabled={items.length === 1}
+                        className="w-6 h-6 rounded flex items-center justify-center mx-auto disabled:opacity-20 transition-opacity"
+                        style={{ color: '#C43B2C' }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
                 <button
                   type="button"
-                  onClick={() => setForm(f => ({ ...f, include_mwst: !f.include_mwst }))}
-                  className="relative rounded-full transition-all flex-shrink-0"
-                  style={{ background: form.include_mwst ? 'var(--accent)' : 'var(--border-strong)', width: '40px', height: '22px' }}
+                  onClick={addItem}
+                  className="mt-2 flex items-center gap-1.5 text-[12px] font-bold transition-colors"
+                  style={{ color: 'var(--accent)' }}
                 >
-                  <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all" style={{ left: form.include_mwst ? '20px' : '2px' }} />
+                  <Plus className="w-3.5 h-3.5" />
+                  Position hinzufügen
                 </button>
+              </div>
+
+              {/* Totals */}
+              <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                {formTaxStatus !== 'kleinunternehmer' && (
+                  <div className="flex justify-between text-[13px]">
+                    <span style={{ color: 'var(--text-muted)' }}>Nettobetrag</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{fmtEurText(subtotalEur)}</span>
+                  </div>
+                )}
+                {formTaxStatus !== 'kleinunternehmer' && (
+                  <div className="flex justify-between text-[13px]">
+                    <span style={{ color: 'var(--text-muted)' }}>MwSt {formTaxRate}%</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{fmtEurText(taxEur)}</span>
+                  </div>
+                )}
+                <div
+                  className="flex justify-between font-black text-[15px]"
+                  style={{
+                    borderTop: formTaxStatus !== 'kleinunternehmer' ? '1px solid var(--border-color)' : undefined,
+                    paddingTop: formTaxStatus !== 'kleinunternehmer' ? '8px' : undefined,
+                    marginTop: formTaxStatus !== 'kleinunternehmer' ? '4px' : undefined,
+                  }}
+                >
+                  <span style={{ color: 'var(--text-primary)' }}>Gesamtbetrag</span>
+                  <span style={{ color: '#F97316' }}>{fmtEurText(grossEur)}</span>
+                </div>
+                {formTaxStatus === 'kleinunternehmer' && (
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    Gemäß §19 UStG wird keine Umsatzsteuer berechnet.
+                  </p>
+                )}
               </div>
 
               {/* Description */}

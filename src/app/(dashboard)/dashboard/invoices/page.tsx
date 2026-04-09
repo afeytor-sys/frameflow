@@ -11,13 +11,13 @@ export default async function InvoicesPage() {
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('id, plan, full_name, studio_name, email, bank_account_holder, bank_name, bank_iban, bank_bic')
+    .select('id, plan, full_name, studio_name, email, company_name, address_street, address_zip, address_city, address_country, phone, website, tax_number, tax_status, bank_account_holder, bank_name, bank_iban, bank_bic')
     .eq('id', user.id)
     .single()
 
   const { data: invoices } = await supabase
     .from('invoices')
-    .select('*, project:projects(title, client:clients(full_name, email))')
+    .select('*, items:invoice_items(id, position, description, quantity, unit_price, total), project:projects(title, client:clients(full_name, email))')
     .eq('photographer_id', user.id)
     .order('created_at', { ascending: false })
 

@@ -102,13 +102,8 @@ export default async function ClientPortalLayout({
               />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                    <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.15"/>
-                    <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Fotonizer" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
                 <span style={{ fontFamily: '"DM Sans", system-ui, sans-serif', color: '#111827', fontWeight: 600, fontSize: '15px', letterSpacing: '-0.01em' }}>
                   {studioName}
                 </span>
@@ -134,11 +129,8 @@ export default async function ClientPortalLayout({
                 flexShrink: 0,
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
-                <rect width="20" height="20" rx="5" fill="#C4A47C" fillOpacity="0.20"/>
-                <path d="M4 14V7.5L10 4L16 7.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 14V10.5H12.5V14" stroke="#C4A47C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="" style={{ width: '14px', height: '14px', borderRadius: '4px', objectFit: 'cover', display: 'block' }} />
               <span style={{
                 fontFamily: '"DM Sans", system-ui, sans-serif',
                 fontSize: '11px',

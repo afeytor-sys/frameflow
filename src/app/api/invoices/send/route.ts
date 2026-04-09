@@ -23,11 +23,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch invoice with project and client info
+    // Fetch invoice with project, client and line items
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .select(`
         *,
+        items:invoice_items(position, description, quantity, unit_price, total),
         project:projects!inner(
           id,
           title,
@@ -79,6 +80,44 @@ export async function POST(request: NextRequest) {
       ? new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
       : null
 
+    const invoiceItems = (invoice.items as { position: number; description: string; quantity: number; unit_price: number; total: number }[] | null) || []
+    const hasItems = invoiceItems.length > 0
+    const taxStatus: string = invoice.tax_status || 'kleinunternehmer'
+    const taxRate: number = invoice.tax_rate || 0
+    const subtotalCents: number = invoice.subtotal || invoice.amount
+    const taxCents: number = invoice.tax_amount || 0
+
+    const itemRowsHtml = hasItems
+      ? invoiceItems.sort((a, b) => a.position - b.position).map(it => `
+        <tr>
+          <td style="padding:8px 0;font-size:13px;color:#7A7670;border-top:1px solid #E8E4DC;">${it.position}</td>
+          <td style="padding:8px 8px;font-size:13px;color:#111110;border-top:1px solid #E8E4DC;">${it.description}</td>
+          <td style="padding:8px 0;font-size:13px;color:#7A7670;text-align:right;border-top:1px solid #E8E4DC;">${String(it.quantity).replace('.', ',')}</td>
+          <td style="padding:8px 0;font-size:13px;color:#7A7670;text-align:right;border-top:1px solid #E8E4DC;">${formatEur(it.unit_price)}</td>
+          <td style="padding:8px 0;font-size:13px;font-weight:700;color:#111110;text-align:right;border-top:1px solid #E8E4DC;">${formatEur(it.total)}</td>
+        </tr>`).join('')
+      : `<tr>
+          <td colspan="5" style="padding:8px 0;font-size:13px;color:#111110;border-top:1px solid #E8E4DC;">${invoice.description || project.title}</td>
+        </tr>`
+
+    const taxRowsHtml = taxStatus === 'kleinunternehmer'
+      ? `<tr>
+          <td colspan="4" style="padding:10px 0 4px;font-size:13px;font-weight:700;text-align:right;color:#7A7670;border-top:2px solid #E8E4DC;">Gesamt</td>
+          <td style="padding:10px 0 4px;font-size:15px;font-weight:800;text-align:right;color:#C4A47C;border-top:2px solid #E8E4DC;letter-spacing:-0.02em;">${amountFormatted}</td>
+        </tr>`
+      : `<tr>
+          <td colspan="4" style="padding:8px 0 2px;font-size:13px;text-align:right;color:#7A7670;border-top:2px solid #E8E4DC;">Nettobetrag</td>
+          <td style="padding:8px 0 2px;font-size:13px;text-align:right;color:#111110;border-top:2px solid #E8E4DC;">${formatEur(subtotalCents)}</td>
+        </tr>
+        <tr>
+          <td colspan="4" style="padding:2px 0;font-size:13px;text-align:right;color:#7A7670;">MwSt ${taxRate}%</td>
+          <td style="padding:2px 0;font-size:13px;text-align:right;color:#111110;">${formatEur(taxCents)}</td>
+        </tr>
+        <tr>
+          <td colspan="4" style="padding:8px 0 4px;font-size:13px;font-weight:700;text-align:right;color:#111110;border-top:1px solid #E8E4DC;">Gesamtbetrag</td>
+          <td style="padding:8px 0 4px;font-size:15px;font-weight:800;text-align:right;color:#C4A47C;letter-spacing:-0.02em;">${amountFormatted}</td>
+        </tr>`
+
     const { error: emailError } = await resend.emails.send({
       from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
       replyTo: notifEmail,
@@ -116,48 +155,46 @@ export async function POST(request: NextRequest) {
           <tr>
             <td style="padding:28px 40px;">
               <p style="margin:0 0 6px;font-size:15px;color:#7A7670;">Hallo <strong style="color:#111110;">${clientName}</strong>,</p>
-              <p style="margin:0 0 24px;font-size:15px;color:#7A7670;line-height:1.6;">
-                please find your invoice for <strong style="color:#111110;">${project.title}</strong>.
+              <p style="margin:0 0 20px;font-size:15px;color:#7A7670;line-height:1.6;">
+                anbei findest du deine Rechnung für <strong style="color:#111110;">${project.title}</strong>.
               </p>
 
-              <!-- Invoice details box -->
+              <!-- Invoice meta row -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
+                <tr>
+                  <td style="font-size:13px;color:#7A7670;">Rechnungsnr.:</td>
+                  <td style="font-size:13px;color:#111110;font-weight:600;text-align:right;font-family:monospace;">${invoice.invoice_number}</td>
+                </tr>
+                ${dueDateFormatted ? `<tr>
+                  <td style="font-size:13px;color:#7A7670;padding-top:4px;">Fällig bis:</td>
+                  <td style="font-size:13px;color:#C94030;font-weight:600;text-align:right;padding-top:4px;">${dueDateFormatted}</td>
+                </tr>` : ''}
+              </table>
+
+              <!-- Line items table -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0"
                      style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;margin-bottom:24px;">
                 <tr>
-                  <td style="padding:20px 24px;">
+                  <td style="padding:14px 20px 0;">
+                    <!-- Header -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="padding:6px 0;font-size:13px;color:#7A7670;">Rechnungsnummer</td>
-                        <td style="padding:6px 0;font-size:13px;color:#111110;font-weight:600;text-align:right;font-family:monospace;">${invoice.invoice_number}</td>
+                        <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;padding-bottom:6px;width:6%;">Pos.</td>
+                        <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;padding-bottom:6px;padding-left:8px;">Beschreibung</td>
+                        <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;padding-bottom:6px;text-align:right;width:10%;">Menge</td>
+                        <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;padding-bottom:6px;text-align:right;width:16%;">Preis</td>
+                        <td style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;padding-bottom:6px;text-align:right;width:16%;">Gesamt</td>
                       </tr>
-                      <tr>
-                        <td style="padding:6px 0;font-size:13px;color:#7A7670;">Projekt</td>
-                        <td style="padding:6px 0;font-size:13px;color:#111110;font-weight:600;text-align:right;">${project.title}</td>
-                      </tr>
-                      ${invoice.description ? `
-                      <tr>
-                        <td style="padding:6px 0;font-size:13px;color:#7A7670;">Beschreibung</td>
-                        <td style="padding:6px 0;font-size:13px;color:#111110;text-align:right;">${invoice.description}</td>
-                      </tr>` : ''}
-                      ${dueDateFormatted ? `
-                      <tr>
-                        <td style="padding:6px 0;font-size:13px;color:#7A7670;">Due by</td>
-                        <td style="padding:6px 0;font-size:13px;color:#C94030;font-weight:600;text-align:right;">${dueDateFormatted}</td>
-                      </tr>` : ''}
-                      <tr>
-                        <td colspan="2" style="padding:12px 0 0;border-top:1px solid #E8E4DC;"></td>
-                      </tr>
-                      <tr>
-                        <td style="font-size:15px;font-weight:700;color:#111110;">Gesamtbetrag</td>
-                        <td style="font-size:22px;font-weight:800;color:#C4A47C;text-align:right;letter-spacing:-0.03em;">${amountFormatted}</td>
-                      </tr>
+                      ${itemRowsHtml}
+                      ${taxRowsHtml}
                     </table>
                   </td>
                 </tr>
+                ${taxStatus === 'kleinunternehmer' ? `<tr><td style="padding:2px 20px 14px;font-size:11px;color:#B0ACA6;">Gemäß §19 UStG wird keine Umsatzsteuer berechnet.</td></tr>` : '<tr><td style="padding:0 0 14px;"></td></tr>'}
               </table>
 
               <p style="margin:0 0 24px;font-size:14px;color:#7A7670;line-height:1.6;">
-                Please transfer the amount by the due date. Feel free to reach out if you have any questions.
+                Bitte überweise den Betrag bis zum Fälligkeitsdatum. Bei Fragen stehe ich dir gerne zur Verfügung.
               </p>
 
               <!-- CTA -->

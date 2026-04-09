@@ -117,15 +117,8 @@ export default function DashboardSidebar({ photographer }: Props) {
         )}
         style={{ borderBottom: '1px solid var(--border-color)' }}
       >
-        <div
-          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg"
-          style={{ background: 'var(--bg-active)', color: 'var(--text-on-active)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-            <path d="M4 14V7.5L10 4L16 7.5V14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M7.5 14V10.5H12.5V14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Fotonizer" className="w-7 h-7 flex-shrink-0 rounded-lg object-cover" />
         {!collapsed && (
           <span
             className="font-black text-[17px] tracking-tight leading-none"
