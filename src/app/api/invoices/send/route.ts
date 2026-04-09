@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         <tr>
           <td style="padding:8px 0;font-size:13px;color:#7A7670;border-top:1px solid #E8E4DC;">${it.position}</td>
           <td style="padding:8px 8px;font-size:13px;color:#111110;border-top:1px solid #E8E4DC;">${it.description}</td>
-          <td style="padding:8px 0;font-size:13px;color:#7A7670;text-align:right;border-top:1px solid #E8E4DC;">${String(it.quantity).replace('.', ',')}</td>
+          <td style="padding:8px 0;font-size:13px;color:#7A7670;text-align:right;border-top:1px solid #E8E4DC;">${it.quantity}</td>
           <td style="padding:8px 0;font-size:13px;color:#7A7670;text-align:right;border-top:1px solid #E8E4DC;">${formatEur(it.unit_price)}</td>
           <td style="padding:8px 0;font-size:13px;font-weight:700;color:#111110;text-align:right;border-top:1px solid #E8E4DC;">${formatEur(it.total)}</td>
         </tr>`).join('')

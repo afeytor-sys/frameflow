@@ -216,7 +216,7 @@ function buildInvoiceHtml(invoice: Invoice, photographer: Photographer | null, a
       <tr>
         <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;color:#3A3A3A;">${it.position}</td>
         <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;color:#1A1A1A;">${it.description}</td>
-        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;color:#3A3A3A;">${String(it.quantity).replace('.', ',')}</td>
+        <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;color:#3A3A3A;">${it.quantity}</td>
         <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;color:#3A3A3A;">${fmtCentsText(it.unit_price)}</td>
         <td style="padding:10px 14px;font-size:13px;border-top:1px solid #E8E8E4;text-align:right;font-weight:700;color:#1A1A1A;">${fmtCentsText(it.total)}</td>
       </tr>`).join('')
@@ -1174,9 +1174,9 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                       <input
                         type="number"
                         value={item.quantity}
-                        onChange={e => updateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                        min="0.001"
-                        step="0.5"
+                        onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)}
+                        min="1"
+                        step="1"
                         className="px-2 py-1.5 rounded-lg text-[13px] outline-none text-right w-full"
                         style={{ color: 'var(--text-primary)', background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
                       />
