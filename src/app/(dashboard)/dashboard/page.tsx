@@ -162,7 +162,7 @@ export default async function DashboardPage() {
               <div className="min-w-0">
                 <p className="text-[11px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>{label}</p>
                 <p className="text-[18px] font-black leading-tight tabular-nums" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-                  {formatCompact(rawValue, locale as 'de' | 'en')}
+                  {formatCompact(rawValue / 100, locale as 'de' | 'en')}
                 </p>
                 {sub && <p className="text-[11px] mt-0.5 font-medium" style={{ color }}>{sub}</p>}
               </div>
@@ -331,7 +331,7 @@ export default async function DashboardPage() {
                           <p className="text-[11px] capitalize" style={{ color: statusColor }}>{inv.status}</p>
                         </div>
                         <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
-                          {formatCompact(inv.amount ?? 0, locale as 'de' | 'en')}
+                          {formatCompact((inv.amount ?? 0) / 100, locale as 'de' | 'en')}
                         </span>
                       </Link>
                     )
