@@ -149,6 +149,23 @@ function fmtEurText(euros: number) {
 }
 function fmtCentsText(cents: number) { return fmtEurText(cents / 100) }
 
+// ── EPC GiroCode QR URL (SEPA Credit Transfer) ────────────────────────────
+function buildEpcQrUrl(invoice: Invoice, photographer: Photographer | null): string | null {
+  const snap = invoice.photographer_snapshot
+  const iban = (snap?.bank_iban ?? photographer?.bank_iban)?.replace(/\s/g, '')
+  if (!iban) return null
+  const name = (
+    snap?.bank_account_holder ?? photographer?.bank_account_holder ??
+    snap?.studio_name ?? photographer?.studio_name ??
+    snap?.full_name ?? photographer?.full_name ?? ''
+  ).slice(0, 70)
+  const bic = snap?.bank_bic ?? photographer?.bank_bic ?? ''
+  const amount = (invoice.amount / 100).toFixed(2)
+  const ref = (invoice.verwendungszweck || invoice.invoice_number || '').slice(0, 140)
+  const epc = ['BCD', '002', '1', 'SCT', bic, name, iban, `EUR${amount}`, '', '', ref].join('\n')
+  return `https://api.qrserver.com/v1/create-qr-code/?size=132x132&ecc=M&data=${encodeURIComponent(epc)}`
+}
+
 // ── Build A4 HTML invoice ──────────────────────────────────────────────────
 function buildInvoiceHtml(invoice: Invoice, photographer: Photographer | null, autoPrint = false): string {
   // Use snapshot if available, fall back to current photographer
@@ -189,6 +206,7 @@ function buildInvoiceHtml(invoice: Invoice, photographer: Photographer | null, a
   const totalCents = invoice.amount
   const hasItems = invoice.items && invoice.items.length > 0
   const hasBankDetails = ph.bank_iban || ph.bank_account_holder
+  const qrUrl = buildEpcQrUrl(invoice, photographer)
   const invoiceDate = new Date(invoice.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
   const dueDate = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : null
   const studioDisplay = ph.studio_name || ph.full_name || 'Fotograf'
@@ -319,17 +337,26 @@ function buildInvoiceHtml(invoice: Invoice, photographer: Photographer | null, a
   ${hasBankDetails ? `
   <div style="margin-top:28px;padding:18px 20px;background:#F8F8F6;border:1px solid #E8E8E4;border-radius:12px;">
     <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#9B9B9B;margin-bottom:12px;">Bankverbindung — Bitte überweisen Sie den Betrag auf folgendes Konto</div>
-    <table style="width:100%;">
-      <tr>
-        ${ph.bank_account_holder ? `<td style="padding-right:32px;padding-bottom:8px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">Kontoinhaber</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${ph.bank_account_holder}</div></td>` : ''}
-        ${ph.bank_name ? `<td style="padding-right:32px;padding-bottom:8px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">Bank</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${ph.bank_name}</div></td>` : ''}
-      </tr>
-      <tr>
-        ${ph.bank_iban ? `<td style="padding-right:32px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">IBAN</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">${ph.bank_iban}</div></td>` : ''}
-        ${ph.bank_bic ? `<td><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">BIC / SWIFT</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">${ph.bank_bic}</div></td>` : ''}
-      </tr>
-    </table>
-    ${(invoice.verwendungszweck || invoice.invoice_number) ? `<div style="margin-top:10px;font-size:11px;color:#6B6B6B;">Verwendungszweck: <strong style="color:#1A1A1A;">${invoice.verwendungszweck || invoice.invoice_number}</strong></div>` : ''}
+    <div style="display:flex;align-items:flex-start;gap:20px;">
+      <div style="flex:1;">
+        <table style="width:100%;">
+          <tr>
+            ${ph.bank_account_holder ? `<td style="padding-right:32px;padding-bottom:8px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">Kontoinhaber</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${ph.bank_account_holder}</div></td>` : ''}
+            ${ph.bank_name ? `<td style="padding-right:32px;padding-bottom:8px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">Bank</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${ph.bank_name}</div></td>` : ''}
+          </tr>
+          <tr>
+            ${ph.bank_iban ? `<td style="padding-right:32px;"><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">IBAN</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">${ph.bank_iban}</div></td>` : ''}
+            ${ph.bank_bic ? `<td><div style="font-size:9.5px;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.08em;">BIC / SWIFT</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">${ph.bank_bic}</div></td>` : ''}
+          </tr>
+        </table>
+        ${(invoice.verwendungszweck || invoice.invoice_number) ? `<div style="margin-top:10px;font-size:11px;color:#6B6B6B;">Verwendungszweck: <strong style="color:#1A1A1A;">${invoice.verwendungszweck || invoice.invoice_number}</strong></div>` : ''}
+      </div>
+      ${qrUrl ? `
+      <div style="flex-shrink:0;text-align:center;">
+        <img src="${qrUrl}" width="110" height="110" style="border-radius:8px;display:block;" alt="GiroCode" />
+        <div style="font-size:8.5px;color:#9B9B9B;margin-top:5px;letter-spacing:0.06em;text-transform:uppercase;">GiroCode scannen</div>
+      </div>` : ''}
+    </div>
   </div>` : ''}
 
   <!-- Footer -->
