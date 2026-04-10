@@ -1161,13 +1161,13 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                         {/* Items */}
                         <div className="p-3 space-y-2">
                           {sec.items.map(item => (
-                            <div key={item._tempId} className="grid items-center gap-2 p-2 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', gridTemplateColumns: '1fr 100px 90px auto auto' }}>
+                            <div key={item._tempId} className="grid items-center gap-2 p-2 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', gridTemplateColumns: '1fr 90px 80px 56px auto' }}>
                               <input
                                 type="text"
                                 value={item.title}
                                 onChange={e => updateItem(sec._tempId, item._tempId, { title: e.target.value })}
                                 placeholder={isDE ? 'Bezeichnung' : 'Title'}
-                                className="text-[12px] bg-transparent outline-none"
+                                className="text-[12px] bg-transparent outline-none min-w-0"
                                 style={{ color: 'var(--text-primary)' }}
                               />
                               <input
@@ -1175,28 +1175,36 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                                 value={item.description || ''}
                                 onChange={e => updateItem(sec._tempId, item._tempId, { description: e.target.value || null })}
                                 placeholder={isDE ? 'Beschreibung' : 'Description'}
-                                className="text-[11px] bg-transparent outline-none"
+                                className="text-[11px] bg-transparent outline-none min-w-0"
                                 style={{ color: 'var(--text-muted)' }}
                               />
+                              {/* Price */}
                               <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
-                                <span className="px-1.5 text-[11px] font-bold select-none" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
+                                <span className="px-1.5 text-[11px] font-bold select-none flex-shrink-0" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
                                 <input
                                   type="number"
                                   value={item.unit_price || ''}
                                   onChange={e => updateItem(sec._tempId, item._tempId, { unit_price: Math.round(parseFloat(e.target.value) || 0) })}
                                   min="0" step="1" placeholder="0"
-                                  className="flex-1 px-1.5 py-1 text-[12px] bg-transparent outline-none text-right w-full"
+                                  className="flex-1 min-w-0 px-1.5 py-1 text-[12px] bg-transparent outline-none text-right"
                                   style={{ color: 'var(--text-primary)' }}
                                 />
                               </div>
-                              {/* Editable qty toggle */}
-                              <label className="flex items-center gap-1 cursor-pointer" title={isDE ? 'Menge editierbar' : 'Editable qty'}>
-                                <div onClick={() => updateItem(sec._tempId, item._tempId, { editable_qty: !item.editable_qty })} className="relative rounded-full cursor-pointer"
-                                  style={{ width: '24px', height: '14px', background: item.editable_qty ? '#F97316' : 'var(--border-strong)', transition: 'background 150ms', flexShrink: 0 }}>
-                                  <div className="absolute top-[1px] w-3 h-3 bg-white rounded-full shadow" style={{ left: item.editable_qty ? '11px' : '1px', transition: 'left 150ms' }} />
-                                </div>
-                                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>×</span>
-                              </label>
+                              {/* Quantity */}
+                              <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
+                                <span className="px-1.5 text-[11px] font-bold select-none flex-shrink-0" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>×</span>
+                                <input
+                                  type="number"
+                                  value={item.default_qty}
+                                  onChange={e => {
+                                    const qty = Math.max(1, Math.round(parseInt(e.target.value) || 1))
+                                    updateItem(sec._tempId, item._tempId, { default_qty: qty, editable_qty: qty > 1 })
+                                  }}
+                                  min="1" step="1"
+                                  className="flex-1 min-w-0 px-1.5 py-1 text-[12px] bg-transparent outline-none text-right"
+                                  style={{ color: 'var(--text-primary)' }}
+                                />
+                              </div>
                               <button type="button" onClick={() => removeItem(sec._tempId, item._tempId)} disabled={sec.items.length <= 1} className="w-5 h-5 rounded flex items-center justify-center disabled:opacity-20" style={{ color: '#C43B2C' }}>
                                 <X className="w-3 h-3" />
                               </button>
@@ -1310,16 +1318,27 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                       </div>
                       <div className="space-y-2 pl-6">
                         {sec.items.map((it) => (
-                          <div key={it._tempId} className="flex items-center gap-2">
+                          <div key={it._tempId} className="grid items-center gap-2" style={{ gridTemplateColumns: '1fr 110px 80px 56px auto' }}>
                             <input type="text" value={it.title} onChange={e => updateTemplateItem(sec._tempId, it._tempId, { title: e.target.value })}
-                              placeholder={isDE ? 'Position' : 'Item'} className="input-base flex-1 text-sm" />
+                              placeholder={isDE ? 'Position' : 'Item'} className="input-base text-sm min-w-0" />
                             <input type="text" value={it.description || ''} onChange={e => updateTemplateItem(sec._tempId, it._tempId, { description: e.target.value || null })}
-                              placeholder={isDE ? 'Beschreibung' : 'Description'} className="input-base text-sm" style={{ width: 140 }} />
-                            <div className="relative flex-shrink-0" style={{ width: 100 }}>
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold" style={{ color: 'var(--text-muted)' }}>€</span>
+                              placeholder={isDE ? 'Beschreibung' : 'Description'} className="input-base text-sm min-w-0" />
+                            {/* Price */}
+                            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
+                              <span className="px-1.5 text-[11px] font-bold select-none flex-shrink-0" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>€</span>
                               <input type="number" min={0} step={1} value={Math.round(it.unit_price / 100)}
                                 onChange={e => updateTemplateItem(sec._tempId, it._tempId, { unit_price: Math.round(parseFloat(e.target.value || '0')) * 100 })}
-                                className="input-base text-sm w-full pl-7" />
+                                className="flex-1 min-w-0 px-1.5 py-1 text-[12px] bg-transparent outline-none text-right" style={{ color: 'var(--text-primary)' }} />
+                            </div>
+                            {/* Quantity */}
+                            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
+                              <span className="px-1.5 text-[11px] font-bold select-none flex-shrink-0" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>×</span>
+                              <input type="number" min={1} step={1} value={it.default_qty}
+                                onChange={e => {
+                                  const qty = Math.max(1, Math.round(parseInt(e.target.value) || 1))
+                                  updateTemplateItem(sec._tempId, it._tempId, { default_qty: qty, editable_qty: qty > 1 })
+                                }}
+                                className="flex-1 min-w-0 px-1.5 py-1 text-[12px] bg-transparent outline-none text-right" style={{ color: 'var(--text-primary)' }} />
                             </div>
                             {sec.items.length > 1 && (
                               <button type="button" onClick={() => removeTemplateItem(sec._tempId, it._tempId)} className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
