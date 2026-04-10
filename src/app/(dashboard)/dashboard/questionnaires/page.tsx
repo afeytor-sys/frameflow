@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ClipboardList, ArrowUpRight, Clock, CheckCircle2, Send, FolderOpen,
+  ClipboardList, ArrowUpRight, CheckCircle2, Send, FolderOpen,
   Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine, BookmarkCheck, Trash2,
-  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar, Search,
+  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar, Search, Pencil, Eye,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getQuestionnaireTemplatesForLocale, type Question } from '@/lib/questionnaireTemplates'
@@ -211,6 +211,8 @@ export default function QuestionnairesPage() {
   const [builderTitle, setBuilderTitle] = useState('')
   const [builderQuestions, setBuilderQuestions] = useState<Question[]>([])
   const [builderSaving, setBuilderSaving] = useState(false)
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
+  const [previewTemplate, setPreviewTemplate] = useState<{ title: string; questions: Question[] } | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -283,6 +285,13 @@ export default function QuestionnairesPage() {
     setBuilderQuestions(prev => prev.filter(q => q.id !== id))
   }
 
+  const openEditTemplate = (tpl: CustomTemplate) => {
+    setEditingTemplateId(tpl.id)
+    setBuilderTitle(tpl.title)
+    setBuilderQuestions(tpl.questions.map(q => ({ ...q })))
+    setBuilderOpen(true)
+  }
+
   const builderSave = async () => {
     if (!builderTitle.trim()) { toast.error(t.errorTitle); return }
     if (builderQuestions.length === 0) { toast.error(t.errorQuestion); return }
@@ -291,6 +300,28 @@ export default function QuestionnairesPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setBuilderSaving(false); return }
 
+    // ── Edit existing template ──
+    if (editingTemplateId) {
+      const { error } = await supabase
+        .from('questionnaire_templates')
+        .update({ title: builderTitle.trim(), questions: builderQuestions })
+        .eq('id', editingTemplateId)
+
+      if (error) { toast.error(t.errorCreating); setBuilderSaving(false); return }
+
+      setCustomTemplates(prev => prev.map(t =>
+        t.id === editingTemplateId
+          ? { ...t, title: builderTitle.trim(), questions: builderQuestions }
+          : t
+      ))
+      toast.success(locale === 'de' ? `"${builderTitle.trim()}" gespeichert!` : `"${builderTitle.trim()}" saved!`)
+      setBuilderSaving(false)
+      setBuilderOpen(false)
+      setEditingTemplateId(null)
+      return
+    }
+
+    // ── Create new questionnaire from builder ──
     const { data, error } = await supabase
       .from('questionnaires')
       .insert({ photographer_id: user.id, title: builderTitle.trim(), questions: builderQuestions })
@@ -506,10 +537,14 @@ export default function QuestionnairesPage() {
                   </div>
                   <div className="flex items-center gap-2 mt-auto">
                     <button
-                      onClick={() => {/* preview — future */ }}
-                      className="flex-1 flex items-center justify-center text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-80"
+                      onClick={() => {
+                        const tpl = QUESTIONNAIRE_TEMPLATES.find(t => t.key === tplCard.key)
+                        if (tpl) setPreviewTemplate({ title: tpl.title, questions: tpl.questions })
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-1.5 px-2 rounded-lg transition-all hover:opacity-80"
                       style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                     >
+                      <Eye className="w-3 h-3" />
                       {t.preview}
                     </button>
                     <button
@@ -605,13 +640,31 @@ export default function QuestionnairesPage() {
                       {tpl.questions.length} {tpl.questions.length === 1 ? t.question : t.questions} · {t.saved} {new Date(tpl.created_at).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
-                  <button
-                    onClick={() => openBuilderFromTemplate('', tpl)}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs font-bold py-2 px-3 rounded-xl transition-all hover:opacity-90"
-                    style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
-                  >
-                    {t.use} <ChevronRight className="w-3 h-3" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPreviewTemplate({ title: tpl.title, questions: tpl.questions })}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-2 px-2 rounded-xl transition-all hover:opacity-80"
+                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                    >
+                      <Eye className="w-3 h-3" />
+                      {t.preview}
+                    </button>
+                    <button
+                      onClick={() => openEditTemplate(tpl)}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-2 px-2 rounded-xl transition-all hover:opacity-90"
+                      style={{ background: CUSTOM_ACCENT.bg, color: CUSTOM_ACCENT.color, border: `1px solid ${CUSTOM_ACCENT.border}` }}
+                    >
+                      <Pencil className="w-3 h-3" />
+                      {locale === 'de' ? 'Bearbeiten' : 'Edit'}
+                    </button>
+                    <button
+                      onClick={() => openBuilderFromTemplate('', tpl)}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs font-bold py-2 px-2 rounded-xl transition-all hover:opacity-90"
+                      style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                    >
+                      {t.use} <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )
@@ -784,12 +837,69 @@ export default function QuestionnairesPage() {
         </div>
       )}
 
+      {/* Preview Modal */}
+      {previewTemplate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setPreviewTemplate(null) }}
+        >
+          <div className="modal-glass w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl">
+            <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
+              <div>
+                <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                  {previewTemplate.title}
+                </h3>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {previewTemplate.questions.length} {previewTemplate.questions.length === 1 ? t.question : t.questions}
+                </p>
+              </div>
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-70"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              {previewTemplate.questions.map((q, idx) => (
+                <div key={q.id} className="p-4 rounded-xl space-y-2" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
+                      style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        {q.label}
+                        {q.required && <span className="ml-1 text-[#F97316]">*</span>}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
+                          {TYPE_LABELS[q.type] || q.type}
+                        </span>
+                        {q.options && q.options.length > 0 && (
+                          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            {q.options.join(' · ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Builder Modal */}
       {builderOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setBuilderOpen(false) }}
+          onClick={e => { if (e.target === e.currentTarget) { setBuilderOpen(false); setEditingTemplateId(null) } }}
         >
           <div
             className="modal-glass w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
@@ -797,12 +907,18 @@ export default function QuestionnairesPage() {
             <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
               <div>
                 <h3 className="font-black text-[16px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                  {t.builderTitle}
+                  {editingTemplateId
+                    ? (locale === 'de' ? 'Vorlage bearbeiten' : 'Edit template')
+                    : t.builderTitle}
                 </h3>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.builderSubtitle}</p>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {editingTemplateId
+                    ? (locale === 'de' ? 'Fragen anpassen und Vorlage aktualisieren' : 'Adjust questions and update template')
+                    : t.builderSubtitle}
+                </p>
               </div>
               <button
-                onClick={() => setBuilderOpen(false)}
+                onClick={() => { setBuilderOpen(false); setEditingTemplateId(null) }}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-70"
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
               >
@@ -910,7 +1026,7 @@ export default function QuestionnairesPage() {
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setBuilderOpen(false)}
+                  onClick={() => { setBuilderOpen(false); setEditingTemplateId(null) }}
                   className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                 >
@@ -924,7 +1040,9 @@ export default function QuestionnairesPage() {
                 >
                   {builderSaving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    : <><CheckCircle2 className="w-4 h-4" />{t.builderSave}</>
+                    : editingTemplateId
+                      ? <><CheckCircle2 className="w-4 h-4" />{locale === 'de' ? 'Speichern' : 'Save'}</>
+                      : <><CheckCircle2 className="w-4 h-4" />{t.builderSave}</>
                   }
                 </button>
               </div>
