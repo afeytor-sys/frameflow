@@ -392,7 +392,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
       .single()
 
     setQuotes(prev => [fullQuote as Quote, ...prev])
-    setForm({ project_id: '', title: '', notes: '', valid_until: '' })
+    setForm({ project_id: '', title: '', notes: '', valid_until: '', tax_status: photographer?.tax_status || 'kleinunternehmer', tax_rate: photographer?.tax_rate || 0 })
     setSections([{ _tempId: 't1', title: isDE ? 'Paket' : 'Package', type: 'single_choice', required: true, position: 0, items: [
       { _tempId: 'i1', title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: 0 },
     ]}])
