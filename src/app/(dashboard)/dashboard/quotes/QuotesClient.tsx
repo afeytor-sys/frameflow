@@ -1183,8 +1183,8 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                                 <input
                                   type="number"
                                   value={item.unit_price || ''}
-                                  onChange={e => updateItem(sec._tempId, item._tempId, { unit_price: parseFloat(e.target.value) || 0 })}
-                                  min="0" step="0.01" placeholder="0"
+                                  onChange={e => updateItem(sec._tempId, item._tempId, { unit_price: Math.round(parseFloat(e.target.value) || 0) })}
+                                  min="0" step="1" placeholder="0"
                                   className="flex-1 px-1.5 py-1 text-[12px] bg-transparent outline-none text-right w-full"
                                   style={{ color: 'var(--text-primary)' }}
                                 />
@@ -1317,8 +1317,8 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                               placeholder={isDE ? 'Beschreibung' : 'Description'} className="input-base text-sm" style={{ width: 140 }} />
                             <div className="relative flex-shrink-0" style={{ width: 100 }}>
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold" style={{ color: 'var(--text-muted)' }}>€</span>
-                              <input type="number" min={0} step={0.01} value={it.unit_price / 100}
-                                onChange={e => updateTemplateItem(sec._tempId, it._tempId, { unit_price: Math.round(parseFloat(e.target.value || '0') * 100) })}
+                              <input type="number" min={0} step={1} value={Math.round(it.unit_price / 100)}
+                                onChange={e => updateTemplateItem(sec._tempId, it._tempId, { unit_price: Math.round(parseFloat(e.target.value || '0')) * 100 })}
                                 className="input-base text-sm w-full pl-7" />
                             </div>
                             {sec.items.length > 1 && (
