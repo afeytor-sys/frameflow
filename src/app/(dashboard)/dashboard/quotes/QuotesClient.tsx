@@ -862,14 +862,15 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
 
           return (
             <div key={q.id} className="glass-card p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: cfg.bg }}>
+              {/* Top row: icon + info + menu */}
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: cfg.bg }}>
                   <StatusIcon className="w-4 h-4" style={{ color: cfg.color }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>{q.title}</p>
+                  <p className="font-bold text-[14px] leading-snug" style={{ color: 'var(--text-primary)' }}>{q.title}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
                       {isDE ? cfg.labelDe : cfg.label}
                     </span>
@@ -879,57 +880,24 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                       </span>
                     )}
                   </div>
-                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[12px] mt-1.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
                     {getClientName(q)}
                     {q.valid_until && ` · ${isDE ? 'Gültig bis' : 'Valid until'} ${new Date(q.valid_until).toLocaleDateString('de-DE')}`}
                     {` · ${q.sections.length} ${isDE ? 'Sektionen' : 'sections'}, ${q.sections.reduce((s, sec) => s + sec.items.length, 0)} ${isDE ? 'Positionen' : 'items'}`}
                   </p>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Menu only in top-right */}
+                <div className="relative flex-shrink-0">
                   <button
-                    onClick={() => copyLink(q.client_token)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-80"
-                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
-                    title={isDE ? 'Link kopieren' : 'Copy link'}
+                    onClick={() => setOpenMenu(openMenu === q.id ? null : q.id)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <Copy className="w-3.5 h-3.5" />
+                    <MoreHorizontal className="w-4 h-4" />
                   </button>
-                  <a
-                    href={`/q/${q.client_token}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-80"
-                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
-                    title={isDE ? 'Vorschau' : 'Preview'}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-
-                  {/* Responses dropdown */}
-                  {hasResponse && (
-                    <button
-                      onClick={() => setPreviewQuote(previewQuote?.id === q.id ? null : q)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-88"
-                      style={{ background: 'rgba(42,155,104,0.10)', color: '#2A9B68', border: '1px solid rgba(42,155,104,0.25)' }}
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      {isDE ? 'Antworten' : 'Responses'}
-                    </button>
-                  )}
-
-                  {/* Menu */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenMenu(openMenu === q.id ? null : q.id)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                      style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
                     {openMenu === q.id && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
@@ -959,6 +927,40 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Bottom actions row */}
+              <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <button
+                  onClick={() => copyLink(q.client_token)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-80"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                  title={isDE ? 'Link kopieren' : 'Copy link'}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{isDE ? 'Link' : 'Link'}</span>
+                </button>
+                <a
+                  href={`/q/${q.client_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-80"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                  title={isDE ? 'Vorschau' : 'Preview'}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{isDE ? 'Vorschau' : 'Preview'}</span>
+                </a>
+                {hasResponse && (
+                  <button
+                    onClick={() => setPreviewQuote(previewQuote?.id === q.id ? null : q)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-88"
+                    style={{ background: 'rgba(42,155,104,0.10)', color: '#2A9B68', border: '1px solid rgba(42,155,104,0.25)' }}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    {isDE ? 'Antworten' : 'Responses'}
+                  </button>
+                )}
               </div>
 
               {/* Responses panel */}
