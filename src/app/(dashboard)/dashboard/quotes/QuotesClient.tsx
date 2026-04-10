@@ -85,11 +85,43 @@ interface Photographer {
   tax_rate: number | null
 }
 
+interface QuoteTemplateItem {
+  id: string
+  section_id: string
+  template_id: string
+  title: string
+  description: string | null
+  unit_price: number
+  editable_qty: boolean
+  default_qty: number
+  position: number
+}
+
+interface QuoteTemplateSection {
+  id: string
+  template_id: string
+  title: string
+  type: SectionType
+  required: boolean
+  position: number
+  items: QuoteTemplateItem[]
+}
+
+interface QuoteTemplate {
+  id: string
+  photographer_id: string
+  title: string
+  notes: string | null
+  created_at: string
+  sections: QuoteTemplateSection[]
+}
+
 interface Props {
   quotes: Quote[]
   projects: Project[]
   photographerId: string
   photographer: Photographer | null
+  templates: QuoteTemplate[]
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -223,15 +255,28 @@ function newItem(sectionId: string, quoteId: string, position: number): Omit<Quo
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function QuotesClient({ quotes: initial, projects, photographerId, photographer }: Props) {
+export default function QuotesClient({ quotes: initial, projects, photographerId, photographer, templates: initialTemplates }: Props) {
   const locale = useLocale()
   const isDE = locale === 'de'
   const [quotes, setQuotes] = useState<Quote[]>(initial)
+  const [activeTab, setActiveTab] = useState<'quotes' | 'templates'>('quotes')
   const [showNew, setShowNew] = useState(false)
   const [saving, setSaving] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [previewQuote, setPreviewQuote] = useState<Quote | null>(null)
   const [convertingId, setConvertingId] = useState<string | null>(null)
+
+  // Templates state
+  const [templates, setTemplates] = useState<QuoteTemplate[]>(initialTemplates)
+  const [showNewTemplate, setShowNewTemplate] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<QuoteTemplate | null>(null)
+  const [savingTemplate, setSavingTemplate] = useState(false)
+  const [templateForm, setTemplateForm] = useState({ title: '', notes: '' })
+  const [templateSections, setTemplateSections] = useState<BuilderSection[]>([
+    { _tempId: 't1', title: isDE ? 'Paket' : 'Package', type: 'single_choice', required: true, position: 0, items: [
+      { _tempId: 'i1', title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: 0 },
+    ]},
+  ])
 
   // New quote form state
   const [form, setForm] = useState({ project_id: '', title: '', notes: '', valid_until: '' })
@@ -369,6 +414,179 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
     toast.success(isDE ? 'Link kopiert!' : 'Link copied!')
   }
 
+  // ── Apply template to new quote builder ────────────────────────────────────
+  const applyTemplate = (tpl: QuoteTemplate) => {
+    const built: BuilderSection[] = tpl.sections
+      .sort((a, b) => a.position - b.position)
+      .map(s => ({
+        _tempId: `t${s.id}`,
+        title: s.title,
+        type: s.type,
+        required: s.required,
+        position: s.position,
+        items: s.items
+          .sort((a, b) => a.position - b.position)
+          .map(it => ({
+            _tempId: `i${it.id}`,
+            title: it.title,
+            description: it.description,
+            unit_price: it.unit_price,
+            editable_qty: it.editable_qty,
+            default_qty: it.default_qty,
+            position: it.position,
+          })),
+      }))
+    setSections(built.length > 0 ? built : sections)
+    if (!form.title && tpl.title) setForm(f => ({ ...f, title: tpl.title }))
+    toast.success(isDE ? `Vorlage „${tpl.title}" angewendet` : `Template "${tpl.title}" applied`)
+  }
+
+  // ── Template section helpers ───────────────────────────────────────────────
+  const addTemplateSection = () => setTemplateSections(prev => [...prev, {
+    _tempId: `t${Date.now()}`,
+    title: '',
+    type: 'multiple_choice' as SectionType,
+    required: false,
+    position: prev.length,
+    items: [{ _tempId: `i${Date.now()}`, title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: 0 }],
+  }])
+
+  const removeTemplateSection = (tid: string) => setTemplateSections(prev => prev.filter(s => s._tempId !== tid))
+
+  const updateTemplateSection = useCallback((tid: string, patch: Partial<Omit<BuilderSection, '_tempId' | 'items'>>) => {
+    setTemplateSections(prev => prev.map(s => s._tempId === tid ? { ...s, ...patch } : s))
+  }, [])
+
+  const addTemplateItem = (sectionTid: string) => setTemplateSections(prev => prev.map(s => {
+    if (s._tempId !== sectionTid) return s
+    return { ...s, items: [...s.items, { _tempId: `i${Date.now()}`, title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: s.items.length }] }
+  }))
+
+  const removeTemplateItem = (sectionTid: string, itemTid: string) => setTemplateSections(prev => prev.map(s => {
+    if (s._tempId !== sectionTid) return s
+    return { ...s, items: s.items.filter(i => i._tempId !== itemTid) }
+  }))
+
+  const updateTemplateItem = useCallback((sectionTid: string, itemTid: string, patch: Partial<Omit<BuilderItem, '_tempId'>>) => {
+    setTemplateSections(prev => prev.map(s => {
+      if (s._tempId !== sectionTid) return s
+      return { ...s, items: s.items.map(i => i._tempId === itemTid ? { ...i, ...patch } : i) }
+    }))
+  }, [])
+
+  const openNewTemplate = () => {
+    setEditingTemplate(null)
+    setTemplateForm({ title: '', notes: '' })
+    setTemplateSections([{ _tempId: 't1', title: isDE ? 'Paket' : 'Package', type: 'single_choice', required: true, position: 0, items: [
+      { _tempId: 'i1', title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: 0 },
+    ]}])
+    setShowNewTemplate(true)
+  }
+
+  const openEditTemplate = (tpl: QuoteTemplate) => {
+    setEditingTemplate(tpl)
+    setTemplateForm({ title: tpl.title, notes: tpl.notes || '' })
+    setTemplateSections(
+      tpl.sections.sort((a, b) => a.position - b.position).map(s => ({
+        _tempId: `t${s.id}`,
+        title: s.title,
+        type: s.type,
+        required: s.required,
+        position: s.position,
+        items: s.items.sort((a, b) => a.position - b.position).map(it => ({
+          _tempId: `i${it.id}`,
+          title: it.title,
+          description: it.description,
+          unit_price: it.unit_price,
+          editable_qty: it.editable_qty,
+          default_qty: it.default_qty,
+          position: it.position,
+        })),
+      }))
+    )
+    setShowNewTemplate(true)
+  }
+
+  // ── Save template ─────────────────────────────────────────────────────────
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!templateForm.title.trim()) { toast.error(isDE ? 'Bitte Titel eingeben' : 'Please enter a title'); return }
+    setSavingTemplate(true)
+    try {
+      if (editingTemplate) {
+        // Update existing
+        await supabase.from('quote_templates').update({ title: templateForm.title, notes: templateForm.notes || null }).eq('id', editingTemplate.id)
+        await supabase.from('quote_template_sections').delete().eq('template_id', editingTemplate.id)
+        // Re-insert sections + items
+        for (let si = 0; si < templateSections.length; si++) {
+          const sec = templateSections[si]
+          const { data: dbSec } = await supabase.from('quote_template_sections').insert({
+            template_id: editingTemplate.id,
+            title: sec.title, type: sec.type, required: sec.required, position: si,
+          }).select('id').single()
+          if (dbSec) {
+            for (let ii = 0; ii < sec.items.length; ii++) {
+              const it = sec.items[ii]
+              await supabase.from('quote_template_items').insert({
+                template_id: editingTemplate.id, section_id: dbSec.id,
+                title: it.title, description: it.description, unit_price: it.unit_price,
+                editable_qty: it.editable_qty, default_qty: it.default_qty, position: ii,
+              })
+            }
+          }
+        }
+        // Refetch template
+        const { data: updated } = await supabase.from('quote_templates')
+          .select('*, sections:quote_template_sections(*, items:quote_template_items(*))')
+          .eq('id', editingTemplate.id).single()
+        if (updated) setTemplates(prev => prev.map(t => t.id === updated.id ? updated as QuoteTemplate : t))
+        toast.success(isDE ? 'Vorlage aktualisiert' : 'Template updated')
+      } else {
+        // Create new
+        const { data: tpl, error } = await supabase.from('quote_templates')
+          .insert({ photographer_id: photographerId, title: templateForm.title, notes: templateForm.notes || null })
+          .select('id').single()
+        if (error || !tpl) { toast.error(isDE ? 'Fehler' : 'Error'); return }
+        for (let si = 0; si < templateSections.length; si++) {
+          const sec = templateSections[si]
+          const { data: dbSec } = await supabase.from('quote_template_sections').insert({
+            template_id: tpl.id,
+            title: sec.title, type: sec.type, required: sec.required, position: si,
+          }).select('id').single()
+          if (dbSec) {
+            for (let ii = 0; ii < sec.items.length; ii++) {
+              const it = sec.items[ii]
+              await supabase.from('quote_template_items').insert({
+                template_id: tpl.id, section_id: dbSec.id,
+                title: it.title, description: it.description, unit_price: it.unit_price,
+                editable_qty: it.editable_qty, default_qty: it.default_qty, position: ii,
+              })
+            }
+          }
+        }
+        const { data: full } = await supabase.from('quote_templates')
+          .select('*, sections:quote_template_sections(*, items:quote_template_items(*))')
+          .eq('id', tpl.id).single()
+        if (full) setTemplates(prev => [full as QuoteTemplate, ...prev])
+        toast.success(isDE ? 'Vorlage erstellt!' : 'Template created!')
+      }
+      setShowNewTemplate(false)
+      setEditingTemplate(null)
+    } catch {
+      toast.error(isDE ? 'Fehler' : 'Error')
+    } finally {
+      setSavingTemplate(false)
+    }
+  }
+
+  const deleteTemplate = async (id: string) => {
+    if (!confirm(isDE ? 'Vorlage wirklich löschen?' : 'Really delete this template?')) return
+    const { error } = await supabase.from('quote_templates').delete().eq('id', id)
+    if (error) { toast.error(isDE ? 'Fehler' : 'Error'); return }
+    setTemplates(prev => prev.filter(t => t.id !== id))
+    toast.success(isDE ? 'Vorlage gelöscht' : 'Template deleted')
+  }
+
   // ── Convert response to invoice ───────────────────────────────────────────
   const convertToInvoice = async (quote: Quote, response: QuoteResponse) => {
     if (response.converted_invoice_id) {
@@ -461,7 +679,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 animate-in">
+      <div className="flex items-center justify-between mb-6 animate-in">
         <div>
           <h1 className="font-black" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
             {isDE ? 'Angebote' : 'Quotes'}
@@ -470,17 +688,124 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
             {isDE ? 'Interaktive Preisangebote für deine Kunden' : 'Interactive price quotes for your clients'}
           </p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
-          style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}
-        >
-          <Plus className="w-4 h-4" />
-          {isDE ? 'Neues Angebot' : 'New Quote'}
-        </button>
+        {activeTab === 'quotes' ? (
+          <button
+            onClick={() => setShowNew(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
+            style={{ background: '#F97316', boxShadow: '0 1px 8px rgba(249,115,22,0.30)' }}
+          >
+            <Plus className="w-4 h-4" />
+            {isDE ? 'Neues Angebot' : 'New Quote'}
+          </button>
+        ) : (
+          <button
+            onClick={openNewTemplate}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88"
+            style={{ background: '#C4A47C', boxShadow: '0 1px 8px rgba(196,164,124,0.30)' }}
+          >
+            <Plus className="w-4 h-4" />
+            {isDE ? 'Neue Vorlage' : 'New Template'}
+          </button>
+        )}
       </div>
 
-      {/* Stats */}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit" style={{ background: 'var(--bg-hover)' }}>
+        {([['quotes', isDE ? 'Angebote' : 'Quotes'], ['templates', isDE ? 'Vorlagen' : 'Templates']] as const).map(([tab, label]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className="px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all"
+            style={activeTab === tab ? {
+              background: 'var(--card-bg)',
+              color: 'var(--text-primary)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+            } : { color: 'var(--text-muted)' }}
+          >
+            {label}
+            {tab === 'templates' && templates.length > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                style={{ background: 'rgba(196,164,124,0.2)', color: '#C4A47C' }}>
+                {templates.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Templates tab ── */}
+      {activeTab === 'templates' && (
+        <div className="space-y-3">
+          {templates.length === 0 ? (
+            <div className="rounded-2xl flex flex-col items-center justify-center py-24 text-center" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'rgba(196,164,124,0.12)' }}>
+                <FileText className="w-7 h-7" style={{ color: '#C4A47C' }} />
+              </div>
+              <h3 className="font-black mb-2" style={{ fontSize: '1.25rem', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+                {isDE ? 'Noch keine Vorlagen' : 'No templates yet'}
+              </h3>
+              <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
+                {isDE ? 'Erstelle eine Vorlage und nutze sie für neue Angebote' : 'Create a template and reuse it for new quotes'}
+              </p>
+              <button onClick={openNewTemplate} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13.5px] font-bold text-white" style={{ background: '#C4A47C' }}>
+                <Plus className="w-4 h-4" />
+                {isDE ? 'Vorlage erstellen' : 'Create template'}
+              </button>
+            </div>
+          ) : templates.map(tpl => (
+            <div key={tpl.id} className="glass-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,164,124,0.12)' }}>
+                  <FileText className="w-4 h-4" style={{ color: '#C4A47C' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>{tpl.title}</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {tpl.sections.length} {isDE ? 'Sektionen' : 'sections'} · {tpl.sections.reduce((s, sec) => s + sec.items.length, 0)} {isDE ? 'Positionen' : 'items'}
+                    {tpl.notes && ` · ${tpl.notes.slice(0, 40)}${tpl.notes.length > 40 ? '…' : ''}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Use template */}
+                  <button
+                    onClick={() => { applyTemplate(tpl); setShowNew(true); setActiveTab('quotes') }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-88"
+                    style={{ background: 'rgba(196,164,124,0.15)', color: '#C4A47C', border: '1px solid rgba(196,164,124,0.3)' }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {isDE ? 'Verwenden' : 'Use'}
+                  </button>
+                  {/* Edit */}
+                  <button
+                    onClick={() => openEditTemplate(tpl)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    title={isDE ? 'Bearbeiten' : 'Edit'}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  {/* Delete */}
+                  <button
+                    onClick={() => deleteTemplate(tpl.id)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(201,64,48,0.08)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    title={isDE ? 'Löschen' : 'Delete'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Stats + Quote list */}
+      {activeTab === 'quotes' && <>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label: isDE ? 'Angenommen' : 'Accepted', value: formatEur(totalAccepted), color: '#2A9B68', icon: CheckCircle2 },
@@ -678,6 +1003,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
           )
         })}
       </div>
+      </>}
 
       {/* ── New Quote Modal ── */}
       {showNew && (
@@ -695,6 +1021,28 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
             </div>
 
             <form onSubmit={handleCreate} className="p-6 space-y-6">
+              {/* Von Vorlage */}
+              {templates.length > 0 && (
+                <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.2)' }}>
+                  <span className="text-[12px] font-bold flex-shrink-0" style={{ color: '#C4A47C' }}>
+                    {isDE ? 'Von Vorlage:' : 'From template:'}
+                  </span>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {templates.map(tpl => (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => applyTemplate(tpl)}
+                        className="px-2.5 py-1 rounded-lg text-[11.5px] font-semibold transition-all hover:opacity-80"
+                        style={{ background: 'rgba(196,164,124,0.15)', color: '#C4A47C', border: '1px solid rgba(196,164,124,0.25)' }}
+                      >
+                        {tpl.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Basic fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
@@ -852,6 +1200,123 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                   {saving
                     ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     : <><Plus className="w-4 h-4" />{isDE ? 'Angebot erstellen' : 'Create Quote'}</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Template Builder Modal ── */}
+      {showNewTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
+              <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+                {editingTemplate ? (isDE ? 'Vorlage bearbeiten' : 'Edit Template') : (isDE ? 'Neue Vorlage' : 'New Template')}
+              </h2>
+              <button onClick={() => { setShowNewTemplate(false); setEditingTemplate(null) }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTemplate} className="p-6 space-y-6">
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                  {isDE ? 'Name der Vorlage *' : 'Template name *'}
+                </label>
+                <input type="text" value={templateForm.title} onChange={e => setTemplateForm(f => ({ ...f, title: e.target.value }))} required
+                  placeholder={isDE ? 'z.B. Hochzeitspaket Standard' : 'e.g. Wedding Package Standard'}
+                  className="input-base w-full" autoFocus />
+              </div>
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                  {isDE ? 'Notiz (intern)' : 'Note (internal)'}
+                </label>
+                <input type="text" value={templateForm.notes} onChange={e => setTemplateForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder={isDE ? 'Optional' : 'Optional'}
+                  className="input-base w-full" />
+              </div>
+
+              {/* Sections builder */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-primary)' }}>
+                    {isDE ? 'Sektionen' : 'Sections'}
+                  </label>
+                  <button type="button" onClick={addTemplateSection} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-bold transition-colors"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                    <Plus className="w-3 h-3" />
+                    {isDE ? 'Sektion' : 'Section'}
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {templateSections.map((sec, si) => (
+                    <div key={sec._tempId} className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                      <div className="flex items-center gap-2">
+                        <GripVertical className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                        <input type="text" value={sec.title} onChange={e => updateTemplateSection(sec._tempId, { title: e.target.value })}
+                          placeholder={isDE ? 'Sektionsname' : 'Section name'} className="input-base flex-1 text-sm" />
+                        <select value={sec.type} onChange={e => updateTemplateSection(sec._tempId, { type: e.target.value as SectionType })} className="input-base text-sm" style={{ width: 160 }}>
+                          <option value="fixed">{isDE ? 'Fest' : 'Fixed'}</option>
+                          <option value="single_choice">{isDE ? 'Einzelauswahl' : 'Single choice'}</option>
+                          <option value="multiple_choice">{isDE ? 'Mehrfachauswahl' : 'Multiple choice'}</option>
+                        </select>
+                        <label className="flex items-center gap-1 text-[11px] font-semibold flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                          <input type="checkbox" checked={sec.required} onChange={e => updateTemplateSection(sec._tempId, { required: e.target.checked })} style={{ accentColor: '#C4A47C' }} />
+                          {isDE ? 'Pflicht' : 'Req.'}
+                        </label>
+                        {templateSections.length > 1 && (
+                          <button type="button" onClick={() => removeTemplateSection(sec._tempId)} className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ color: '#C94030' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(201,64,48,0.08)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2 pl-6">
+                        {sec.items.map((it) => (
+                          <div key={it._tempId} className="flex items-center gap-2">
+                            <input type="text" value={it.title} onChange={e => updateTemplateItem(sec._tempId, it._tempId, { title: e.target.value })}
+                              placeholder={isDE ? 'Position' : 'Item'} className="input-base flex-1 text-sm" />
+                            <input type="text" value={it.description || ''} onChange={e => updateTemplateItem(sec._tempId, it._tempId, { description: e.target.value || null })}
+                              placeholder={isDE ? 'Beschreibung' : 'Description'} className="input-base text-sm" style={{ width: 140 }} />
+                            <div className="relative flex-shrink-0" style={{ width: 100 }}>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold" style={{ color: 'var(--text-muted)' }}>€</span>
+                              <input type="number" min={0} step={0.01} value={it.unit_price / 100}
+                                onChange={e => updateTemplateItem(sec._tempId, it._tempId, { unit_price: Math.round(parseFloat(e.target.value || '0') * 100) })}
+                                className="input-base text-sm w-full pl-7" />
+                            </div>
+                            {sec.items.length > 1 && (
+                              <button type="button" onClick={() => removeTemplateItem(sec._tempId, it._tempId)} className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ color: '#C94030' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(201,64,48,0.08)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => addTemplateItem(sec._tempId)} className="flex items-center gap-1 text-[11.5px] font-semibold mt-1"
+                          style={{ color: 'var(--text-muted)' }}>
+                          <Plus className="w-3 h-3" />
+                          {isDE ? 'Position hinzufügen' : 'Add item'}
+                        </button>
+                      </div>
+                      <p className="text-[11px] pl-6" style={{ color: 'var(--text-muted)' }}>
+                        {isDE ? `Sektion ${si + 1}` : `Section ${si + 1}`} · {sec.items.length} {isDE ? 'Positionen' : 'items'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => { setShowNewTemplate(false); setEditingTemplate(null) }} className="btn-secondary flex-1">
+                  {isDE ? 'Abbrechen' : 'Cancel'}
+                </button>
+                <button type="submit" disabled={savingTemplate} className="btn-shimmer flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50" style={{ background: '#C4A47C' }}>
+                  {savingTemplate
+                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <><Plus className="w-4 h-4" />{editingTemplate ? (isDE ? 'Speichern' : 'Save') : (isDE ? 'Vorlage erstellen' : 'Create Template')}</>}
                 </button>
               </div>
             </form>
