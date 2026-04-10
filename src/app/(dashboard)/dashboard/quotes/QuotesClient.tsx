@@ -197,9 +197,10 @@ function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photograp
     <tr><td style="padding:28px 0 20px;">
       <table cellpadding="0" cellspacing="0" width="100%"><tr>
         <td style="vertical-align:middle;">
-          ${logoUrl ? `<img src="${logoUrl}" alt="${studioName}" style="height:44px;width:auto;object-fit:contain;border-radius:8px;display:block;margin-bottom:6px;">` : ''}
+          ${logoUrl ? `<img src="${logoUrl}" alt="${studioName}" style="height:48px;width:auto;object-fit:contain;border-radius:8px;display:block;margin-bottom:8px;">` : ''}
           <p style="margin:0;font-size:22px;font-weight:800;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Angebot</p>
+          ${photographer?.email ? `<p style="margin:3px 0 0;font-size:12px;color:#7A7670;">${photographer.email}</p>` : ''}
+          <p style="margin:4px 0 0;font-size:12px;color:#B0ACA6;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Angebot</p>
         </td>
       </tr></table>
     </td></tr>
@@ -442,7 +443,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
             _tempId: `i${it.id}`,
             title: it.title,
             description: it.description,
-            unit_price: it.unit_price,
+            unit_price: Math.round(it.unit_price / 100), // cents → euros for builder state
             editable_qty: it.editable_qty,
             default_qty: it.default_qty,
             position: it.position,
