@@ -14,6 +14,10 @@ import { useLocale } from '@/hooks/useLocale'
 type SectionType = 'fixed' | 'single_choice' | 'multiple_choice'
 type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'expired'
 
+// Builder-only types (no DB ids yet)
+type BuilderItem = Omit<QuoteItem, 'id' | 'section_id' | 'quote_id'> & { _tempId: string }
+type BuilderSection = Omit<QuoteSection, 'id' | 'quote_id' | 'items'> & { _tempId: string; items: BuilderItem[] }
+
 interface QuoteItem {
   id: string
   section_id: string
@@ -125,7 +129,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
 
   // New quote form state
   const [form, setForm] = useState({ project_id: '', title: '', notes: '', valid_until: '' })
-  const [sections, setSections] = useState<Array<Omit<QuoteSection, 'id' | 'quote_id'> & { _tempId: string; items: Array<Omit<QuoteItem, 'id' | 'section_id' | 'quote_id'> & { _tempId: string }> }>>([
+  const [sections, setSections] = useState<BuilderSection[]>([
     { _tempId: 't1', title: isDE ? 'Paket' : 'Package', type: 'single_choice', required: true, position: 0, items: [
       { _tempId: 'i1', title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: 0 },
     ]},
