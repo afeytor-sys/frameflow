@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, X, Trash2,
   Eye, Copy, MoreHorizontal, ChevronDown, ChevronUp, GripVertical,
-  ToggleLeft, CheckSquare, List, Pencil, ExternalLink, Receipt,
+  ToggleLeft, CheckSquare, List, Pencil, ExternalLink, Receipt, FileDown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -99,6 +99,109 @@ function formatEur(cents: number) {
 
 function getSiteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL || 'https://fotonizer.com'
+}
+
+function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photographer: Photographer) {
+  const studioName = photographer.studio_name || photographer.full_name || 'Studio'
+  const allItems = quote.sections.flatMap(s => s.items)
+  const lineItems = Object.entries(response.selections || {})
+    .map(([itemId, qty]) => {
+      const item = allItems.find(i => i.id === itemId)
+      if (!item || !qty) return null
+      return { title: item.title, qty, unit_price: item.unit_price, total: item.unit_price * qty }
+    })
+    .filter(Boolean) as { title: string; qty: number; unit_price: number; total: number }[]
+
+  const subtotal = response.subtotal || lineItems.reduce((s, i) => s + i.total, 0)
+  const taxAmount = response.tax_amount || 0
+  const total = response.total_amount
+  const isKlein = quote.tax_status === 'kleinunternehmer'
+  const dateStr = new Date(response.submitted_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
+
+  const itemRows = lineItems.map((it, idx) => `
+    <tr>
+      <td style="padding:9px 0;font-size:13px;color:#7A7670;border-top:1px solid #E8E4DC;">${idx + 1}</td>
+      <td style="padding:9px 12px;font-size:13px;color:#111110;border-top:1px solid #E8E4DC;">${it.title}</td>
+      <td style="padding:9px 0;font-size:13px;color:#7A7670;text-align:center;border-top:1px solid #E8E4DC;">${it.qty}</td>
+      <td style="padding:9px 0;font-size:13px;color:#7A7670;text-align:right;border-top:1px solid #E8E4DC;">${formatEur(it.unit_price)}</td>
+      <td style="padding:9px 0;font-size:13px;font-weight:700;color:#111110;text-align:right;border-top:1px solid #E8E4DC;">${formatEur(it.total)}</td>
+    </tr>`).join('')
+
+  const totalRows = isKlein
+    ? `<tr>
+        <td colspan="4" style="padding:10px 0 4px;font-size:13px;font-weight:700;text-align:right;color:#7A7670;border-top:2px solid #E8E4DC;">Gesamt</td>
+        <td style="padding:10px 0 4px;font-size:15px;font-weight:800;text-align:right;color:#C4A47C;border-top:2px solid #E8E4DC;">${formatEur(total)}</td>
+      </tr>`
+    : `<tr>
+        <td colspan="4" style="padding:8px 0 2px;font-size:13px;text-align:right;color:#7A7670;border-top:2px solid #E8E4DC;">Nettobetrag</td>
+        <td style="padding:8px 0 2px;font-size:13px;text-align:right;color:#111110;border-top:2px solid #E8E4DC;">${formatEur(subtotal)}</td>
+      </tr>
+      <tr>
+        <td colspan="4" style="padding:2px 0;font-size:13px;text-align:right;color:#7A7670;">MwSt ${quote.tax_rate}%</td>
+        <td style="padding:2px 0;font-size:13px;text-align:right;color:#111110;">${formatEur(taxAmount)}</td>
+      </tr>
+      <tr>
+        <td colspan="4" style="padding:8px 0 4px;font-size:13px;font-weight:700;text-align:right;color:#111110;border-top:1px solid #E8E4DC;">Gesamtbetrag</td>
+        <td style="padding:8px 0 4px;font-size:15px;font-weight:800;text-align:right;color:#C4A47C;">${formatEur(total)}</td>
+      </tr>`
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Angebot – ${quote.title}</title>
+  <style>
+    @media print { @page { size: A4; margin: 18mm 20mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    body { margin: 0; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #111110; }
+  </style>
+  <script>window.onload = function(){ window.print() }</script>
+</head>
+<body>
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
+    <tr><td style="height:3px;background:linear-gradient(90deg,#C4A47C,#E8C99A,#C4A47C);border-radius:2px;"></td></tr>
+    <tr><td style="padding:32px 0 20px;">
+      <p style="margin:0;font-size:22px;font-weight:800;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Angebot</p>
+    </td></tr>
+    <tr><td style="height:1px;background:#E8E4DC;"></td></tr>
+    <tr><td style="padding:24px 0 16px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="width:50%;vertical-align:top;">
+            <p style="margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#B0ACA6;">Kunde</p>
+            <p style="margin:0;font-size:14px;font-weight:700;color:#111110;">${response.client_name || '—'}</p>
+            <p style="margin:2px 0 0;font-size:13px;color:#7A7670;">${response.client_email || ''}</p>
+          </td>
+          <td style="width:50%;vertical-align:top;text-align:right;">
+            <p style="margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#B0ACA6;">Datum</p>
+            <p style="margin:0;font-size:14px;color:#111110;">${dateStr}</p>
+            ${quote.valid_until ? `<p style="margin:2px 0 0;font-size:12px;color:#7A7670;">Gültig bis ${new Date(quote.valid_until).toLocaleDateString('de-DE')}</p>` : ''}
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+    <tr><td style="padding:0 0 24px;">
+      <p style="margin:0 0 12px;font-size:16px;font-weight:800;color:#111110;letter-spacing:-0.02em;">${quote.title}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E8E4DC;border-radius:10px;overflow:hidden;">
+        <tr style="background:#F8F7F4;">
+          <td style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;width:5%;">Pos.</td>
+          <td style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;">Beschreibung</td>
+          <td style="padding:10px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;text-align:center;width:10%;">Menge</td>
+          <td style="padding:10px 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;text-align:right;width:15%;">Einzelpr.</td>
+          <td style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;text-align:right;width:15%;">Gesamt</td>
+        </tr>
+        ${itemRows}
+        ${totalRows}
+        ${isKlein ? '<tr><td colspan="5" style="padding:4px 12px 12px;font-size:11px;color:#B0ACA6;">Gemäß §19 UStG wird keine Umsatzsteuer berechnet.</td></tr>' : '<tr><td colspan="5" style="height:12px;"></td></tr>'}
+      </table>
+    </td></tr>
+    <tr><td style="height:1px;background:#E8E4DC;"></td></tr>
+    <tr><td style="padding:20px 0 0;text-align:center;">
+      <p style="margin:0;font-size:11px;color:#B0ACA6;">Erstellt mit Fotonizer · fotonizer.com</p>
+    </td></tr>
+  </table>
+</body>
+</html>`
 }
 
 const STATUS_CONFIG: Record<QuoteStatus, { label: string; labelDe: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -538,6 +641,17 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                             {resp.client_email || '—'} · {new Date(resp.submitted_at).toLocaleDateString('de-DE')} · {formatEur(resp.total_amount)}
                           </p>
                         </div>
+                        <button
+                          onClick={() => {
+                            const w = window.open('', '_blank')
+                            if (w) { w.document.write(buildQuoteResponseHtml(q, resp, photographer)); w.document.close() }
+                          }}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-80"
+                          style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                          title={isDE ? 'PDF herunterladen' : 'Download PDF'}
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                        </button>
                         {resp.converted_invoice_id ? (
                           <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background: 'rgba(42,155,104,0.12)', color: '#2A9B68' }}>
                             {isDE ? '✓ Rechnung erstellt' : '✓ Invoice created'}
