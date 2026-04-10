@@ -44,6 +44,9 @@ interface QuoteResponse {
   id: string
   submitted_at: string
   total_amount: number
+  subtotal: number
+  tax_amount: number
+  selections: Record<string, number>
   client_name: string | null
   client_email: string | null
   converted_invoice_id: string | null
