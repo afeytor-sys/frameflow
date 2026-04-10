@@ -927,7 +927,6 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                     )}
                   </div>
                 </div>
-              </div>
 
               {/* Bottom actions row */}
               <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
