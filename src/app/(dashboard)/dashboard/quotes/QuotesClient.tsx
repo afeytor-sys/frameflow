@@ -101,8 +101,8 @@ function getSiteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL || 'https://fotonizer.com'
 }
 
-function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photographer: Photographer) {
-  const studioName = photographer.studio_name || photographer.full_name || 'Studio'
+function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photographer: Photographer | null) {
+  const studioName = photographer?.studio_name || photographer?.full_name || 'Studio'
   const allItems = quote.sections.flatMap(s => s.items)
   const lineItems = Object.entries(response.selections || {})
     .map(([itemId, qty]) => {
