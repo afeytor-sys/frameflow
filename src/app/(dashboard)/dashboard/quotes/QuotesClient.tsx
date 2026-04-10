@@ -61,7 +61,7 @@ interface Quote {
   valid_until: string | null
   client_token: string
   notes: string | null
-  tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7'
+  tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7' | 'none'
   tax_rate: number
   created_at: string
   sections: QuoteSection[]
@@ -81,6 +81,7 @@ interface Photographer {
   full_name: string | null
   studio_name: string | null
   email: string | null
+  logo_url: string | null
   tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7' | null
   tax_rate: number | null
 }
@@ -133,8 +134,9 @@ function getSiteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL || 'https://fotonizer.com'
 }
 
-function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photographer: Photographer | null) {
+function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photographer: Photographer | null, hideTax = false) {
   const studioName = photographer?.studio_name || photographer?.full_name || 'Studio'
+  const logoUrl = photographer?.logo_url || null
   const allItems = quote.sections.flatMap(s => s.items)
   const lineItems = Object.entries(response.selections || {})
     .map(([itemId, qty]) => {
@@ -148,6 +150,7 @@ function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photograp
   const taxAmount = response.tax_amount || 0
   const total = response.total_amount
   const isKlein = quote.tax_status === 'kleinunternehmer'
+  const showTax = !hideTax
   const dateStr = new Date(response.submitted_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const itemRows = lineItems.map((it, idx) => `
@@ -191,9 +194,14 @@ function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photograp
 <body>
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
     <tr><td style="height:3px;background:linear-gradient(90deg,#C4A47C,#E8C99A,#C4A47C);border-radius:2px;"></td></tr>
-    <tr><td style="padding:32px 0 20px;">
-      <p style="margin:0;font-size:22px;font-weight:800;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
-      <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Angebot</p>
+    <tr><td style="padding:28px 0 20px;">
+      <table cellpadding="0" cellspacing="0" width="100%"><tr>
+        <td style="vertical-align:middle;">
+          ${logoUrl ? `<img src="${logoUrl}" alt="${studioName}" style="height:44px;width:auto;object-fit:contain;border-radius:8px;display:block;margin-bottom:6px;">` : ''}
+          <p style="margin:0;font-size:22px;font-weight:800;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#7A7670;">Angebot</p>
+        </td>
+      </tr></table>
     </td></tr>
     <tr><td style="height:1px;background:#E8E4DC;"></td></tr>
     <tr><td style="padding:24px 0 16px;">
@@ -223,8 +231,8 @@ function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photograp
           <td style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#B0ACA6;text-align:right;width:15%;">Gesamt</td>
         </tr>
         ${itemRows}
-        ${totalRows}
-        ${isKlein ? '<tr><td colspan="5" style="padding:4px 12px 12px;font-size:11px;color:#B0ACA6;">Gemäß §19 UStG wird keine Umsatzsteuer berechnet.</td></tr>' : '<tr><td colspan="5" style="height:12px;"></td></tr>'}
+        ${showTax ? totalRows : `<tr><td colspan="5" style="padding:10px 0 4px;font-size:13px;font-weight:700;text-align:right;color:#7A7670;border-top:2px solid #E8E4DC;">Gesamt</td><td style="padding:10px 0 4px;font-size:15px;font-weight:800;text-align:right;color:#C4A47C;border-top:2px solid #E8E4DC;">${formatEur(total)}</td></tr>`}
+        ${showTax && isKlein ? '<tr><td colspan="5" style="padding:4px 12px 12px;font-size:11px;color:#B0ACA6;">Gemäß §19 UStG wird keine Umsatzsteuer berechnet.</td></tr>' : '<tr><td colspan="5" style="height:12px;"></td></tr>'}
       </table>
     </td></tr>
     <tr><td style="height:1px;background:#E8E4DC;"></td></tr>
@@ -279,7 +287,11 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
   ])
 
   // New quote form state
-  const [form, setForm] = useState({ project_id: '', title: '', notes: '', valid_until: '' })
+  const [form, setForm] = useState({
+    project_id: '', title: '', notes: '', valid_until: '',
+    tax_status: (photographer?.tax_status || 'kleinunternehmer') as 'kleinunternehmer' | 'vat_19' | 'vat_7' | 'none',
+    tax_rate: photographer?.tax_rate || 0,
+  })
   const [sections, setSections] = useState<BuilderSection[]>([
     { _tempId: 't1', title: isDE ? 'Paket' : 'Package', type: 'single_choice', required: true, position: 0, items: [
       { _tempId: 'i1', title: '', description: null, unit_price: 0, editable_qty: false, default_qty: 1, position: 0 },
@@ -328,8 +340,8 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
     if (sections.length === 0) { toast.error(isDE ? 'Mindestens eine Sektion' : 'At least one section'); return }
     setSaving(true)
 
-    const taxStatus = photographer?.tax_status || 'kleinunternehmer'
-    const taxRate = taxStatus === 'vat_19' ? 19 : taxStatus === 'vat_7' ? 7 : 0
+    const taxStatus = form.tax_status
+    const taxRate = form.tax_rate
 
     const { data: quote, error } = await supabase
       .from('quotes')
@@ -969,7 +981,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                         <button
                           onClick={() => {
                             const w = window.open('', '_blank')
-                            if (w) { w.document.write(buildQuoteResponseHtml(q, resp, photographer)); w.document.close() }
+                            if (w) { w.document.write(buildQuoteResponseHtml(q, resp, photographer, q.tax_status === 'none')); w.document.close() }
                           }}
                           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-bold transition-all hover:opacity-80"
                           style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
@@ -1069,6 +1081,28 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                     {isDE ? 'Gültig bis' : 'Valid until'}
                   </label>
                   <input type="date" value={form.valid_until} onChange={e => setForm(f => ({ ...f, valid_until: e.target.value }))} className="input-base w-full" />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    {isDE ? 'Steuerart' : 'Tax'}
+                  </label>
+                  <select
+                    value={form.tax_status}
+                    onChange={e => {
+                      const v = e.target.value as typeof form.tax_status
+                      setForm(f => ({
+                        ...f,
+                        tax_status: v,
+                        tax_rate: v === 'vat_19' ? 19 : v === 'vat_7' ? 7 : 0,
+                      }))
+                    }}
+                    className="input-base w-full"
+                  >
+                    <option value="kleinunternehmer">{isDE ? 'Kleinunternehmer (§19)' : 'Small business (§19)'}</option>
+                    <option value="vat_19">{isDE ? '19% MwSt' : '19% VAT'}</option>
+                    <option value="vat_7">{isDE ? '7% MwSt' : '7% VAT'}</option>
+                    <option value="none">{isDE ? 'Keine Angabe' : 'No mention'}</option>
+                  </select>
                 </div>
               </div>
 

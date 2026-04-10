@@ -12,7 +12,7 @@ export default async function QuotesPage() {
   const [{ data: photographer }, { data: quotes }, { data: projects }, { data: templates }] = await Promise.all([
     supabase
       .from('photographers')
-      .select('id, plan, full_name, studio_name, email, tax_status, tax_rate')
+      .select('id, plan, full_name, studio_name, email, tax_status, tax_rate, logo_url')
       .eq('id', user.id)
       .single(),
     supabase
