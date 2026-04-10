@@ -84,6 +84,8 @@ interface Photographer {
   logo_url: string | null
   tax_status: 'kleinunternehmer' | 'vat_19' | 'vat_7' | null
   tax_rate: number | null
+  website?: string | null
+  phone?: string | null
 }
 
 interface QuoteTemplateItem {
@@ -136,12 +138,30 @@ function getSiteUrl() {
 
 function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photographer: Photographer | null, hideTax = false) {
   const studioName = photographer?.studio_name || photographer?.full_name || 'Studio'
+  const displayName = [photographer?.studio_name, photographer?.full_name].filter(Boolean).join(' · ') || 'Studio'
   const logoUrl = photographer?.logo_url || null
-  const allItems = quote.sections.flatMap(s => s.items)
+
+  // Build ordered item map (section.position → item.position)
+  const itemOrderMap = new Map<string, { sectionPos: number; itemPos: number; item: QuoteItem }>()
+  for (const section of [...quote.sections].sort((a, b) => a.position - b.position)) {
+    for (const item of [...section.items].sort((a, b) => a.position - b.position)) {
+      itemOrderMap.set(item.id, { sectionPos: section.position, itemPos: item.position, item })
+    }
+  }
+
   const lineItems = Object.entries(response.selections || {})
+    .filter(([, qty]) => qty > 0)
+    .sort(([aId], [bId]) => {
+      const a = itemOrderMap.get(aId)
+      const b = itemOrderMap.get(bId)
+      if (!a || !b) return 0
+      if (a.sectionPos !== b.sectionPos) return a.sectionPos - b.sectionPos
+      return a.itemPos - b.itemPos
+    })
     .map(([itemId, qty]) => {
-      const item = allItems.find(i => i.id === itemId)
-      if (!item || !qty) return null
+      const entry = itemOrderMap.get(itemId)
+      if (!entry || !qty) return null
+      const item = entry.item
       return { title: item.title, qty, unit_price: item.unit_price, total: item.unit_price * qty }
     })
     .filter(Boolean) as { title: string; qty: number; unit_price: number; total: number }[]
@@ -197,10 +217,12 @@ function buildQuoteResponseHtml(quote: Quote, response: QuoteResponse, photograp
     <tr><td style="padding:28px 0 20px;">
       <table cellpadding="0" cellspacing="0" width="100%"><tr>
         <td style="vertical-align:middle;">
-          ${logoUrl ? `<img src="${logoUrl}" alt="${studioName}" style="height:48px;width:auto;object-fit:contain;border-radius:8px;display:block;margin-bottom:8px;">` : ''}
-          <p style="margin:0;font-size:22px;font-weight:800;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
+          ${logoUrl ? `<img src="${logoUrl}" alt="${displayName}" style="height:48px;width:auto;object-fit:contain;border-radius:8px;display:block;margin-bottom:8px;">` : ''}
+          <p style="margin:0;font-size:22px;font-weight:800;color:#111110;letter-spacing:-0.03em;">${displayName}</p>
           ${photographer?.email ? `<p style="margin:3px 0 0;font-size:12px;color:#7A7670;">${photographer.email}</p>` : ''}
-          <p style="margin:4px 0 0;font-size:12px;color:#B0ACA6;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Angebot</p>
+          ${photographer?.website ? `<p style="margin:2px 0 0;font-size:12px;color:#7A7670;">${photographer.website}</p>` : ''}
+          ${photographer?.phone ? `<p style="margin:2px 0 0;font-size:12px;color:#7A7670;">${photographer.phone}</p>` : ''}
+          <p style="margin:6px 0 0;font-size:11px;color:#B0ACA6;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Angebot</p>
         </td>
       </tr></table>
     </td></tr>
