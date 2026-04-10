@@ -42,6 +42,60 @@ interface Props {
   token: string
 }
 
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const T = {
+  de: {
+    offerFrom: 'Angebot von',
+    expired: 'Abgelaufen',
+    validUntil: 'Gültig bis',
+    expiredBanner: (name: string) => `Dieses Angebot ist abgelaufen. Bitte kontaktiere ${name} für ein aktuelles Angebot.`,
+    required: 'Pflichtfeld',
+    oneChoice: 'Eine Auswahl',
+    extras: 'Extra Leistungen',
+    summary: 'Zusammenfassung',
+    net: 'Nettobetrag',
+    vat: 'MwSt',
+    total: 'Gesamtbetrag',
+    kleinNote: 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.',
+    accept: 'Angebot annehmen',
+    name: 'Name',
+    namePlaceholder: 'Dein vollständiger Name',
+    email: 'E-Mail',
+    emailPlaceholder: 'deine@email.de',
+    missingRequired: 'Bitte wähle eine Option in allen Pflichtfeldern.',
+    sending: 'Wird gesendet…',
+    submitBtn: (total: string) => `Angebot annehmen — ${total}`,
+    thankYouTitle: 'Angebot angenommen',
+    thankYouSub: (total: string) => `Deine Auswahl mit einem Gesamtbetrag von ${total} wurde übermittelt.`,
+    thankYouContact: (name: string) => `${name} wird sich in Kürze bei dir melden.`,
+  },
+  en: {
+    offerFrom: 'Quote from',
+    expired: 'Expired',
+    validUntil: 'Valid until',
+    expiredBanner: (name: string) => `This quote has expired. Please contact ${name} for an updated quote.`,
+    required: 'Required',
+    oneChoice: 'Choose one',
+    extras: 'Extra services',
+    summary: 'Summary',
+    net: 'Subtotal',
+    vat: 'VAT',
+    total: 'Total',
+    kleinNote: 'No VAT charged (small business regulation).',
+    accept: 'Accept quote',
+    name: 'Name',
+    namePlaceholder: 'Your full name',
+    email: 'Email',
+    emailPlaceholder: 'your@email.com',
+    missingRequired: 'Please select an option in all required fields.',
+    sending: 'Sending…',
+    submitBtn: (total: string) => `Accept quote — ${total}`,
+    thankYouTitle: 'Quote accepted',
+    thankYouSub: (total: string) => `Your selection totalling ${total} has been submitted.`,
+    thankYouContact: (name: string) => `${name} will be in touch shortly.`,
+  },
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatEur(cents: number) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
@@ -60,25 +114,25 @@ function initSelections(sections: QuoteSection[]): Record<string, number> {
 }
 
 // ── Thank You screen ──────────────────────────────────────────────────────────
-function ThankYou({ studioName, total }: { studioName: string; total: number }) {
+function ThankYou({ studioName, total, lang }: { studioName: string; total: number; lang: 'de' | 'en' }) {
+  const t = T[lang]
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#F8F7F4' }}>
       <div className="max-w-[400px] w-full text-center">
-        <div
-          className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-          style={{ background: 'rgba(196,164,124,0.15)' }}
-        >
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+          style={{ background: 'rgba(196,164,124,0.15)' }}>
           <CheckCircle2 className="w-8 h-8" style={{ color: '#C4A47C' }} />
         </div>
         <h1 className="text-2xl font-black mb-2" style={{ color: '#111110', letterSpacing: '-0.03em' }}>
-          Angebot angenommen
+          {t.thankYouTitle}
         </h1>
         <p className="text-sm mb-1" style={{ color: '#7A7670' }}>
-          Deine Auswahl mit einem Gesamtbetrag von <strong style={{ color: '#111110' }}>{formatEur(total)}</strong> wurde übermittelt.
+          {t.thankYouSub(formatEur(total)).replace(formatEur(total), '')}
+          <strong style={{ color: '#111110' }}>{formatEur(total)}</strong>
+          {' '}
+          {lang === 'de' ? 'wurde übermittelt.' : 'has been submitted.'}
         </p>
-        <p className="text-sm" style={{ color: '#7A7670' }}>
-          {studioName} wird sich in Kürze bei dir melden.
-        </p>
+        <p className="text-sm" style={{ color: '#7A7670' }}>{t.thankYouContact(studioName)}</p>
         <p className="text-xs mt-8" style={{ color: '#B0ACA6' }}>Powered by Fotonizer</p>
       </div>
     </div>
@@ -89,31 +143,46 @@ function ThankYou({ studioName, total }: { studioName: string; total: number }) 
 function QtyStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
     <div className="flex items-center gap-1">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(1, value - 1))}
+      <button type="button" onClick={() => onChange(Math.max(1, value - 1))}
         className="w-6 h-6 rounded-md flex items-center justify-center transition-colors"
-        style={{ background: '#F0EDE8', color: '#7A7670' }}
-      >
+        style={{ background: '#F0EDE8', color: '#7A7670' }}>
         <Minus className="w-3 h-3" />
       </button>
-      <span className="w-7 text-center text-sm font-semibold" style={{ color: '#111110' }}>
-        {value}
-      </span>
-      <button
-        type="button"
-        onClick={() => onChange(value + 1)}
+      <span className="w-7 text-center text-sm font-semibold" style={{ color: '#111110' }}>{value}</span>
+      <button type="button" onClick={() => onChange(value + 1)}
         className="w-6 h-6 rounded-md flex items-center justify-center transition-colors"
-        style={{ background: '#F0EDE8', color: '#7A7670' }}
-      >
+        style={{ background: '#F0EDE8', color: '#7A7670' }}>
         <Plus className="w-3 h-3" />
       </button>
     </div>
   )
 }
 
+// ── Language toggle ───────────────────────────────────────────────────────────
+function LangToggle({ lang, setLang }: { lang: 'de' | 'en'; setLang: (l: 'de' | 'en') => void }) {
+  return (
+    <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: 'rgba(0,0,0,0.06)' }}>
+      {(['de', 'en'] as const).map(l => (
+        <button key={l} type="button" onClick={() => setLang(l)}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+          style={{
+            background: lang === l ? '#fff' : 'transparent',
+            color: lang === l ? '#111110' : '#7A7670',
+            boxShadow: lang === l ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+          }}>
+          <span style={{ fontSize: 14 }}>{l === 'de' ? '🇩🇪' : '🇬🇧'}</span>
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function QuotePublicClient({ quote, studioName, token }: Props) {
+  const [lang, setLang] = useState<'de' | 'en'>('de')
+  const t = T[lang]
+
   const [selections, setSelections] = useState<Record<string, number>>(() =>
     initSelections(quote.sections)
   )
@@ -156,15 +225,6 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
     })
   }
 
-  const handleMultipleChoice = (itemId: string, checked: boolean) => {
-    setSelections(prev => {
-      const next = { ...prev }
-      if (checked) next[itemId] = 1
-      else delete next[itemId]
-      return next
-    })
-  }
-
   const handleQty = (itemId: string, qty: number, min = 1) => {
     setSelections(prev => {
       const next = { ...prev }
@@ -192,11 +252,11 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Fehler')
+        throw new Error(data.error || 'Error')
       }
       setSubmitted(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Senden')
+      setError(e instanceof Error ? e.message : 'Error sending')
     } finally {
       setSubmitting(false)
     }
@@ -206,16 +266,21 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
   const isExpired = quote.status === 'expired' ||
     (quote.valid_until != null && new Date(quote.valid_until) < new Date(new Date().toDateString()))
 
-  if (submitted) return <ThankYou studioName={studioName} total={total} />
+  if (submitted) return <ThankYou studioName={studioName} total={total} lang={lang} />
 
   return (
     <div className="min-h-screen py-10 px-4" style={{ background: '#F8F7F4' }}>
       <div className="max-w-[600px] mx-auto">
 
+        {/* Lang toggle ─────────────────────────────────────────────────────── */}
+        <div className="flex justify-end mb-4">
+          <LangToggle lang={lang} setLang={setLang} />
+        </div>
+
         {/* Header ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 text-center">
           <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#B0ACA6' }}>
-            Angebot von
+            {t.offerFrom}
           </p>
           <h1 className="text-3xl font-black mb-1" style={{ color: '#111110', letterSpacing: '-0.04em' }}>
             {studioName}
@@ -227,10 +292,11 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
               style={{
                 background: isExpired ? 'rgba(201,64,48,0.08)' : 'rgba(196,164,124,0.12)',
                 color: isExpired ? '#C94030' : '#C4A47C',
-              }}
-            >
+              }}>
               <Clock className="w-3 h-3" />
-              {isExpired ? 'Abgelaufen' : `Gültig bis ${new Date(quote.valid_until).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}`}
+              {isExpired
+                ? t.expired
+                : `${t.validUntil} ${new Date(quote.valid_until).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}`}
             </div>
           )}
         </div>
@@ -239,7 +305,7 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
         {isExpired && (
           <div className="mb-6 p-4 rounded-xl text-sm text-center font-medium"
             style={{ background: 'rgba(201,64,48,0.08)', color: '#C94030', border: '1px solid rgba(201,64,48,0.15)' }}>
-            Dieses Angebot ist abgelaufen. Bitte kontaktiere {studioName} für ein aktuelles Angebot.
+            {t.expiredBanner(studioName)}
           </div>
         )}
 
@@ -264,19 +330,19 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                   {section.required && section.type !== 'fixed' && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                       style={{ background: 'rgba(201,64,48,0.08)', color: '#C94030' }}>
-                      Pflichtfeld
+                      {t.required}
                     </span>
                   )}
                   {section.type === 'single_choice' && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto"
                       style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1' }}>
-                      Eine Auswahl
+                      {t.oneChoice}
                     </span>
                   )}
                   {section.type === 'multiple_choice' && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto"
                       style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981' }}>
-                      Extra Leistungen
+                      {t.extras}
                     </span>
                   )}
                 </div>
@@ -311,9 +377,7 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
 
                   if (section.type === 'single_choice') {
                     return (
-                      <button
-                        key={item.id}
-                        type="button"
+                      <button key={item.id} type="button"
                         onClick={() => !isExpired && handleSingleChoice(section, item.id)}
                         disabled={isExpired}
                         className="w-full flex items-center gap-4 px-5 py-4 transition-all text-left"
@@ -321,9 +385,8 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                           background: isSelected ? 'rgba(196,164,124,0.08)' : 'transparent',
                           borderLeft: isSelected ? '3px solid #C4A47C' : '3px solid transparent',
                           cursor: isExpired ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {/* Custom checkbox square */}
+                        }}>
+                        {/* Custom square checkbox */}
                         <div className="flex-shrink-0 mt-0.5" style={{
                           width: 18, height: 18, borderRadius: 5,
                           border: isSelected ? '2px solid #C4A47C' : '2px solid #D4CFC9',
@@ -350,12 +413,10 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                     )
                   }
 
-                  // multiple_choice — qty stepper starting at 0
+                  // multiple_choice — qty stepper from 0
                   return (
-                    <div key={item.id}
-                      className="flex items-center gap-4 px-5 py-4 transition-colors"
-                      style={{ background: isSelected ? 'rgba(196,164,124,0.06)' : 'transparent' }}
-                    >
+                    <div key={item.id} className="flex items-center gap-4 px-5 py-4 transition-colors"
+                      style={{ background: isSelected ? 'rgba(196,164,124,0.06)' : 'transparent' }}>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm" style={{ color: '#111110' }}>{item.title}</p>
                         {item.description && (
@@ -363,27 +424,23 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        {/* Qty stepper from 0 */}
                         <div className="flex items-center gap-1">
-                          <button
-                            type="button"
+                          <button type="button"
                             onClick={() => !isExpired && handleQty(item.id, qty - 1, 0)}
                             disabled={isExpired || qty === 0}
                             className="w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-30"
-                            style={{ background: '#F0EDE8', color: '#7A7670' }}
-                          >
+                            style={{ background: '#F0EDE8', color: '#7A7670' }}>
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="w-7 text-center text-sm font-semibold" style={{ color: isSelected ? '#C4A47C' : '#B0ACA6' }}>
+                          <span className="w-7 text-center text-sm font-semibold"
+                            style={{ color: isSelected ? '#C4A47C' : '#B0ACA6' }}>
                             {qty}
                           </span>
-                          <button
-                            type="button"
+                          <button type="button"
                             onClick={() => !isExpired && handleQty(item.id, qty + 1, 0)}
                             disabled={isExpired}
                             className="w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-30"
-                            style={{ background: isSelected ? 'rgba(196,164,124,0.15)' : '#F0EDE8', color: isSelected ? '#C4A47C' : '#7A7670' }}
-                          >
+                            style={{ background: isSelected ? 'rgba(196,164,124,0.15)' : '#F0EDE8', color: isSelected ? '#C4A47C' : '#7A7670' }}>
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
@@ -402,93 +459,68 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
         {/* Summary ─────────────────────────────────────────────────────────── */}
         <div className="rounded-2xl p-5 mb-6" style={{ background: '#fff', border: '1px solid #E8E4DC' }}>
           <h3 className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#B0ACA6' }}>
-            Zusammenfassung
+            {t.summary}
           </h3>
-          {quote.tax_status !== 'kleinunternehmer' && (
+          {quote.tax_status !== 'kleinunternehmer' && quote.tax_status !== 'none' && (
             <>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm" style={{ color: '#7A7670' }}>Nettobetrag</span>
+                <span className="text-sm" style={{ color: '#7A7670' }}>{t.net}</span>
                 <span className="text-sm font-medium" style={{ color: '#111110' }}>{formatEur(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center mb-3">
-                <span className="text-sm" style={{ color: '#7A7670' }}>MwSt {quote.tax_rate}%</span>
+                <span className="text-sm" style={{ color: '#7A7670' }}>{t.vat} {quote.tax_rate}%</span>
                 <span className="text-sm font-medium" style={{ color: '#111110' }}>{formatEur(taxAmount)}</span>
               </div>
               <div className="h-px mb-3" style={{ background: '#E8E4DC' }} />
             </>
           )}
           <div className="flex justify-between items-center">
-            <span className="font-bold" style={{ color: '#111110' }}>Gesamtbetrag</span>
+            <span className="font-bold" style={{ color: '#111110' }}>{t.total}</span>
             <span className="text-xl font-black" style={{ color: '#C4A47C', letterSpacing: '-0.03em' }}>
               {formatEur(total)}
             </span>
           </div>
           {quote.tax_status === 'kleinunternehmer' && (
-            <p className="text-xs mt-2" style={{ color: '#B0ACA6' }}>
-              Gemäß §19 UStG wird keine Umsatzsteuer berechnet.
-            </p>
+            <p className="text-xs mt-2" style={{ color: '#B0ACA6' }}>{t.kleinNote}</p>
           )}
         </div>
 
         {/* Contact form ────────────────────────────────────────────────────── */}
         {!isExpired && (
           <div className="rounded-2xl p-5" style={{ background: '#fff', border: '1px solid #E8E4DC' }}>
-            <h3 className="font-bold mb-4" style={{ color: '#111110' }}>
-              Angebot annehmen
-            </h3>
+            <h3 className="font-bold mb-4" style={{ color: '#111110' }}>{t.accept}</h3>
             <div className="space-y-3 mb-4">
               <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: '#7A7670' }}>Name</label>
-                <input
-                  type="text"
-                  value={clientName}
-                  onChange={e => setClientName(e.target.value)}
-                  placeholder="Dein vollständiger Name"
+                <label className="block text-xs font-semibold mb-1" style={{ color: '#7A7670' }}>{t.name}</label>
+                <input type="text" value={clientName} onChange={e => setClientName(e.target.value)}
+                  placeholder={t.namePlaceholder}
                   className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{
-                    background: '#F8F7F4',
-                    border: '1px solid #E8E4DC',
-                    color: '#111110',
-                  }}
-                />
+                  style={{ background: '#F8F7F4', border: '1px solid #E8E4DC', color: '#111110' }} />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: '#7A7670' }}>E-Mail</label>
-                <input
-                  type="email"
-                  value={clientEmail}
-                  onChange={e => setClientEmail(e.target.value)}
-                  placeholder="deine@email.de"
+                <label className="block text-xs font-semibold mb-1" style={{ color: '#7A7670' }}>{t.email}</label>
+                <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)}
+                  placeholder={t.emailPlaceholder}
                   className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{
-                    background: '#F8F7F4',
-                    border: '1px solid #E8E4DC',
-                    color: '#111110',
-                  }}
-                />
+                  style={{ background: '#F8F7F4', border: '1px solid #E8E4DC', color: '#111110' }} />
               </div>
             </div>
 
             {missingRequired.length > 0 && (
-              <p className="text-xs mb-3" style={{ color: '#C94030' }}>
-                Bitte wähle eine Option in allen Pflichtfeldern.
-              </p>
+              <p className="text-xs mb-3" style={{ color: '#C94030' }}>{t.missingRequired}</p>
             )}
             {error && (
               <p className="text-xs mb-3" style={{ color: '#C94030' }}>{error}</p>
             )}
 
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit || submitting}
+            <button onClick={handleSubmit} disabled={!canSubmit || submitting}
               className="w-full py-3 rounded-xl font-bold text-sm transition-opacity"
               style={{
                 background: canSubmit ? '#111110' : '#E8E4DC',
                 color: canSubmit ? '#F8F7F4' : '#B0ACA6',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
-              }}
-            >
-              {submitting ? 'Wird gesendet…' : `Angebot annehmen — ${formatEur(total)}`}
+              }}>
+              {submitting ? t.sending : t.submitBtn(formatEur(total))}
             </button>
           </div>
         )}
