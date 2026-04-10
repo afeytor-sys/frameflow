@@ -1144,7 +1144,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                           >
                             <option value="fixed">{isDE ? 'Inklusive (fest)' : 'Fixed (included)'}</option>
                             <option value="single_choice">{isDE ? 'Einfachauswahl' : 'Single choice'}</option>
-                            <option value="multiple_choice">{isDE ? 'Mehrfachauswahl' : 'Multiple choice'}</option>
+                            <option value="multiple_choice">{isDE ? 'Extra Leistungen' : 'Extra services'}</option>
                           </select>
                           {/* Required toggle */}
                           <label className="flex items-center gap-1.5 cursor-pointer flex-shrink-0">
@@ -1230,11 +1230,6 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} className="input-base w-full resize-none" placeholder={isDE ? 'Hinweise für den Kunden...' : 'Notes for the client...'} />
               </div>
 
-              {/* Tax info */}
-              <div className="px-3 py-2 rounded-xl text-[12px]" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                {isDE ? 'Steuer' : 'Tax'}: {photographer?.tax_status === 'kleinunternehmer' ? '§19 UStG — 0%' : photographer?.tax_status === 'vat_19' ? '19% MwSt' : '7% MwSt'}
-              </div>
-
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowNew(false)} className="btn-secondary flex-1">
                   {isDE ? 'Abbrechen' : 'Cancel'}
@@ -1304,7 +1299,7 @@ export default function QuotesClient({ quotes: initial, projects, photographerId
                         <select value={sec.type} onChange={e => updateTemplateSection(sec._tempId, { type: e.target.value as SectionType })} className="input-base text-sm" style={{ width: 160 }}>
                           <option value="fixed">{isDE ? 'Fest' : 'Fixed'}</option>
                           <option value="single_choice">{isDE ? 'Einzelauswahl' : 'Single choice'}</option>
-                          <option value="multiple_choice">{isDE ? 'Mehrfachauswahl' : 'Multiple choice'}</option>
+                          <option value="multiple_choice">{isDE ? 'Extra Leistungen' : 'Extra services'}</option>
                         </select>
                         <label className="flex items-center gap-1 text-[11px] font-semibold flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
                           <input type="checkbox" checked={sec.required} onChange={e => updateTemplateSection(sec._tempId, { required: e.target.checked })} style={{ accentColor: '#C4A47C' }} />

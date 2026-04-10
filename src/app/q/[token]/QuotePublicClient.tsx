@@ -165,8 +165,14 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
     })
   }
 
-  const handleQty = (itemId: string, qty: number) => {
-    setSelections(prev => ({ ...prev, [itemId]: Math.max(1, qty) }))
+  const handleQty = (itemId: string, qty: number, min = 1) => {
+    setSelections(prev => {
+      const next = { ...prev }
+      const val = Math.max(min, qty)
+      if (val === 0) delete next[itemId]
+      else next[itemId] = val
+      return next
+    })
   }
 
   const handleSubmit = async () => {
@@ -270,7 +276,7 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                   {section.type === 'multiple_choice' && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium ml-auto"
                       style={{ background: 'rgba(16,185,129,0.08)', color: '#10B981' }}>
-                      Mehrfachauswahl
+                      Extra Leistungen
                     </span>
                   )}
                 </div>
@@ -344,20 +350,12 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                     )
                   }
 
-                  // multiple_choice
+                  // multiple_choice — qty stepper starting at 0
                   return (
-                    <label key={item.id}
-                      className="flex items-start gap-4 px-5 py-4 cursor-pointer transition-colors"
+                    <div key={item.id}
+                      className="flex items-center gap-4 px-5 py-4 transition-colors"
                       style={{ background: isSelected ? 'rgba(196,164,124,0.06)' : 'transparent' }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={e => handleMultipleChoice(item.id, e.target.checked)}
-                        disabled={isExpired}
-                        className="mt-0.5 flex-shrink-0"
-                        style={{ accentColor: '#C4A47C', width: 16, height: 16 }}
-                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm" style={{ color: '#111110' }}>{item.title}</p>
                         {item.description && (
@@ -365,14 +363,35 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        {item.editable_qty && isSelected && (
-                          <QtyStepper value={qty} onChange={n => handleQty(item.id, n)} />
-                        )}
+                        {/* Qty stepper from 0 */}
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => !isExpired && handleQty(item.id, qty - 1, 0)}
+                            disabled={isExpired || qty === 0}
+                            className="w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-30"
+                            style={{ background: '#F0EDE8', color: '#7A7670' }}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-7 text-center text-sm font-semibold" style={{ color: isSelected ? '#C4A47C' : '#B0ACA6' }}>
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => !isExpired && handleQty(item.id, qty + 1, 0)}
+                            disabled={isExpired}
+                            className="w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-30"
+                            style={{ background: isSelected ? 'rgba(196,164,124,0.15)' : '#F0EDE8', color: isSelected ? '#C4A47C' : '#7A7670' }}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                         <p className="text-sm font-bold" style={{ color: isSelected ? '#C4A47C' : '#B0ACA6', minWidth: 72, textAlign: 'right' }}>
-                          {formatEur(item.unit_price * (item.editable_qty && isSelected ? qty : 1))}
+                          {formatEur(item.unit_price * qty)}
                         </p>
                       </div>
-                    </label>
+                    </div>
                   )
                 })}
               </div>
