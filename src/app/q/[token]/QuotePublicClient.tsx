@@ -305,34 +305,42 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
 
                   if (section.type === 'single_choice') {
                     return (
-                      <label key={item.id}
-                        className="flex items-start gap-4 px-5 py-4 cursor-pointer transition-colors"
-                        style={{ background: isSelected ? 'rgba(196,164,124,0.06)' : 'transparent' }}
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => !isExpired && handleSingleChoice(section, item.id)}
+                        disabled={isExpired}
+                        className="w-full flex items-center gap-4 px-5 py-4 transition-all text-left"
+                        style={{
+                          background: isSelected ? 'rgba(196,164,124,0.08)' : 'transparent',
+                          borderLeft: isSelected ? '3px solid #C4A47C' : '3px solid transparent',
+                          cursor: isExpired ? 'not-allowed' : 'pointer',
+                        }}
                       >
-                        <input
-                          type="radio"
-                          name={`section-${section.id}`}
-                          checked={isSelected}
-                          onChange={() => handleSingleChoice(section, item.id)}
-                          disabled={isExpired}
-                          className="mt-0.5 flex-shrink-0"
-                          style={{ accentColor: '#C4A47C', width: 16, height: 16 }}
-                        />
+                        {/* Custom checkbox square */}
+                        <div className="flex-shrink-0 mt-0.5" style={{
+                          width: 18, height: 18, borderRadius: 5,
+                          border: isSelected ? '2px solid #C4A47C' : '2px solid #D4CFC9',
+                          background: isSelected ? '#C4A47C' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.15s',
+                        }}>
+                          {isSelected && (
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm" style={{ color: '#111110' }}>{item.title}</p>
                           {item.description && (
                             <p className="text-xs mt-0.5" style={{ color: '#B0ACA6' }}>{item.description}</p>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          {item.editable_qty && isSelected && (
-                            <QtyStepper value={qty} onChange={n => handleQty(item.id, n)} />
-                          )}
-                          <p className="text-sm font-bold" style={{ color: isSelected ? '#C4A47C' : '#B0ACA6', minWidth: 72, textAlign: 'right' }}>
-                            {formatEur(item.unit_price * (item.editable_qty && isSelected ? qty : 1))}
-                          </p>
-                        </div>
-                      </label>
+                        <p className="text-sm font-bold flex-shrink-0" style={{ color: isSelected ? '#C4A47C' : '#B0ACA6' }}>
+                          {formatEur(item.unit_price)}
+                        </p>
+                      </button>
                     )
                   }
 
