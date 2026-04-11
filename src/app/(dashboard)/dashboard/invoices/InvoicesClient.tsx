@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer, Mail, GripVertical } from 'lucide-react'
+import { Plus, FileText, Send, CheckCircle2, Clock, AlertCircle, MoreHorizontal, Trash2, X, Percent, FolderPlus, UserPlus, Eye, Printer, Mail, GripVertical, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EmailVorlagePicker from '@/components/dashboard/EmailVorlagePicker'
 import { useLocale } from '@/hooks/useLocale'
@@ -475,6 +475,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const [invoices, setInvoices] = useState<Invoice[]>(initial)
   const [projectList, setProjectList] = useState<Project[]>(projects)
   const [showNew, setShowNew] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'sent' | 'paid' | 'overdue'>('all')
   const [saving, setSaving] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [sendingId, setSendingId] = useState<string | null>(null)
@@ -841,9 +843,78 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
         ))}
       </div>
 
+      {/* Search + Filter bar */}
+      {invoices.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap animate-in-delay-2">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={locale === 'de' ? 'Name, Rechnungsnr. suchen…' : 'Search name, invoice no…'}
+              className="w-full pl-8 pr-3 py-2 rounded-xl text-[13px] outline-none transition-all"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {/* Status filter pills */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {(['all', 'draft', 'sent', 'paid', 'overdue'] as const).map(f => {
+              const count = f === 'all' ? invoices.length : invoices.filter(i => i.status === f).length
+              if (f !== 'all' && count === 0) return null
+              const cfg = f !== 'all' ? STATUS_CONFIG[f] : null
+              const label = f === 'all'
+                ? (locale === 'de' ? 'Alle' : 'All')
+                : cfg!.label
+              const active = statusFilter === f
+              return (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+                  style={{
+                    background: active ? (f === 'all' ? '#F97316' : cfg!.color) : 'var(--bg-surface)',
+                    color: active ? '#fff' : 'var(--text-muted)',
+                    border: active ? 'none' : '1px solid var(--border-color)',
+                  }}
+                >
+                  {label}
+                  <span className="opacity-70 text-[11px]">{count}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Invoice list */}
-      <div className="space-y-2 animate-in-delay-2">
-        {invoices.length === 0 ? (
+      {(() => {
+        const q = search.trim().toLowerCase()
+        const filtered = invoices.filter(inv => {
+          const matchStatus = statusFilter === 'all' || inv.status === statusFilter
+          if (!matchStatus) return false
+          if (!q) return true
+          const name = getClientName(inv.project).toLowerCase()
+          const num = (inv.invoice_number ?? '').toLowerCase()
+          const desc = (inv.description ?? '').toLowerCase()
+          return name.includes(q) || num.includes(q) || desc.includes(q)
+        })
+
+        if (invoices.length === 0) return (
           <div className="rounded-2xl flex flex-col items-center justify-center py-24 text-center"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
@@ -867,8 +938,24 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               {ti.createFirst}
             </button>
           </div>
-        ) : (
-          invoices.map((inv) => {
+        )
+
+        if (filtered.length === 0) return (
+          <div className="rounded-2xl flex flex-col items-center justify-center py-14 text-center"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+            <Search className="w-8 h-8 mb-3" style={{ color: 'var(--text-muted)' }} />
+            <p className="font-semibold text-[14px] mb-1" style={{ color: 'var(--text-primary)' }}>
+              {locale === 'de' ? 'Keine Treffer' : 'No results'}
+            </p>
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              {locale === 'de' ? 'Filter oder Suchbegriff anpassen' : 'Try a different search or filter'}
+            </p>
+          </div>
+        )
+
+        return (
+          <div className="space-y-2 animate-in-delay-2">
+          {filtered.map((inv) => {
             const cfg = STATUS_CONFIG[inv.status]
             const StatusIcon = cfg.icon
             const clientName = getClientName(inv.project)
@@ -1021,9 +1108,10 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 </div>
               </div>
             )
-          })
-        )}
-      </div>
+          })}
+          </div>
+        )
+      })()}
 
       {/* ── Invoice Preview Modal ── */}
       {previewInvoice && (
