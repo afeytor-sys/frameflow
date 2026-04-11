@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/useLocale'
 import {
   Mail, Clock, CheckCircle2, XCircle, AlertCircle,
   CalendarDays, User, ChevronRight, Bell, BellOff,
-  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check, SendHorizonal,
+  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check, SendHorizonal, X, Eye,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -18,6 +18,8 @@ interface ScheduledEmail {
   to_email: string
   to_name: string | null
   subject: string
+  html_body: string | null
+  plain_body: string | null
   type: string
   scheduled_at: string
   sent_at: string | null
@@ -222,6 +224,214 @@ function SettingRow({ label, active, t }: { label: string; active: boolean; t: t
   )
 }
 
+// ─── Email Preview Modal ──────────────────────────────────────────────────────
+function EmailPreviewModal({
+  email, locale, onClose, onSaved, onSentNow, onCancelled, onDeleted,
+  sendingId, cancellingId, deletingId,
+}: {
+  email: ScheduledEmail
+  locale: 'en' | 'de'
+  onClose: () => void
+  onSaved: (id: string, subject: string, scheduledAt: string) => void
+  onSentNow: (id: string) => void
+  onCancelled: (id: string) => void
+  onDeleted: (id: string) => void
+  sendingId: string | null
+  cancellingId: string | null
+  deletingId: string | null
+}) {
+  const [subject, setSubject] = useState(email.subject)
+  const [scheduledAt, setScheduledAt] = useState(
+    new Date(email.scheduled_at).toISOString().slice(0, 16)
+  )
+  const [saving, setSaving] = useState(false)
+
+  const isPending = email.status === 'pending'
+  const isOverdue = isPending && new Date(email.scheduled_at) < new Date()
+  const hasChanges = subject !== email.subject ||
+    new Date(scheduledAt).toISOString() !== new Date(email.scheduled_at).toISOString()
+
+  const handleSave = async () => {
+    setSaving(true)
+    const res = await fetch('/api/emails/schedule', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: email.id, subject, scheduled_at: new Date(scheduledAt).toISOString() }),
+    })
+    setSaving(false)
+    if (res.ok) onSaved(email.id, subject, new Date(scheduledAt).toISOString())
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', padding: '16px' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
+        style={{
+          background: 'var(--card-bg)',
+          border: '1px solid var(--card-border)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+          maxHeight: 'calc(100vh - 32px)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-5 py-4 flex items-start gap-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <div className="flex-1 min-w-0">
+            {isPending ? (
+              <input
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                className="input-base w-full font-semibold text-[14px] mb-1"
+                placeholder={locale === 'de' ? 'Betreff' : 'Subject'}
+              />
+            ) : (
+              <p className="font-bold text-[14px] mb-1 truncate" style={{ color: 'var(--text-primary)' }}>{email.subject}</p>
+            )}
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              → {email.to_name ? `${email.to_name} · ${email.to_email}` : email.to_email}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg flex-shrink-0 transition-colors"
+            style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Scheduled time row (editable if pending) */}
+        <div className="px-5 py-2.5 flex items-center gap-2 flex-wrap" style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+          <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+          <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+            {isPending
+              ? (locale === 'de' ? 'Geplant für:' : 'Scheduled for:')
+              : email.status === 'sent'
+              ? (locale === 'de' ? 'Gesendet am:' : 'Sent on:')
+              : email.status === 'cancelled'
+              ? (locale === 'de' ? 'Abgebrochen am:' : 'Cancelled on:')
+              : (locale === 'de' ? 'Fehlgeschlagen:' : 'Failed:')}
+          </span>
+          {isPending ? (
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={e => setScheduledAt(e.target.value)}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              className="input-base text-[12px]"
+            />
+          ) : (
+            <strong className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+              {new Date(
+                email.status === 'sent' ? (email.sent_at ?? email.scheduled_at)
+                : email.status === 'cancelled' ? (email.cancelled_at ?? email.scheduled_at)
+                : email.scheduled_at
+              ).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </strong>
+          )}
+          {isOverdue && (
+            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: '#EF444418', color: '#EF4444' }}>
+              {locale === 'de' ? 'Überfällig' : 'Overdue'}
+            </span>
+          )}
+        </div>
+
+        {/* HTML Preview */}
+        <div className="flex-1 overflow-auto" style={{ minHeight: 280 }}>
+          {email.html_body ? (
+            <iframe
+              srcDoc={email.html_body}
+              className="w-full border-none"
+              style={{ height: 420 }}
+              sandbox="allow-same-origin"
+              title="Email preview"
+            />
+          ) : (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                {locale === 'de' ? 'Keine Vorschau verfügbar' : 'No preview available'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-5 py-3 flex items-center justify-between gap-2 flex-wrap" style={{ borderTop: '1px solid var(--border-color)' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            {isPending && hasChanges && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold disabled:opacity-50 transition-all"
+                style={{ background: '#8B5CF6', color: '#fff' }}
+              >
+                {saving
+                  ? <span className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin" />
+                  : <Check className="w-3.5 h-3.5" />
+                }
+                {locale === 'de' ? 'Speichern' : 'Save'}
+              </button>
+            )}
+            {isPending && isOverdue && (
+              <button
+                onClick={() => onSentNow(email.id)}
+                disabled={!!sendingId}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-bold disabled:opacity-50 transition-all"
+                style={{ background: '#10B981', color: '#fff' }}
+              >
+                {sendingId === email.id
+                  ? <span className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin" />
+                  : <SendHorizonal className="w-3.5 h-3.5" />
+                }
+                {locale === 'de' ? 'Jetzt senden' : 'Send now'}
+              </button>
+            )}
+            {isPending && (
+              <button
+                onClick={() => onCancelled(email.id)}
+                disabled={!!cancellingId}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium disabled:opacity-50 transition-all"
+                style={{ color: '#EF4444', background: '#EF444412' }}
+              >
+                {cancellingId === email.id
+                  ? <span className="w-3.5 h-3.5 border border-current/30 border-t-current rounded-full animate-spin" />
+                  : <XCircle className="w-3.5 h-3.5" />
+                }
+                {locale === 'de' ? 'Abbrechen' : 'Cancel'}
+              </button>
+            )}
+            {!isPending && (
+              <button
+                onClick={() => onDeleted(email.id)}
+                disabled={!!deletingId}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium disabled:opacity-50 transition-all"
+                style={{ color: '#EF4444', background: '#EF444412' }}
+              >
+                {deletingId === email.id
+                  ? <span className="w-3.5 h-3.5 border border-current/30 border-t-current rounded-full animate-spin" />
+                  : <Trash2 className="w-3.5 h-3.5" />
+                }
+                {locale === 'de' ? 'Löschen' : 'Delete'}
+              </button>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all"
+            style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+          >
+            {locale === 'de' ? 'Schließen' : 'Close'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Type icon helper ─────────────────────────────────────────────────────────
 function typeIcon(type: string) {
   switch (type) {
@@ -258,6 +468,9 @@ export default function AutomationsClient({
   const [reschedulingId, setReschedulingId] = useState<string | null>(null)
   const [rescheduleValue, setRescheduleValue] = useState('')
   const [savingReschedule, setSavingReschedule] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'sent' | 'cancelled' | 'failed'>('all')
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
 
   const openReschedule = (id: string, currentScheduledAt: string) => {
     setRescheduleValue(new Date(currentScheduledAt).toISOString().slice(0, 16))
@@ -317,6 +530,26 @@ export default function AutomationsClient({
     }
     setSendingNow(null)
   }
+  const handleSaveEmailEdit = (id: string, subject: string, scheduledAt: string) => {
+    setScheduledEmails(prev => prev.map(e =>
+      e.id === id ? { ...e, subject, scheduled_at: scheduledAt } : e
+    ))
+    toast.success(locale === 'de' ? 'Gespeichert' : 'Saved')
+  }
+
+  const handleDeleteEmail = async (id: string) => {
+    if (!confirm(locale === 'de' ? 'E-Mail wirklich löschen?' : 'Delete this email permanently?')) return
+    setDeleting(id)
+    const res = await fetch(`/api/emails/schedule?id=${id}&hard=true`, { method: 'DELETE' })
+    if (res.ok) {
+      setScheduledEmails(prev => prev.filter(e => e.id !== id))
+      toast.success(locale === 'de' ? 'E-Mail gelöscht' : 'Email deleted')
+    } else {
+      toast.error(locale === 'de' ? 'Fehler beim Löschen' : 'Failed to delete')
+    }
+    setDeleting(null)
+  }
+
   const hookLocale = useLocale()
   const locale = initialLocale ?? hookLocale
   const t = T[locale]
@@ -375,6 +608,20 @@ export default function AutomationsClient({
   // Sort by willSendOn ascending
   scheduledRows.sort((a, b) => a.willSendOn.localeCompare(b.willSendOn))
 
+  const filteredEmails = statusFilter === 'all'
+    ? scheduledEmails
+    : scheduledEmails.filter(e => e.status === statusFilter)
+
+  const previewEmail = previewId ? scheduledEmails.find(e => e.id === previewId) ?? null : null
+
+  const filterCounts: Record<string, number> = {
+    all: scheduledEmails.length,
+    pending: scheduledEmails.filter(e => e.status === 'pending').length,
+    sent: scheduledEmails.filter(e => e.status === 'sent').length,
+    cancelled: scheduledEmails.filter(e => e.status === 'cancelled').length,
+    failed: scheduledEmails.filter(e => e.status === 'failed').length,
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-4 md:space-y-8">
       {/* Header */}
@@ -406,22 +653,63 @@ export default function AutomationsClient({
           style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
         >
           <div className="px-4 py-3 md:px-6 md:py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
-                <Send className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: '#8B5CF6' }} />
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                  <Send className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: '#8B5CF6' }} />
+                </div>
+                <div>
+                  <h2 className="font-bold text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
+                    {locale === 'de' ? 'Manuell geplante E-Mails' : 'Manually Scheduled Emails'}
+                  </h2>
+                  <p className="hidden md:block text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                    {locale === 'de' ? 'Von dir geplante Versendungen (Fragebogen, Vertrag, etc.)' : 'Emails you scheduled manually (questionnaire, contract, etc.)'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-bold text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
-                  {locale === 'de' ? 'Manuell geplante E-Mails' : 'Manually Scheduled Emails'}
-                </h2>
-                <p className="hidden md:block text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                  {locale === 'de' ? 'Von dir geplante Versendungen (Fragebogen, Vertrag, etc.)' : 'Emails you scheduled manually (questionnaire, contract, etc.)'}
-                </p>
+              {/* Filter tabs */}
+              <div className="flex items-center gap-1 flex-wrap">
+                {(['all', 'pending', 'sent', 'cancelled', 'failed'] as const).map(f => {
+                  const count = filterCounts[f]
+                  if (f !== 'all' && count === 0) return null
+                  const label = f === 'all'
+                    ? (locale === 'de' ? 'Alle' : 'All')
+                    : f === 'pending'
+                    ? (locale === 'de' ? 'Geplant' : 'Pending')
+                    : f === 'sent'
+                    ? (locale === 'de' ? 'Gesendet' : 'Sent')
+                    : f === 'cancelled'
+                    ? (locale === 'de' ? 'Abgebrochen' : 'Cancelled')
+                    : (locale === 'de' ? 'Fehler' : 'Failed')
+                  const active = statusFilter === f
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setStatusFilter(f)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+                      style={{
+                        background: active ? '#8B5CF6' : 'var(--bg-surface)',
+                        color: active ? '#fff' : 'var(--text-muted)',
+                        border: active ? 'none' : '1px solid var(--border-color)',
+                      }}
+                    >
+                      {label}
+                      <span className="opacity-70">{count}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
+          {filteredEmails.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+              <p className="text-[13px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                {locale === 'de' ? 'Keine E-Mails in dieser Kategorie' : 'No emails in this category'}
+              </p>
+            </div>
+          ) : (
           <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
-            {scheduledEmails.map(email => {
+            {filteredEmails.map(email => {
               const isPending = email.status === 'pending'
               const isSent = email.status === 'sent'
               const isCancelled = email.status === 'cancelled'
@@ -436,10 +724,23 @@ export default function AutomationsClient({
                   {/* ── Mobile layout (hidden md+) ── */}
                   <div className="md:hidden">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-bold text-[14px] leading-snug flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                      <button
+                        className="font-bold text-[14px] leading-snug flex-1 min-w-0 truncate text-left"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setPreviewId(email.id)}
+                      >
                         {email.to_name || email.to_email}
-                      </p>
-                      <MobileStatusPill status={email.status} locale={locale} />
+                      </button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <MobileStatusPill status={email.status} locale={locale} />
+                        <button
+                          onClick={() => setPreviewId(email.id)}
+                          className="p-1 rounded-lg"
+                          style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
                       <span className="font-semibold capitalize" style={{ color }}>{email.type}</span>
@@ -482,6 +783,14 @@ export default function AutomationsClient({
                         </button>
                       </div>
                     )}
+                    {!isPending && (
+                      <div className="flex items-center justify-end mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
+                        <button onClick={() => handleDeleteEmail(email.id)} disabled={deleting === email.id} className="flex items-center gap-1 text-[12px] font-medium disabled:opacity-50" style={{ color: '#EF4444' }}>
+                          {deleting === email.id ? <span className="w-3.5 h-3.5 border border-current/30 border-t-current rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          {locale === 'de' ? 'Löschen' : 'Delete'}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* ── Desktop layout (hidden on mobile) ── */}
@@ -495,9 +804,13 @@ export default function AutomationsClient({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[13.5px] truncate mb-0.5" style={{ color: 'var(--text-primary)' }}>
+                      <button
+                        className="font-semibold text-[13.5px] truncate mb-0.5 text-left w-full hover:underline"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setPreviewId(email.id)}
+                      >
                         {email.subject}
-                      </p>
+                      </button>
                       <div className="flex items-center gap-3 flex-wrap text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
@@ -527,6 +840,14 @@ export default function AutomationsClient({
                     </div>
 
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setPreviewId(email.id)}
+                        className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all"
+                        style={{ color: '#8B5CF6', background: '#8B5CF612' }}
+                      >
+                        <Eye className="w-3 h-3" />
+                        {locale === 'de' ? 'Öffnen' : 'Open'}
+                      </button>
                       {isPending && <StatusBadge label={locale === 'de' ? 'Ausstehend' : 'Pending'} color="#3B82F6" icon={Clock} />}
                       {isSent && <StatusBadge label={locale === 'de' ? 'Gesendet' : 'Sent'} color="#10B981" icon={CheckCircle2} />}
                       {isCancelled && <StatusBadge label={locale === 'de' ? 'Abgebrochen' : 'Cancelled'} color="#6B7280" icon={XCircle} />}
@@ -547,6 +868,12 @@ export default function AutomationsClient({
                             {locale === 'de' ? 'Abbrechen' : 'Cancel'}
                           </button>
                         </div>
+                      )}
+                      {!isPending && (
+                        <button onClick={() => handleDeleteEmail(email.id)} disabled={deleting === email.id} className="flex items-center gap-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ color: '#EF4444' }}>
+                          {deleting === email.id ? <span className="w-3 h-3 border border-current/30 border-t-current rounded-full animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          {locale === 'de' ? 'Löschen' : 'Delete'}
+                        </button>
                       )}
                       {email.project_id && (
                         <Link href={`/dashboard/projects/${email.project_id}`} className="flex items-center gap-1 text-[11px] font-medium transition-colors" style={{ color: 'var(--text-muted)' }}>
@@ -592,6 +919,7 @@ export default function AutomationsClient({
               )
             })}
           </div>
+          )}
         </div>
       )}
 
@@ -888,6 +1216,34 @@ export default function AutomationsClient({
           </div>
         </div>
       </div>
+
+      {/* ── Email Preview Modal ── */}
+      {previewEmail && (
+        <EmailPreviewModal
+          email={previewEmail}
+          locale={locale}
+          onClose={() => setPreviewId(null)}
+          onSaved={(id, subject, scheduledAt) => {
+            handleSaveEmailEdit(id, subject, scheduledAt)
+            setPreviewId(null)
+          }}
+          onSentNow={async (id) => {
+            setPreviewId(null)
+            await handleSendNow(id)
+          }}
+          onCancelled={async (id) => {
+            await handleCancelScheduled(id)
+            setPreviewId(null)
+          }}
+          onDeleted={async (id) => {
+            await handleDeleteEmail(id)
+            setPreviewId(null)
+          }}
+          sendingId={sendingNow}
+          cancellingId={cancelling}
+          deletingId={deleting}
+        />
+      )}
     </div>
   )
 }
