@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { QUESTIONNAIRE_TEMPLATES, type Question } from '@/lib/questionnaireTemplates'
-import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail, Sparkles, ClipboardCheck, BookmarkCheck, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Send, CheckCircle2, ClipboardList, ChevronDown, X, Pencil, ToggleLeft, AlignLeft, List, CheckSquare, Calendar, Clock, Mail, Sparkles, ClipboardCheck, BookmarkCheck, ChevronRight, Download } from 'lucide-react'
 import EmailVorlagePicker from './EmailVorlagePicker'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -671,11 +671,22 @@ ${studio}`
             <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(61,186,111,0.25)', background: 'var(--bg-surface)' }}>
               <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #3DBA6F, #10B981)' }} />
               <div className="p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle2 className="w-4 h-4" style={{ color: '#3DBA6F' }} />
-                  <h4 className="font-black text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                    Antworten von {clientName || 'Kunde'}
-                  </h4>
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" style={{ color: '#3DBA6F' }} />
+                    <h4 className="font-black text-[14px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                      Antworten von {clientName || 'Kunde'}
+                    </h4>
+                  </div>
+                  <a
+                    href={`/api/questionnaires/${submission.id}/pdf`}
+                    download
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    PDF
+                  </a>
                 </div>
                 <div className="space-y-4">
                   {questionnaire.questions.map(q => {
