@@ -1117,7 +1117,7 @@ export default function ContractTab({
           <button
             onClick={() => setShowTemplates(!showTemplates)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+            style={{ background: '#1A1A18', color: '#ffffff' }}
           >
             <Plus className="w-3.5 h-3.5" />
             New contract
@@ -1267,23 +1267,21 @@ export default function ContractTab({
                   >
                     {STATUS_LABELS[contract.status]}
                   </span>
-                  {contract.status === 'draft' && (
-                    <button
-                      onClick={() => handleDelete(contract.id)}
-                      className="w-7 h-7 flex items-center justify-center rounded transition-colors opacity-0 group-hover:opacity-100"
-                      style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = '#E84C1A'
-                        e.currentTarget.style.background = 'rgba(232,76,26,0.10)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = 'var(--text-muted)'
-                        e.currentTarget.style.background = 'transparent'
-                      }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleDelete(contract.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded transition-colors opacity-0 group-hover:opacity-100"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#E84C1A'
+                      e.currentTarget.style.background = 'rgba(232,76,26,0.10)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-muted)'
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             )
