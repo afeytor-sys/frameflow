@@ -515,12 +515,11 @@ export default function ContractsClient({
             {/* Table header — desktop only */}
             <div
               className="hidden sm:grid px-5 py-3"
-              style={{ borderBottom: '1px solid var(--border-color)', gridTemplateColumns: '1fr 160px 130px 150px auto' }}
+              style={{ borderBottom: '1px solid var(--border-color)', gridTemplateColumns: '1fr 160px 130px auto' }}
             >
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colContract}</span>
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colClient}</span>
               <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colStatus}</span>
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{t.colCreated}</span>
               <span />
             </div>
             {contracts.map((contract, i) => {
@@ -533,7 +532,7 @@ export default function ContractsClient({
                   href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
                   className="group flex sm:grid items-center px-4 sm:px-5 py-3.5 transition-all duration-150 cursor-pointer gap-3 sm:gap-0"
                   style={{
-                    gridTemplateColumns: '1fr 160px 130px 150px auto',
+                    gridTemplateColumns: '1fr 160px 130px auto',
                     borderBottom: '1px solid var(--border-color)',
                     animation: 'fadeSlideUp 0.35s ease forwards',
                     animationDelay: `${i * 50}ms`,
@@ -551,7 +550,7 @@ export default function ContractsClient({
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{contract.title}</p>
                       {/* Mobile: show client + date below name */}
                       <p className="sm:hidden text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                        {project?.clients?.full_name || '—'} · {formatRelative(contract.created_at, locale)}
+                        {project?.clients?.full_name || '—'}
                       </p>
                     </div>
                   </div>
@@ -564,9 +563,6 @@ export default function ContractsClient({
                     {STATUS_ICONS[contract.status]}
                     <span className="hidden sm:inline">{STATUS_LABELS[contract.status]}</span>
                   </span>
-
-                  {/* Date — desktop only */}
-                  <span className="hidden sm:block text-xs" style={{ color: 'var(--text-muted)' }}>{formatRelative(contract.created_at, locale)}</span>
 
                   {/* Actions */}
                   <div className="flex items-center justify-end gap-1.5">
@@ -590,7 +586,7 @@ export default function ContractsClient({
                       onClick={(e) => handleDeleteContract(e, contract.id)}
                       disabled={deletingId === contract.id}
                       title={locale === 'de' ? 'Vertrag löschen' : 'Delete contract'}
-                      className="hidden sm:flex sm:opacity-0 sm:group-hover:flex w-7 h-7 items-center justify-center rounded-lg transition-all duration-150 disabled:opacity-40"
+                      className="flex w-7 h-7 items-center justify-center rounded-lg transition-all duration-150 disabled:opacity-40"
                       style={{ color: 'var(--text-muted)', background: 'transparent' }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
