@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { createBookingEvent } from '@/lib/googleCalendar'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -28,10 +29,10 @@ export async function POST(req: NextRequest) {
   // Use service client for public inserts (bypasses RLS for bookings table)
   const serviceSupabase = createServiceClient()
 
-  // Resolve photographer
+  // Resolve photographer (include Google Calendar tokens for Meet link creation)
   const { data: photographer } = await serviceSupabase
     .from('photographers')
-    .select('id, bank_account_holder, bank_name, bank_iban, bank_bic')
+    .select('id, bank_account_holder, bank_name, bank_iban, bank_bic, google_calendar_access_token, google_calendar_refresh_token, google_calendar_token_expiry')
     .eq('slug', photographerSlug)
     .maybeSingle()
 
@@ -104,6 +105,37 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (bookErr) return NextResponse.json({ error: bookErr.message }, { status: 500 })
+
+  // ── Google Calendar + Meet link ───────────────────────────────────────────
+  let google_meet_link: string | null = null
+  if (photographer.google_calendar_access_token || photographer.google_calendar_refresh_token) {
+    const isOnline = bt.location_type === 'online'
+    const { eventId, meetLink } = await createBookingEvent(
+      photographer,
+      {
+        bookingId: booking.id,
+        title: `${bt.title} — ${client_name}`,
+        description: `Kunde: ${client_name} (${client_email})${notes ? `\n${notes}` : ''}`,
+        date: booked_date,
+        startTime: booked_time.slice(0, 5),
+        durationMinutes: bt.duration_minutes,
+        location: bt.location_type === 'studio' ? 'Studio' : undefined,
+        isOnline,
+      },
+      serviceSupabase,
+    )
+
+    if (eventId || meetLink) {
+      google_meet_link = meetLink
+      await serviceSupabase
+        .from('bookings')
+        .update({
+          google_calendar_event_id: eventId,
+          google_meet_link: meetLink,
+        })
+        .eq('id', booking.id)
+    }
+  }
 
   // Fetch photographer details + notification preferences
   const [phResult, notifResult] = await Promise.all([
