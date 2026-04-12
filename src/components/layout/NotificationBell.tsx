@@ -124,12 +124,13 @@ export default function NotificationBell() {
     <>
       <div className="fixed inset-0" style={{ zIndex: 99998 }} onClick={() => setOpen(false)} />
       <div
-        className="dropdown-glass fixed rounded-2xl overflow-hidden"
+        className="dropdown-glass fixed rounded-2xl flex flex-col"
         style={{
           top: dropdownPos.top,
           right: dropdownPos.right,
           width: '340px',
           zIndex: 99999,
+          maxHeight: 'calc(100vh - 80px)',
         }}
       >
         {/* Header */}
@@ -159,7 +160,7 @@ export default function NotificationBell() {
         </div>
 
         {/* List */}
-        <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
+        <div className="overflow-y-auto flex-1 min-h-0">
           {loading && notifications.length === 0 ? (
             <div className="py-8 text-center">
               <div className="w-4 h-4 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--border-color)', borderTopColor: 'var(--accent)' }} />
