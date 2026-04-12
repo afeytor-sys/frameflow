@@ -11,7 +11,7 @@ export default async function InvoicesPage() {
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('id, plan, full_name, studio_name, email, company_name, address_street, address_zip, address_city, address_country, phone, website, tax_number, tax_status, bank_account_holder, bank_name, bank_iban, bank_bic')
+    .select('id, plan, full_name, studio_name, email, company_name, address_street, address_zip, address_city, address_country, phone, website, tax_number, tax_status, bank_account_holder, bank_name, bank_iban, bank_bic, invoice_prefix, invoice_start_number, last_invoice_number')
     .eq('id', user.id)
     .single()
 

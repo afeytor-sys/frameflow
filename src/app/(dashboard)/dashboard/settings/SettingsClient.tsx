@@ -32,6 +32,9 @@ interface Photographer {
   website: string | null
   tax_number: string | null
   tax_status: string | null
+  invoice_prefix: string | null
+  invoice_start_number: number | null
+  last_invoice_number: number | null
 }
 
 interface Props {
@@ -74,6 +77,10 @@ export default function SettingsClient({ photographer, userId }: Props) {
   const [website, setWebsite] = useState(photographer?.website || '')
   const [taxNumber, setTaxNumber] = useState(photographer?.tax_number || '')
   const [taxStatus, setTaxStatus] = useState<string>(photographer?.tax_status || 'kleinunternehmer')
+
+  // Invoice numbering
+  const [invoicePrefix, setInvoicePrefix] = useState(photographer?.invoice_prefix ?? '')
+  const [invoiceStartNumber, setInvoiceStartNumber] = useState(String(photographer?.invoice_start_number ?? 1))
 
   // Automation settings
   const [autoSettings, setAutoSettings] = useState({
@@ -232,6 +239,25 @@ export default function SettingsClient({ photographer, userId }: Props) {
     setSaving(false)
     if (error) toast.error('Fehler beim Speichern')
     else toast.success('Rechnungsprofil gespeichert')
+  }
+
+  const saveInvoiceNumbering = async () => {
+    const startNum = parseInt(invoiceStartNumber, 10)
+    if (isNaN(startNum) || startNum < 1) {
+      toast.error(isDE ? 'Startnummer muss mindestens 1 sein' : 'Start number must be at least 1')
+      return
+    }
+    setSaving(true)
+    const { error } = await supabase
+      .from('photographers')
+      .update({
+        invoice_prefix: invoicePrefix.trim(),
+        invoice_start_number: startNum,
+      })
+      .eq('id', userId)
+    setSaving(false)
+    if (error) toast.error('Fehler beim Speichern')
+    else toast.success(isDE ? 'Rechnungsnummernkreis gespeichert' : 'Invoice numbering saved')
   }
 
   const uploadLogo = async (file: File) => {
@@ -637,6 +663,73 @@ export default function SettingsClient({ photographer, userId }: Props) {
           >
             {saving ? 'Speichern...' : (isDE ? 'Rechnungsprofil speichern' : 'Save invoice profile')}
           </button>
+
+          {/* ── Invoice numbering ── */}
+          <div className="border-t border-[#E8E8E4] pt-5 mt-2">
+            <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+              {isDE ? 'Rechnungsnummernkreis' : 'Invoice number sequence'}
+            </h3>
+            <p className="text-xs text-[#6B6B6B] mb-4">
+              {isDE
+                ? 'Lege Präfix und Startnummer fest. Neue Rechnungen zählen automatisch hoch.'
+                : 'Set a prefix and starting number. New invoices increment automatically.'}
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+                  {isDE ? 'Präfix (optional)' : 'Prefix (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={invoicePrefix}
+                  onChange={e => setInvoicePrefix(e.target.value)}
+                  placeholder="AF-DE-26-"
+                  maxLength={20}
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#6B6B6B] mb-1">
+                  {isDE ? 'Startnummer' : 'Start number'}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={invoiceStartNumber}
+                  onChange={e => setInvoiceStartNumber(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E4] text-sm text-[#1A1A1A] focus:border-[#F97316] outline-none bg-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Live preview */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-4 text-[13px]"
+              style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.20)' }}>
+              <span className="text-[#6B6B6B] text-xs">{isDE ? 'Nächste Nummer:' : 'Next number:'}</span>
+              <span className="font-mono font-bold text-[#F97316]">
+                {invoicePrefix.trim()}
+                {String(Math.max(1, parseInt(invoiceStartNumber || '1', 10))).padStart(3, '0')}
+              </span>
+            </div>
+
+            {photographer?.last_invoice_number != null && (
+              <p className="text-xs text-[#6B6B6B] mb-3">
+                {isDE
+                  ? `Letzte vergebene Nummer: ${photographer.last_invoice_number} (Präfix-Änderungen gelten ab der nächsten Rechnung)`
+                  : `Last used sequence number: ${photographer.last_invoice_number} (prefix changes apply from next invoice)`}
+              </p>
+            )}
+
+            <button
+              onClick={saveInvoiceNumbering}
+              disabled={saving}
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              style={{ background: '#1A1A1A' }}
+            >
+              {saving ? 'Speichern...' : (isDE ? 'Nummernkreis speichern' : 'Save numbering')}
+            </button>
+          </div>
         </div>
       )}
 

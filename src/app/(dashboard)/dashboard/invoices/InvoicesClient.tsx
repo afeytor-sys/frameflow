@@ -105,6 +105,9 @@ interface Photographer {
   bank_name: string | null
   bank_iban: string | null
   bank_bic: string | null
+  invoice_prefix: string | null
+  invoice_start_number: number | null
+  last_invoice_number: number | null
 }
 
 interface Props {
@@ -355,6 +358,7 @@ function buildInvoiceHtml(invoice: Invoice, photographer: Photographer | null, a
       <div style="flex-shrink:0;text-align:center;">
         <img src="${qrUrl}" width="110" height="110" style="border-radius:8px;display:block;" alt="GiroCode" />
         <div style="font-size:8.5px;color:#9B9B9B;margin-top:5px;letter-spacing:0.06em;text-transform:uppercase;">GiroCode scannen</div>
+        <div style="font-size:8px;color:#B0ACA6;margin-top:2px;">(mit Banking-App)</div>
       </div>` : ''}
     </div>
   </div>` : ''}
@@ -536,6 +540,23 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const supabase = createClient()
 
+  /** Fetches the next sequential invoice number preview from the server (read-only, no increment). */
+  const fetchNextInvoiceNumber = async (): Promise<string> => {
+    try {
+      const res = await fetch('/api/invoices/next-number')
+      if (res.ok) {
+        const json = await res.json()
+        return json.number as string
+      }
+    } catch { /* fall through */ }
+    // Fallback: compute client-side from known photographer state
+    const prefix = photographer?.invoice_prefix ?? ''
+    const last = photographer?.last_invoice_number
+    const start = photographer?.invoice_start_number ?? 1
+    const next = last != null ? last + 1 : start
+    return prefix + String(next).padStart(3, '0')
+  }
+
   const loadClients = async () => {
     if (clientsLoaded) return
     const { data } = await supabase
@@ -620,94 +641,31 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
     if (validItems.length === 0) { toast.error('Bitte mindestens eine Position ausfüllen'); return }
     setSaving(true)
 
-    const taxStatus = photographer?.tax_status || 'kleinunternehmer'
-    const taxRate = taxStatus === 'vat_19' ? 19 : taxStatus === 'vat_7' ? 7 : 0
-    const subtotalCents = Math.round(validItems.reduce((s, it) => s + it.total, 0) * 100)
-    const taxCents = taxStatus !== 'kleinunternehmer' ? Math.round(subtotalCents * taxRate / 100) : 0
-    const amountCents = subtotalCents + taxCents
-
-    const autoNumber = `INV-${Date.now().toString().slice(-6)}`
-    const invoiceNumber = form.invoice_number.trim() || autoNumber
-
-    // Build photographer snapshot
-    const photographerSnapshot: InvoiceSnapshot = {
-      studio_name: photographer?.studio_name || null,
-      full_name: photographer?.full_name || null,
-      company_name: photographer?.company_name || null,
-      address_street: photographer?.address_street || null,
-      address_zip: photographer?.address_zip || null,
-      address_city: photographer?.address_city || null,
-      address_country: photographer?.address_country || null,
-      phone: photographer?.phone || null,
-      website: photographer?.website || null,
-      email: photographer?.email || null,
-      tax_number: photographer?.tax_number || null,
-      bank_account_holder: photographer?.bank_account_holder || null,
-      bank_name: photographer?.bank_name || null,
-      bank_iban: photographer?.bank_iban || null,
-      bank_bic: photographer?.bank_bic || null,
-    }
-
-    // Fetch full client data from the selected project for snapshot
-    let clientSnapshot: ClientSnapshot | null = null
-    const { data: projectData } = await supabase
-      .from('projects')
-      .select('client:clients(full_name, company_name, email, address_street, address_zip, address_city, address_country)')
-      .eq('id', form.project_id)
-      .single()
-    const rawClient = projectData?.client
-    const clientObj = Array.isArray(rawClient) ? rawClient[0] : rawClient
-    if (clientObj) {
-      clientSnapshot = {
-        full_name: clientObj.full_name,
-        company_name: (clientObj as { company_name?: string | null }).company_name || null,
-        email: (clientObj as { email?: string | null }).email || null,
-        address_street: (clientObj as { address_street?: string | null }).address_street || null,
-        address_zip: (clientObj as { address_zip?: string | null }).address_zip || null,
-        address_city: (clientObj as { address_city?: string | null }).address_city || null,
-        address_country: (clientObj as { address_country?: string | null }).address_country || null,
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('invoices')
-      .insert({
+    // Delegate to server — generates invoice number atomically (FOR UPDATE)
+    const res = await fetch('/api/invoices/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         project_id: form.project_id,
-        photographer_id: photographerId,
-        amount: amountCents,
-        subtotal: subtotalCents,
-        tax_amount: taxCents,
-        tax_rate: taxRate,
-        tax_status: taxStatus,
-        currency: 'eur',
-        status: 'draft',
         description: form.description || null,
-        due_date: form.due_date || null,
-        invoice_number: invoiceNumber,
         notes: form.notes || null,
-        verwendungszweck: form.verwendungszweck.trim() || invoiceNumber,
-        photographer_snapshot: photographerSnapshot,
-        client_snapshot: clientSnapshot,
-      })
-      .select('*, project:projects(title, client:clients(full_name, email))')
-      .single()
+        // Pass the user's value if they typed one; null triggers auto-generation
+        invoice_number: form.invoice_number.trim() || null,
+        verwendungszweck: form.verwendungszweck.trim() || null,
+        due_date: form.due_date || null,
+        items: validItems,
+      }),
+    })
 
-    if (error) { toast.error('Error creating'); setSaving(false); return }
+    const json = await res.json()
 
-    // Insert line items
-    const itemsToInsert = validItems.map(it => ({
-      invoice_id: data.id,
-      position: it.position,
-      description: it.description.trim(),
-      quantity: it.quantity,
-      unit_price: Math.round(it.unit_price * 100),
-      total: Math.round(it.total * 100),
-    }))
-    if (itemsToInsert.length > 0) {
-      await supabase.from('invoice_items').insert(itemsToInsert)
+    if (!res.ok) {
+      toast.error(json.error || 'Error creating invoice')
+      setSaving(false)
+      return
     }
 
-    const newInvoice = { ...data, items: itemsToInsert } as Invoice
+    const newInvoice = json.invoice as Invoice
     setInvoices(prev => [newInvoice, ...prev])
     setForm({ project_id: '', description: '', notes: '', invoice_number: '', verwendungszweck: '', due_date: '' })
     setItems([{ position: 1, description: '', quantity: 1, unit_price: 0, total: 0 }])
@@ -778,8 +736,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             {ti.subtitle}
           </p>
         </div>
-        <button onClick={() => {
-            const autoNum = `INV-${Date.now().toString().slice(-6)}`
+        <button onClick={async () => {
+            const autoNum = await fetchNextInvoiceNumber()
             setForm(f => ({ ...f, invoice_number: autoNum, verwendungszweck: autoNum }))
             setShowNew(true)
           }}
@@ -927,8 +885,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
             <p className="text-[13.5px] mb-7 max-w-xs" style={{ color: 'var(--text-muted)' }}>
               {ti.noInvoicesDesc}
             </p>
-            <button onClick={() => {
-                const autoNum = `INV-${Date.now().toString().slice(-6)}`
+            <button onClick={async () => {
+                const autoNum = await fetchNextInvoiceNumber()
                 setForm(f => ({ ...f, invoice_number: autoNum, verwendungszweck: autoNum }))
                 setShowNew(true)
               }}
