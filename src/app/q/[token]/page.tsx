@@ -36,13 +36,24 @@ export default async function PublicQuotePage({ params }: Props) {
 
   if (!quote) notFound()
 
-  const { data: photographer } = await supabase
-    .from('photographers')
-    .select('full_name, studio_name')
-    .eq('id', quote.photographer_id)
-    .single()
+  const [photographerResult, responseResult] = await Promise.all([
+    supabase
+      .from('photographers')
+      .select('full_name, studio_name')
+      .eq('id', quote.photographer_id)
+      .single(),
+    quote.status === 'accepted'
+      ? supabase
+          .from('quote_responses')
+          .select('total_amount, client_name, client_email, selections')
+          .eq('quote_id', quote.id)
+          .order('submitted_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
 
-  const studioName = photographer?.studio_name || photographer?.full_name || 'Studio'
+  const studioName = photographerResult.data?.studio_name || photographerResult.data?.full_name || 'Studio'
 
   const sections = (quote.sections || [])
     .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
@@ -56,6 +67,7 @@ export default async function PublicQuotePage({ params }: Props) {
       quote={{ ...quote, sections }}
       studioName={studioName}
       token={token}
+      acceptedResponse={responseResult.data ?? null}
     />
   )
 }

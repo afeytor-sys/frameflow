@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
 
   // Use service client for public inserts (bypasses RLS for bookings table)
   const serviceSupabase = createServiceClient()
-  const supabase = await createClient()
 
   // Resolve photographer
   const { data: photographer } = await serviceSupabase

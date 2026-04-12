@@ -18,6 +18,7 @@ interface BookingType {
   anzahlung_enabled: boolean
   anzahlung_type: 'fixed' | 'percent' | null
   anzahlung_amount: number | null
+  anzahlung_days_due: number | null
   questions: Question[]
 }
 

@@ -36,10 +36,18 @@ interface Quote {
   sections: QuoteSection[]
 }
 
+interface AcceptedResponse {
+  total_amount: number
+  client_name: string | null
+  client_email: string | null
+  selections: Record<string, number> | null
+}
+
 interface Props {
   quote: Quote
   studioName: string
   token: string
+  acceptedResponse?: AcceptedResponse | null
 }
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
@@ -179,12 +187,16 @@ function LangToggle({ lang, setLang }: { lang: 'de' | 'en'; setLang: (l: 'de' | 
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function QuotePublicClient({ quote, studioName, token }: Props) {
+export default function QuotePublicClient({ quote, studioName, token, acceptedResponse }: Props) {
   const [lang, setLang] = useState<'de' | 'en'>('de')
   const t = T[lang]
 
+  const alreadyAccepted = quote.status === 'accepted' && acceptedResponse != null
+
   const [selections, setSelections] = useState<Record<string, number>>(() =>
-    initSelections(quote.sections)
+    alreadyAccepted && acceptedResponse?.selections
+      ? acceptedResponse.selections
+      : initSelections(quote.sections)
   )
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
@@ -260,6 +272,11 @@ export default function QuotePublicClient({ quote, studioName, token }: Props) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // ── Already accepted guard ───────────────────────────────────────────────────
+  if (alreadyAccepted) {
+    return <ThankYou studioName={studioName} total={acceptedResponse!.total_amount} lang={lang} />
   }
 
   // ── Expired guard ───────────────────────────────────────────────────────────
