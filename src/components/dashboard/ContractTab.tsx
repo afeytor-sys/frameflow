@@ -866,7 +866,19 @@ export default function ContractTab({
             {activeContract.photographer_signature_data && (
               <ContractPDFDownload
                 title={title || activeContract.title}
-                content={content || activeContract.content || ''}
+                content={(() => {
+                  let base = content || activeContract.content || ''
+                  const fields = activeContract.client_fields as Record<string, string> | null
+                  if (fields && Object.keys(fields).length > 0) {
+                    for (const [key, value] of Object.entries(fields)) {
+                      const val = String(value || '')
+                      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                      base = base.replace(new RegExp(`<span[^>]*>\\{\\{${escapedKey}\\}\\}<\\/span>`, 'g'), val)
+                      base = base.replace(new RegExp(`\\{\\{${escapedKey}\\}\\}`, 'g'), val)
+                    }
+                  }
+                  return base
+                })()}
                 createdAt={activeContract.created_at}
                 photographerName={activeContract.photographer_signed_by_name ?? null}
                 photographerSignedAt={activeContract.photographer_signed_at ?? null}
