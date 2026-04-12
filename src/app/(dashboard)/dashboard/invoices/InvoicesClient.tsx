@@ -1085,7 +1085,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl overflow-hidden animate-scale-in"
+          <div className="w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
             <div className="flex items-center justify-between px-6 py-4"
               style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -1099,6 +1099,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
               </button>
             </div>
 
+            <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}input[type=number]{-moz-appearance:textfield}`}</style>
             <form onSubmit={handleCreate} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               {/* Project */}
               <div>
