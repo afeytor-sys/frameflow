@@ -536,35 +536,6 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>Puffer (Min)</label>
-                      <input type="number" min="0" step="5"
-                        className="w-full px-3 py-2 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.buffer_minutes}
-                        onChange={e => setForm(f => ({ ...f, buffer_minutes: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>Min. Vorlauf (h)</label>
-                      <input type="number" min="0"
-                        className="w-full px-3 py-2 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.min_notice_hours}
-                        onChange={e => setForm(f => ({ ...f, min_notice_hours: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>Max. Vorlauf (Tage)</label>
-                      <input type="number" min="1"
-                        className="w-full px-3 py-2 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.max_advance_days}
-                        onChange={e => setForm(f => ({ ...f, max_advance_days: Number(e.target.value) }))}
-                      />
-                    </div>
-                  </div>
                 </>
               )}
 
@@ -585,7 +556,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                             className="w-10 text-[12px] font-bold rounded-lg py-1.5 flex-shrink-0 transition-all"
                             style={{
                               background: isActive ? 'var(--text-primary)' : 'var(--bg-hover)',
-                              color: isActive ? 'var(--bg-page)' : 'var(--text-muted)',
+                              color: isActive ? '#fff' : 'var(--text-muted)',
                               border: '1px solid var(--border-color)',
                             }}
                           >
