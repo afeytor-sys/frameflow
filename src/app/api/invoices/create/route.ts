@@ -70,15 +70,36 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Verify the project belongs to this photographer ───────────────────────
-  const { data: projectRow } = await service
+  const { data: projectRow, error: projErr } = await service
     .from('projects')
-    .select('id, photographer_id, title, client:clients(full_name, company_name, email, address_street, address_zip, address_city, address_country)')
+    .select('id, photographer_id, client_id, title')
     .eq('id', project_id)
     .eq('photographer_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!projectRow) {
+  if (projErr || !projectRow) {
+    console.error('[create-invoice] project lookup:', projErr)
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  }
+
+  // ── Fetch client for snapshot (separate query to avoid join issues) ────────
+  interface ClientRow {
+    full_name: string | null
+    company_name: string | null
+    email: string | null
+    address_street: string | null
+    address_zip: string | null
+    address_city: string | null
+    address_country: string | null
+  }
+  let clientRow: ClientRow | null = null
+  if (projectRow.client_id) {
+    const { data } = await service
+      .from('clients')
+      .select('full_name, company_name, email, address_street, address_zip, address_city, address_country')
+      .eq('id', projectRow.client_id)
+      .maybeSingle()
+    clientRow = data as ClientRow | null
   }
 
   // ── Compute amounts ───────────────────────────────────────────────────────
@@ -141,16 +162,14 @@ export async function POST(req: NextRequest) {
     bank_bic: photographer.bank_bic ?? null,
   }
 
-  const rawClient = projectRow.client
-  const clientObj = Array.isArray(rawClient) ? rawClient[0] : rawClient
-  const clientSnapshot = clientObj ? {
-    full_name: clientObj.full_name,
-    company_name: (clientObj as { company_name?: string | null }).company_name ?? null,
-    email: (clientObj as { email?: string | null }).email ?? null,
-    address_street: (clientObj as { address_street?: string | null }).address_street ?? null,
-    address_zip: (clientObj as { address_zip?: string | null }).address_zip ?? null,
-    address_city: (clientObj as { address_city?: string | null }).address_city ?? null,
-    address_country: (clientObj as { address_country?: string | null }).address_country ?? null,
+  const clientSnapshot = clientRow ? {
+    full_name: clientRow.full_name ?? '',
+    company_name: clientRow.company_name ?? null,
+    email: clientRow.email ?? null,
+    address_street: clientRow.address_street ?? null,
+    address_zip: clientRow.address_zip ?? null,
+    address_city: clientRow.address_city ?? null,
+    address_country: clientRow.address_country ?? null,
   } : null
 
   // ── Insert invoice ────────────────────────────────────────────────────────
