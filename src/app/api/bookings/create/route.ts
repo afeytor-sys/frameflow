@@ -1,5 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // POST /api/bookings/create  (public — no auth required)
 // Creates a booking for a client. Generates payment reference if anzahlung is enabled.
@@ -102,31 +105,51 @@ export async function POST(req: NextRequest) {
 
   if (bookErr) return NextResponse.json({ error: bookErr.message }, { status: 500 })
 
-  // Schedule notification email to photographer (via existing emails system)
-  const photographerEmailData = await serviceSupabase
-    .from('photographers')
-    .select('notification_email, email, full_name, studio_name')
-    .eq('id', photographer.id)
-    .single()
+  // Fetch photographer details + notification preferences
+  const [phResult, notifResult] = await Promise.all([
+    serviceSupabase
+      .from('photographers')
+      .select('notification_email, email, full_name, studio_name')
+      .eq('id', photographer.id)
+      .single(),
+    serviceSupabase
+      .from('automation_settings')
+      .select('notify_inapp_new_booking, notify_email_new_booking')
+      .eq('photographer_id', photographer.id)
+      .maybeSingle(),
+  ])
 
-  if (photographerEmailData.data) {
-    const ph = photographerEmailData.data
+  if (phResult.data) {
+    const ph = phResult.data
+    const notifPrefs = notifResult.data
     const toEmail = ph.notification_email || ph.email
     const studioName = ph.studio_name || ph.full_name || 'Fotonizer'
     const shootDate = new Date(booked_date).toLocaleDateString('de-DE', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     })
 
-    await serviceSupabase.from('scheduled_emails').insert({
-      photographer_id: photographer.id,
-      to_email: toEmail,
-      to_name: studioName,
-      subject: `Neue Buchungsanfrage: ${bt.title} — ${client_name}`,
-      html_body: buildNewBookingEmail({ studioName, btTitle: bt.title, clientName: client_name, clientEmail: client_email, shootDate, booked_time: booked_time.slice(0, 5), depositAmount: deposit_amount, payment_reference }),
-      type: 'custom',
-      status: 'pending',
-      scheduled_at: new Date().toISOString(),
-    })
+    // In-app notification
+    if (notifPrefs?.notify_inapp_new_booking !== false) {
+      serviceSupabase.from('notifications').insert({
+        photographer_id: photographer.id,
+        type: 'new_booking',
+        title_de: `Neue Buchung: ${client_name}`,
+        title_en: `New booking: ${client_name}`,
+        body_de: `${client_name} hat ${bt.title} für ${shootDate} gebucht.`,
+        body_en: `${client_name} booked ${bt.title} for ${shootDate}.`,
+        client_name,
+      }).then(({ error }) => { if (error) console.error('Notification insert error:', error) })
+    }
+
+    // Email notification — sent immediately via Resend
+    if (notifPrefs?.notify_email_new_booking !== false && toEmail) {
+      await resend.emails.send({
+        from: 'Fotonizer <noreply@fotonizer.com>',
+        to: toEmail,
+        subject: `Neue Buchungsanfrage: ${bt.title} — ${client_name}`,
+        html: buildNewBookingEmail({ studioName, btTitle: bt.title, clientName: client_name, clientEmail: client_email, shootDate, booked_time: booked_time.slice(0, 5), depositAmount: deposit_amount, payment_reference }),
+      }).catch(e => console.error('Booking email error:', e))
+    }
   }
 
   return NextResponse.json({
