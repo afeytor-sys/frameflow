@@ -285,7 +285,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all active:scale-[0.97]"
-          style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+          style={{ background: 'var(--text-primary)', color: '#fff' }}
         >
           <Plus className="w-4 h-4" />
           Neuer Typ
@@ -314,7 +314,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
           <p className="text-[13px] mt-1 mb-4" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
             Erstelle deinen ersten Service-Typ, damit Kunden Termine buchen können.
           </p>
-          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold" style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}>
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold" style={{ background: 'var(--text-primary)', color: '#fff' }}>
             <Plus className="w-4 h-4" /> Neuer Typ
           </button>
         </div>
@@ -526,7 +526,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                           className="flex-1 py-2 rounded-xl text-[12px] font-semibold transition-all"
                           style={{
                             background: form.location_type === loc ? 'var(--text-primary)' : 'var(--bg-hover)',
-                            color: form.location_type === loc ? 'var(--bg-page)' : 'var(--text-muted)',
+                            color: form.location_type === loc ? '#fff' : 'var(--text-muted)',
                             border: '1px solid var(--border-color)',
                           }}
                         >
@@ -781,7 +781,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                 onClick={handleSave}
                 disabled={saving}
                 className="px-5 py-2 rounded-xl text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+                style={{ background: 'var(--text-primary)', color: '#fff' }}
               >
                 {saving ? 'Wird gespeichert…' : editingId ? 'Speichern' : 'Erstellen'}
               </button>
