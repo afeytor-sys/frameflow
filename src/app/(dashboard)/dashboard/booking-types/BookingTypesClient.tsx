@@ -144,7 +144,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
       description: bt.description ?? '',
       duration_minutes: bt.duration_minutes,
       location_type: bt.location_type,
-      price: bt.price,
+      price: bt.price / 100,
       currency: bt.currency,
       availability_type: bt.availability_type,
       buffer_minutes: bt.buffer_minutes,
@@ -174,7 +174,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
     try {
       const payload = {
         ...form,
-        price: Math.round((form.price as unknown as number) * 100),  // convert euros to cents
+        price: Math.round(form.price * 100),  // euros → cents
         recurring_availability: form.availability_type === 'recurring' ? recurringAvailability : [],
       }
 
@@ -267,8 +267,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
     setRecurringAvailability(prev => prev.map(w => w.day_of_week === dow ? { ...w, [field]: value } : w))
   }
 
-  // Display price: form.price is in euros for display, convert to cents on save
-  const displayPrice = typeof form.price === 'number' ? form.price / 100 : 0
+  // form.price is stored in euros (float); converted to cents only on save
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -497,21 +496,28 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                     <div>
                       <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>Dauer (Minuten)</label>
                       <input
-                        type="number" min="15" step="15"
+                        type="text"
+                        inputMode="numeric"
                         className="w-full px-3 py-2 rounded-xl text-[14px]"
                         style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.duration_minutes}
-                        onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
+                        value={form.duration_minutes || ''}
+                        placeholder="60"
+                        onChange={e => setForm(f => ({ ...f, duration_minutes: parseInt(e.target.value) || 0 }))}
                       />
                     </div>
                     <div>
                       <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>Preis (€)</label>
                       <input
-                        type="number" min="0" step="0.01"
+                        type="text"
+                        inputMode="decimal"
                         className="w-full px-3 py-2 rounded-xl text-[14px]"
                         style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={displayPrice}
-                        onChange={e => setForm(f => ({ ...f, price: Math.round(parseFloat(e.target.value || '0') * 100) }))}
+                        value={form.price === 0 ? '' : form.price}
+                        placeholder="0"
+                        onChange={e => {
+                          const raw = e.target.value.replace(',', '.')
+                          setForm(f => ({ ...f, price: raw === '' ? 0 : parseFloat(raw) || 0 }))
+                        }}
                       />
                     </div>
                   </div>
@@ -689,32 +695,29 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                             {form.anzahlung_type === 'percent' ? 'Prozentsatz (%)' : 'Betrag (€)'}
                           </label>
                           <input
-                            type="number" min="0"
+                            type="text"
+                            inputMode="decimal"
                             className="w-full px-3 py-2 rounded-xl text-[14px]"
                             style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                            value={form.anzahlung_type === 'percent'
-                              ? (form.anzahlung_amount ?? 0) / 100
-                              : (form.anzahlung_amount ?? 0) / 100
-                            }
+                            value={(form.anzahlung_amount ?? 0) === 0 ? '' : (form.anzahlung_amount ?? 0) / 100}
+                            placeholder="0"
                             onChange={e => {
-                              const v = parseFloat(e.target.value || '0')
-                              setForm(f => ({
-                                ...f,
-                                anzahlung_amount: form.anzahlung_type === 'percent'
-                                  ? Math.round(v * 100)   // store as basis points (30% → 3000)
-                                  : Math.round(v * 100),   // store as cents
-                              }))
+                              const raw = e.target.value.replace(',', '.')
+                              const v = parseFloat(raw) || 0
+                              setForm(f => ({ ...f, anzahlung_amount: Math.round(v * 100) }))
                             }}
                           />
                         </div>
                         <div>
                           <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>Zahlungsfrist (Tage vor Shooting)</label>
                           <input
-                            type="number" min="1"
+                            type="text"
+                            inputMode="numeric"
                             className="w-full px-3 py-2 rounded-xl text-[14px]"
                             style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                            value={form.anzahlung_days_due ?? 14}
-                            onChange={e => setForm(f => ({ ...f, anzahlung_days_due: Number(e.target.value) }))}
+                            value={form.anzahlung_days_due ?? ''}
+                            placeholder="14"
+                            onChange={e => setForm(f => ({ ...f, anzahlung_days_due: parseInt(e.target.value) || null }))}
                           />
                         </div>
                       </div>
