@@ -23,7 +23,7 @@ interface BookingType {
   location_type: 'studio' | 'external' | 'online'
   price: number
   currency: string
-  availability_type: 'recurring' | 'slots'
+  availability_type: 'recurring' | 'slots' | 'request'
   buffer_minutes: number
   max_advance_days: number
   min_notice_hours: number
@@ -548,51 +548,100 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
               {/* ── Availability tab ── */}
               {activeTab === 'availability' && (
                 <>
-                  <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                    Lege fest, an welchen Wochentagen und Uhrzeiten Buchungen möglich sind.
-                  </p>
-                  <div className="space-y-2">
-                    {[0, 1, 2, 3, 4, 5, 6].map(dow => {
-                      const window = recurringAvailability.find(w => w.day_of_week === dow)
-                      const isActive = !!window
-                      return (
-                        <div key={dow} className="flex items-center gap-3">
-                          <button
-                            onClick={() => toggleRecurringDay(dow)}
-                            className="w-10 text-[12px] font-bold rounded-lg py-1.5 flex-shrink-0 transition-all"
+                  {/* Mode selector */}
+                  <div>
+                    <label className="block text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>Buchungsart</label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {([
+                        { value: 'recurring', label: 'Wöchentliche Zeiten', desc: 'Feste Wochentage & Uhrzeiten — Kunden wählen aus verfügbaren Slots' },
+                        { value: 'request',   label: 'Nur Anfrage',         desc: 'Kein Kalender — Kunde sendet eine Anfrage mit Wunschtermin' },
+                      ] as const).map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, availability_type: opt.value }))}
+                          className="flex items-start gap-3 px-4 py-3 rounded-xl text-left transition-all"
+                          style={{
+                            border: form.availability_type === opt.value
+                              ? '2px solid var(--text-primary)'
+                              : '1px solid var(--border-color)',
+                            background: form.availability_type === opt.value ? 'var(--bg-hover)' : 'transparent',
+                          }}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 border-2 flex items-center justify-center"
                             style={{
-                              background: isActive ? 'var(--text-primary)' : 'var(--bg-hover)',
-                              color: isActive ? '#fff' : 'var(--text-muted)',
-                              border: '1px solid var(--border-color)',
+                              borderColor: form.availability_type === opt.value ? 'var(--text-primary)' : 'var(--border-color)',
                             }}
                           >
-                            {DAYS[dow]}
-                          </button>
-                          {isActive ? (
-                            <div className="flex items-center gap-2 flex-1">
-                              <input
-                                type="time"
-                                className="px-2 py-1.5 rounded-lg text-[13px]"
-                                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                value={window.start_time.slice(0, 5)}
-                                onChange={e => updateRecurringWindow(dow, 'start_time', e.target.value)}
-                              />
-                              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>bis</span>
-                              <input
-                                type="time"
-                                className="px-2 py-1.5 rounded-lg text-[13px]"
-                                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                value={window.end_time.slice(0, 5)}
-                                onChange={e => updateRecurringWindow(dow, 'end_time', e.target.value)}
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Nicht verfügbar</span>
-                          )}
-                        </div>
-                      )
-                    })}
+                            {form.availability_type === opt.value && (
+                              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--text-primary)' }} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{opt.label}</p>
+                            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Recurring schedule — only shown when mode = recurring */}
+                  {form.availability_type === 'recurring' && (
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>Verfügbare Wochentage</p>
+                      {[0, 1, 2, 3, 4, 5, 6].map(dow => {
+                        const window = recurringAvailability.find(w => w.day_of_week === dow)
+                        const isActive = !!window
+                        return (
+                          <div key={dow} className="flex items-center gap-3">
+                            <button
+                              onClick={() => toggleRecurringDay(dow)}
+                              className="w-10 text-[12px] font-bold rounded-lg py-1.5 flex-shrink-0 transition-all"
+                              style={{
+                                background: isActive ? 'var(--text-primary)' : 'var(--bg-hover)',
+                                color: isActive ? '#fff' : 'var(--text-muted)',
+                                border: '1px solid var(--border-color)',
+                              }}
+                            >
+                              {DAYS[dow]}
+                            </button>
+                            {isActive ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <input
+                                  type="time"
+                                  className="px-2 py-1.5 rounded-lg text-[13px]"
+                                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                  value={window.start_time.slice(0, 5)}
+                                  onChange={e => updateRecurringWindow(dow, 'start_time', e.target.value)}
+                                />
+                                <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>bis</span>
+                                <input
+                                  type="time"
+                                  className="px-2 py-1.5 rounded-lg text-[13px]"
+                                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                  value={window.end_time.slice(0, 5)}
+                                  onChange={e => updateRecurringWindow(dow, 'end_time', e.target.value)}
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Nicht verfügbar</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Request mode info */}
+                  {form.availability_type === 'request' && (
+                    <div className="rounded-xl p-4" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                      <p className="text-[13px]" style={{ color: '#6366F1' }}>
+                        Der Kunde sieht kein Kalender. Er füllt ein Formular aus mit Name, E-Mail, Wunschdatum und Wunschort — du erhältst eine Buchungsanfrage per E-Mail.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
 

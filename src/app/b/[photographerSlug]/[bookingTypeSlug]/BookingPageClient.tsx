@@ -15,6 +15,7 @@ interface BookingType {
   location_type: 'studio' | 'external' | 'online'
   price: number
   currency: string
+  availability_type: 'recurring' | 'slots' | 'request'
   anzahlung_enabled: boolean
   anzahlung_type: 'fixed' | 'percent' | null
   anzahlung_amount: number | null
@@ -78,11 +79,11 @@ const LOCATION_LABEL: Record<string, string> = {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-type Step = 'calendar' | 'form' | 'submitting'
+type Step = 'calendar' | 'form' | 'submitting' | 'request' | 'request_done'
 
 export default function BookingPageClient({ photographer, bookingType: bt }: Props) {
   const router = useRouter()
-  const [step, setStep] = useState<Step>('calendar')
+  const [step, setStep] = useState<Step>(bt.availability_type === 'request' ? 'request' : 'calendar')
 
   // Calendar state
   const now = new Date()
@@ -99,6 +100,14 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
   const [clientPhone, setClientPhone] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState('')
+
+  // Request-only mode state
+  const [reqName,     setReqName]     = useState('')
+  const [reqEmail,    setReqEmail]    = useState('')
+  const [reqDate,     setReqDate]     = useState('')
+  const [reqLocation, setReqLocation] = useState('')
+  const [reqMessage,  setReqMessage]  = useState('')
+  const [reqError,    setReqError]    = useState('')
 
   const monthStr = monthKey(viewYear, viewMonth)
 
@@ -182,6 +191,44 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
 
     // Redirect to confirmation page
     router.push(`/b/${photographer.slug}/${bt.slug}/confirm/${data.booking.id}`)
+  }
+
+  const handleRequestSubmit = async () => {
+    if (!reqName.trim()) { setReqError('Name ist erforderlich'); return }
+    if (!reqEmail.trim() || !reqEmail.includes('@')) { setReqError('Gültige E-Mail angeben'); return }
+    if (!reqDate.trim()) { setReqError('Bitte ein Wunschdatum angeben'); return }
+    setReqError('')
+    setStep('submitting')
+
+    const notes = [
+      reqLocation ? `Wunschort: ${reqLocation}` : null,
+      reqMessage  ? `Nachricht: ${reqMessage}`   : null,
+    ].filter(Boolean).join('\n')
+
+    // Use the desired date as booked_date; time placeholder '00:00'
+    const res = await fetch('/api/bookings/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        photographerSlug: photographer.slug,
+        bookingTypeSlug: bt.slug,
+        client_name: reqName,
+        client_email: reqEmail,
+        booked_date: reqDate,
+        booked_time: '00:00',
+        answers: {},
+        notes,
+      }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      setReqError(data.error ?? 'Fehler beim Senden')
+      setStep('request')
+      return
+    }
+
+    setStep('request_done')
   }
 
   const depositAmount = getDepositAmount(bt)
@@ -446,11 +493,107 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
           </div>
         )}
 
+        {/* ── Step: Request form ── */}
+        {step === 'request' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <div>
+              <h2 className="font-bold text-[17px] mb-1" style={{ color: '#111' }}>Anfrage senden</h2>
+              <p className="text-[13px] text-gray-500">
+                Teile uns deinen Wunschtermin mit — wir melden uns so schnell wie möglich bei dir.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Name *</label>
+                <input
+                  className="w-full px-3 py-2.5 rounded-xl text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  placeholder="Dein vollständiger Name"
+                  value={reqName}
+                  onChange={e => setReqName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">E-Mail *</label>
+                <input
+                  type="email"
+                  className="w-full px-3 py-2.5 rounded-xl text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  placeholder="deine@email.de"
+                  value={reqEmail}
+                  onChange={e => setReqEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Wunschdatum *</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2.5 rounded-xl text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  value={reqDate}
+                  onChange={e => setReqDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Wunschort</label>
+                <input
+                  className="w-full px-3 py-2.5 rounded-xl text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                  placeholder="z.B. Berlin Mitte, Outdoor, Studio…"
+                  value={reqLocation}
+                  onChange={e => setReqLocation(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Nachricht (optional)</label>
+              <textarea
+                className="w-full px-3 py-2.5 rounded-xl text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
+                rows={3}
+                placeholder="Weitere Infos oder Wünsche…"
+                value={reqMessage}
+                onChange={e => setReqMessage(e.target.value)}
+              />
+            </div>
+
+            {reqError && (
+              <p className="text-[13px] font-medium text-red-600">{reqError}</p>
+            )}
+
+            <button
+              onClick={handleRequestSubmit}
+              className="w-full py-3.5 rounded-xl text-[14px] font-bold transition-all"
+              style={{ background: '#1A1A18', color: '#fff' }}
+            >
+              Anfrage senden →
+            </button>
+          </div>
+        )}
+
+        {/* ── Step: Request done ── */}
+        {step === 'request_done' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: '#ECFDF5' }}>
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#10B981" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="font-black text-[20px] mb-2" style={{ letterSpacing: '-0.03em', color: '#111' }}>
+              Anfrage gesendet!
+            </h2>
+            <p className="text-[14px] text-gray-500 max-w-sm mx-auto">
+              {photographer.studioName || photographer.fullName} wird sich so schnell wie möglich bei dir melden.
+            </p>
+          </div>
+        )}
+
         {/* ── Step: Submitting ── */}
         {step === 'submitting' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
             <div className="w-10 h-10 mx-auto mb-4 rounded-full border-4 border-gray-200 border-t-gray-900 animate-spin" />
-            <p className="font-semibold text-gray-700">Buchung wird erstellt…</p>
+            <p className="font-semibold text-gray-700">Wird gesendet…</p>
           </div>
         )}
 

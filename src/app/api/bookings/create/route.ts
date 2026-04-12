@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     booked_date,
     booked_time,
     answers = {},
+    notes,
   } = body
 
   if (!photographerSlug || !bookingTypeSlug || !client_name || !client_email || !booked_date || !booked_time) {
@@ -44,18 +45,20 @@ export async function POST(req: NextRequest) {
 
   if (!bt) return NextResponse.json({ error: 'Booking type not found' }, { status: 404 })
 
-  // Anti-double-booking: check that the slot isn't already taken
-  const { data: conflict } = await serviceSupabase
-    .from('bookings')
-    .select('id')
-    .eq('booking_type_id', bt.id)
-    .eq('booked_date', booked_date)
-    .eq('booked_time', booked_time)
-    .in('status', ['pending', 'deposit_received', 'confirmed'])
-    .maybeSingle()
+  // Anti-double-booking: skip for request-only types (no fixed slots)
+  if (bt.availability_type !== 'request') {
+    const { data: conflict } = await serviceSupabase
+      .from('bookings')
+      .select('id')
+      .eq('booking_type_id', bt.id)
+      .eq('booked_date', booked_date)
+      .eq('booked_time', booked_time)
+      .in('status', ['pending', 'deposit_received', 'confirmed'])
+      .maybeSingle()
 
-  if (conflict) {
-    return NextResponse.json({ error: 'This slot is no longer available' }, { status: 409 })
+    if (conflict) {
+      return NextResponse.json({ error: 'This slot is no longer available' }, { status: 409 })
+    }
   }
 
   // Compute deposit amount
@@ -92,6 +95,7 @@ export async function POST(req: NextRequest) {
       answers,
       payment_reference,
       deposit_amount,
+      notes: notes?.trim() || null,
     })
     .select()
     .single()
