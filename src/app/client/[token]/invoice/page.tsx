@@ -2,6 +2,15 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FileText, CheckCircle2, Clock, AlertCircle, Send, Receipt, Building2 } from 'lucide-react'
+import PrintButton from './PrintButton'
+
+function buildEpcQrUrl(iban: string, bic: string | null, holder: string, amount: number, ref: string): string {
+  const cleanIban = iban.replace(/\s/g, '')
+  const name = holder.slice(0, 70)
+  const amountStr = (amount / 100).toFixed(2)
+  const epc = ['BCD', '002', '1', 'SCT', bic ?? '', name, cleanIban, `EUR${amountStr}`, '', '', ref.slice(0, 140)].join('\n')
+  return `https://api.qrserver.com/v1/create-qr-code/?size=160x160&ecc=M&data=${encodeURIComponent(epc)}`
+}
 
 type Locale = 'de' | 'en'
 
@@ -115,7 +124,7 @@ export default async function ClientInvoicePage({ params }: { params: Promise<{ 
   // Fetch invoices for this project
   const { data: invoices } = await supabase
     .from('invoices')
-    .select('id, invoice_number, amount, currency, status, due_date, description, created_at')
+    .select('id, invoice_number, amount, currency, status, due_date, description, created_at, tax_status, tax_rate, subtotal, tax_amount, verwendungszweck')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -124,18 +133,24 @@ export default async function ClientInvoicePage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-page)' }}>
+      <style>{`@media print { .print\\:hidden { display: none !important; } body { background: white !important; } }`}</style>
       <div className="max-w-lg mx-auto px-5 py-10 space-y-5">
 
         {/* Back + Header */}
         <div className="animate-in">
-          <Link
-            href={`/client/${token}`}
-            className="inline-flex items-center gap-1.5 text-[13px] font-bold mb-5 transition-all hover:opacity-70"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            {t.back}
-          </Link>
+          <div className="flex items-center justify-between mb-5">
+            <Link
+              href={`/client/${token}`}
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold transition-all hover:opacity-70 print:hidden"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              {t.back}
+            </Link>
+            {invoices && invoices.length > 0 && (
+              <PrintButton label={portalLocale === 'de' ? 'Herunterladen / Drucken' : 'Download / Print'} />
+            )}
+          </div>
 
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -254,52 +269,69 @@ export default async function ClientInvoicePage({ params }: { params: Promise<{ 
                     )}
 
                     {/* Bank details — only for unpaid invoices */}
-                    {hasBankDetails && inv.status !== 'paid' && (
-                      <div className="rounded-xl p-4" style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.15)' }}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Building2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F97316' }} />
-                          <p className="text-[11px] font-bold uppercase tracking-[0.10em]" style={{ color: '#F97316' }}>
-                            {t.bankDetails}
-                          </p>
-                        </div>
-                        <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
-                          {t.bankTransfer}
-                        </p>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                          {photographer?.bank_account_holder && (
-                            <div>
-                              <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>{t.accountHolder}</p>
-                              <p className="text-[13px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_account_holder}</p>
-                            </div>
-                          )}
-                          {photographer?.bank_name && (
-                            <div>
-                              <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>{t.bank}</p>
-                              <p className="text-[13px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_name}</p>
-                            </div>
-                          )}
-                          {photographer?.bank_iban && (
-                            <div className="col-span-2">
-                              <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>IBAN</p>
-                              <p className="text-[13px] font-bold font-mono mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_iban}</p>
-                            </div>
-                          )}
-                          {photographer?.bank_bic && (
-                            <div>
-                              <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>BIC / SWIFT</p>
-                              <p className="text-[13px] font-bold font-mono mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_bic}</p>
-                            </div>
-                          )}
-                        </div>
-                        {inv.invoice_number && (
-                          <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(249,115,22,0.15)' }}>
-                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                              {t.reference}: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{inv.invoice_number}</strong>
+                    {hasBankDetails && inv.status !== 'paid' && (() => {
+                      const ref = (inv as { verwendungszweck?: string | null }).verwendungszweck || inv.invoice_number || ''
+                      const qrUrl = photographer?.bank_iban
+                        ? buildEpcQrUrl(photographer.bank_iban, photographer.bank_bic ?? null, photographer.bank_account_holder || studioName, inv.amount, ref)
+                        : null
+                      return (
+                        <div className="rounded-xl p-4" style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.15)' }}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Building2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#F97316' }} />
+                            <p className="text-[11px] font-bold uppercase tracking-[0.10em]" style={{ color: '#F97316' }}>
+                              {t.bankDetails}
                             </p>
                           </div>
-                        )}
-                      </div>
-                    )}
+                          <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+                            {t.bankTransfer}
+                          </p>
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                              {photographer?.bank_account_holder && (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>{t.accountHolder}</p>
+                                  <p className="text-[13px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_account_holder}</p>
+                                </div>
+                              )}
+                              {photographer?.bank_name && (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>{t.bank}</p>
+                                  <p className="text-[13px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_name}</p>
+                                </div>
+                              )}
+                              {photographer?.bank_iban && (
+                                <div className="col-span-2">
+                                  <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>IBAN</p>
+                                  <p className="text-[13px] font-bold font-mono mt-0.5 break-all" style={{ color: 'var(--text-primary)' }}>{photographer.bank_iban}</p>
+                                </div>
+                              )}
+                              {photographer?.bank_bic && (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide font-bold" style={{ color: 'var(--text-muted)' }}>BIC / SWIFT</p>
+                                  <p className="text-[13px] font-bold font-mono mt-0.5" style={{ color: 'var(--text-primary)' }}>{photographer.bank_bic}</p>
+                                </div>
+                              )}
+                              {ref && (
+                                <div className="col-span-2 mt-1 pt-3" style={{ borderTop: '1px solid rgba(249,115,22,0.15)' }}>
+                                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                    {t.reference}: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{ref}</strong>
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            {/* GiroCode QR */}
+                            {qrUrl && (
+                              <div className="flex-shrink-0 text-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={qrUrl} width={100} height={100} alt="GiroCode QR" className="rounded-lg block" />
+                                <p className="text-[9px] font-bold uppercase tracking-wider mt-1.5" style={{ color: 'var(--text-muted)' }}>GiroCode</p>
+                                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{portalLocale === 'de' ? 'mit Banking-App scannen' : 'scan with banking app'}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     {/* Paid badge */}
                     {inv.status === 'paid' && (
