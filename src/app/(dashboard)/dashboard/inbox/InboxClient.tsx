@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink,
-  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer, ArrowLeft,
+  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer, ArrowLeft, Check,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useLocale } from '@/hooks/useLocale'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -16,14 +17,30 @@ interface Message {
   created_at: string
 }
 
+type LeadStatus = 'new_lead' | 'not_available' | 'offer_sent' | 'no_response' | 'video_call' | 'booking_confirmed'
+
 interface Conversation {
   id: string
   photographer_id: string
   lead_name: string
   lead_email: string
   created_at: string
+  lead_status: LeadStatus | null
+  status_changed_at: Record<string, string> | null
   messages: Message[]
 }
+
+// ── Status config ──────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<LeadStatus, { de: string; en: string; color: string; bg: string; dot: string }> = {
+  new_lead:           { de: 'Anfragen',           en: 'New Lead',           color: '#6B7280', bg: 'rgba(107,114,128,0.12)', dot: '#6B7280' },
+  not_available:      { de: 'Nicht verfügbar',    en: 'Not Available',      color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   dot: '#EF4444' },
+  offer_sent:         { de: 'Angebot geschickt',  en: 'Offer Sent',         color: '#3B82F6', bg: 'rgba(59,130,246,0.12)',  dot: '#3B82F6' },
+  no_response:        { de: 'Kein Antwort',       en: 'No Response',        color: '#4B5563', bg: 'rgba(75,85,99,0.12)',    dot: '#4B5563' },
+  video_call:         { de: 'Video Call',          en: 'Video Call',         color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', dot: '#F59E0B' },
+  booking_confirmed:  { de: 'Buchung bestätigt',  en: 'Booking Confirmed',  color: '#10B981', bg: 'rgba(16,185,129,0.12)', dot: '#10B981' },
+}
+const STATUS_ORDER: LeadStatus[] = ['new_lead', 'not_available', 'offer_sent', 'no_response', 'video_call', 'booking_confirmed']
 
 interface EmailTemplate {
   id: string
@@ -367,22 +384,123 @@ function StructuredMessageBubble({
   )
 }
 
+// ── Status dropdown component ─────────────────────────────────────────────────
+
+function LeadStatusDropdown({
+  conversationId,
+  currentStatus,
+  locale,
+  onStatusChange,
+}: {
+  conversationId: string
+  currentStatus: LeadStatus
+  locale: string
+  onStatusChange: (id: string, status: LeadStatus) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const cfg = STATUS_CONFIG[currentStatus]
+  const label = locale === 'de' ? cfg.de : cfg.en
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const select = async (status: LeadStatus) => {
+    if (status === currentStatus) { setOpen(false); return }
+    setOpen(false)
+    setSaving(true)
+    onStatusChange(conversationId, status) // optimistic
+    try {
+      await fetch('/api/inbox/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, status }),
+      })
+    } catch {
+      toast.error('Failed to update status')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all active:scale-[0.97]"
+        style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}30` }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
+        {saving ? '…' : label}
+        <ChevronDown className="w-2.5 h-2.5 opacity-70" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="absolute left-0 top-full mt-1.5 rounded-xl overflow-hidden z-50"
+            style={{
+              minWidth: '200px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            }}
+          >
+            {STATUS_ORDER.map(s => {
+              const c = STATUS_CONFIG[s]
+              const lbl = locale === 'de' ? c.de : c.en
+              const isActive = s === currentStatus
+              return (
+                <button
+                  key={s}
+                  onClick={() => select(s)}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors"
+                  style={{ background: isActive ? c.bg : 'transparent' }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = isActive ? c.bg : 'transparent' }}
+                >
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.dot }} />
+                  <span className="text-[12px] font-medium flex-1" style={{ color: isActive ? c.color : 'var(--text-primary)' }}>{lbl}</span>
+                  {isActive && <Check className="w-3 h-3 flex-shrink-0" style={{ color: c.color }} />}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function InboxClient({ conversations, photographerEmail: _photographerEmail, emailTemplates }: Props) {
+export default function InboxClient({ conversations: initialConversations, photographerEmail: _photographerEmail, emailTemplates }: Props) {
+  const locale = useLocale()
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedId, setSelectedId]       = useState<string | null>(
-    conversations.length > 0 ? conversations[0].id : null,
+    initialConversations.length > 0 ? initialConversations[0].id : null,
   )
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({})
   const [replyText, setReplyText]         = useState('')
   const [isSending, setIsSending]         = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
-  // Task 1: "ready to send" hint above textarea
   const [showReadyHint, setShowReadyHint] = useState(false)
-  // Task 7: hover tracking for message bubbles
   const [hoveredMsgId, setHoveredMsgId]   = useState<string | null>(null)
-  // Mobile: toggle between list and thread views
   const [showThread, setShowThread]       = useState(false)
+  // Status filter for conversation list
+  const [statusFilter, setStatusFilter]   = useState<LeadStatus | 'all'>('all')
+
+  const handleStatusChange = (id: string, status: LeadStatus) => {
+    setConversations(prev => prev.map(c => c.id === id ? { ...c, lead_status: status } : c))
+  }
 
   const templatesRef   = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -524,15 +642,16 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
     }, 50)
   }
 
-  // Task 3: status badge — yellow for New Lead, blue for In Conversation
-  const photographerMsgCount = selected
-    ? displayMessages.filter(m => m.sender === 'photographer').length
-    : 0
-  const statusBadge = selected
-    ? photographerMsgCount === 0
-      ? { label: 'New Lead',        color: '#CA8A04', bg: 'rgba(234,179,8,0.13)' }
-      : { label: 'In Conversation', color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' }
-    : null
+  // Filtered conversation list
+  const filteredConversations = statusFilter === 'all'
+    ? conversations
+    : conversations.filter(c => (c.lead_status ?? 'new_lead') === statusFilter)
+
+  // Status counts for filter tabs
+  const statusCounts = STATUS_ORDER.reduce<Record<LeadStatus, number>>((acc, s) => {
+    acc[s] = conversations.filter(c => (c.lead_status ?? 'new_lead') === s).length
+    return acc
+  }, {} as Record<LeadStatus, number>)
 
   // Task 5: response time label
   const responseLabel = selected ? calcResponseLabel(displayMessages) : ''
@@ -554,8 +673,8 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
           background: 'var(--bg-surface)',
         }}
       >
-        <div className="px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
-          <div className="flex items-center gap-2">
+        <div className="px-4 pt-4 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <div className="flex items-center gap-2 mb-3">
             <Inbox className="w-4 h-4" style={{ color: '#10B981' }} />
             <h1 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>Inbox</h1>
             {conversations.length > 0 && (
@@ -566,6 +685,38 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                 {conversations.length}
               </span>
             )}
+          </div>
+          {/* Status filter tabs */}
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+              style={{
+                background: statusFilter === 'all' ? 'var(--text-primary)' : 'var(--bg-hover)',
+                color: statusFilter === 'all' ? 'var(--bg-page)' : 'var(--text-muted)',
+              }}
+            >
+              Alle {conversations.length > 0 && `(${conversations.length})`}
+            </button>
+            {STATUS_ORDER.filter(s => statusCounts[s] > 0).map(s => {
+              const cfg = STATUS_CONFIG[s]
+              const active = statusFilter === s
+              return (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+                  style={{
+                    background: active ? cfg.bg : 'var(--bg-hover)',
+                    color: active ? cfg.color : 'var(--text-muted)',
+                    border: active ? `1px solid ${cfg.color}40` : '1px solid transparent',
+                  }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
+                  {statusCounts[s]}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -579,10 +730,17 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
               </p>
             </div>
           )}
-          {conversations.map(conv => {
+          {filteredConversations.length === 0 && conversations.length > 0 && (
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Keine Anfragen in diesem Status</p>
+            </div>
+          )}
+          {filteredConversations.map(conv => {
             const allMsgs  = getMessages(conv.id)
             const last     = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : getLastMessage(conv.messages)
             const isActive = conv.id === selectedId
+            const convStatus = conv.lead_status ?? 'new_lead'
+            const sCfg = STATUS_CONFIG[convStatus]
             return (
               <button
                 key={conv.id}
@@ -601,10 +759,18 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
 
                   <div className="flex-1 min-w-0">
                     {/* Name + date row */}
-                    <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                      <p className="text-[14px] sm:text-[13px] font-bold sm:font-semibold truncate leading-snug" style={{ color: 'var(--text-primary)' }}>
-                        {conv.lead_name}
-                      </p>
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-[14px] sm:text-[13px] font-bold sm:font-semibold truncate leading-snug" style={{ color: 'var(--text-primary)' }}>
+                          {conv.lead_name}
+                        </p>
+                        {/* Status dot */}
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ background: sCfg.dot }}
+                          title={sCfg.de}
+                        />
+                      </div>
                       {last && (
                         <span className="text-[11px] sm:text-[10px] flex-shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>
                           {formatTime(last.created_at)}
@@ -663,15 +829,12 @@ export default function InboxClient({ conversations, photographerEmail: _photogr
                     <p className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                       {selected.lead_name}
                     </p>
-                    {/* Task 3: yellow / blue badge */}
-                    {statusBadge && (
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: statusBadge.bg, color: statusBadge.color }}
-                      >
-                        {statusBadge.label}
-                      </span>
-                    )}
+                    <LeadStatusDropdown
+                      conversationId={selected.id}
+                      currentStatus={selected.lead_status ?? 'new_lead'}
+                      locale={locale}
+                      onStatusChange={handleStatusChange}
+                    />
                   </div>
                   <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                     <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>

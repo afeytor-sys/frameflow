@@ -58,6 +58,7 @@ export interface PlanLimits {
   questionnaires: boolean
   pipeline: boolean
   emailAutomations: boolean
+  onlineBookings: boolean
 }
 
 export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
@@ -79,6 +80,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     questionnaires: false,
     pipeline: false,
     emailAutomations: false,
+    onlineBookings: false,
   },
   starter: {
     maxClients: 10,
@@ -98,6 +100,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     questionnaires: false,
     pipeline: false,
     emailAutomations: false,
+    onlineBookings: false,
   },
   pro: {
     maxClients: null,
@@ -117,6 +120,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     questionnaires: true,
     pipeline: true,
     emailAutomations: true,
+    onlineBookings: true,
   },
   studio: {
     maxClients: null,
@@ -136,6 +140,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     questionnaires: true,
     pipeline: true,
     emailAutomations: true,
+    onlineBookings: true,
   },
 }
 

@@ -4,22 +4,24 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
-import { TrendingUp, Users, FileText, Euro, CheckCircle2, ArrowUpRight } from 'lucide-react'
+import { TrendingUp, Users, FileText, Euro, CheckCircle2, ArrowUpRight, Clock } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import { formatCompact } from '@/lib/utils'
 
-interface Invoice  { amount: number; status: string; created_at: string }
-interface Client   { created_at: string; status: string }
-interface Project  { created_at: string; status: string; project_type: string | null; shoot_date?: string | null; shooting_type?: string | null }
-interface Contract { status: string; created_at: string }
-interface Gallery  { status: string; created_at: string }
+interface Invoice      { amount: number; status: string; created_at: string }
+interface Client       { created_at: string; status: string }
+interface Project      { created_at: string; status: string; project_type: string | null; shoot_date?: string | null; shooting_type?: string | null }
+interface Contract     { status: string; created_at: string }
+interface Gallery      { status: string; created_at: string }
+interface Conversation { lead_status: string | null; status_changed_at: Record<string, string> | null; created_at: string }
 
 interface Props {
-  invoices:      Invoice[]
-  clients:       Client[]
-  projects:      Project[]
-  contracts:     Contract[]
-  galleries:     Gallery[]
+  invoices:       Invoice[]
+  clients:        Client[]
+  projects:       Project[]
+  contracts:      Contract[]
+  galleries:      Gallery[]
+  conversations:  Conversation[]
   initialLocale?: 'en' | 'de'
 }
 
@@ -149,7 +151,7 @@ const CONTRACT_COLORS: Record<string, string> = {
   signed: '#10B981',
 }
 
-export default function AnalyticsClient({ invoices, clients, projects, contracts, galleries, initialLocale }: Props) {
+export default function AnalyticsClient({ invoices, clients, projects, contracts, galleries, conversations, initialLocale }: Props) {
   const hookLocale = useLocale()
   const locale = initialLocale ?? hookLocale
   const t = T[locale]
@@ -262,6 +264,37 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
       icon: Euro, color: '#EC4899',
     },
   ]
+
+  // ── Lead funnel ──
+  const totalLeads = conversations.length
+  const reachedStage = (stage: string) =>
+    conversations.filter(c =>
+      (c.status_changed_at && c.status_changed_at[stage]) || c.lead_status === stage
+    ).length
+
+  const funnelStages = [
+    { key: 'new_lead',          label: locale === 'de' ? 'Anfragen'           : 'New Leads',          color: '#6B7280', count: totalLeads },
+    { key: 'offer_sent',        label: locale === 'de' ? 'Angebot geschickt'  : 'Offer Sent',         color: '#3B82F6', count: reachedStage('offer_sent') },
+    { key: 'video_call',        label: 'Video Call',                                                   color: '#F59E0B', count: reachedStage('video_call') },
+    { key: 'booking_confirmed', label: locale === 'de' ? 'Buchung bestätigt'  : 'Booking Confirmed',  color: '#10B981', count: reachedStage('booking_confirmed') },
+  ].map((stage, i, arr) => ({
+    ...stage,
+    pct:  totalLeads > 0 ? Math.round((stage.count / totalLeads) * 100) : 0,
+    conv: i > 0 && arr[i - 1].count > 0 ? Math.round((stage.count / arr[i - 1].count) * 100) : null,
+  }))
+
+  const bookingsWithTime = conversations.filter(
+    c => c.lead_status === 'booking_confirmed' && c.status_changed_at?.booking_confirmed,
+  )
+  const avgDaysToBooking = bookingsWithTime.length > 0
+    ? Math.round(
+        bookingsWithTime.reduce((sum, c) => {
+          const start = new Date(c.created_at).getTime()
+          const end   = new Date(c.status_changed_at!.booking_confirmed).getTime()
+          return sum + (end - start) / (1000 * 60 * 60 * 24)
+        }, 0) / bookingsWithTime.length,
+      )
+    : null
 
   const tooltipStyle = {
     background: 'var(--bg-surface)',
@@ -627,6 +660,77 @@ export default function AnalyticsClient({ invoices, clients, projects, contracts
             </ResponsiveContainer>
           )}
         </div>
+      </div>
+
+      {/* Lead Pipeline Funnel */}
+      <div
+        className="rounded-2xl p-6"
+        style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <div className="flex items-start justify-between mb-1">
+          <h2 className="font-bold text-[14.5px]" style={{ color: 'var(--text-primary)' }}>
+            {locale === 'de' ? 'Lead-Pipeline' : 'Lead Pipeline'}
+          </h2>
+          {totalLeads > 0 && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#6B728015', color: '#6B7280' }}>
+              {totalLeads} {locale === 'de' ? 'Anfragen' : 'leads'}
+            </span>
+          )}
+        </div>
+        <p className="text-[12px] mb-6" style={{ color: 'var(--text-muted)' }}>
+          {locale === 'de' ? 'Conversion vom ersten Kontakt bis zur Buchung' : 'Conversion from first contact to booking'}
+        </p>
+
+        {totalLeads === 0 ? (
+          <div className="flex items-center justify-center h-24 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+            {locale === 'de' ? 'Noch keine Anfragen' : 'No leads yet'}
+          </div>
+        ) : (
+          <>
+            <div className="space-y-5">
+              {funnelStages.map((stage, i) => (
+                <div key={stage.key}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                      <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{stage.label}</span>
+                      {i > 0 && stage.conv !== null && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                          style={{ background: stage.conv >= 50 ? '#10B98118' : '#EF444418', color: stage.conv >= 50 ? '#10B981' : '#EF4444' }}
+                        >
+                          {stage.conv}% {locale === 'de' ? 'vom Vorschritt' : 'from prev'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2.5 flex-shrink-0">
+                      <span className="text-[13px] font-bold tabular-nums" style={{ color: stage.color }}>{stage.count}</span>
+                      <span className="text-[11px] w-9 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>{stage.pct}%</span>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${stage.pct}%`, background: stage.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {avgDaysToBooking !== null && (
+              <div className="flex items-center gap-2 mt-5 pt-4" style={{ borderTop: '1px solid var(--card-border)' }}>
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10B981' }} />
+                <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                  {locale === 'de' ? 'Ø Zeit bis zur Buchung:' : 'Avg time to booking:'}
+                  <span className="font-bold ml-1" style={{ color: 'var(--text-primary)' }}>
+                    {avgDaysToBooking} {locale === 'de' ? 'Tage' : 'days'}
+                  </span>
+                </span>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Summary row */}

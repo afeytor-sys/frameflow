@@ -157,6 +157,111 @@ export async function updateCalendarEvent(
   }
 }
 
+// ── Booking event (datetime, not all-day, optional Google Meet) ───────────────
+
+export interface BookingEventData {
+  bookingId: string
+  title: string
+  description?: string
+  date: string       // "YYYY-MM-DD"
+  startTime: string  // "HH:MM"
+  durationMinutes: number
+  location?: string
+  isOnline?: boolean
+}
+
+export async function createBookingEvent(
+  photographer: PhotographerCalendarData,
+  eventData: BookingEventData,
+  supabase: any
+): Promise<{ eventId: string | null; meetLink: string | null }> {
+  const accessToken = await getValidAccessToken(photographer, supabase)
+  if (!accessToken) return { eventId: null, meetLink: null }
+
+  const startISO = `${eventData.date}T${eventData.startTime}:00`
+  const endDate = new Date(`${startISO}`)
+  endDate.setMinutes(endDate.getMinutes() + eventData.durationMinutes)
+  const endISO = endDate.toISOString().slice(0, 19) // "YYYY-MM-DDTHH:MM:SS"
+
+  const event: Record<string, unknown> = {
+    summary: eventData.title,
+    description: eventData.description || '',
+    location: eventData.location || '',
+    start: { dateTime: startISO, timeZone: 'Europe/Berlin' },
+    end:   { dateTime: endISO,   timeZone: 'Europe/Berlin' },
+    colorId: '11',
+  }
+
+  // Add conferenceData for Google Meet (online bookings)
+  if (eventData.isOnline) {
+    event.conferenceData = {
+      createRequest: {
+        requestId: eventData.bookingId,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    }
+  }
+
+  const url = eventData.isOnline
+    ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1'
+    : 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(event),
+    })
+
+    const data = await res.json()
+    const eventId = data.id || null
+    const meetLink = data.conferenceData?.entryPoints?.[0]?.uri || null
+
+    return { eventId, meetLink }
+  } catch {
+    return { eventId: null, meetLink: null }
+  }
+}
+
+// ── FreeBusy query — returns occupied periods ─────────────────────────────────
+
+export async function getFreeBusy(
+  photographer: PhotographerCalendarData,
+  timeMin: string,  // ISO datetime
+  timeMax: string,  // ISO datetime
+  supabase: any
+): Promise<Array<{ start: string; end: string }>> {
+  const accessToken = await getValidAccessToken(photographer, supabase)
+  if (!accessToken) return []
+
+  try {
+    const res = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        timeMin,
+        timeMax,
+        timeZone: 'Europe/Berlin',
+        items: [{ id: 'primary' }],
+      }),
+    })
+
+    const data = await res.json()
+    const busy: Array<{ start: string; end: string }> =
+      data.calendars?.primary?.busy ?? []
+
+    return busy
+  } catch {
+    return []
+  }
+}
+
 // Delete a Google Calendar event
 export async function deleteCalendarEvent(
   photographer: PhotographerCalendarData,

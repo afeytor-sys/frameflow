@@ -35,6 +35,7 @@ interface Photographer {
   invoice_prefix: string | null
   invoice_start_number: number | null
   last_invoice_number: number | null
+  slug?: string | null
 }
 
 interface Props {
@@ -91,6 +92,10 @@ export default function SettingsClient({ photographer, userId }: Props) {
     reminder_1d: true,
   })
   const [autoLoaded, setAutoLoaded] = useState(false)
+
+  // Booking slug
+  const [bookingSlug, setBookingSlug] = useState((photographer as (Photographer & { slug?: string | null }) | null)?.slug ?? '')
+  const [slugSaving, setSlugSaving] = useState(false)
 
   // Integrations state
   const [notifEmail, setNotifEmail] = useState('')
@@ -288,6 +293,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           { id: 'automations', label: isDE ? 'Automationen' : 'Automations', icon: Zap },
         { id: 'notifications', label: ts.tabs.notifications, icon: Bell },
         { id: 'integrations', label: isDE ? 'Integrationen' : 'Integrations', icon: Link2 },
+        { id: 'bookings', label: 'Bookings', icon: Calendar },
         ] as const).map(tab => {
           const Icon = tab.icon
           return (
@@ -1045,6 +1051,79 @@ export default function SettingsClient({ photographer, userId }: Props) {
           disconnecting={disconnecting}
           setDisconnecting={setDisconnecting}
         />
+      )}
+
+      {/* ── Bookings tab ─────────────────────────────────────────────────── */}
+      {activeTab === 'bookings' && (
+        <div
+          className="rounded-2xl p-6 space-y-5"
+          style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}
+        >
+          <div>
+            <h2 className="font-bold text-[15px] mb-1" style={{ color: 'var(--text-primary)' }}>Booking Link</h2>
+            <p className="text-[13px] mb-4" style={{ color: 'var(--text-muted)' }}>
+              Dein öffentlicher Booking-Link. Clients buchen unter: fotonizer.com/b/<strong>{bookingSlug || 'dein-slug'}</strong>/...
+            </p>
+            <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+              Dein Slug
+            </label>
+            <div className="flex items-center gap-2">
+              <div
+                className="flex items-center rounded-xl overflow-hidden flex-1"
+                style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}
+              >
+                <span className="px-3 py-2 text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border-color)' }}>
+                  fotonizer.com/b/
+                </span>
+                <input
+                  className="flex-1 px-3 py-2 text-[14px] bg-transparent"
+                  style={{ color: 'var(--text-primary)' }}
+                  value={bookingSlug}
+                  onChange={e => setBookingSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''))}
+                  placeholder="max-mustermann"
+                  maxLength={60}
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  if (!bookingSlug.trim()) { toast.error('Slug darf nicht leer sein'); return }
+                  setSlugSaving(true)
+                  try {
+                    const { error } = await supabase
+                      .from('photographers')
+                      .update({ slug: bookingSlug.trim() })
+                      .eq('id', userId)
+                    if (error) throw error
+                    toast.success('Slug gespeichert!')
+                  } catch {
+                    toast.error('Slug ist bereits vergeben oder ungültig')
+                  } finally {
+                    setSlugSaving(false)
+                  }
+                }}
+                disabled={slugSaving}
+                className="px-4 py-2 rounded-xl text-[13px] font-bold disabled:opacity-50 transition-all"
+                style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+              >
+                {slugSaving ? '…' : isDE ? 'Speichern' : 'Save'}
+              </button>
+            </div>
+            <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+              Nur Kleinbuchstaben, Zahlen und Bindestriche. Dieser Slug ist eindeutig und kann nicht von anderen verwendet werden.
+            </p>
+          </div>
+
+          <div className="pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+            <a
+              href="/dashboard/booking-types"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+            >
+              <Calendar className="w-4 h-4" />
+              Booking Types verwalten →
+            </a>
+          </div>
+        </div>
       )}
     </div>
   )
