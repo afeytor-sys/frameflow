@@ -72,6 +72,8 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [privacyError, setPrivacyError] = useState(false)
 
   function setValue(id: string, val: string) {
     setValues(prev => ({ ...prev, [id]: val }))
@@ -116,7 +118,10 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setServerError(null)
-    if (!validate()) return
+    setPrivacyError(false)
+    const fieldsValid = validate()
+    if (!privacyAccepted) { setPrivacyError(true) }
+    if (!fieldsValid || !privacyAccepted) return
 
     // Extract core fields for API
     const name = values['name']?.trim() ?? ''
@@ -346,6 +351,39 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
           {serverError}
         </div>
       )}
+
+      {/* DSGVO consent checkbox */}
+      <div>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={e => { setPrivacyAccepted(e.target.checked); setPrivacyError(false) }}
+            className="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+            style={{ accentColor: 'var(--accent, #C9A96E)' }}
+          />
+          <span className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary, #666)' }}>
+            Ich habe die{' '}
+            <a
+              href="/datenschutz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              style={{ color: 'var(--accent, #C9A96E)' }}
+            >
+              Datenschutzerklärung
+            </a>{' '}
+            gelesen und akzeptiere sie. *
+          </span>
+        </label>
+        {privacyError && (
+          <p className="mt-1 text-xs text-red-500">
+            {typeof navigator !== 'undefined' && navigator.language.startsWith('de')
+              ? 'Bitte akzeptiere die Datenschutzerklärung'
+              : 'Please accept the privacy policy'}
+          </p>
+        )}
+      </div>
 
       {/* Submit */}
       <button

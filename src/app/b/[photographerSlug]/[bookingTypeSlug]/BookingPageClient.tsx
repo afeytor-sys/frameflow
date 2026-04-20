@@ -100,6 +100,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
   const [clientPhone, setClientPhone] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState('')
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
 
   // Request-only mode state
   const [reqName,     setReqName]     = useState('')
@@ -108,6 +109,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
   const [reqLocation, setReqLocation] = useState('')
   const [reqMessage,  setReqMessage]  = useState('')
   const [reqError,    setReqError]    = useState('')
+  const [reqPrivacyAccepted, setReqPrivacyAccepted] = useState(false)
 
   const monthStr = monthKey(viewYear, viewMonth)
 
@@ -165,6 +167,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
     for (const q of bt.questions.filter(q => q.required)) {
       if (!answers[q.id]?.trim()) { setFormError(`Bitte "${q.label}" ausfüllen`); return }
     }
+    if (!privacyAccepted) { setFormError('Bitte akzeptiere die Datenschutzerklärung'); return }
     setFormError('')
     setStep('submitting')
 
@@ -198,6 +201,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
     if (!reqName.trim()) { setReqError('Name ist erforderlich'); return }
     if (!reqEmail.trim() || !reqEmail.includes('@')) { setReqError('Gültige E-Mail angeben'); return }
     if (!reqDate.trim()) { setReqError('Bitte ein Wunschdatum angeben'); return }
+    if (!reqPrivacyAccepted) { setReqError('Bitte akzeptiere die Datenschutzerklärung'); return }
     setReqError('')
     setStep('submitting')
 
@@ -530,6 +534,30 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                 </div>
               )}
 
+              {/* DSGVO consent checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={e => setPrivacyAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+                  style={{ accentColor: '#1A1A18' }}
+                />
+                <span className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
+                  Ich habe die{' '}
+                  <a
+                    href="/datenschutz"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                    style={{ color: '#1A1A18' }}
+                  >
+                    Datenschutzerklärung
+                  </a>{' '}
+                  gelesen und akzeptiere sie. *
+                </span>
+              </label>
+
               {formError && (
                 <p className="text-[13px] font-medium text-red-600">{formError}</p>
               )}
@@ -609,6 +637,30 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                 onChange={e => setReqMessage(e.target.value)}
               />
             </div>
+
+            {/* DSGVO consent checkbox */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={reqPrivacyAccepted}
+                onChange={e => setReqPrivacyAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+                style={{ accentColor: '#1A1A18' }}
+              />
+              <span className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>
+                Ich habe die{' '}
+                <a
+                  href="/datenschutz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                  style={{ color: '#1A1A18' }}
+                >
+                  Datenschutzerklärung
+                </a>{' '}
+                gelesen und akzeptiere sie. *
+              </span>
+            </label>
 
             {reqError && (
               <p className="text-[13px] font-medium text-red-600">{reqError}</p>
