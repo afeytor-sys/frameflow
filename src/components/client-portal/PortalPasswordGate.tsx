@@ -76,7 +76,7 @@ export default function PortalPasswordGate({ password, studioName, logoUrl, chil
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="Fotonizer" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
+                <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
                 <span style={{ fontFamily: '"DM Sans", system-ui, sans-serif', fontWeight: 700, fontSize: '16px', color: '#111827', letterSpacing: '-0.01em' }}>
                   {studioName}
                 </span>

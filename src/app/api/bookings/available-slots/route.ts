@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   generateAvailableSlots,
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Resolve photographer by slug
   const { data: photographer } = await supabase
@@ -72,15 +72,22 @@ export async function GET(req: NextRequest) {
     ? rangeEnd.toISOString().slice(0, 10)
     : new Date(now.getTime() + bt.max_advance_days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
+  // Fetch ALL active bookings for this photographer (any booking type)
+  // so cross-type conflicts are also blocked on the calendar.
   const { data: existingRaw } = await supabase
     .from('bookings')
-    .select('booked_date, booked_time, status')
-    .eq('booking_type_id', bt.id)
+    .select('booked_date, booked_time, status, booking_types(duration_minutes)')
+    .eq('photographer_id', photographer.id)
     .gte('booked_date', now.toISOString().slice(0, 10))
     .lte('booked_date', windowEnd)
     .in('status', ['pending', 'deposit_received', 'confirmed'])
 
-  const existing: ExistingBooking[] = existingRaw ?? []
+  const existing: ExistingBooking[] = (existingRaw ?? []).map(b => ({
+    booked_date: b.booked_date,
+    booked_time: b.booked_time,
+    status: b.status,
+    duration_minutes: (b.booking_types as unknown as { duration_minutes: number } | null)?.duration_minutes ?? bt.duration_minutes,
+  }))
 
   // Fetch blocked slots in window
   const { data: blockedRaw } = await supabase

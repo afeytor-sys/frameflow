@@ -1,6 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
+// "YYYY-MM-DD" → "DD.MM.YYYY"
+function fmtDate(dateStr: string): string {
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-')
+  return `${d}.${m}.${y}`
+}
+
 // PATCH /api/bookings/[id]/deposit
 // Public — client marks deposit as paid (optionally with proof URL)
 
@@ -50,9 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const toEmail = ph.notification_email || ph.email
     const studioName = ph.studio_name || ph.full_name || 'Fotonizer'
-    const shootDate = new Date(booking.booked_date).toLocaleDateString('de-DE', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-    })
+    const shootDate = fmtDate(booking.booked_date)
 
     await supabase.from('scheduled_emails').insert({
       photographer_id: booking.photographer_id,

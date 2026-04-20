@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import PipelineClient from '../pipeline/PipelineClient'
@@ -87,8 +87,26 @@ function getClientName(client: Project['client']): string | null {
   return client.full_name || null
 }
 
+interface OnlineBooking {
+  id: string
+  client_name: string
+  client_email: string
+  booked_date: string
+  booked_time: string
+  status: string
+  payment_reference: string | null
+  deposit_amount: number | null
+  google_meet_link: string | null
+  invoice_id: string | null
+  notes: string | null
+  booking_types: { title: string; duration_minutes: number; location_type: string; price: number } | null
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
+  const [onlineBookings, setOnlineBookings] = useState<OnlineBooking[]>([])
+  const [bookingModal, setBookingModal] = useState<OnlineBooking | null>(null)
+  const [bookingLoading, setBookingLoading] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     if (typeof window !== 'undefined') {
@@ -154,12 +172,21 @@ export default function ProjectsPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data } = await supabase
-        .from('projects')
-        .select('id, title, status, shoot_date, location, shooting_type, sort_order, client:clients(full_name)')
-        .eq('photographer_id', user.id)
-        .order('sort_order', { ascending: true })
-      setProjects((data as Project[]) || [])
+      const [projectsRes, bookingsRes] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id, title, status, shoot_date, location, shooting_type, sort_order, client:clients(full_name)')
+          .eq('photographer_id', user.id)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('bookings')
+          .select('id, client_name, client_email, booked_date, booked_time, status, payment_reference, deposit_amount, google_meet_link, invoice_id, notes, booking_types(title, duration_minutes, location_type, price)')
+          .eq('photographer_id', user.id)
+          .not('status', 'eq', 'cancelled')
+          .order('booked_date', { ascending: true }),
+      ])
+      setProjects((projectsRes.data as Project[]) || [])
+      setOnlineBookings((bookingsRes.data as unknown as OnlineBooking[]) || [])
       setLoading(false)
     }
     load()
@@ -259,33 +286,99 @@ export default function ProjectsPage() {
   // ── Calendar (Kalender tab) derived data ──────────────────────────────────
   const MONTHS = de ? MONTHS_DE : MONTHS_EN
   const DAYS = de ? DAYS_DE : DAYS_EN
-  type BookingItem = { id: string; title: string; shoot_date: string; location: string | null; status: string; client: { full_name: string } | null }
-  const bookings: BookingItem[] = projects
+
+  type CalEntry = {
+    id: string; title: string; shoot_date: string; location: string | null
+    status: string; client: { full_name: string } | null
+    source: 'project' | 'booking'
+    booking?: OnlineBooking
+    booked_time?: string
+  }
+
+  const projectEntries: CalEntry[] = projects
     .filter(p => !!p.shoot_date)
     .map(p => ({
-      id: p.id,
-      title: p.title,
-      shoot_date: p.shoot_date!,
-      location: p.location ?? null,
-      status: p.status,
+      id: p.id, title: p.title, shoot_date: p.shoot_date!,
+      location: p.location ?? null, status: p.status,
       client: p.client ? (Array.isArray(p.client) ? p.client[0] ?? null : p.client) : null,
+      source: 'project' as const,
     }))
-    .sort((a, b) => a.shoot_date.localeCompare(b.shoot_date))
+
+  const bookingEntries: CalEntry[] = onlineBookings.map(b => ({
+    id: b.id,
+    title: b.booking_types?.title ?? 'Buchung',
+    shoot_date: b.booked_date,
+    booked_time: String(b.booked_time).slice(0, 5),
+    location: b.booking_types?.location_type === 'online' ? 'Online' : null,
+    status: b.status,
+    client: { full_name: b.client_name },
+    source: 'booking' as const,
+    booking: b,
+  }))
+
+  const allEntries: CalEntry[] = [...projectEntries, ...bookingEntries]
+    .sort((a, b) => {
+      const da = a.shoot_date + (a.booked_time ?? '00:00')
+      const db = b.shoot_date + (b.booked_time ?? '00:00')
+      return da.localeCompare(db)
+    })
 
   const calToday = new Date(); calToday.setHours(0,0,0,0)
-  const calUpcoming = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') >= calToday)
-  const calPast = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') < calToday)
+  const calUpcoming = allEntries.filter(b => new Date(b.shoot_date + 'T00:00:00') >= calToday)
+  const calPast = allEntries.filter(b => new Date(b.shoot_date + 'T00:00:00') < calToday)
   const { year: calYear, month: calMonthNum } = calMonth
   const calFirstDay = new Date(calYear, calMonthNum, 1)
   const calLastDay = new Date(calYear, calMonthNum + 1, 0)
   const calStartDow = (calFirstDay.getDay() + 6) % 7
   const calTotalCells = Math.ceil((calStartDow + calLastDay.getDate()) / 7) * 7
-  const bookingsByDate: Record<string, BookingItem[]> = {}
-  bookings.forEach(b => {
+  const bookingsByDate: Record<string, CalEntry[]> = {}
+  allEntries.forEach(b => {
     const key = b.shoot_date.slice(0, 10)
     if (!bookingsByDate[key]) bookingsByDate[key] = []
     bookingsByDate[key].push(b)
   })
+
+  // Booking status config
+  const BOOKING_STATUS: Record<string, { label: string; color: string }> = {
+    pending:          { label: 'Ausstehend',        color: '#D97706' },
+    deposit_received: { label: 'Anzahlung erhalten', color: '#3B82F6' },
+    confirmed:        { label: 'Bestätigt',          color: '#10B981' },
+    completed:        { label: 'Abgeschlossen',      color: '#64748B' },
+  }
+
+  const handleBookingConfirm = async (id: string) => {
+    setBookingLoading(id + '_confirm')
+    const res = await fetch(`/api/bookings/${id}/confirm`, { method: 'PATCH' })
+    if (res.ok) {
+      setOnlineBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'confirmed' } : b))
+      setBookingModal(prev => prev?.id === id ? { ...prev, status: 'confirmed' } : prev)
+      toast.success('Buchung bestätigt')
+    } else toast.error('Fehler')
+    setBookingLoading(null)
+  }
+
+  const handleBookingComplete = async (id: string) => {
+    setBookingLoading(id + '_complete')
+    const res = await fetch(`/api/bookings/${id}/complete`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    const data = await res.json()
+    if (res.ok) {
+      setOnlineBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'completed', invoice_id: data.invoiceId } : b))
+      setBookingModal(null)
+      toast.success(data.invoiceId ? 'Abgeschlossen — Rechnung erstellt' : 'Abgeschlossen')
+    } else toast.error(data.error ?? 'Fehler')
+    setBookingLoading(null)
+  }
+
+  const handleBookingCancel = async (id: string) => {
+    setBookingLoading(id + '_cancel')
+    const res = await fetch(`/api/bookings/${id}/cancel`, { method: 'PATCH' })
+    if (res.ok) {
+      setOnlineBookings(bs => bs.filter(b => b.id !== id))
+      setBookingModal(null)
+      toast.success('Storniert')
+    } else toast.error('Fehler')
+    setBookingLoading(null)
+  }
   // ──────────────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -304,7 +397,11 @@ export default function ProjectsPage() {
     )
   }
 
+  const bm = bookingModal
+  const bkSt = bm ? (BOOKING_STATUS[bm.status] ?? { label: bm.status, color: '#C4A47C' }) : null
+
   return (
+    <>
     <div className="space-y-8 animate-in">
       <style>{`
         @keyframes statFadeUp {
@@ -893,7 +990,7 @@ export default function ProjectsPage() {
           {/* List sub-view */}
           {calSubView === 'list' && (
             <div className="space-y-6">
-              {bookings.length === 0 ? (
+              {allEntries.length === 0 ? (
                 <div className="rounded-2xl flex flex-col items-center justify-center py-20 text-center"
                   style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
                   <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--bg-hover)' }}>
@@ -920,22 +1017,14 @@ export default function ProjectsPage() {
                       <div className="space-y-2">
                         {calUpcoming.map((b, i) => {
                           const days = daysUntilCal(b.shoot_date)
-                          const st = STATUS_CONFIG[b.status] || STATUS_CONFIG.draft
+                          const isBooking = b.source === 'booking'
+                          const bkStatus = isBooking ? (BOOKING_STATUS[b.status] ?? { label: b.status, color: '#C4A47C' }) : null
+                          const st = isBooking
+                            ? { color: bkStatus!.color, bg: bkStatus!.color + '18', dot: bkStatus!.color, label: bkStatus!.label }
+                            : (STATUS_CONFIG[b.status] || STATUS_CONFIG.draft)
                           const isToday = days === 0
-                          return (
-                            <Link key={b.id} href={`/dashboard/projects/${b.id}`}
-                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
-                              style={{
-                                background: `linear-gradient(135deg, ${st.color}14 0%, ${st.color}05 100%)`,
-                                border: isToday ? `1px solid ${st.color}50` : `1px solid ${st.color}28`,
-                                boxShadow: isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`,
-                                animation: 'bookingFadeUp 0.4s ease forwards',
-                                animationDelay: `${i * 70}ms`,
-                                opacity: 0,
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 10px 30px ${st.color}25`; e.currentTarget.style.borderColor = st.color + '45' }}
-                              onMouseLeave={e => { e.currentTarget.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`; e.currentTarget.style.borderColor = isToday ? st.color + '50' : st.color + '28' }}
-                            >
+                          const cardContent = (
+                            <>
                               <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.7 }} />
                               <div className="flex items-center gap-4 p-4 flex-1 min-w-0">
                                 <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0"
@@ -948,13 +1037,16 @@ export default function ProjectsPage() {
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-0.5">
+                                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                     <p className="font-bold text-[14.5px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                    {isBooking && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(99,102,241,0.10)', color: '#6366F1' }}>Online</span>}
                                     <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0" style={{ background: st.color + '18', color: st.color }}>{st.label}</span>
                                   </div>
                                   <div className="flex items-center gap-3 flex-wrap">
                                     {b.client && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><User className="w-3 h-3" />{b.client.full_name}</span>}
+                                    {b.booked_time && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><Clock className="w-3 h-3" />{b.booked_time}</span>}
                                     {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
+                                    {b.booking?.google_meet_link && <span className="flex items-center gap-1 text-[12px]" style={{ color: '#6366F1' }}><Video className="w-3 h-3" />Meet</span>}
                                   </div>
                                 </div>
                                 <div className="flex-shrink-0 text-right">
@@ -964,7 +1056,32 @@ export default function ProjectsPage() {
                                   }
                                 </div>
                               </div>
-                            </Link>
+                            </>
+                          )
+                          const sharedStyle = {
+                            background: `linear-gradient(135deg, ${st.color}14 0%, ${st.color}05 100%)`,
+                            border: isToday ? `1px solid ${st.color}50` : `1px solid ${st.color}28`,
+                            boxShadow: isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`,
+                            animation: 'bookingFadeUp 0.4s ease forwards',
+                            animationDelay: `${i * 70}ms`,
+                            opacity: 0,
+                          }
+                          if (isBooking) return (
+                            <button key={b.id}
+                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 w-full text-left"
+                              style={sharedStyle}
+                              onClick={() => setBookingModal(b.booking!)}
+                              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 10px 30px ${st.color}25`; e.currentTarget.style.borderColor = st.color + '45' }}
+                              onMouseLeave={e => { e.currentTarget.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`; e.currentTarget.style.borderColor = isToday ? st.color + '50' : st.color + '28' }}
+                            >{cardContent}</button>
+                          )
+                          return (
+                            <Link key={b.id} href={`/dashboard/projects/${b.id}`}
+                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                              style={sharedStyle}
+                              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 10px 30px ${st.color}25`; e.currentTarget.style.borderColor = st.color + '45' }}
+                              onMouseLeave={e => { e.currentTarget.style.boxShadow = isToday ? `0 4px 20px ${st.color}20` : `0 2px 12px ${st.color}10`; e.currentTarget.style.borderColor = isToday ? st.color + '50' : st.color + '28' }}
+                            >{cardContent}</Link>
                           )
                         })}
                       </div>
@@ -976,14 +1093,13 @@ export default function ProjectsPage() {
                       <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>{de ? 'Vergangen' : 'Past'}</p>
                       <div className="space-y-2">
                         {[...calPast].reverse().map((b, i) => {
-                          const st = STATUS_CONFIG[b.status] || STATUS_CONFIG.draft
-                          return (
-                            <Link key={b.id} href={`/dashboard/projects/${b.id}`}
-                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
-                              style={{ opacity: 0, animation: 'bookingFadeUp 0.4s ease forwards', animationDelay: `${(calUpcoming.length + i) * 70}ms` }}
-                              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                              onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
-                            >
+                          const isBooking = b.source === 'booking'
+                          const bkStatus = isBooking ? (BOOKING_STATUS[b.status] ?? { label: b.status, color: '#C4A47C' }) : null
+                          const st = isBooking
+                            ? { color: bkStatus!.color, bg: bkStatus!.color + '18', dot: bkStatus!.color, label: bkStatus!.label }
+                            : (STATUS_CONFIG[b.status] || STATUS_CONFIG.draft)
+                          const pastContent = (
+                            <>
                               <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
                               <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
                                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderLeft: 'none', borderRadius: '0 16px 16px 0' }}>
@@ -996,12 +1112,14 @@ export default function ProjectsPage() {
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-0.5">
+                                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                     <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                    {isBooking && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(99,102,241,0.10)', color: '#6366F1' }}>Online</span>}
                                     <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0" style={{ background: st.bg, color: st.color }}>{st.label}</span>
                                   </div>
                                   <div className="flex items-center gap-3 flex-wrap">
                                     {b.client && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><User className="w-3 h-3" />{b.client.full_name}</span>}
+                                    {b.booked_time && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><Clock className="w-3 h-3" />{b.booked_time}</span>}
                                     {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
                                   </div>
                                 </div>
@@ -1009,7 +1127,24 @@ export default function ProjectsPage() {
                                   {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
                               </div>
-                            </Link>
+                            </>
+                          )
+                          if (isBooking) return (
+                            <button key={b.id}
+                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 w-full text-left"
+                              style={{ opacity: 0, animation: 'bookingFadeUp 0.4s ease forwards', animationDelay: `${(calUpcoming.length + i) * 70}ms` }}
+                              onClick={() => setBookingModal(b.booking!)}
+                              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                              onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                            >{pastContent}</button>
+                          )
+                          return (
+                            <Link key={b.id} href={`/dashboard/projects/${b.id}`}
+                              className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+                              style={{ opacity: 0, animation: 'bookingFadeUp 0.4s ease forwards', animationDelay: `${(calUpcoming.length + i) * 70}ms` }}
+                              onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                              onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                            >{pastContent}</Link>
                           )
                         })}
                       </div>
@@ -1053,7 +1188,18 @@ export default function ProjectsPage() {
                           </span>
                           <div className="space-y-0.5 flex-1">
                             {dayBookings.slice(0, 2).map(b => {
-                              const st = STATUS_CONFIG[b.status] || STATUS_CONFIG.draft
+                              const isBooking = b.source === 'booking'
+                              const bkS = isBooking ? (BOOKING_STATUS[b.status] ?? { label: b.status, color: '#C4A47C' }) : null
+                              const st = isBooking
+                                ? { color: bkS!.color, bg: bkS!.color + '18' }
+                                : (STATUS_CONFIG[b.status] || STATUS_CONFIG.draft)
+                              if (isBooking) return (
+                                <button key={b.id}
+                                  className="block w-full px-1.5 py-0.5 rounded text-[10px] font-semibold truncate text-left"
+                                  style={{ background: st.bg, color: st.color }}
+                                  onClick={() => setBookingModal(b.booking!)}
+                                >{b.title}</button>
+                              )
                               return (
                                 <Link key={b.id} href={`/dashboard/projects/${b.id}`}
                                   className="block px-1.5 py-0.5 rounded text-[10px] font-semibold truncate"
@@ -1083,5 +1229,129 @@ export default function ProjectsPage() {
         </>
       )}
     </div>
+
+    {/* Booking detail modal — outside animate-in to avoid transform stacking context breaking fixed positioning */}
+    {bm && bkSt && (() => {
+      const isOnline = bm.booking_types?.location_type === 'online'
+      const price = bm.booking_types?.price ?? 0
+      return (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setBookingModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-6 space-y-5"
+            style={{ background: 'var(--bg-surface)', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="font-black text-[17px]" style={{ color: 'var(--text-primary)' }}>{bm.booking_types?.title ?? 'Buchung'}</p>
+                  {isOnline && <Video className="w-4 h-4 flex-shrink-0" style={{ color: '#6366F1' }} />}
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold" style={{ background: bkSt.color + '18', color: bkSt.color }}>{bkSt.label}</span>
+              </div>
+              <button onClick={() => setBookingModal(null)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Details */}
+            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-2 text-[13px]">
+                <User className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{bm.client_name}</span>
+                <span style={{ color: 'var(--text-muted)' }}>·</span>
+                <span style={{ color: 'var(--text-muted)' }}>{bm.client_email}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[13px]">
+                <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                <span style={{ color: 'var(--text-primary)' }}>
+                  {new Date(bm.booked_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  {' · '}{String(bm.booked_time).slice(0, 5)} {de ? 'Uhr' : ''}
+                </span>
+              </div>
+              {bm.booking_types?.duration_minutes && (
+                <div className="flex items-center gap-2 text-[13px]">
+                  <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ color: 'var(--text-primary)' }}>{bm.booking_types.duration_minutes} {de ? 'Minuten' : 'minutes'}</span>
+                </div>
+              )}
+              {price > 0 && (
+                <div className="flex items-center gap-2 text-[13px]">
+                  <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                    {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price / 100)}
+                    {bm.deposit_amount ? ` · Anzahlung: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(bm.deposit_amount / 100)}` : ''}
+                  </span>
+                </div>
+              )}
+              {bm.payment_reference && (
+                <div className="flex items-center gap-2 text-[13px]">
+                  <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{bm.payment_reference}</span>
+                </div>
+              )}
+              {bm.google_meet_link && (
+                <a href={bm.google_meet_link} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80"
+                  style={{ color: '#6366F1' }}>
+                  <Video className="w-3.5 h-3.5" />
+                  Google Meet beitreten
+                </a>
+              )}
+              {bm.invoice_id && (
+                <Link href={`/dashboard/invoices/${bm.invoice_id}`}
+                  className="flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80"
+                  style={{ color: '#10B981' }}>
+                  <FileText className="w-3.5 h-3.5" />
+                  {de ? 'Rechnung öffnen' : 'Open invoice'}
+                </Link>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2">
+              {(bm.status === 'pending' || bm.status === 'deposit_received') && (
+                <button
+                  className="w-full py-2.5 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                  style={{ background: '#10B981' }}
+                  disabled={bookingLoading === bm.id + '_confirm'}
+                  onClick={() => handleBookingConfirm(bm.id)}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {bookingLoading === bm.id + '_confirm' ? '...' : (de ? 'Buchung bestätigen' : 'Confirm booking')}
+                </button>
+              )}
+              {(bm.status === 'confirmed' || bm.status === 'deposit_received') && (
+                <button
+                  className="w-full py-2.5 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                  style={{ background: '#8B5CF6' }}
+                  disabled={bookingLoading === bm.id + '_complete'}
+                  onClick={() => handleBookingComplete(bm.id)}
+                >
+                  <FileText className="w-4 h-4" />
+                  {bookingLoading === bm.id + '_complete' ? '...' : (de ? 'Abschließen & Rechnung erstellen' : 'Complete & create invoice')}
+                </button>
+              )}
+              {bm.status !== 'completed' && bm.status !== 'cancelled' && (
+                <button
+                  className="w-full py-2.5 rounded-xl text-[14px] font-medium transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                  style={{ background: 'rgba(196,59,44,0.08)', color: '#C43B2C' }}
+                  disabled={bookingLoading === bm.id + '_cancel'}
+                  onClick={() => { if (confirm(de ? 'Buchung wirklich stornieren?' : 'Really cancel this booking?')) handleBookingCancel(bm.id) }}
+                >
+                  <XCircle className="w-4 h-4" />
+                  {bookingLoading === bm.id + '_cancel' ? '...' : (de ? 'Stornieren' : 'Cancel')}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+    </>
   )
 }

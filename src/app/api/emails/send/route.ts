@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
               <table cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="padding-right:10px;vertical-align:middle;">
-                    <img src="https://fotonizer.com/logo.png" alt="Fotonizer" style="width:32px;height:32px;border-radius:9px;object-fit:cover;display:block;" />
+                    <img src="https://fotonizer.com/logo-light.jpg" alt="Fotonizer" style="width:32px;height:32px;border-radius:9px;object-fit:cover;display:block;" />
                   </td>
                   <td style="vertical-align:middle;">
                     <p style="margin:0;font-size:20px;font-weight:700;color:#111110;letter-spacing:-0.03em;">${studioName}</p>
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 </html>`
 
     if (isScheduled) {
-      // Just save to DB — cron will send it
+      // Just save to DB — cron will inject the pixel and send it
       const { data, error } = await supabase
         .from('scheduled_emails')
         .insert({
@@ -111,38 +111,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, scheduled: true, email: data })
     }
 
-    // Send immediately via Resend
-    const { error: resendError } = await resend.emails.send({
-      from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-      replyTo: notifEmail,
-      bcc: notifEmail,
-      to: toEmail,
-      subject,
-      html: htmlBody,
-    })
-
-    if (resendError) {
-      console.error('Resend error:', resendError)
-      // Still save to DB as failed
-      await supabase.from('scheduled_emails').insert({
-        photographer_id: user.id,
-        project_id: projectId || null,
-        to_email: toEmail,
-        to_name: toName || null,
-        subject,
-        html_body: htmlBody,
-        plain_body: body,
-        type: 'custom',
-        scheduled_at: now.toISOString(),
-        sent_at: now.toISOString(),
-        status: 'failed',
-        error_message: resendError.message,
-      })
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
-    }
-
-    // Save to DB as sent
-    const { data } = await supabase
+    // Immediate send:
+    // 1. Insert to DB first so we have the record ID for the tracking pixel
+    const { data: insertedEmail, error: insertError } = await supabase
       .from('scheduled_emails')
       .insert({
         photographer_id: user.id,
@@ -154,9 +125,44 @@ export async function POST(request: NextRequest) {
         plain_body: body,
         type: 'custom',
         scheduled_at: now.toISOString(),
-        sent_at: now.toISOString(),
-        status: 'sent',
+        status: 'pending',
       })
+      .select('id')
+      .single()
+
+    if (insertError || !insertedEmail) {
+      console.error('DB insert error:', insertError)
+      return NextResponse.json({ error: 'Failed to save email' }, { status: 500 })
+    }
+
+    // 2. Append tracking pixel using the record ID
+    const htmlWithTracking = htmlBody +
+      `\n<img src="https://fotonizer.com/track/open/${insertedEmail.id}" width="1" height="1" style="display:none" alt="" />`
+
+    // 3. Send via Resend
+    const { error: resendError } = await resend.emails.send({
+      from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
+      replyTo: notifEmail,
+      bcc: notifEmail,
+      to: toEmail,
+      subject,
+      html: htmlWithTracking,
+    })
+
+    if (resendError) {
+      console.error('Resend error:', resendError)
+      await supabase
+        .from('scheduled_emails')
+        .update({ status: 'failed', error_message: resendError.message })
+        .eq('id', insertedEmail.id)
+      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    }
+
+    // 4. Mark as sent
+    const { data } = await supabase
+      .from('scheduled_emails')
+      .update({ status: 'sent', sent_at: now.toISOString() })
+      .eq('id', insertedEmail.id)
       .select()
       .single()
 

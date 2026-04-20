@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight, Star } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -43,7 +44,7 @@ export default function LoginPage() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 relative z-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Fotonizer" className="w-8 h-8 rounded-xl object-cover" />
+          <Logo className="w-8 h-8 rounded-xl object-cover" />
           <span className="font-bold text-[18px] text-white" style={{ letterSpacing: '-0.025em' }}>
             Fotonizer
           </span>
@@ -83,7 +84,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Fotonizer" className="w-7 h-7 rounded-lg object-cover" />
+            <Logo className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>Fotonizer</span>
           </Link>
 

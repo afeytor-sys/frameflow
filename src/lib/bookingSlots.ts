@@ -26,9 +26,10 @@ export interface RecurringWindow {
 }
 
 export interface ExistingBooking {
-  booked_date: string  // "YYYY-MM-DD"
-  booked_time: string  // "HH:MM:SS" or "HH:MM"
+  booked_date: string      // "YYYY-MM-DD"
+  booked_time: string      // "HH:MM:SS" or "HH:MM"
   status: string
+  duration_minutes?: number // actual duration of that booking (may differ from current type)
 }
 
 export interface BlockedSlot {
@@ -95,11 +96,14 @@ export function generateAvailableSlots(
 
   // Active bookings (pending or confirmed) keyed by date
   const activeStatuses = new Set(['pending', 'deposit_received', 'confirmed'])
-  const bookingsByDate: Record<string, number[]> = {}
+  const bookingsByDate: Record<string, Array<{ start: number; dur: number }>> = {}
   for (const bk of existingBookings) {
     if (!activeStatuses.has(bk.status)) continue
     if (!bookingsByDate[bk.booked_date]) bookingsByDate[bk.booked_date] = []
-    bookingsByDate[bk.booked_date].push(parseTimeToMinutes(bk.booked_time))
+    bookingsByDate[bk.booked_date].push({
+      start: parseTimeToMinutes(bk.booked_time),
+      dur: bk.duration_minutes ?? duration_minutes,
+    })
   }
 
   // Iterate day by day
@@ -117,7 +121,6 @@ export function generateAvailableSlots(
 
       if (windows.length > 0) {
         const daySlots: string[] = []
-        const existingMins = bookingsByDate[dateStr] ?? []
 
         for (const win of windows) {
           const winStart = parseTimeToMinutes(win.start_time)
@@ -136,11 +139,12 @@ export function generateAvailableSlots(
               // 2. Not manually blocked
               if (!blockedDateTimes.has(`${dateStr}T${slotHHMM}`)) {
 
-                // 3. No existing booking overlaps (including buffer)
-                const overlapsExisting = existingMins.some(existMins => {
-                  const existEnd = existMins + duration_minutes + buffer_minutes
+                // 3. No existing booking overlaps (including buffer on both sides)
+                const existingMins = bookingsByDate[dateStr] ?? []
+                const overlapsExisting = existingMins.some(({ start: existStart, dur: existDur }) => {
+                  const existEnd = existStart + existDur + buffer_minutes
                   const candidateEnd = slotEnd + buffer_minutes
-                  return slotStart < existEnd && candidateEnd > existMins
+                  return slotStart < existEnd && candidateEnd > existStart
                 })
 
                 if (!overlapsExisting) {

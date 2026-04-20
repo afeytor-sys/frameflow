@@ -6,7 +6,7 @@ import { useLocale } from '@/hooks/useLocale'
 import {
   Mail, Clock, CheckCircle2, XCircle, AlertCircle,
   CalendarDays, User, ChevronRight, Bell, BellOff,
-  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check, SendHorizonal, X, Eye,
+  Zap, History, Send, Trash2, FileText, ClipboardList, CalendarClock, Check, SendHorizonal, X, Eye, MailOpen,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -28,6 +28,8 @@ interface ScheduledEmail {
   error_message: string | null
   project_id: string | null
   created_at: string
+  opened_at: string | null
+  open_count: number
 }
 
 interface UpcomingProject {
@@ -763,6 +765,14 @@ export default function AutomationsClient({
                         {locale === 'de' ? 'Überfällig' : 'Overdue'}
                       </p>
                     )}
+                    {isSent && (
+                      <p className="text-[11px] font-medium mt-1 flex items-center gap-1" style={{ color: email.opened_at ? '#8B5CF6' : '#9CA3AF' }}>
+                        {email.opened_at
+                          ? <><MailOpen className="w-3 h-3 flex-shrink-0" />{locale === 'de' ? 'Geöffnet' : 'Opened'}{email.open_count > 1 ? ` ×${email.open_count}` : ''}</>
+                          : <><Mail className="w-3 h-3 flex-shrink-0" />{locale === 'de' ? 'Noch nicht geöffnet' : 'Not opened yet'}</>
+                        }
+                      </p>
+                    )}
                     {isFailed && email.error_message && (
                       <p className="text-[11px] mt-1" style={{ color: '#EF4444' }}>{email.error_message}</p>
                     )}
@@ -850,6 +860,11 @@ export default function AutomationsClient({
                       </button>
                       {isPending && <StatusBadge label={locale === 'de' ? 'Ausstehend' : 'Pending'} color="#3B82F6" icon={Clock} />}
                       {isSent && <StatusBadge label={locale === 'de' ? 'Gesendet' : 'Sent'} color="#10B981" icon={CheckCircle2} />}
+                      {isSent && (
+                        email.opened_at
+                          ? <StatusBadge label={`${locale === 'de' ? 'Geöffnet' : 'Opened'}${email.open_count > 1 ? ` ×${email.open_count}` : ''}`} color="#8B5CF6" icon={MailOpen} />
+                          : <StatusBadge label={locale === 'de' ? 'Nicht geöffnet' : 'Not opened'} color="#9CA3AF" icon={Mail} />
+                      )}
                       {isCancelled && <StatusBadge label={locale === 'de' ? 'Abgebrochen' : 'Cancelled'} color="#6B7280" icon={XCircle} />}
                       {isFailed && <StatusBadge label={locale === 'de' ? 'Fehlgeschlagen' : 'Failed'} color="#EF4444" icon={AlertCircle} />}
                       {isPending && (

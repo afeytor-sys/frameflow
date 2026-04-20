@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
+import { Logo } from '@/components/ui/Logo'
 import {
   LayoutDashboard,
   Users,
@@ -122,7 +123,7 @@ export default function DashboardSidebar({ photographer }: Props) {
         style={{ borderBottom: '1px solid var(--border-color)' }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Fotonizer" className="w-7 h-7 flex-shrink-0 rounded-lg object-cover" />
+        <Logo className="w-7 h-7 flex-shrink-0 rounded-lg object-cover" />
         {!collapsed && (
           <span
             className="font-black text-[17px] tracking-tight leading-none"

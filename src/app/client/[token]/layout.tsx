@@ -103,7 +103,7 @@ export default async function ClientPortalLayout({
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="Fotonizer" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
+                <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover', display: 'block' }} />
                 <span style={{ fontFamily: '"DM Sans", system-ui, sans-serif', color: '#111827', fontWeight: 600, fontSize: '15px', letterSpacing: '-0.01em' }}>
                   {studioName}
                 </span>
@@ -130,7 +130,7 @@ export default async function ClientPortalLayout({
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" style={{ width: '14px', height: '14px', borderRadius: '4px', objectFit: 'cover', display: 'block' }} />
+              <img src="/logo-light.jpg" alt="" style={{ width: '14px', height: '14px', borderRadius: '4px', objectFit: 'cover', display: 'block' }} />
               <span style={{
                 fontFamily: '"DM Sans", system-ui, sans-serif',
                 fontSize: '11px',

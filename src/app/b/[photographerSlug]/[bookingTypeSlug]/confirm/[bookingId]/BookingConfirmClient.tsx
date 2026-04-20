@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { CheckCircle2, Clock, Calendar, Video, Copy, Check, Upload, X } from 'lucide-react'
+import { CheckCircle2, Clock, Calendar, Video, Copy, Check, Upload, X, CalendarPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,6 +57,34 @@ function formatIban(iban: string): string {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
+function generateIcs(booking: Booking, bookingType: BookingTypeInfo, studioName: string): string {
+  const [year, month, day] = booking.booked_date.split('-').map(Number)
+  const [hour, minute] = booking.booked_time.split(':').map(Number)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const start = `${year}${pad(month)}${pad(day)}T${pad(hour)}${pad(minute)}00`
+  const endDate = new Date(year, month - 1, day, hour, minute + bookingType.duration_minutes)
+  const end = `${endDate.getFullYear()}${pad(endDate.getMonth() + 1)}${pad(endDate.getDate())}T${pad(endDate.getHours())}${pad(endDate.getMinutes())}00`
+  const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)
+  const description = booking.google_meet_link ? `Google Meet: ${booking.google_meet_link}` : ''
+  const location = booking.google_meet_link ?? ''
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Fotonizer//Booking//DE',
+    'BEGIN:VEVENT',
+    `UID:${booking.id}@fotonizer.com`,
+    `DTSTAMP:${now}Z`,
+    `DTSTART;TZID=Europe/Berlin:${start}`,
+    `DTEND;TZID=Europe/Berlin:${end}`,
+    `SUMMARY:${bookingType.title} — ${studioName}`,
+    description ? `DESCRIPTION:${description}` : '',
+    location ? `LOCATION:${location}` : '',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n')
+}
+
 export default function BookingConfirmClient({ booking, bookingType, photographer }: Props) {
   const [depositMarked, setDepositMarked] = useState(booking.status === 'deposit_received' || booking.status === 'confirmed')
   const [marking, setMarking] = useState(false)
@@ -67,6 +95,17 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
   const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
   const requiresDeposit = !!booking.deposit_amount && booking.deposit_amount > 0
   const showBankDetails = requiresDeposit && !depositMarked && !isConfirmed
+
+  const downloadIcs = () => {
+    const ics = generateIcs(booking, bookingType, photographer.studioName)
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `buchung-${booking.booked_date}.ics`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const copy = (text: string, field: string) => {
     navigator.clipboard.writeText(text)
@@ -180,6 +219,18 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
                 </a>
               </div>
             )}
+          </div>
+
+          {/* Add to calendar */}
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid #F3F4F6' }}>
+            <button
+              onClick={downloadIcs}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold transition-colors hover:bg-gray-50 border border-gray-200"
+              style={{ color: '#374151' }}
+            >
+              <CalendarPlus className="w-4 h-4 text-gray-400" />
+              Zum Kalender hinzufügen
+            </button>
           </div>
         </div>
 

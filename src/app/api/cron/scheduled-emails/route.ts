@@ -49,12 +49,16 @@ export async function GET(request: NextRequest) {
       const fromName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
       const replyTo = photographer?.email || undefined
 
+      // Inject tracking pixel using the record ID as the tracking identifier
+      const htmlWithTracking = (email.html_body ?? '') +
+        `\n<img src="https://fotonizer.com/track/open/${email.id}" width="1" height="1" style="display:none" alt="" />`
+
       await resend.emails.send({
         from: `${fromName} via Fotonizer <noreply@fotonizer.com>`,
         replyTo,
         to: email.to_email,
         subject: email.subject,
-        html: email.html_body,
+        html: htmlWithTracking,
         text: email.plain_body || undefined,
       })
 

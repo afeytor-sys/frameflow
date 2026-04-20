@@ -117,7 +117,7 @@ export default function ReelsPage() {
           transition: 'opacity 0.4s ease',
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Fotonizer" style={{ width: 26, height: 26, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
+          <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: 26, height: 26, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
           <span style={{ fontSize: 15, fontWeight: 800, color: '#F0EDE8', letterSpacing: '-0.02em' }}>Fotonizer</span>
         </div>
 
@@ -148,7 +148,7 @@ export default function ReelsPage() {
           {scene === 'intro' && (
             <div style={{ textAlign: 'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Fotonizer" style={{ width: 64, height: 64, borderRadius: 18, objectFit: 'cover', display: 'block', margin: '0 auto 28px' }} />
+              <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: 64, height: 64, borderRadius: 18, objectFit: 'cover', display: 'block', margin: '0 auto 28px' }} />
               <p style={{ fontSize: 14, fontWeight: 700, color: '#C4A47C', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 14 }}>Meet Fotonizer</p>
               <h1 style={{ fontSize: 44, fontWeight: 900, color: '#F0EDE8', letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 20 }}>
                 Your studio.<br /><span style={{ color: '#C4A47C' }}>All in one place.</span>

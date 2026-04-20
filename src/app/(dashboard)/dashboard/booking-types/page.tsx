@@ -11,7 +11,7 @@ export default async function BookingTypesPage() {
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('id, slug, email, full_name, studio_name, bank_account_holder, bank_iban, bank_bic, plan')
+    .select('id, slug, email, full_name, studio_name, bank_account_holder, bank_iban, bank_bic, plan, google_calendar_refresh_token')
     .eq('id', user.id)
     .single()
 

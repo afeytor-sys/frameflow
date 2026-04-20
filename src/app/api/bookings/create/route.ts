@@ -5,6 +5,49 @@ import { createBookingEvent } from '@/lib/googleCalendar'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+interface BookingQuestion {
+  id: string
+  label: string
+  type: 'text' | 'textarea' | 'dropdown' | 'checkbox'
+  options?: string[]
+  required: boolean
+}
+
+// Renders answered custom questions as a table section for email HTML
+function buildAnswersBlock(questions: BookingQuestion[], answers: Record<string, string>): string {
+  const answered = questions.filter(q => answers[q.id]?.trim())
+  if (!answered.length) return ''
+  const rows = answered.map(q => {
+    const raw = answers[q.id] ?? ''
+    const display = q.type === 'checkbox'
+      ? raw.split('||').filter(Boolean).join(', ')
+      : raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return `<tr>
+      <td style="padding:6px 0;font-size:13px;color:#6B7280;width:120px;vertical-align:top">${q.label}</td>
+      <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${display}</td>
+    </tr>`
+  }).join('')
+  return `
+    <div style="margin-top:16px">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.06em">Angaben des Kunden</p>
+      <div style="background:#F9FAFB;border-radius:8px;padding:16px;border:1px solid #F3F4F6">
+        <table style="width:100%;border-collapse:collapse">${rows}</table>
+      </div>
+    </div>`
+}
+
+// "HH:MM" or "HH:MM:SS" → minutes since midnight
+function timeToMins(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+// "YYYY-MM-DD" → "DD.MM.YYYY"
+function fmtDate(dateStr: string): string {
+  const [y, m, d] = dateStr.slice(0, 10).split('-')
+  return `${d}.${m}.${y}`
+}
+
 // POST /api/bookings/create  (public — no auth required)
 // Creates a booking for a client. Generates payment reference if anzahlung is enabled.
 
@@ -51,17 +94,28 @@ export async function POST(req: NextRequest) {
 
   // Anti-double-booking: skip for request-only types (no fixed slots)
   if (bt.availability_type !== 'request') {
-    const { data: conflict } = await serviceSupabase
+    // Fetch ALL active bookings for this photographer on the same date (any booking type)
+    const { data: sameDayBookings } = await serviceSupabase
       .from('bookings')
-      .select('id')
-      .eq('booking_type_id', bt.id)
+      .select('booked_time, booking_types(duration_minutes)')
+      .eq('photographer_id', photographer.id)
       .eq('booked_date', booked_date)
-      .eq('booked_time', booked_time)
       .in('status', ['pending', 'deposit_received', 'confirmed'])
-      .maybeSingle()
 
-    if (conflict) {
-      return NextResponse.json({ error: 'This slot is no longer available' }, { status: 409 })
+    if (sameDayBookings && sameDayBookings.length > 0) {
+      const newStart = timeToMins(booked_time)
+      const newEnd   = newStart + bt.duration_minutes + (bt.buffer_minutes ?? 0)
+
+      const overlaps = sameDayBookings.some(existing => {
+        const dur = (existing.booking_types as unknown as { duration_minutes: number } | null)?.duration_minutes ?? bt.duration_minutes
+        const existStart = timeToMins(existing.booked_time)
+        const existEnd   = existStart + dur + (bt.buffer_minutes ?? 0)
+        return newStart < existEnd && newEnd > existStart
+      })
+
+      if (overlaps) {
+        return NextResponse.json({ error: 'This slot is no longer available' }, { status: 409 })
+      }
     }
   }
 
@@ -156,9 +210,8 @@ export async function POST(req: NextRequest) {
     const notifPrefs = notifResult.data
     const toEmail = ph.notification_email || ph.email
     const studioName = ph.studio_name || ph.full_name || 'Fotonizer'
-    const shootDate = new Date(booked_date).toLocaleDateString('de-DE', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-    })
+    const shootDate = fmtDate(booked_date)
+    const confirmUrl = `${process.env.NEXT_PUBLIC_APP_URL}/b/${photographerSlug}/${bookingTypeSlug}/confirm/${booking.id}`
 
     // In-app notification
     if (notifPrefs?.notify_inapp_new_booking !== false) {
@@ -173,14 +226,63 @@ export async function POST(req: NextRequest) {
       }).then(({ error }) => { if (error) console.error('Notification insert error:', error) })
     }
 
-    // Email notification — sent immediately via Resend
+    // Email to photographer
     if (notifPrefs?.notify_email_new_booking !== false && toEmail) {
-      await resend.emails.send({
+      resend.emails.send({
         from: 'Fotonizer <noreply@fotonizer.com>',
         to: toEmail,
         subject: `Neue Buchungsanfrage: ${bt.title} — ${client_name}`,
-        html: buildNewBookingEmail({ studioName, btTitle: bt.title, clientName: client_name, clientEmail: client_email, shootDate, booked_time: booked_time.slice(0, 5), depositAmount: deposit_amount, payment_reference }),
+        html: buildNewBookingEmail({ studioName, btTitle: bt.title, clientName: client_name, clientEmail: client_email, shootDate, booked_time: booked_time.slice(0, 5), depositAmount: deposit_amount, payment_reference, meetLink: google_meet_link, questions: bt.questions ?? [], answers }),
       }).catch(e => console.error('Booking email error:', e))
+    }
+
+    // Email to client — always sent
+    resend.emails.send({
+      from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
+      to: client_email.trim().toLowerCase(),
+      subject: `Deine Buchung: ${bt.title} am ${shootDate}`,
+      html: buildClientConfirmationEmail({
+        clientName: client_name,
+        studioName,
+        btTitle: bt.title,
+        shootDate,
+        booked_time: booked_time.slice(0, 5),
+        durationMinutes: bt.duration_minutes,
+        locationType: bt.location_type,
+        depositAmount: deposit_amount,
+        payment_reference,
+        meetLink: google_meet_link,
+        confirmUrl,
+        requiresDeposit: status === 'pending',
+        questions: bt.questions ?? [],
+        answers,
+      }),
+    }).catch(e => console.error('Client confirmation email error:', e))
+
+    // Schedule 24h reminder to client
+    const shootDateTime = new Date(`${booked_date}T${booked_time.slice(0, 5)}:00`)
+    const reminderAt = new Date(shootDateTime.getTime() - 24 * 60 * 60 * 1000)
+    if (reminderAt > new Date()) {
+      serviceSupabase.from('scheduled_emails').insert({
+        photographer_id: photographer.id,
+        scheduled_at: reminderAt.toISOString(),
+        to_email: client_email.trim().toLowerCase(),
+        to_name: client_name,
+        subject: `Erinnerung: ${bt.title} morgen um ${booked_time.slice(0, 5)} Uhr`,
+        html_body: buildClientReminderEmail({
+          clientName: client_name,
+          studioName,
+          btTitle: bt.title,
+          shootDate,
+          booked_time: booked_time.slice(0, 5),
+          durationMinutes: bt.duration_minutes,
+          locationType: bt.location_type,
+          meetLink: google_meet_link,
+          confirmUrl,
+        }),
+        type: 'booking_reminder',
+        reference_id: booking.id,
+      }).then(({ error }) => { if (error) console.error('Reminder schedule error:', error) })
     }
   }
 
@@ -210,9 +312,19 @@ function buildNewBookingEmail(data: {
   booked_time: string
   depositAmount: number | null
   payment_reference: string | null
+  meetLink: string | null
+  questions: BookingQuestion[]
+  answers: Record<string, string>
 }): string {
   const depositInfo = data.depositAmount
-    ? `<p style="margin:8px 0;color:#374151">Angeforderter Sinal: <strong>€${(data.depositAmount / 100).toFixed(2)}</strong> (Referenz: <strong>${data.payment_reference}</strong>)</p>`
+    ? `<p style="margin:8px 0;color:#374151">Angeforderter Anzahlung: <strong>€${(data.depositAmount / 100).toFixed(2)}</strong> (Referenz: <strong>${data.payment_reference}</strong>)</p>`
+    : ''
+
+  const meetInfo = data.meetLink
+    ? `<div style="margin:16px 0 0;padding:12px 16px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.05em">Google Meet</p>
+        <a href="${data.meetLink}" style="color:#2563EB;font-weight:600;font-size:14px">${data.meetLink}</a>
+      </div>`
     : ''
 
   return `
@@ -227,6 +339,170 @@ function buildNewBookingEmail(data: {
       <p style="margin:8px 0;color:#374151">Leistung: <strong>${data.btTitle}</strong></p>
       <p style="margin:8px 0;color:#374151">Termin: <strong>${data.shootDate} um ${data.booked_time} Uhr</strong></p>
       ${depositInfo}
+      ${buildAnswersBlock(data.questions, data.answers)}
+      ${meetInfo}
+    </div>
+  </div>
+</body></html>`
+}
+
+function buildClientConfirmationEmail(data: {
+  clientName: string
+  studioName: string
+  btTitle: string
+  shootDate: string
+  booked_time: string
+  durationMinutes: number
+  locationType: string
+  depositAmount: number | null
+  payment_reference: string | null
+  meetLink: string | null
+  confirmUrl: string
+  requiresDeposit: boolean
+  questions: BookingQuestion[]
+  answers: Record<string, string>
+}): string {
+  const locationLabel: Record<string, string> = {
+    studio: 'Studio',
+    external: 'Outdoor / Extern',
+    online: 'Online (Google Meet)',
+  }
+
+  const depositBlock = data.requiresDeposit && data.depositAmount
+    ? `<div style="margin:20px 0;padding:16px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">
+        <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#C2410C;text-transform:uppercase;letter-spacing:0.05em">Anzahlung erforderlich</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#92400E">Bitte überweise <strong>€${(data.depositAmount / 100).toFixed(2)}</strong> mit dem Verwendungszweck:</p>
+        <p style="margin:0;font-size:20px;font-weight:900;letter-spacing:0.1em;color:#C2410C">${data.payment_reference}</p>
+        <p style="margin:8px 0 0;font-size:12px;color:#92400E">Dein Termin wird nach Zahlungseingang bestätigt.</p>
+      </div>`
+    : `<div style="margin:20px 0;padding:12px 16px;background:#ECFDF5;border-radius:8px;border:1px solid #A7F3D0">
+        <p style="margin:0;font-size:14px;color:#065F46;font-weight:600">✓ Buchung eingegangen — der Fotograf bestätigt in Kürze.</p>
+      </div>`
+
+  const meetBlock = data.meetLink
+    ? `<div style="margin:16px 0;padding:14px 16px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.05em">Google Meet Link</p>
+        <a href="${data.meetLink}" style="color:#2563EB;font-weight:600;font-size:14px;word-break:break-all">${data.meetLink}</a>
+      </div>`
+    : ''
+
+  return `
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:sans-serif;color:#111;background:#f9f9f7;margin:0;padding:0">
+  <div style="max-width:540px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+    <div style="height:4px;background:linear-gradient(90deg,#C9A96E,#d4b483)"></div>
+    <div style="padding:32px">
+      <h2 style="margin:0 0 4px;font-size:20px;letter-spacing:-0.02em">Buchungsbestätigung</h2>
+      <p style="margin:0 0 24px;color:#6B7280;font-size:14px">${data.studioName}</p>
+
+      <p style="margin:0 0 16px;color:#374151;font-size:15px">Hallo <strong>${data.clientName}</strong>,</p>
+      <p style="margin:0 0 20px;color:#374151;font-size:14px">deine Buchungsanfrage wurde erfolgreich übermittelt. Hier sind deine Details:</p>
+
+      <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin:0 0 16px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280;width:110px">Leistung</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.btTitle}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Datum</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.shootDate}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Uhrzeit</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.booked_time} Uhr</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Dauer</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.durationMinutes} Minuten</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Ort</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${locationLabel[data.locationType] ?? data.locationType}</td>
+          </tr>
+        </table>
+      </div>
+
+      ${buildAnswersBlock(data.questions, data.answers)}
+      ${depositBlock}
+      ${meetBlock}
+
+      <div style="margin:20px 0 0;text-align:center">
+        <a href="${data.confirmUrl}" style="display:inline-block;padding:12px 28px;background:#1A1A18;color:#fff;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none">
+          Buchung ansehen →
+        </a>
+      </div>
+
+      <p style="margin:24px 0 0;font-size:12px;color:#9CA3AF;text-align:center">Bei Fragen wende dich direkt an ${data.studioName}.</p>
+    </div>
+  </div>
+</body></html>`
+}
+
+function buildClientReminderEmail(data: {
+  clientName: string
+  studioName: string
+  btTitle: string
+  shootDate: string
+  booked_time: string
+  durationMinutes: number
+  locationType: string
+  meetLink: string | null
+  confirmUrl: string
+}): string {
+  const locationLabel: Record<string, string> = {
+    studio: 'Studio',
+    external: 'Outdoor / Extern',
+    online: 'Online (Google Meet)',
+  }
+
+  const meetBlock = data.meetLink
+    ? `<div style="margin:16px 0;padding:14px 16px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.05em">Google Meet</p>
+        <a href="${data.meetLink}" style="color:#2563EB;font-weight:700;font-size:14px">${data.meetLink}</a>
+      </div>`
+    : ''
+
+  return `
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:sans-serif;color:#111;background:#f9f9f7;margin:0;padding:0">
+  <div style="max-width:540px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+    <div style="height:4px;background:linear-gradient(90deg,#C9A96E,#d4b483)"></div>
+    <div style="padding:32px">
+      <h2 style="margin:0 0 4px;font-size:20px;letter-spacing:-0.02em">Erinnerung: Morgen ist dein Termin</h2>
+      <p style="margin:0 0 24px;color:#6B7280;font-size:14px">${data.studioName}</p>
+      <p style="margin:0 0 16px;color:#374151;font-size:15px">Hallo <strong>${data.clientName}</strong>,</p>
+      <p style="margin:0 0 20px;color:#374151;font-size:14px">nur zur Erinnerung — morgen findet dein Shooting statt:</p>
+      <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin:0 0 16px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280;width:110px">Leistung</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.btTitle}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Datum</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:700;color:#111">${data.shootDate}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Uhrzeit</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:700;color:#111">${data.booked_time} Uhr</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Dauer</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.durationMinutes} Minuten</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;font-size:13px;color:#6B7280">Ort</td>
+            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${locationLabel[data.locationType] ?? data.locationType}</td>
+          </tr>
+        </table>
+      </div>
+      ${meetBlock}
+      <div style="margin:20px 0 0;text-align:center">
+        <a href="${data.confirmUrl}" style="display:inline-block;padding:12px 28px;background:#1A1A18;color:#fff;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none">
+          Buchung ansehen →
+        </a>
+      </div>
     </div>
   </div>
 </body></html>`

@@ -131,8 +131,9 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
 
   const currentSlots: DaySlots[] = slotsCache[monthStr] ?? []
 
-  // Build calendar grid
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay() // 0=Sun
+  // Build calendar grid — week starts Monday (European)
+  const rawFirstDay = new Date(viewYear, viewMonth, 1).getDay() // 0=Sun
+  const firstDay = (rawFirstDay + 6) % 7 // convert to 0=Mon, 1=Tue … 6=Sun
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
   const availableDates = new Set(currentSlots.map(d => d.date))
 
@@ -239,138 +240,178 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
       <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          {photographer.logoUrl && (
-            <img src={photographer.logoUrl} alt="" className="w-12 h-12 rounded-full object-cover" />
-          )}
-          <div>
-            <p className="text-[13px] font-semibold" style={{ color: '#6B7280' }}>
-              {photographer.studioName || photographer.fullName}
-            </p>
-            <h1 className="font-black text-[22px]" style={{ letterSpacing: '-0.03em', color: '#111' }}>
-              {bt.title}
-            </h1>
-          </div>
+        <div className="mb-6">
+          <h1 className="font-black text-[24px]" style={{ letterSpacing: '-0.03em', color: '#111' }}>
+            {bt.title}
+          </h1>
         </div>
-
-        {/* Service info pills */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-white border border-gray-200 text-gray-700">
-            <Clock className="w-3.5 h-3.5" />{bt.duration_minutes} Min.
-          </span>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-white border border-gray-200 text-gray-700">
-            {bt.location_type === 'online' ? <Video className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
-            {LOCATION_LABEL[bt.location_type]}
-          </span>
-          {bt.price > 0 && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold bg-white border border-gray-200" style={{ color: '#C9A96E' }}>
-              <Euro className="w-3.5 h-3.5" />{formatPrice(bt.price)}
-            </span>
-          )}
-          {bt.anzahlung_enabled && depositAmount > 0 && (
-            <span className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-              Anzahlung: {formatPrice(depositAmount)}
-            </span>
-          )}
-        </div>
-
-        {bt.description && (
-          <p className="text-[14px] text-gray-600 mb-8 leading-relaxed">{bt.description}</p>
-        )}
 
         {/* ── Step: Calendar ── */}
         {step === 'calendar' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            {/* Month nav */}
-            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #F3F4F6' }}>
-              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <ChevronLeft className="w-4 h-4 text-gray-500" />
-              </button>
-              <h2 className="font-bold text-[15px] capitalize" style={{ color: '#111' }}>{monthLabel}</h2>
-              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <ChevronRight className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
 
-            {/* Day-of-week headers */}
-            <div className="grid grid-cols-7 px-6 pt-3 pb-1">
-              {['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'].map(d => (
-                <div key={d} className="text-center text-[11px] font-bold text-gray-400 py-1">{d}</div>
-              ))}
-            </div>
+            {/* Left — Calendar */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex-shrink-0 w-full sm:w-auto" style={{ minWidth: '300px' }}>
+              {/* Month nav */}
+              <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #F3F4F6' }}>
+                <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                  <ChevronLeft className="w-4 h-4 text-gray-500" />
+                </button>
+                <h2 className="font-bold text-[15px] capitalize" style={{ color: '#111' }}>{monthLabel}</h2>
+                <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
 
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 px-6 pb-6 gap-1">
-              {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
-              {Array.from({ length: daysInMonth }, (_, i) => {
-                const day = i + 1
-                const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                const isAvailable = availableDates.has(dateStr)
-                const isSelected  = selectedDate === dateStr
-                const isPast = new Date(dateStr + 'T00:00:00') < new Date(now.toISOString().slice(0, 10) + 'T00:00:00')
+              {/* Day-of-week headers */}
+              <div className="grid grid-cols-7 px-3 pt-3 pb-1 gap-1">
+                {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
+                  <div key={d} className="text-center text-[12px] font-bold py-1" style={{ color: '#374151' }}>{d}</div>
+                ))}
+              </div>
 
-                return (
-                  <button
-                    key={day}
-                    disabled={!isAvailable || isPast}
-                    onClick={() => selectDate(dateStr)}
-                    className="aspect-square rounded-xl flex items-center justify-center text-[13px] font-semibold transition-all"
-                    style={{
-                      background: isSelected ? '#1A1A18' : isAvailable && !isPast ? '#F0FDF4' : 'transparent',
-                      color: isSelected ? '#fff' : isAvailable && !isPast ? '#10B981' : '#D1D5DB',
-                      cursor: isAvailable && !isPast ? 'pointer' : 'default',
-                      fontWeight: isAvailable && !isPast ? '700' : '400',
-                    }}
-                  >
-                    {day}
-                  </button>
-                )
-              })}
-            </div>
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 px-3 pb-5 gap-1">
+                {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                  const day = i + 1
+                  const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  const isAvailable = availableDates.has(dateStr)
+                  const isSelected  = selectedDate === dateStr
+                  const isPast = new Date(dateStr + 'T00:00:00') < new Date(now.toISOString().slice(0, 10) + 'T00:00:00')
 
-            {loadingSlots && (
-              <p className="text-center text-[13px] text-gray-400 pb-4">Lade Verfügbarkeit…</p>
-            )}
-
-            {/* Time slots */}
-            {selectedDate && slotsForSelected.length > 0 && (
-              <div className="px-6 pb-6 space-y-3" style={{ borderTop: '1px solid #F3F4F6', paddingTop: '20px' }}>
-                <p className="text-[13px] font-semibold text-gray-600">{formatDate(selectedDate)}</p>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {slotsForSelected.map(slot => (
+                  return (
                     <button
-                      key={slot}
-                      onClick={() => setSelectedTime(slot)}
-                      className="py-2.5 rounded-xl text-[13px] font-bold transition-all border"
+                      key={day}
+                      disabled={!isAvailable || isPast}
+                      onClick={() => selectDate(dateStr)}
+                      className="aspect-square rounded-xl flex items-center justify-center text-[14px] transition-all"
                       style={{
-                        background: selectedTime === slot ? '#1A1A18' : 'white',
-                        color: selectedTime === slot ? '#fff' : '#374151',
-                        borderColor: selectedTime === slot ? '#1A1A18' : '#E5E7EB',
+                        background: isSelected ? '#1A1A18' : isAvailable && !isPast ? '#F0FDF4' : 'transparent',
+                        color: isSelected ? '#fff' : isAvailable && !isPast ? '#059669' : '#6B7280',
+                        cursor: isAvailable && !isPast ? 'pointer' : 'default',
+                        fontWeight: isAvailable && !isPast ? '700' : '500',
                       }}
                     >
-                      {slot}
+                      {day}
                     </button>
-                  ))}
-                </div>
-                {selectedTime && (
-                  <div className="pt-2">
-                    <button
-                      onClick={() => setStep('form')}
-                      className="w-full py-3 rounded-xl text-[14px] font-bold transition-all"
-                      style={{ background: '#1A1A18', color: '#fff' }}
-                    >
-                      Weiter — {selectedTime} Uhr →
-                    </button>
-                  </div>
-                )}
+                  )
+                })}
               </div>
-            )}
+            </div>
 
-            {selectedDate && slotsForSelected.length === 0 && !loadingSlots && (
-              <div className="px-6 pb-6 pt-4 text-center text-[13px] text-gray-400" style={{ borderTop: '1px solid #F3F4F6' }}>
-                Leider keine freien Slots an diesem Tag.
-              </div>
-            )}
+            {/* Right — Info panel / Time slots */}
+            <div className="flex-1 min-w-0 w-full">
+              {/* No date selected — service info */}
+              {!selectedDate && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+                  {/* Photographer mini card */}
+                  <div className="flex items-center gap-3">
+                    {photographer.logoUrl
+                      ? <img src={photographer.logoUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                      : <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[15px] font-bold text-white" style={{ background: '#C9A96E' }}>{(photographer.studioName || photographer.fullName).charAt(0)}</div>
+                    }
+                    <div className="min-w-0">
+                      <p className="font-bold text-[13px] truncate" style={{ color: '#111' }}>{photographer.studioName || photographer.fullName}</p>
+                      <p className="text-[11px] text-gray-400">Fotograf</p>
+                    </div>
+                  </div>
+
+                  <div style={{ height: 1, background: '#F3F4F6' }} />
+
+                  {/* Service details */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#374151' }}>
+                      <Clock className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                      <span>{bt.duration_minutes} Minuten</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#374151' }}>
+                      {bt.location_type === 'online' ? <Video className="w-4 h-4 flex-shrink-0 text-gray-400" /> : <MapPin className="w-4 h-4 flex-shrink-0 text-gray-400" />}
+                      <span>{LOCATION_LABEL[bt.location_type]}</span>
+                    </div>
+                    {bt.price > 0 && (
+                      <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#C9A96E' }}>
+                        <Euro className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-bold">{formatPrice(bt.price)}</span>
+                      </div>
+                    )}
+                    {bt.anzahlung_enabled && depositAmount > 0 && (
+                      <div className="flex items-center gap-2.5 text-[13px] text-blue-600">
+                        <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center rounded-full bg-blue-100 text-[9px] font-black">%</span>
+                        <span>Anzahlung: {formatPrice(depositAmount)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {bt.description && (
+                    <>
+                      <div style={{ height: 1, background: '#F3F4F6' }} />
+                      <p className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>{bt.description}</p>
+                    </>
+                  )}
+
+                  <div style={{ height: 1, background: '#F3F4F6' }} />
+
+                  {/* Hint */}
+                  <p className="text-[11px] text-center" style={{ color: '#9CA3AF' }}>
+                    ← Wähle einen Tag im Kalender
+                  </p>
+                </div>
+              )}
+
+              {/* Date selected — time slots */}
+              {selectedDate && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3.5" style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    <p className="font-bold text-[13px]" style={{ color: '#111' }}>{formatDate(selectedDate)}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{bt.duration_minutes} Min. · {LOCATION_LABEL[bt.location_type]}</p>
+                  </div>
+
+                  <div className="p-4">
+                    {loadingSlots && (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-200 border-t-gray-600 animate-spin" />
+                      </div>
+                    )}
+
+                    {!loadingSlots && slotsForSelected.length === 0 && (
+                      <p className="text-center text-[12px] text-gray-400 py-6">Keine freien Slots an diesem Tag.</p>
+                    )}
+
+                    {!loadingSlots && slotsForSelected.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {slotsForSelected.map(slot => (
+                            <button
+                              key={slot}
+                              onClick={() => setSelectedTime(slot)}
+                              className="py-2 rounded-xl text-[12px] font-bold transition-all border"
+                              style={{
+                                background: selectedTime === slot ? '#1A1A18' : 'white',
+                                color: selectedTime === slot ? '#fff' : '#374151',
+                                borderColor: selectedTime === slot ? '#1A1A18' : '#E5E7EB',
+                              }}
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedTime && (
+                          <button
+                            onClick={() => setStep('form')}
+                            className="w-full py-2.5 rounded-xl text-[13px] font-bold transition-all mt-1"
+                            style={{ background: '#1A1A18', color: '#fff' }}
+                          >
+                            Weiter — {selectedTime} Uhr →
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
@@ -447,15 +488,26 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                       {(q.options ?? []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   ) : q.type === 'checkbox' ? (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={answers[q.id] === 'true'}
-                        onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.checked ? 'true' : 'false' }))}
-                        className="w-4 h-4 rounded"
-                      />
-                      <span className="text-[14px] text-gray-700">{q.label}</span>
-                    </label>
+                    <div className="space-y-2">
+                      {(q.options && q.options.length > 0 ? q.options : ['Ja']).map(opt => {
+                        const selected: string[] = answers[q.id] ? answers[q.id].split('||') : []
+                        const checked = selected.includes(opt)
+                        return (
+                          <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const next = checked ? selected.filter(s => s !== opt) : [...selected, opt]
+                                setAnswers(a => ({ ...a, [q.id]: next.join('||') }))
+                              }}
+                              className="w-4 h-4 rounded"
+                            />
+                            <span className="text-[14px] text-gray-700">{opt}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
                   ) : (
                     <input
                       className="w-full px-3 py-2.5 rounded-xl text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900"

@@ -235,7 +235,7 @@ export async function POST(
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F7F4; margin: 0; padding: 40px 20px;">
   <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.08);">
     <div style="background: #1A1A18; padding: 20px 32px; display: flex; align-items: center; gap: 10px;">
-      <img src="${appUrl}/logo.png" alt="Fotonizer" style="width: 28px; height: 28px; border-radius: 8px; object-fit: cover; display: block;" />
+      <img src="${appUrl}/logo-dark.jpg" alt="Fotonizer" style="width: 28px; height: 28px; border-radius: 8px; object-fit: cover; display: block;" />
       <p style="color: #C4A47C; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0;">Fotonizer</p>
     </div>
     <div style="padding: 32px;">

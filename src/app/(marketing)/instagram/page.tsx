@@ -51,7 +51,7 @@ function Slide({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Fotonizer" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
+          <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
           <span
             style={{
               fontSize: 22,

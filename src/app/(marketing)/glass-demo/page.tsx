@@ -187,7 +187,7 @@ export default function GlassDemoPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Fotonizer" style={{ width: 30, height: 30, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
+              <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: 30, height: 30, borderRadius: 9, objectFit: 'cover', display: 'block' }} />
               <span style={{ fontSize: 17, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.03em' }}>Fotonizer</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
@@ -397,7 +397,7 @@ export default function GlassDemoPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="Fotonizer" style={{ width: 24, height: 24, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
+                <img src="/logo-light.jpg" alt="Fotonizer" style={{ width: 24, height: 24, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
                 <span style={{ fontSize: 15, fontWeight: 800, color: '#1A1510', letterSpacing: '-0.02em' }}>Fotonizer</span>
               </div>
               <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>Studio management for professional photographers.</p>

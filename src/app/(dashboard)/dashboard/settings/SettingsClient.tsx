@@ -107,6 +107,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
   const [notifSettings, setNotifSettings] = useState({
     notify_inapp_new_booking: true,
     notify_email_new_booking: true,
+    auto_invoice_on_complete: true,
     notify_inapp_new_inquiry: true,
     notify_email_new_inquiry: true,
     notify_inapp_contract_signed: true,
@@ -144,6 +145,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
           setNotifSettings({
             notify_inapp_new_booking: data.notify_inapp_new_booking ?? true,
             notify_email_new_booking: data.notify_email_new_booking ?? true,
+            auto_invoice_on_complete: data.auto_invoice_on_complete ?? true,
             notify_inapp_new_inquiry: data.notify_inapp_new_inquiry ?? true,
             notify_email_new_inquiry: data.notify_email_new_inquiry ?? true,
             notify_inapp_contract_signed: data.notify_inapp_contract_signed ?? true,
@@ -926,6 +928,23 @@ export default function SettingsClient({ photographer, userId }: Props) {
                     </div>
                   )
                 })()}
+                {/* Auto-invoice toggle */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4] mt-1">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <span className="text-sm text-[#1A1A1A] block">
+                      {isDE ? 'Rechnung automatisch erstellen' : 'Auto-create invoice on complete'}
+                    </span>
+                    <span className="text-[11px] text-[#6B6B6B]">
+                      {isDE ? 'Beim Abschließen einer Buchung wird automatisch eine Rechnung mit Anzahlungsabzug erstellt.' : 'When marking a booking as completed, an invoice is auto-generated with deposit deducted.'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setNotifSettings(prev => ({ ...prev, auto_invoice_on_complete: !prev.auto_invoice_on_complete }))}
+                    className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', notifSettings.auto_invoice_on_complete ? 'bg-[#C8A882]' : 'bg-[#E8E8E4]')}
+                  >
+                    <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', notifSettings.auto_invoice_on_complete ? 'left-4' : 'left-0.5')} />
+                  </button>
+                </div>
               </div>
 
               {/* New inquiry section */}

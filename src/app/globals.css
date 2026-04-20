@@ -943,6 +943,19 @@ img:not(.photo-img-hover) {
   color: var(--text-primary);
 }
 
+/* ── Theme-responsive logo ──────────────────────────────────────────────────
+   logo-light = white background logo (shown in light theme)
+   logo-dark  = black background logo (shown in dark + mono themes)
+───────────────────────────────────────────────────────────────────────────── */
+.logo-light { display: block; }
+.logo-dark  { display: none;  }
+
+[data-theme="dark"] .logo-light { display: none;  }
+[data-theme="dark"] .logo-dark  { display: block; }
+
+[data-theme="mono"] .logo-light { display: none;  }
+[data-theme="mono"] .logo-dark  { display: block; }
+
 /* ── Inbox conversation list items ── */
 .inbox-conv-item {
   border-left: 3px solid transparent;

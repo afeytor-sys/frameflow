@@ -54,6 +54,7 @@ interface Photographer {
   bank_iban: string | null
   bank_bic: string | null
   plan: string
+  google_calendar_refresh_token: string | null
 }
 
 interface Props {
@@ -302,6 +303,25 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
         </div>
       )}
 
+      {/* Google Calendar not connected — warn if any active online types exist */}
+      {!photographer.google_calendar_refresh_token && bookingTypes.some(bt => bt.active && bt.location_type === 'online') && (
+        <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)' }}>
+          <Video className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#6366F1' }} />
+          <div>
+            <p className="text-[13px] font-semibold" style={{ color: '#6366F1' }}>
+              Google Calendar nicht verbunden
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: '#6366F1', opacity: 0.8 }}>
+              Du hast aktive Online-Leistungen, aber Google Calendar ist nicht verknüpft.
+              Ohne Verbindung werden keine Google Meet Links automatisch generiert.{' '}
+              <a href="/dashboard/settings#integrations" className="font-bold underline">
+                Jetzt verbinden →
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Booking types list */}
       {bookingTypes.length === 0 ? (
         <div
@@ -318,98 +338,124 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {bookingTypes.map(bt => (
-            <div
-              key={bt.id}
-              className="rounded-2xl p-5"
-              style={{
-                background: 'var(--card-bg)',
-                border: `1px solid ${bt.active ? 'var(--card-border)' : 'var(--border-color)'}`,
-                opacity: bt.active ? 1 : 0.6,
-              }}
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h3 className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>{bt.title}</h3>
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
-                      style={{ background: bt.active ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover)', color: bt.active ? '#10B981' : 'var(--text-muted)' }}
-                    >
-                      {bt.active ? 'Aktiv' : 'Inaktiv'}
-                    </span>
-                  </div>
-                  {bt.description && (
-                    <p className="text-[13px] mb-2" style={{ color: 'var(--text-muted)' }}>{bt.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-3">
-                    <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                      <Clock className="w-3.5 h-3.5" />{bt.duration_minutes} Min.
-                    </span>
-                    <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                      {LOCATION_ICONS[bt.location_type]}{LOCATION_LABELS[bt.location_type]}
-                    </span>
-                    <span className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: 'var(--accent, #C9A96E)' }}>
-                      <Euro className="w-3.5 h-3.5" />{formatPrice(bt.price)}
-                    </span>
-                    {bt.anzahlung_enabled && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(59,130,246,0.12)', color: '#3B82F6' }}>
-                        Anzahlung
+        <div className="space-y-2.5">
+          {bookingTypes.map(bt => {
+            const accentColor = bt.location_type === 'online' ? '#6366F1' : bt.location_type === 'studio' ? '#C9A96E' : '#10B981'
+            return (
+              <div
+                key={bt.id}
+                className="group relative flex items-center rounded-2xl overflow-hidden transition-all"
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--card-border)',
+                  opacity: bt.active ? 1 : 0.55,
+                }}
+              >
+                {/* Left accent bar */}
+                <div className="w-1 self-stretch flex-shrink-0" style={{ background: bt.active ? accentColor : 'var(--border-color)' }} />
+
+                {/* Main content */}
+                <div className="flex-1 min-w-0 flex items-center gap-4 px-4 py-3.5">
+                  {/* Title + status */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[14px] leading-snug truncate" style={{ color: 'var(--text-primary)' }}>{bt.title}</span>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          background: bt.active ? 'rgba(16,185,129,0.12)' : 'var(--bg-hover)',
+                          color: bt.active ? '#10B981' : 'var(--text-muted)',
+                        }}
+                      >
+                        {bt.active ? 'Aktiv' : 'Inaktiv'}
                       </span>
-                    )}
+                      {bt.anzahlung_enabled && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}>
+                          Anzahlung
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Chips row */}
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                        <Clock className="w-3 h-3 flex-shrink-0" />{bt.duration_minutes} Min.
+                      </span>
+                      <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                        {LOCATION_ICONS[bt.location_type]}<span>{LOCATION_LABELS[bt.location_type]}</span>
+                      </span>
+                      {bt.availability_type === 'request' && (
+                        <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                          · Nur Anfrage
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Public link */}
+                  {/* Price */}
+                  <div className="flex-shrink-0 text-right hidden sm:block">
+                    <span className="text-[15px] font-bold" style={{ color: accentColor }}>
+                      {bt.price === 0 ? '—' : formatPrice(bt.price)}
+                    </span>
+                  </div>
+
+                  {/* Link actions */}
                   {photographerSlug && (
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[11px] font-mono truncate max-w-[280px]" style={{ color: 'var(--text-muted)' }}>
-                        /b/{photographerSlug}/{bt.slug}
-                      </span>
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         onClick={() => copyLink(bt.slug)}
-                        className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg transition-colors"
-                        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                        className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-hover)]"
+                        style={{ color: copiedSlug === bt.slug ? '#10B981' : 'var(--text-muted)' }}
+                        title="Link kopieren"
                       >
-                        {copiedSlug === bt.slug ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                        {copiedSlug === bt.slug ? 'Kopiert' : 'Kopieren'}
+                        {copiedSlug === bt.slug ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </button>
                       <a
                         href={`/b/${photographerSlug}/${bt.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] px-2 py-0.5 rounded-lg"
-                        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                        className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-hover)]"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="Seite öffnen"
                       >
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-4 h-4" />
                       </a>
                     </div>
                   )}
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => handleToggleActive(bt)}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{ color: 'var(--text-muted)' }}
-                    title={bt.active ? 'Deaktivieren' : 'Aktivieren'}
-                  >
-                    {bt.active
-                      ? <ToggleRight className="w-5 h-5" style={{ color: '#10B981' }} />
-                      : <ToggleLeft className="w-5 h-5" />
-                    }
-                  </button>
-                  <button onClick={() => openEdit(bt)} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }}>
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(bt.id)} className="p-2 rounded-lg transition-colors" style={{ color: '#EF4444' }}>
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Actions — always visible, subtle */}
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleToggleActive(bt)}
+                      className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-hover)]"
+                      title={bt.active ? 'Deaktivieren' : 'Aktivieren'}
+                    >
+                      {bt.active
+                        ? <ToggleRight className="w-5 h-5" style={{ color: '#10B981' }} />
+                        : <ToggleLeft className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                      }
+                    </button>
+                    <button
+                      onClick={() => openEdit(bt)}
+                      className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-hover)]"
+                      style={{ color: 'var(--text-muted)' }}
+                      title="Bearbeiten"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(bt.id)}
+                      className="p-2 rounded-xl transition-colors hover:bg-red-50"
+                      style={{ color: '#EF4444', opacity: 0.7 }}
+                      title="Löschen"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -681,14 +727,44 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        {q.type === 'dropdown' && (
-                          <input
-                            className="w-full px-2.5 py-1.5 rounded-lg text-[12px]"
-                            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                            placeholder="Optionen, kommagetrennt: Option A, Option B, ..."
-                            value={(q.options ?? []).join(', ')}
-                            onChange={e => updateQuestion(i, { options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })}
-                          />
+                        {(q.type === 'dropdown' || q.type === 'checkbox') && (
+                          <div className="space-y-1.5 mt-1">
+                            {(q.options ?? ['']).map((opt, oi) => (
+                              <div key={oi} className="flex items-center gap-1.5">
+                                <input
+                                  className="flex-1 px-2.5 py-1.5 rounded-lg text-[12px]"
+                                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                  placeholder={`Option ${oi + 1}`}
+                                  value={opt}
+                                  onChange={e => {
+                                    const next = [...(q.options ?? [])]
+                                    next[oi] = e.target.value
+                                    updateQuestion(i, { options: next })
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = (q.options ?? []).filter((_, idx) => idx !== oi)
+                                    updateQuestion(i, { options: next.length ? next : [''] })
+                                  }}
+                                  className="p-1.5 rounded-lg flex-shrink-0 transition-colors hover:bg-red-50"
+                                  style={{ color: '#EF4444', opacity: (q.options ?? []).length <= 1 ? 0.3 : 1 }}
+                                  disabled={(q.options ?? []).length <= 1}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => updateQuestion(i, { options: [...(q.options ?? []), ''] })}
+                              className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors"
+                              style={{ border: '1px dashed var(--border-color)', color: 'var(--text-muted)' }}
+                            >
+                              <Plus className="w-3 h-3" /> Option hinzufügen
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}

@@ -16,18 +16,18 @@ async function getValidAccessToken(
   photographer: PhotographerCalendarData,
   supabase: any
 ): Promise<string | null> {
-  if (!photographer.google_calendar_access_token) return null
+  // If access token exists and is still valid (with 5 min buffer), return it
+  if (photographer.google_calendar_access_token) {
+    const expiry = photographer.google_calendar_token_expiry
+      ? new Date(photographer.google_calendar_token_expiry)
+      : null
 
-  const expiry = photographer.google_calendar_token_expiry
-    ? new Date(photographer.google_calendar_token_expiry)
-    : null
-
-  // If token is still valid (with 5 min buffer), return it
-  if (expiry && expiry.getTime() - Date.now() > 5 * 60 * 1000) {
-    return photographer.google_calendar_access_token
+    if (expiry && expiry.getTime() - Date.now() > 5 * 60 * 1000) {
+      return photographer.google_calendar_access_token
+    }
   }
 
-  // Need to refresh
+  // Need to refresh — requires refresh token
   if (!photographer.google_calendar_refresh_token) return null
 
   try {
@@ -43,7 +43,10 @@ async function getValidAccessToken(
     })
 
     const data = await res.json()
-    if (!data.access_token) return null
+    if (!data.access_token) {
+      console.error('[googleCalendar] Token refresh failed:', data.error, data.error_description)
+      return null
+    }
 
     const newExpiry = new Date(Date.now() + data.expires_in * 1000).toISOString()
 
@@ -57,7 +60,8 @@ async function getValidAccessToken(
       .eq('id', photographer.id)
 
     return data.access_token
-  } catch {
+  } catch (err) {
+    console.error('[googleCalendar] getValidAccessToken error:', err)
     return null
   }
 }
@@ -217,11 +221,16 @@ export async function createBookingEvent(
     })
 
     const data = await res.json()
+    if (!res.ok) {
+      console.error('[googleCalendar] createBookingEvent API error:', data.error)
+      return { eventId: null, meetLink: null }
+    }
     const eventId = data.id || null
     const meetLink = data.conferenceData?.entryPoints?.[0]?.uri || null
 
     return { eventId, meetLink }
-  } catch {
+  } catch (err) {
+    console.error('[googleCalendar] createBookingEvent error:', err)
     return { eventId: null, meetLink: null }
   }
 }

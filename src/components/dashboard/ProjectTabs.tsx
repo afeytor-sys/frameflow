@@ -129,9 +129,20 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
 
-  // Invoice state
-  const [projectInvoices, setProjectInvoices] = useState<ProjectInvoice[]>([])
-  const [invoicesLoaded, setInvoicesLoaded] = useState(false)
+  // Invoice state — seeded from server-fetched invoicesInitial
+  const [projectInvoices, setProjectInvoices] = useState<ProjectInvoice[]>(() =>
+    invoicesInitial.map(inv => ({
+      id: inv.id,
+      invoice_number: inv.invoice_number,
+      amount: inv.amount,
+      currency: inv.currency,
+      status: inv.status,
+      description: inv.description ?? null,
+      due_date: inv.due_date ?? null,
+      created_at: inv.created_at,
+    }))
+  )
+  const [invoicesLoaded, setInvoicesLoaded] = useState(true)
 
   const supabase = createClient()
   const client = project.client as { full_name?: string; email?: string } | null

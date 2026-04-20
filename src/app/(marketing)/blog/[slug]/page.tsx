@@ -54,7 +54,7 @@ export default async function BlogPostPage({ params }: Props) {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Fotonizer" className="w-7 h-7 rounded-lg object-cover" />
+            <img src="/logo-light.jpg" alt="Fotonizer" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-bold text-[17px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Fotonizer</span>
           </Link>
           <div className="flex items-center gap-4">

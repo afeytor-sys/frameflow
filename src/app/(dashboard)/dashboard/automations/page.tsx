@@ -65,7 +65,7 @@ export default async function AutomationsPage() {
     // Manually scheduled emails (pending + recent sent/cancelled)
     supabase
       .from('scheduled_emails')
-      .select('id, to_email, to_name, subject, html_body, plain_body, type, scheduled_at, sent_at, cancelled_at, status, error_message, project_id, created_at')
+      .select('id, to_email, to_name, subject, html_body, plain_body, type, scheduled_at, sent_at, cancelled_at, status, error_message, project_id, created_at, opened_at, open_count')
       .eq('photographer_id', user.id)
       .order('scheduled_at', { ascending: true })
       .limit(100),

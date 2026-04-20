@@ -3,6 +3,12 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import { createBookingEvent } from '@/lib/googleCalendar'
 
+// "YYYY-MM-DD" → "DD.MM.YYYY"
+function fmtDate(dateStr: string): string {
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-')
+  return `${d}.${m}.${y}`
+}
+
 // PATCH /api/bookings/[id]/confirm  (authenticated — photographer only)
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -35,13 +41,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const bt = booking.booking_types as { title: string; duration_minutes: number; location_type: string; price: number } | null
 
-  // Create Google Calendar event
-  let googleEventId: string | null = null
-  let meetLink: string | null = null
+  // Preserve any existing calendar event/meet link from booking creation
+  let googleEventId: string | null = booking.google_calendar_event_id ?? null
+  let meetLink: string | null = booking.google_meet_link ?? null
 
-  if (photographer?.google_calendar_access_token && bt) {
+  // Create calendar event if photographer has Google Calendar connected and no event yet
+  const hasCalendar = !!(photographer?.google_calendar_refresh_token || photographer?.google_calendar_access_token)
+  if (hasCalendar && bt && !googleEventId) {
+    console.log('[confirm] Creating Google Calendar event for booking', id)
     const result = await createBookingEvent(
-      photographer,
+      photographer!,
       {
         bookingId: booking.id,
         title: `${bt.title} — ${booking.client_name}`,
@@ -53,8 +62,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
       serviceSupabase,
     )
-    googleEventId = result.eventId
-    meetLink = result.meetLink
+    if (result.eventId) {
+      googleEventId = result.eventId
+      meetLink = result.meetLink
+      console.log('[confirm] ✅ Calendar event created:', result.eventId, result.meetLink)
+    } else {
+      console.error('[confirm] ❌ Calendar event creation returned null — check googleCalendar.ts logs')
+    }
   }
 
   // Update booking to confirmed
@@ -62,8 +76,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .from('bookings')
     .update({
       status: 'confirmed',
-      google_calendar_event_id: googleEventId,
-      google_meet_link: meetLink,
+      ...(googleEventId ? { google_calendar_event_id: googleEventId } : {}),
+      ...(meetLink     ? { google_meet_link: meetLink }               : {}),
     })
     .eq('id', id)
 
@@ -74,9 +88,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const reminder24h = new Date(shootDateTime.getTime() - 24 * 60 * 60 * 1000)
   const reminder1h  = new Date(shootDateTime.getTime() - 60 * 60 * 1000)
   const studioName  = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
-  const shootDateStr = shootDateTime.toLocaleDateString('de-DE', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
+  const shootDateStr = fmtDate(booking.booked_date)
   const shootTimeStr = String(booking.booked_time).slice(0, 5)
 
   const reminderHtml = (hoursLeft: string) => `
