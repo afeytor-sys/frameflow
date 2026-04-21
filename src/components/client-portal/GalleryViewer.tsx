@@ -81,8 +81,7 @@ const TAG_CONFIG = {
 }
 
 const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: string }[] = [
-  { key: 'masonry',  icon: LayoutGrid,    label: 'Masonry' },
-  { key: 'grid',     icon: AlignJustify,  label: 'Raster' },
+  { key: 'grid',     icon: LayoutGrid,    label: 'Raster' },
   { key: 'columns',  icon: Columns2,      label: 'Spalten' },
 ]
 
