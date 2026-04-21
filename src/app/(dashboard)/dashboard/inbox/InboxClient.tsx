@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   MessageCircle, Inbox, Send, ChevronDown, FileText, ExternalLink,
-  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer, ArrowLeft, Check,
+  MapPin, Calendar, Users, Clock, Tag, Globe, Zap, Timer, ArrowLeft, Check, Trash2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -498,8 +498,27 @@ export default function InboxClient({ conversations: initialConversations, photo
   // Status filter for conversation list
   const [statusFilter, setStatusFilter]   = useState<LeadStatus | 'all'>('all')
 
+  const [hoveredConvId, setHoveredConvId]   = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   const handleStatusChange = (id: string, status: LeadStatus) => {
     setConversations(prev => prev.map(c => c.id === id ? { ...c, lead_status: status } : c))
+  }
+
+  const handleDeleteConversation = async (convId: string) => {
+    // Optimistic: remove from list immediately
+    setConversations(prev => prev.filter(c => c.id !== convId))
+    if (selectedId === convId) {
+      const remaining = conversations.filter(c => c.id !== convId)
+      setSelectedId(remaining.length > 0 ? remaining[0].id : null)
+      setShowThread(false)
+    }
+    setConfirmDeleteId(null)
+
+    const res = await fetch(`/api/inbox/${convId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      toast.error('Fehler beim Löschen — bitte neu laden')
+    }
   }
 
   const templatesRef   = useRef<HTMLDivElement>(null)
@@ -741,15 +760,19 @@ export default function InboxClient({ conversations: initialConversations, photo
             const isActive = conv.id === selectedId
             const convStatus = conv.lead_status ?? 'new_lead'
             const sCfg = STATUS_CONFIG[convStatus]
+            const isHovered = hoveredConvId === conv.id
+            const isConfirming = confirmDeleteId === conv.id
             return (
-              <button
+              <div
                 key={conv.id}
-                onClick={() => { setSelectedId(conv.id); setShowThread(true) }}
-                className={`w-full text-left px-4 py-3.5 sm:py-3.5 min-h-[72px] sm:min-h-0 flex flex-col justify-center transition-all active:scale-[0.99] inbox-conv-item${isActive ? ' inbox-conv-item--active' : ''}`}
+                onClick={() => { setSelectedId(conv.id); setShowThread(true); setConfirmDeleteId(null) }}
+                onMouseEnter={() => setHoveredConvId(conv.id)}
+                onMouseLeave={() => { setHoveredConvId(null); setConfirmDeleteId(null) }}
+                className={`w-full text-left px-4 py-3.5 sm:py-3.5 min-h-[72px] sm:min-h-0 flex flex-col justify-center transition-all active:scale-[0.99] inbox-conv-item cursor-pointer${isActive ? ' inbox-conv-item--active' : ''}`}
                 style={{ borderBottom: '1px solid var(--border-color)' }}
               >
                 <div className="flex items-center gap-3">
-                  {/* Avatar — larger on mobile */}
+                  {/* Avatar */}
                   <div
                     className="w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] sm:text-[12px] font-bold text-white"
                     style={{ background: isActive ? '#10B981' : 'var(--accent, #C9A96E)' }}
@@ -758,23 +781,54 @@ export default function InboxClient({ conversations: initialConversations, photo
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    {/* Name + date row */}
+                    {/* Name + date/delete row */}
                     <div className="flex items-center justify-between gap-2 mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <p className="text-[14px] sm:text-[13px] font-bold sm:font-semibold truncate leading-snug" style={{ color: 'var(--text-primary)' }}>
                           {conv.lead_name}
                         </p>
-                        {/* Status dot */}
                         <span
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ background: sCfg.dot }}
                           title={sCfg.de}
                         />
                       </div>
-                      {last && (
-                        <span className="text-[11px] sm:text-[10px] flex-shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>
-                          {formatTime(last.created_at)}
-                        </span>
+
+                      {/* Right side: delete button (hover) or timestamp */}
+                      {isHovered ? (
+                        isConfirming ? (
+                          <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleDeleteConversation(conv.id)}
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors"
+                              style={{ background: '#EF4444', color: '#fff' }}
+                            >
+                              Löschen
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors"
+                              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                            >
+                              Nein
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmDeleteId(conv.id) }}
+                            className="flex-shrink-0 p-1 rounded-md transition-colors"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="Konversation löschen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )
+                      ) : (
+                        last && (
+                          <span className="text-[11px] sm:text-[10px] flex-shrink-0 font-medium" style={{ color: 'var(--text-muted)' }}>
+                            {formatTime(last.created_at)}
+                          </span>
+                        )
                       )}
                     </div>
 
@@ -789,7 +843,7 @@ export default function InboxClient({ conversations: initialConversations, photo
                     )}
                   </div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
