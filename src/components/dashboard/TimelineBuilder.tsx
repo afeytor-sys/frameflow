@@ -360,8 +360,8 @@ export default function TimelineBuilder({ projectId, timelineId: initialTimeline
         </div>
         <button
           onClick={() => { setAddingNew(true); setEditingId(null) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors"
-          style={{ background: 'var(--text-primary)' }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+          style={{ background: 'var(--accent)', color: '#1A1A18' }}
         >
           <Plus className="w-3.5 h-3.5" />
           Add event

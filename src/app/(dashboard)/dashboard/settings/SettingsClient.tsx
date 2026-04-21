@@ -1158,7 +1158,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
                 }}
                 disabled={slugSaving}
                 className="px-4 py-2 rounded-xl text-[13px] font-bold disabled:opacity-50 transition-all"
-                style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+                style={{ background: 'var(--accent)', color: '#1A1A18' }}
               >
                 {slugSaving ? '…' : isDE ? 'Speichern' : 'Save'}
               </button>

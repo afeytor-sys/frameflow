@@ -146,8 +146,8 @@ export default function AnfragenClient({ initialBookings, autoInvoice }: Props) 
             onClick={() => setFilter(tab.key)}
             className="px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
             style={{
-              background: filter === tab.key ? 'var(--text-primary)' : 'var(--bg-hover)',
-              color: filter === tab.key ? '#fff' : 'var(--text-muted)',
+              background: filter === tab.key ? 'var(--accent)' : 'var(--bg-hover)',
+              color: filter === tab.key ? '#1A1A18' : 'var(--text-muted)',
             }}
           >
             {tab.label}

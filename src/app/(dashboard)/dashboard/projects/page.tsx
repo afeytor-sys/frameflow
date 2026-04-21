@@ -550,8 +550,8 @@ export default function ProjectsPage() {
               onClick={() => setView('grid')}
               className="w-8 h-8 flex items-center justify-center transition-all"
               style={{
-                background: viewMode === 'grid' ? 'var(--text-primary)' : 'transparent',
-                color: viewMode === 'grid' ? 'var(--btn-primary-color)' : 'var(--text-muted)',
+                background: viewMode === 'grid' ? 'var(--accent)' : 'transparent',
+                color: viewMode === 'grid' ? '#1A1A18' : 'var(--text-muted)',
               }}
               title="Karten-Ansicht"
             >
@@ -561,8 +561,8 @@ export default function ProjectsPage() {
               onClick={() => setView('list')}
               className="w-8 h-8 flex items-center justify-center transition-all"
               style={{
-                background: viewMode === 'list' ? 'var(--text-primary)' : 'transparent',
-                color: viewMode === 'list' ? 'var(--btn-primary-color)' : 'var(--text-muted)',
+                background: viewMode === 'list' ? 'var(--accent)' : 'transparent',
+                color: viewMode === 'list' ? '#1A1A18' : 'var(--text-muted)',
               }}
               title="Listen-Ansicht"
             >

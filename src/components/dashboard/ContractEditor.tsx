@@ -233,7 +233,7 @@ export default function ContractEditor({
       )}
       style={
         active
-          ? { background: 'var(--text-primary)', color: 'var(--bg-page)' }
+          ? { background: 'var(--accent)', color: '#1A1A18' }
           : { color: 'var(--text-muted)' }
       }
       onMouseEnter={(e) => {
@@ -244,8 +244,8 @@ export default function ContractEditor({
       }}
       onMouseLeave={(e) => {
         if (!active) {
-          e.currentTarget.style.background = active ? 'var(--text-primary)' : 'transparent'
-          e.currentTarget.style.color = active ? 'var(--bg-page)' : 'var(--text-muted)'
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'var(--text-muted)'
         }
       }}
     >

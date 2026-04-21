@@ -334,7 +334,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all active:scale-[0.97]"
-          style={{ background: 'var(--text-primary)', color: '#fff' }}
+          style={{ background: 'var(--accent)', color: '#1A1A18' }}
         >
           <Plus className="w-4 h-4" />
           Neuer Typ
@@ -382,7 +382,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
           <p className="text-[13px] mt-1 mb-4" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
             Erstelle deinen ersten Service-Typ, damit Kunden Termine buchen können.
           </p>
-          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold" style={{ background: 'var(--text-primary)', color: '#fff' }}>
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold" style={{ background: 'var(--accent)', color: '#1A1A18' }}>
             <Plus className="w-4 h-4" /> Neuer Typ
           </button>
         </div>
@@ -531,8 +531,8 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                   onClick={() => setActiveTab(tab)}
                   className="px-4 py-2.5 text-[13px] font-semibold transition-colors"
                   style={{
-                    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-muted)',
-                    borderBottom: activeTab === tab ? '2px solid var(--text-primary)' : '2px solid transparent',
+                    color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                    borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
                   }}
                 >
                   {label}
@@ -935,8 +935,8 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                             onClick={() => setForm(f => ({ ...f, anzahlung_type: t }))}
                             className="flex-1 py-2 rounded-xl text-[13px] font-semibold transition-all"
                             style={{
-                              background: form.anzahlung_type === t ? 'var(--text-primary)' : 'var(--bg-hover)',
-                              color: form.anzahlung_type === t ? 'var(--bg-page)' : 'var(--text-muted)',
+                              background: form.anzahlung_type === t ? 'var(--accent)' : 'var(--bg-hover)',
+                              color: form.anzahlung_type === t ? '#1A1A18' : 'var(--text-muted)',
                               border: '1px solid var(--border-color)',
                             }}
                           >
@@ -1011,7 +1011,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                 onClick={handleSave}
                 disabled={saving}
                 className="px-5 py-2 rounded-xl text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ background: 'var(--text-primary)', color: '#fff' }}
+                style={{ background: 'var(--accent)', color: '#1A1A18' }}
               >
                 {saving ? 'Wird gespeichert…' : editingId ? 'Speichern' : 'Erstellen'}
               </button>

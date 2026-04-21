@@ -682,7 +682,7 @@ export default function ContractTab({
               onClick={handleSave}
               disabled={saving}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-              style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+              style={{ background: 'var(--accent)', color: '#1A1A18' }}
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -1214,7 +1214,7 @@ export default function ContractTab({
           <button
             onClick={() => setShowTemplates(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-page)' }}
+            style={{ background: 'var(--accent)', color: '#1A1A18' }}
           >
             <Plus className="w-3 h-3" />
             Create first contract

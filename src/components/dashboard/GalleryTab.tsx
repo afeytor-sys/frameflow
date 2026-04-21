@@ -1288,8 +1288,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   setVisibleCount(prev => Math.min(prev + 50, photos.length))
                   window.scrollBy({ top: 300, behavior: 'smooth' })
                 }}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90 active:scale-95"
-                style={{ background: 'var(--text-primary)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl text-[13px] font-bold transition-all hover:opacity-90 active:scale-95"
+                style={{ background: 'var(--accent)', color: '#1A1A18', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
               >
                 <Plus className="w-4 h-4" />
                 Mehr laden ({photos.length - visibleCount} weitere)
