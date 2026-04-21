@@ -111,11 +111,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       const jobId = addJob(galleryId, galleryTitle, files.length)
       const supabase = createClient()
       const uploadedPhotos: UploadedPhoto[] = []
+      // Atomic counter for display_order — each worker claims its own index
       let orderOffset = initialOrder
+      const getOrder = () => orderOffset++
 
-      for (const file of files) {
+      const uploadOne = async (file: File) => {
         try {
-          // 1. Get presigned PUT URL
           const presignRes = await fetch('/api/photos/presign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -132,13 +133,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           }
           const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
 
-          // 2. PUT file directly to R2
           const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
-          if (!putRes.ok) {
-            throw new Error(`R2 upload failed (${putRes.status})`)
-          }
+          if (!putRes.ok) throw new Error(`R2 upload failed (${putRes.status})`)
 
-          // 3. Delete old photo if replacing
           const oldPhoto = replaceMap?.get(file.name)
           if (oldPhoto) {
             await fetch(`/api/photos/${oldPhoto.id}/delete`, {
@@ -148,7 +145,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             }).catch(() => {})
           }
 
-          // 4. Insert photo record into Supabase
           const { data: photo, error: dbError } = await supabase
             .from('photos')
             .insert({
@@ -157,7 +153,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               storage_url: storageUrl,
               thumbnail_url: storageUrl,
               file_size: file.size,
-              display_order: orderOffset++,
+              display_order: getOrder(),
               ...(sectionId ? { section_id: sectionId } : {}),
             })
             .select()
@@ -176,6 +172,18 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           try { onFileError?.(file.name, msg) } catch {}
         }
       }
+
+      // 5 parallel workers drain the file list — ~5× faster than sequential
+      const CONCURRENCY = 5
+      const remaining = [...files]
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => {
+          while (remaining.length > 0) {
+            const file = remaining.shift()
+            if (file) await uploadOne(file)
+          }
+        })
+      )
 
       try { onAllDone?.(uploadedPhotos) } catch {}
     }

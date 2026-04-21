@@ -140,10 +140,13 @@ export default function PhotoUploader({
     const initialOrder = count || 0
 
     // ── 5. Add local preview thumbnails ─────────────────────────────────────
-    const newLocalFiles: LocalFile[] = filesToUpload.map(file => ({
+    // Only create blob URLs for the first 20 files — decoding hundreds of large
+    // JPEGs simultaneously crashes the browser tab.
+    const PREVIEW_LIMIT = 20
+    const newLocalFiles: LocalFile[] = filesToUpload.map((file, i) => ({
       id: `${Date.now()}-${Math.random()}`,
       filename: file.name,
-      previewUrl: URL.createObjectURL(file),
+      previewUrl: i < PREVIEW_LIMIT ? URL.createObjectURL(file) : '',
       status: 'pending',
     }))
     if (mountedRef.current) setLocalFiles(prev => [...prev, ...newLocalFiles])
@@ -305,7 +308,7 @@ export default function PhotoUploader({
             </div>
           )}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-            {localFiles.map(f => (
+            {localFiles.filter(f => f.previewUrl).map(f => (
               <div key={f.id} className="relative aspect-square overflow-hidden rounded-lg group">
                 <img
                   src={f.previewUrl}
@@ -347,6 +350,16 @@ export default function PhotoUploader({
                 )}
               </div>
             ))}
+            {/* Show overflow count when batch > PREVIEW_LIMIT */}
+            {localFiles.length > localFiles.filter(f => f.previewUrl).length && (
+              <div className="relative aspect-square rounded-lg flex flex-col items-center justify-center gap-1"
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                <span className="text-[18px] font-black" style={{ color: 'var(--text-primary)' }}>
+                  +{localFiles.length - localFiles.filter(f => f.previewUrl).length}
+                </span>
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>weitere</span>
+              </div>
+            )}
           </div>
         </div>
       )}
