@@ -382,6 +382,427 @@ export const blogPosts: BlogPost[] = [
     `.trim(),
   },
   {
+    slug: 'fotografen-software-kostenvergleich-fotonizer-vs-pixieset-picdrop-einzeltools',
+    title: 'Was Fotografen wirklich zahlen: Fotonizer vs. Pixieset, PicDrop, Calendly & Co. – der ehrliche Preisvergleich',
+    excerpt: 'Calendly €18, Pixieset €37, DocuSign €15, Rechnungsprogramm €22 – schnell sind es über €100 pro Monat für ein zerstückeltes System. Wir rechnen auf, was dein aktueller Tool-Stack wirklich kostet.',
+    date: '2026-04-21',
+    category: 'Preisvergleich',
+    readTime: 9,
+    tags: [
+      'Fotografen Software Vergleich',
+      'Fotonizer vs Pixieset',
+      'Fotonizer vs PicDrop',
+      'günstigste Fotograf Software',
+      'Pixieset Alternative Deutschland',
+      'PicDrop Alternative',
+      'Calendly Alternative Fotograf',
+      'Fotograf Tools Kosten',
+      'Studio Software Fotograf Preis',
+      'All-in-One Software Fotograf',
+      'Fotograf CRM Vergleich',
+      'HoneyBook Alternative Deutschland',
+      'Studio Ninja Alternative',
+      'Fotograph Software kostenlos',
+      'beste Software für Fotografen Deutschland',
+    ],
+    content: `
+<style>
+  .price-table table { width:100%; border-collapse:collapse; margin:2rem 0; font-size:14px; }
+  .price-table th { background:var(--bg-hover); padding:11px 14px; text-align:left; font-weight:700; border-bottom:2px solid var(--border-color); font-size:12px; text-transform:uppercase; letter-spacing:0.05em; }
+  .price-table td { padding:10px 14px; border-bottom:1px solid var(--border-color); vertical-align:top; }
+  .price-table tr:last-child td { border-bottom:none; }
+  .price-table tr:hover td { background:var(--bg-hover); }
+  .check { color:#22c55e; font-weight:700; }
+  .cross { color:#ef4444; }
+  .partial { color:#f59e0b; }
+  .highlight-row td { background:rgba(196,164,124,0.08) !important; }
+  .total-row td { font-weight:800; font-size:15px; background:var(--bg-hover) !important; }
+  .winner-badge { display:inline-block; background:#C4A47C; color:#1A1A18; font-size:11px; font-weight:800; padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:middle; }
+  .cost-card { border:1px solid var(--border-color); border-radius:14px; padding:1.25rem 1.5rem; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+  .cost-card-name { font-weight:600; font-size:14px; }
+  .cost-card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .cost-price { font-weight:800; font-size:16px; letter-spacing:-0.02em; white-space:nowrap; }
+  .cost-price.red { color:#ef4444; }
+  .cost-price.green { color:#22c55e; }
+  .divider-total { border-top:2px solid var(--border-color); padding-top:12px; margin-top:4px; }
+  .highlight-box { background:var(--bg-hover); border-left:3px solid #C4A47C; border-radius:0 12px 12px 0; padding:1.25rem 1.5rem; margin:2rem 0; }
+  .cta-inline { background:rgba(196,164,124,0.1); border:1px solid rgba(196,164,124,0.25); border-radius:16px; padding:1.5rem 2rem; margin:3rem 0; text-align:center; }
+  .vs-hero { display:grid; grid-template-columns:1fr auto 1fr; gap:1rem; align-items:center; margin:2.5rem 0; }
+  .vs-col { border:1px solid var(--border-color); border-radius:14px; padding:1.25rem; text-align:center; }
+  .vs-col.winner { border-color:#C4A47C; background:rgba(196,164,124,0.06); }
+  .vs-label { font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:6px; }
+  .vs-price-big { font-size:2.4rem; font-weight:900; letter-spacing:-0.04em; }
+  .vs-mid { font-size:18px; font-weight:900; color:var(--text-muted); }
+  .savings-badge { display:inline-block; background:#22c55e; color:#fff; font-weight:800; padding:4px 12px; border-radius:20px; font-size:13px; margin-top:8px; }
+</style>
+
+<p style="font-size:1.15rem;line-height:1.8;margin-bottom:2rem;">Ich erinnere mich an den Moment, als ich zum ersten Mal alle meine Tool-Abonnements aufgeschrieben habe. Calendly. Pixieset. HelloSign. SevDesk. Google Workspace. Das war keine Auflistung – das war ein Budgetschock.</p>
+
+<p><strong>€112 pro Monat.</strong> Für ein System, das nicht einmal zusammenarbeitet.</p>
+
+<p>Dieser Artikel rechnet ehrlich nach: Was zahlt ein Fotograf in Deutschland tatsächlich, wenn er seine Tools einzeln zusammenstellt? Was kosten die Alternativen? Und ab wann ergibt ein All-in-One-System wie Fotonizer wirklich Sinn?</p>
+
+<h2>Der typische Tool-Stack eines professionellen Fotografen</h2>
+
+<p>Hier ist der realistische Stack, den viele Fotografen in Deutschland, Österreich und der Schweiz nutzen – mit aktuellen Preisen (Stand 2026):</p>
+
+<div style="max-width:560px;margin:2.5rem auto;">
+  <div class="cost-card">
+    <div>
+      <div class="cost-card-name">📅 Calendly Professional</div>
+      <div class="cost-card-sub">Terminbuchung, Kalender-Sync, Erinnerungen</div>
+    </div>
+    <div class="cost-price red">€18/Mo</div>
+  </div>
+  <div class="cost-card">
+    <div>
+      <div class="cost-card-name">🖼️ Pixieset Plus (Galerien)</div>
+      <div class="cost-card-sub">400 GB Speicher, Client-Galerien, Downloads</div>
+    </div>
+    <div class="cost-price red">€37/Mo</div>
+  </div>
+  <div class="cost-card">
+    <div>
+      <div class="cost-card-name">✍️ HelloSign / DocuSign Starter</div>
+      <div class="cost-card-sub">Digitale Vertragsunterschriften</div>
+    </div>
+    <div class="cost-price red">€15/Mo</div>
+  </div>
+  <div class="cost-card">
+    <div>
+      <div class="cost-card-name">🧾 SevDesk Starter</div>
+      <div class="cost-card-sub">Rechnungen, Angebote, DATEV-Export</div>
+    </div>
+    <div class="cost-price red">€14/Mo</div>
+  </div>
+  <div class="cost-card">
+    <div>
+      <div class="cost-card-name">📋 HoneyBook / Táve (CRM)</div>
+      <div class="cost-card-sub">Kundenverwaltung, Pipeline, Anfragen</div>
+    </div>
+    <div class="cost-price red">€25/Mo</div>
+  </div>
+  <div class="cost-card" style="opacity:0.7;">
+    <div>
+      <div class="cost-card-name">🔗 Typeform / Jotform (Fragebögen)</div>
+      <div class="cost-card-sub">Kundenbefragungen, Onboarding</div>
+    </div>
+    <div class="cost-price red">€25/Mo</div>
+  </div>
+  <div class="cost-card divider-total">
+    <div>
+      <div class="cost-card-name" style="font-size:16px;">💸 Gesamt</div>
+      <div class="cost-card-sub">Ohne Google Workspace, ohne Zeitkosten, ohne Nerven</div>
+    </div>
+    <div class="cost-price red" style="font-size:22px;">€134/Mo</div>
+  </div>
+</div>
+
+<p>Das sind <strong>€1.608 pro Jahr</strong> – für ein System, bei dem du trotzdem zwischen sechs Tabs wechselst, Daten doppelt einpflegst und Kunden an verschiedene Links schickst.</p>
+
+<div class="highlight-box">
+  <p style="margin:0;color:var(--text-secondary);"><strong style="color:var(--text-primary);">Versteckte Kosten, die nicht in der Tabelle stehen:</strong> Eine Studie zeigt, dass Wissensarbeiter im Schnitt 32 Minuten verlieren, wenn sie zwischen Kontext und Tool wechseln. Für einen Fotografen mit 8 Aufträgen pro Monat und 6 Tool-Wechseln pro Auftrag sind das über <strong>25 Stunden verlorene Zeit pro Monat</strong>. Zeit, die du nicht fotografierst, editierst oder dich um deine Familie kümmerst.</p>
+</div>
+
+<h2>Die Wettbewerber im Überblick: Was bekomme ich wofür?</h2>
+
+<h3>PicDrop</h3>
+
+<p>PicDrop ist eine solide deutsche Galerie-Lösung und im DACH-Raum sehr beliebt. Die Benutzeroberfläche ist schlicht, die Galerien funktionieren gut.</p>
+
+<p><strong>Preise:</strong> Free (eingeschränkt) · Personal €10/Mo · Studio €20/Mo</p>
+
+<p><strong>Was fehlt:</strong> PicDrop ist rein eine Galerie-Plattform. Kein Buchungssystem, keine Verträge, keine Rechnungen, kein CRM. Du brauchst trotzdem alle anderen Tools zusätzlich.</p>
+
+<p><strong>Für wen:</strong> Fotografen, die nur eine Galerie-Lösung suchen und alles andere separat organisieren.</p>
+
+<h3>Pixieset</h3>
+
+<p>Pixieset ist der bekannteste Name im Bereich Fotografen-Galerien weltweit. Mit der "Pixieset Suite" haben sie versucht, mehr Features zu bündeln.</p>
+
+<p><strong>Preise (Suite, alles zusammen):</strong> ~$68/Mo (~€62/Mo) für Galerien + Studio Manager + Bookings</p>
+
+<p><strong>Was fehlt:</strong> Keine echte deutsche Lokalisierung. System-E-Mails auf Englisch. DSGVO-Anpassungen umständlich. Rechnungsstellung nicht enthalten. Die Suite wirkt wie zusammengestückte Einzelmodule, nicht wie ein organisches System.</p>
+
+<p><strong>Für wen:</strong> Englischsprachige Fotografen oder solche, bei denen Lokalisierung kein Thema ist.</p>
+
+<h3>HoneyBook</h3>
+
+<p>HoneyBook ist ein starkes CRM für kreative Dienstleister – ursprünglich nicht spezifisch für Fotografen gebaut.</p>
+
+<p><strong>Preise:</strong> Starter $19/Mo · Essentials $39/Mo · Premium $79/Mo</p>
+
+<p><strong>Was fehlt:</strong> Keine Photo-Galerien. Buchungssystem sehr rudimentär. Komplett auf Englisch. In Deutschland kaum genutzt, da keine IBAN-Unterstützung und keine deutschen Rechnungsstandards.</p>
+
+<p><strong>Für wen:</strong> US-amerikanische Fotografen, die primär CRM und Verträge brauchen.</p>
+
+<h3>Studio Ninja</h3>
+
+<p>Studio Ninja ist ein auf Fotografen spezialisiertes CRM, besonders in Australien und UK beliebt.</p>
+
+<p><strong>Preise:</strong> Solo ~$19/Mo · Duo ~$29/Mo</p>
+
+<p><strong>Was fehlt:</strong> Keine Galerien, keine DSGVO-Anpassung für Europa, keine deutschen Rechnungsstandards, englischsprachige Kundenportale.</p>
+
+<h3>Sprout Studio</h3>
+
+<p>Sprout Studio ist eines der vollständigsten All-in-One-Systeme speziell für Fotografen.</p>
+
+<p><strong>Preise:</strong> Starter $49/Mo · Growing $69/Mo</p>
+
+<p><strong>Was fehlt:</strong> Komplett auf Englisch. Keine deutsche Lokalisierung. Preislich im oberen Bereich.</p>
+
+<h2>Der direkte Vergleich</h2>
+
+<div class="price-table">
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Fotonizer Pro<br/>€29/Mo</th>
+      <th>PicDrop Studio<br/>€20/Mo</th>
+      <th>Pixieset Suite<br/>€62/Mo</th>
+      <th>Studio Ninja<br/>€25/Mo</th>
+      <th>Sprout Studio<br/>€45/Mo</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Kundengalerien</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>Online-Buchungssystem</strong></td>
+      <td class="check">✅ Vollständig</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Basis</td>
+      <td class="partial">⚠️ Basis</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>Anzahlung bei Buchung</strong></td>
+      <td class="check">✅ IBAN + Code</td>
+      <td class="cross">❌ Nein</td>
+      <td class="cross">❌ Nein</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Stripe only</td>
+    </tr>
+    <tr>
+      <td><strong>Digitale Verträge / E-Sign</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Add-on</td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>Rechnungsstellung</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="cross">❌ Nein</td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>CRM / Pipeline</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Basis</td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>Google Calendar Sync</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Teilweise</td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>Fragebögen / Questionnaires</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Basis</td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+    </tr>
+    <tr>
+      <td><strong>Moodboard</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Nein</td>
+      <td class="cross">❌ Nein</td>
+      <td class="cross">❌ Nein</td>
+      <td class="cross">❌ Nein</td>
+    </tr>
+    <tr>
+      <td><strong>Deutsch / DACH lokalisiert</strong></td>
+      <td class="check">✅ Vollständig</td>
+      <td class="check">✅ Ja</td>
+      <td class="cross">❌ Englisch</td>
+      <td class="cross">❌ Englisch</td>
+      <td class="cross">❌ Englisch</td>
+    </tr>
+    <tr>
+      <td><strong>DSGVO-konform (EU)</strong></td>
+      <td class="check">✅ Ja</td>
+      <td class="check">✅ Ja</td>
+      <td class="partial">⚠️ Bedingt</td>
+      <td class="partial">⚠️ Bedingt</td>
+      <td class="partial">⚠️ Bedingt</td>
+    </tr>
+    <tr>
+      <td><strong>Kostenlos starten</strong></td>
+      <td class="check">✅ Free Plan</td>
+      <td class="check">✅ Free Plan</td>
+      <td class="cross">❌ Nein</td>
+      <td class="partial">⚠️ Trial</td>
+      <td class="partial">⚠️ Trial</td>
+    </tr>
+    <tr class="highlight-row">
+      <td><strong>Monatlicher Preis (alles inkl.)</strong></td>
+      <td><strong style="color:#C4A47C;font-size:16px;">€29</strong> <span class="winner-badge">Best Value</span></td>
+      <td><strong>€20</strong><br/><span style="font-size:11px;color:var(--text-muted);">+ €80 andere Tools</span></td>
+      <td><strong>€62</strong></td>
+      <td><strong>€25</strong><br/><span style="font-size:11px;color:var(--text-muted);">+ Galerie fehlt</span></td>
+      <td><strong>€45</strong></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Der reale Preisvergleich: Was du wirklich sparst</h2>
+
+<p>Lass uns konkret werden. Drei typische Szenarien:</p>
+
+<h3>Szenario A: Der Einsteiger</h3>
+<p>Ein Fotograf, der gerade anfängt. Budgetbewusst, braucht das Wichtigste.</p>
+
+<div class="vs-hero">
+  <div class="vs-col">
+    <div class="vs-label">Einzeltools (Budget)</div>
+    <div class="vs-price-big" style="color:#ef4444;">€53<span style="font-size:1rem;font-weight:400;">/Mo</span></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Calendly €9 + PicDrop €10 + HelloSign €15 + SevDesk Lite €14 + kein CRM</div>
+    <div style="font-size:12px;color:var(--text-muted);">= €636/Jahr</div>
+  </div>
+  <div class="vs-mid">vs.</div>
+  <div class="vs-col winner">
+    <div class="vs-label">Fotonizer Pro</div>
+    <div class="vs-price-big" style="color:#C4A47C;">€29<span style="font-size:1rem;font-weight:400;">/Mo</span></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Alles inkl.: Buchung, Galerie, Vertrag, Rechnung, CRM, Fragebogen, Moodboard</div>
+    <div class="savings-badge">Du sparst €288/Jahr</div>
+  </div>
+</div>
+
+<h3>Szenario B: Der etablierte Fotograf</h3>
+<p>Professioneller Betrieb, mehrere Shooting-Typen, eigene Vertragstemplates.</p>
+
+<div class="vs-hero">
+  <div class="vs-col">
+    <div class="vs-label">Einzeltools (Professional)</div>
+    <div class="vs-price-big" style="color:#ef4444;">€109<span style="font-size:1rem;font-weight:400;">/Mo</span></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Calendly Pro €18 + Pixieset Plus €37 + HelloSign €15 + SevDesk Standard €22 + HoneyBook €17</div>
+    <div style="font-size:12px;color:var(--text-muted);">= €1.308/Jahr</div>
+  </div>
+  <div class="vs-mid">vs.</div>
+  <div class="vs-col winner">
+    <div class="vs-label">Fotonizer Pro</div>
+    <div class="vs-price-big" style="color:#C4A47C;">€29<span style="font-size:1rem;font-weight:400;">/Mo</span></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Ein System. Alles drin. Kein Tool-Chaos.</div>
+    <div class="savings-badge">Du sparst €960/Jahr</div>
+  </div>
+</div>
+
+<h3>Szenario C: Das Studio (Team)</h3>
+<p>Kleines Studio mit 2–3 Fotografen, Pipeline-Management, hohe Auftragsvolumen.</p>
+
+<div class="vs-hero">
+  <div class="vs-col">
+    <div class="vs-label">Einzeltools (Studio)</div>
+    <div class="vs-price-big" style="color:#ef4444;">€175<span style="font-size:1rem;font-weight:400;">/Mo</span></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Calendly Teams €36 + Pixieset Plus €37 + DocuSign Standard €45 + SevDesk Pro €22 + HoneyBook Premium €35</div>
+    <div style="font-size:12px;color:var(--text-muted);">= €2.100/Jahr</div>
+  </div>
+  <div class="vs-mid">vs.</div>
+  <div class="vs-col winner">
+    <div class="vs-label">Fotonizer Studio</div>
+    <div class="vs-price-big" style="color:#C4A47C;">€79<span style="font-size:1rem;font-weight:400;">/Mo</span></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Team-Features, Pipeline CRM, Priority Support, Automations</div>
+    <div class="savings-badge">Du sparst €1.152/Jahr</div>
+  </div>
+</div>
+
+<h2>Warum PicDrop + Calendly trotzdem teurer ist als Fotonizer</h2>
+
+<p>Viele Fotografen in Deutschland denken: <em>"Ich nehme PicDrop für die Galerie (€10/Mo) – das ist günstig."</em> Stimmt. Aber PicDrop ist <em>nur</em> eine Galerie.</p>
+
+<p>Du brauchst trotzdem:</p>
+
+<ul>
+  <li>Calendly für Buchungen: +€9–18/Mo</li>
+  <li>HelloSign für Verträge: +€15/Mo</li>
+  <li>SevDesk für Rechnungen: +€14/Mo</li>
+  <li>Irgendwas für Fragebögen: +€10–25/Mo</li>
+</ul>
+
+<p>PicDrop + alle Einzeltools = <strong>€58–72/Mo.</strong> Doppelt so teuer wie Fotonizer Pro (€29/Mo) – und ein fragmentiertes Erlebnis für dich und deine Kunden.</p>
+
+<div class="highlight-box">
+  <p style="margin:0 0 8px;font-weight:700;color:var(--text-primary);">Die "günstige" Galerie ist selten wirklich günstig</p>
+  <p style="margin:0;color:var(--text-secondary);">PicDrop für €10 klingt gut. Aber ein Buchungssystem, das separat €18 kostet und nicht mit der Galerie verbunden ist, bedeutet: doppelte Dateneingabe, kein Kundenprofil, keine automatische Rechnungsstellung nach dem Shooting. Die versteckten Kosten sind Zeit und Ärger.</p>
+</div>
+
+<h2>Was Fotonizer nicht hat (Ehrlichkeit ist uns wichtig)</h2>
+
+<p>Kein Tool ist perfekt. Hier ist, was Fotonizer heute noch nicht kann – und wann andere Tools besser sein könnten:</p>
+
+<ul>
+  <li><strong>DATEV-Export:</strong> Wenn du ein Steuerbüro mit DATEV-Schnittstelle nutzt, ist SevDesk oder Lexware weiterhin sinnvoll. Fotonizer bietet professionelle Rechnungen als PDF, aber keinen automatischen DATEV-Export (kommt).</li>
+  <li><strong>Massenspeicher für sehr große Studios:</strong> Wenn du 50.000+ Fotos pro Monat hochlädst, ist eine dedizierte Galerie-Lösung mit unbegrenztem Speicher möglicherweise besser.</li>
+  <li><strong>Marketing-Automation:</strong> Wenn du E-Mail-Kampagnen, Newsletter und Lead-Nurturing betreibst, brauchst du zusätzlich ein Tool wie Mailchimp.</li>
+  <li><strong>Buchhaltungssoftware im klassischen Sinne:</strong> Fotonizer ist kein Ersatz für vollständige Buchhaltungssoftware mit GuV, Bilanzen, etc.</li>
+</ul>
+
+<p>Für alles andere – Buchungen, Galerien, Verträge, Rechnungen, CRM, Fragebögen, Kundenportal, Moodboard – ist Fotonizer die vollständigste und günstigste Option für DACH-Fotografen.</p>
+
+<h2>Der Free Plan: Wirklich kostenlos, wirklich nützlich</h2>
+
+<p>Fotonizer bietet einen kostenlosen Plan ohne Kreditkarte. Was ist wirklich drin?</p>
+
+<ul>
+  <li>1 aktives Projekt mit Kundenportal</li>
+  <li>5 Clients im CRM</li>
+  <li>Basis-Galerie für Kunden</li>
+  <li>Anfrage-Formular auf deiner Booking-Seite</li>
+</ul>
+
+<p>Ideal um zu testen, ob das System zu deinem Workflow passt – bevor du einen Cent ausgibst. Kein "14-Tage-Trial" der stillschweigend automatisch verlängert wird.</p>
+
+<h2>Fazit: Wann lohnt sich der Wechsel?</h2>
+
+<p><strong>Sofort,</strong> wenn du mehr als zwei der folgenden Tools verwendest: Calendly, WeTransfer/PicDrop/Pixieset, HelloSign/DocuSign, SevDesk/Lexware, irgendein CRM.</p>
+
+<p><strong>Sofort,</strong> wenn du im DACH-Markt arbeitest und deine Kunden deutschsprachige Portale verdienen.</p>
+
+<p><strong>Sofort,</strong> wenn du mehr als €50/Mo für dein aktuelles Tool-Setup zahlst.</p>
+
+<p><strong>Nicht sofort,</strong> wenn du nur Galerien brauchst und dein Workflow komplett manuell funktioniert. PicDrop Free oder Pixieset Free reichen dann aus – bis du skalierst.</p>
+
+<div class="cta-inline">
+  <p style="margin:0 0 0.5rem;font-weight:800;font-size:1.2rem;color:var(--text-primary);">Bereit, deine Tool-Rechnung zu halbieren?</p>
+  <p style="margin:0 0 1.5rem;color:var(--text-secondary);font-size:15px;">Fotonizer Pro kostet €29/Mo – weniger als die meisten Fotografen allein für Calendly + PicDrop zusammen zahlen. Kostenlos starten, kein Kreditkarte.</p>
+  <a href="/signup" style="display:inline-flex;align-items:center;gap:8px;background:#C4A47C;color:#1A1A18;font-weight:700;font-size:15px;padding:14px 32px;border-radius:14px;text-decoration:none;">
+    Kostenlos testen →
+  </a>
+  <p style="margin:1rem 0 0;font-size:12px;color:var(--text-muted);">Kein Risiko · Kein Kreditkarte · Jederzeit kündbar · DSGVO-konform</p>
+</div>
+    `.trim(),
+  },
+  {
     slug: 'buchungssystem-und-kundengalerie-komplette-studio-software-fotografen',
     title: 'Buchungssystem + Kundengalerie: Die komplette Studio-Software, die Fotografen 2026 wirklich brauchen',
     excerpt: 'Schluss mit Calendly, WeTransfer und fünf verschiedenen Tools. Wie du mit einem einzigen System Buchungen automatisierst, Galerien professionell übergibst – und dabei wie ein Top-Studio auftrittst.',
