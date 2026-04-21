@@ -43,15 +43,24 @@ export async function POST(
     process.env.NEXT_PUBLIC_APP_URL ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-  const triggerWorker = (jobId: string) =>
-    fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
+  const cfWorkerUrl = process.env.CF_WORKER_URL?.trim()
+  const triggerWorker = (jobId: string) => {
+    const url = cfWorkerUrl
+      ? cfWorkerUrl
+      : `${base}/api/galleries/${galleryId}/download/worker`
+    const body = cfWorkerUrl
+      ? JSON.stringify({ jobId, galleryId })
+      : JSON.stringify({ jobId })
+    console.log(`[prepare] triggering ${cfWorkerUrl ? 'CF Worker' : 'Vercel worker'} jobId=${jobId}`)
+    return fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.INTERNAL_TOKEN ?? ''}`,
       },
-      body: JSON.stringify({ jobId }),
+      body,
     }).catch(err => console.error('[prepare] worker trigger failed:', err))
+  }
 
   // ── 1. Ready job — reuse immediately, send email now ─────────────────────
   const { data: readyJob } = await service
