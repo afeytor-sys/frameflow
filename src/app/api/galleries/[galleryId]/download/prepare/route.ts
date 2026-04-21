@@ -6,9 +6,9 @@ import { waitUntil } from '@vercel/functions'
 
 export const maxDuration = 10
 
-// A job is considered "stuck" if it has been pending/processing for more than 8 minutes
-// without reaching 'ready'. This prevents zombie jobs from blocking new requests.
-const STUCK_THRESHOLD_MS = 8 * 60 * 1000
+// A processing job that hasn't reached 'ready' after 10 min is considered stuck.
+// maxDuration on the worker is 300 s (5 min), so 10 min gives generous margin.
+const STUCK_THRESHOLD_MS = 10 * 60 * 1000
 
 export async function POST(
   req: NextRequest,
@@ -36,37 +36,91 @@ export async function POST(
 
   const downloadToken = crypto.randomUUID()
   const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const now = new Date().toISOString()
   const stuckCutoff = new Date(Date.now() - STUCK_THRESHOLD_MS).toISOString()
 
-  // Only reuse a READY job, or a pending/processing job that is recent (< 8 min old).
-  // Stuck jobs (old pending/processing) are ignored so a fresh job + worker call is created.
-  const { data: existingJob } = await service
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+  const triggerWorker = (jobId: string) =>
+    fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.INTERNAL_TOKEN ?? ''}`,
+      },
+      body: JSON.stringify({ jobId }),
+    }).catch(err => console.error('[prepare] worker trigger failed:', err))
+
+  // ── 1. Ready job — reuse immediately, send email now ─────────────────────
+  const { data: readyJob } = await service
     .from('gallery_download_jobs')
-    .select('id, status, parts')
+    .select('id, parts')
     .eq('gallery_id', galleryId)
-    .in('status', ['pending', 'processing', 'ready'])
-    .gt('expires_at', new Date().toISOString())
-    .gt('created_at', stuckCutoff)   // ignore jobs older than 8 min that never finished
+    .eq('status', 'ready')
+    .gt('expires_at', now)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (existingJob) {
+  if (readyJob) {
+    console.log(`[prepare] reusing ready job ${readyJob.id}`)
     await service
       .from('gallery_download_jobs')
       .update({ email, download_token: downloadToken, token_expires_at: tokenExpiresAt })
-      .eq('id', existingJob.id)
-
-    if (existingJob.status === 'ready') {
-      const partCount = Array.isArray(existingJob.parts) ? existingJob.parts.length : 1
-      waitUntil(sendDownloadReadyEmail(galleryId, email, downloadToken, partCount).catch(console.error))
-    }
-    // If pending/processing and recent — worker is still running, it will send email when done.
-
-    return Response.json({ jobId: existingJob.id, reused: true, downloadToken })
+      .eq('id', readyJob.id)
+    const partCount = Array.isArray(readyJob.parts) ? readyJob.parts.length : 1
+    waitUntil(sendDownloadReadyEmail(galleryId, email, downloadToken, partCount).catch(console.error))
+    return Response.json({ jobId: readyJob.id, downloadToken, reused: true })
   }
 
-  // Create a fresh job
+  // ── 2. Active job — worker is still running, update email/token and wait ─
+  const { data: activeJob } = await service
+    .from('gallery_download_jobs')
+    .select('id')
+    .eq('gallery_id', galleryId)
+    .in('status', ['pending', 'processing'])
+    .gt('expires_at', now)
+    .gt('created_at', stuckCutoff)   // younger than 10 min → still running
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (activeJob) {
+    console.log(`[prepare] job ${activeJob.id} still active — updating email/token`)
+    await service
+      .from('gallery_download_jobs')
+      .update({ email, download_token: downloadToken, token_expires_at: tokenExpiresAt })
+      .eq('id', activeJob.id)
+    return Response.json({ jobId: activeJob.id, downloadToken, reused: true })
+  }
+
+  // ── 3. Stuck job — processing > 10 min with no result → resume it ────────
+  // The worker's resume logic will skip already-completed parts and continue
+  // from where it left off, so no work is duplicated.
+  const { data: stuckJob } = await service
+    .from('gallery_download_jobs')
+    .select('id, parts')
+    .eq('gallery_id', galleryId)
+    .eq('status', 'processing')
+    .gt('expires_at', now)
+    .lt('created_at', stuckCutoff)   // older than 10 min → stuck
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (stuckJob) {
+    console.log(`[prepare] resuming stuck job ${stuckJob.id} — ${Array.isArray(stuckJob.parts) ? stuckJob.parts.length : 0} parts already done`)
+    await service
+      .from('gallery_download_jobs')
+      .update({ status: 'pending', email, download_token: downloadToken, token_expires_at: tokenExpiresAt })
+      .eq('id', stuckJob.id)
+    waitUntil(triggerWorker(stuckJob.id))
+    return Response.json({ jobId: stuckJob.id, downloadToken, resumed: true })
+  }
+
+  // ── 4. No usable job → create fresh ──────────────────────────────────────
   const { data: job, error: insertErr } = await service
     .from('gallery_download_jobs')
     .insert({
@@ -81,27 +135,12 @@ export async function POST(
     .single()
 
   if (insertErr || !job) {
-    console.error('[download/prepare] insert error:', insertErr)
+    console.error('[prepare] insert error:', insertErr)
     return Response.json({ error: 'Could not create download job', detail: insertErr?.message }, { status: 500 })
   }
 
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-
-  console.log(`[prepare] triggering worker — jobId=${job.id} tokenDefined=${!!process.env.INTERNAL_TOKEN} base=${base}`)
-
-  // waitUntil guarantees the fetch is sent before Vercel terminates this function.
-  waitUntil(
-    fetch(`${base}/api/galleries/${galleryId}/download/worker`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.INTERNAL_TOKEN ?? ''}`,
-      },
-      body: JSON.stringify({ jobId: job.id }),
-    }).catch(err => console.error('[prepare] worker trigger failed:', err))
-  )
+  console.log(`[prepare] fresh job ${job.id} — triggering worker`)
+  waitUntil(triggerWorker(job.id))
 
   return Response.json({ jobId: job.id, downloadToken })
 }
