@@ -6,6 +6,13 @@ import Script from 'next/script'
 const GA_ID = 'G-2081M7T2H7'
 const CONSENT_KEY = 'fotonizer_cookie_consent'
 
+declare global {
+  interface Window {
+    dataLayer: unknown[]
+    gtag: (...args: unknown[]) => void
+  }
+}
+
 export default function GoogleAnalytics() {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false)
 
@@ -15,8 +22,7 @@ export default function GoogleAnalytics() {
     if (typeof window !== 'undefined') {
       window.dataLayer = window.dataLayer || []
       if (!window.gtag) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        window.gtag = function () { window.dataLayer.push(arguments as any) }
+        window.gtag = function (...args: unknown[]) { window.dataLayer.push(args) }
       }
     }
 
