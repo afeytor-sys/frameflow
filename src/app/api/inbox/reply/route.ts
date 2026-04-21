@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         sender: 'photographer',
         content: trimmedContent,
       })
-      .select('id, sender, content, created_at')
+      .select('id, sender, content, created_at, opened_at, open_count')
       .single()
 
     if (msgError || !message) {
@@ -167,13 +167,17 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`
 
+        // Inject tracking pixel so photographer knows when client opens the email
+        const htmlWithPixel = html +
+          `\n<img src="${appUrl}/track/open/msg/${message.id}" width="1" height="1" style="display:none" alt="" />`
+
         const { error: emailError } = await resend.emails.send({
           from: 'Fotonizer <info@fotonizer.com>',
           to: conversation.lead_email,
           replyTo: photographerEmail ?? undefined,
           bcc: photographerEmail ?? undefined,
           subject: 'Re: your inquiry',
-          html,
+          html: htmlWithPixel,
         })
 
         if (emailError) {

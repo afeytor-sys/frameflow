@@ -15,6 +15,8 @@ interface Message {
   sender: 'lead' | 'photographer'
   content: string
   created_at: string
+  opened_at?: string | null
+  open_count?: number
 }
 
 type LeadStatus = 'new_lead' | 'not_available' | 'offer_sent' | 'no_response' | 'video_call' | 'booking_confirmed'
@@ -963,12 +965,24 @@ export default function InboxClient({ conversations: initialConversations, photo
                       >
                         {msg.content}
                       </div>
-                      <p
-                        className={`text-[10px] mt-1 ${isLead ? 'text-left' : 'text-right'}`}
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {isLead ? selected.lead_name : 'You'} · {formatTime(msg.created_at)}
-                      </p>
+                      <div className={`flex items-center gap-1.5 mt-1 ${isLead ? 'justify-start' : 'justify-end'}`}>
+                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          {isLead ? selected.lead_name : 'You'} · {formatTime(msg.created_at)}
+                        </p>
+                        {/* Open tracking — only for photographer's sent messages */}
+                        {!isLead && msg.opened_at && (
+                          <span
+                            className="flex items-center gap-0.5 text-[10px] font-medium"
+                            style={{ color: '#8B5CF6' }}
+                            title={`Geöffnet am ${new Date(msg.opened_at).toLocaleString('de-DE')}`}
+                          >
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Geöffnet{(msg.open_count ?? 0) > 1 ? ` ×${msg.open_count}` : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
