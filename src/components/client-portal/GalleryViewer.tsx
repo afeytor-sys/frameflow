@@ -548,14 +548,8 @@ export default function GalleryViewer({
       setDlJobId(json.jobId)
       setDlToken(json.downloadToken ?? null)
       notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
-      if (json.status === 'ready' || json.reused) {
-        // Job already ready (reused) — poll once to confirm, then mark sent
-        setDlState('preparing')
-        startDlPolling(json.jobId)
-      } else {
-        setDlState('preparing')
-        startDlPolling(json.jobId)
-      }
+      setDlState('sent')
+      startDlPolling(json.jobId)
     } catch (err) {
       setDlError(err instanceof Error ? err.message : 'Fehler')
       setDlState('error')
@@ -791,53 +785,25 @@ export default function GalleryViewer({
               </div>
             </>)}
 
-            {/* — Preparing / zipping — */}
-            {dlState === 'preparing' && (
-              <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#F5F4F1' }}>
-                  <Loader2 className="w-7 h-7 animate-spin text-[#111110]" />
-                </div>
-                <div>
-                  <p className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>Fotos werden verpackt…</p>
-                  <p className="text-[13px] text-[#7A7670]">Das kann bei vielen Fotos einige Minuten dauern.<br/>Du erhältst eine E-Mail sobald alles fertig ist.</p>
-                </div>
-                <button
-                  onClick={() => { setDlState('idle'); if (dlPollRef.current) { clearInterval(dlPollRef.current); dlPollRef.current = null } }}
-                  className="mt-2 text-[12px] px-4 py-2 rounded-lg transition-colors"
-                  style={{ color: '#7A7670', background: '#F5F4F1' }}
-                >
-                  Schließen
-                </button>
-              </div>
-            )}
-
-            {/* — Done: email sent + direct link — */}
+            {/* — Confirmation: email on the way — */}
             {dlState === 'sent' && (
               <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
                 <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(42,155,104,0.1)' }}>
                   <Check className="w-7 h-7" style={{ color: '#2A9B68' }} />
                 </div>
                 <div>
-                  <p className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>Fotos sind fertig!</p>
-                  <p className="text-[13px] text-[#7A7670]">Der Link wurde an <strong>{dlEmail}</strong> gesendet.<br/>Schau auch in deinem Spam-Ordner nach.</p>
+                  <p className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>Anfrage erhalten!</p>
+                  <p className="text-[13px] text-[#7A7670] leading-relaxed">
+                    Deine Fotos werden verpackt.<br/>
+                    Du erhältst einen Download-Link an <strong>{dlEmail}</strong> sobald alles fertig ist.
+                  </p>
                 </div>
-                {dlToken && (
-                  <a
-                    href={`/download/${dlToken}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 rounded-xl text-[13.5px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                    style={{ background: '#111110' }}
-                  >
-                    <Download className="w-4 h-4" /> Direkt herunterladen
-                  </a>
-                )}
                 <button
                   onClick={() => setDlState('idle')}
-                  className="text-[12px] px-4 py-2 rounded-lg transition-colors"
-                  style={{ color: '#7A7670', background: '#F5F4F1' }}
+                  className="w-full py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-90"
+                  style={{ background: '#111110' }}
                 >
-                  Schließen
+                  Alles klar!
                 </button>
               </div>
             )}
