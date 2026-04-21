@@ -164,7 +164,7 @@ export default function GalleryViewer({
   // ── Download (email-based async) ────────────────────────────────
   type DlState = 'idle' | 'asking-email' | 'submitting' | 'sent' | 'error'
   const [dlState, setDlState]   = useState<DlState>('idle')
-  const [dlEmail, setDlEmail]   = useState(clientEmail ?? '')
+  const [dlEmail, setDlEmail]   = useState('')
   const [dlError, setDlError]   = useState<string | null>(null)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
@@ -532,12 +532,7 @@ export default function GalleryViewer({
   const downloadAll = () => {
     if (photos.length === 0) return
     if (dlState === 'sent') return
-    // If we already have a valid email, skip the modal
-    if (dlEmail && dlEmail.includes('@')) {
-      submitDownloadRequest(dlEmail)
-    } else {
-      setDlState('asking-email')
-    }
+    setDlState('asking-email')
   }
 
   // ── Lightbox ─────────────────────────────────────────────────────
