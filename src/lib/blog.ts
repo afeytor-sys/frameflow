@@ -382,6 +382,369 @@ export const blogPosts: BlogPost[] = [
     `.trim(),
   },
   {
+    slug: 'buchungssystem-und-kundengalerie-komplette-studio-software-fotografen',
+    title: 'Buchungssystem + Kundengalerie: Die komplette Studio-Software, die Fotografen 2026 wirklich brauchen',
+    excerpt: 'Schluss mit Calendly, WeTransfer und fünf verschiedenen Tools. Wie du mit einem einzigen System Buchungen automatisierst, Galerien professionell übergibst – und dabei wie ein Top-Studio auftrittst.',
+    date: '2026-04-21',
+    category: 'Studio Management',
+    readTime: 11,
+    tags: [
+      'Buchungssystem Fotograf',
+      'Foto Studio Software Deutschland',
+      'Online Buchung Fotostudio',
+      'Kundengalerie Fotograf',
+      'Studio Management Fotograf',
+      'Calendly Alternative Fotograf',
+      'Hochzeitsfotos online Galerie',
+      'Fotograf Verwaltung Software',
+      'Fotograf CRM',
+      'Fotostudio Software Berlin',
+      'Hochzeitsfotograf Tools',
+      'Fotograf Automatisierung',
+      'client portal photographer Germany',
+      'photographer booking software',
+      'Bildergalerie für Kunden Fotograf',
+    ],
+    content: `
+<style>
+  .feature-demo { border-radius:16px; overflow:hidden; border:1px solid var(--border-color); box-shadow:0 8px 40px rgba(0,0,0,0.12); margin:2.5rem 0; }
+  .feature-demo img { width:100%; display:block; }
+  .demo-window { border-radius:16px; background:var(--bg-surface); border:1px solid var(--border-color); overflow:hidden; margin:2.5rem 0; box-shadow:0 8px 40px rgba(0,0,0,0.12); }
+  .demo-window-bar { background:var(--bg-hover); padding:12px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border-color); }
+  .demo-dot { width:10px; height:10px; border-radius:50%; }
+  .demo-content { padding:24px; }
+  .step-badge { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#C4A47C; color:#1A1A18; font-weight:800; font-size:13px; flex-shrink:0; }
+  .highlight-box { background:var(--bg-hover); border-left:3px solid #C4A47C; border-radius:0 12px 12px 0; padding:1.25rem 1.5rem; margin:2rem 0; }
+  .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2.5rem 0; }
+  .stat-card { border-radius:12px; padding:1.25rem; text-align:center; border:1px solid var(--border-color); background:var(--bg-surface); }
+  .stat-number { font-size:2rem; font-weight:900; letter-spacing:-0.04em; color:#C4A47C; display:block; }
+  .stat-label { font-size:12px; color:var(--text-muted); margin-top:4px; display:block; }
+  .flow-step { display:flex; gap:16px; align-items:flex-start; padding:1rem 0; border-bottom:1px solid var(--border-color); }
+  .flow-step:last-child { border-bottom:none; }
+  .feature-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:2.5rem 0; }
+  @media(max-width:600px){ .stat-grid,.feature-grid{ grid-template-columns:1fr 1fr; } }
+  .feature-tile { border-radius:12px; padding:1.25rem; border:1px solid var(--border-color); background:var(--bg-surface); }
+  .feature-icon { font-size:1.5rem; margin-bottom:8px; }
+  .vs-table table { width:100%; border-collapse:collapse; margin:2rem 0; font-size:13.5px; }
+  .vs-table th { background:var(--bg-hover); padding:10px 12px; text-align:left; font-weight:700; border-bottom:2px solid var(--border-color); }
+  .vs-table td { padding:9px 12px; border-bottom:1px solid var(--border-color); }
+  .vs-table tr:last-child td { border-bottom:none; }
+  .check { color:#22c55e; font-weight:700; }
+  .cross { color:#ef4444; }
+  .partial { color:#f59e0b; }
+  .cta-inline { background:rgba(196,164,124,0.1); border:1px solid rgba(196,164,124,0.25); border-radius:16px; padding:1.5rem 2rem; margin:3rem 0; text-align:center; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
+  .live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; animation:pulse-dot 2s infinite; margin-right:6px; vertical-align:middle; }
+</style>
+
+<p style="font-size:1.15rem;line-height:1.8;margin-bottom:2rem;">Es ist 22:30 Uhr. Ein Kunde schreibt dir auf Instagram: <em>"Habt ihr noch freie Termine im September?"</em> Du tippst die Antwort, checkst deinen Kalender, schickst eine WhatsApp mit möglichen Zeiten, wartest auf eine Antwort. Morgen früh fragst du nach. Übermorgen schickst du eine Anzahlung-Erinnerung. In drei Wochen schickst du die Fotos per WeTransfer.</p>
+
+<p>Kennen wir alle. Und es kostet uns – ohne dass wir es merken – Dutzende Stunden pro Monat.</p>
+
+<p>In diesem Artikel zeigen wir dir, wie moderne Fotostudios in Deutschland, Österreich und der Schweiz ihren gesamten Workflow automatisieren – von der ersten Buchungsanfrage bis zur Galerieübergabe. Und warum das nicht mit fünf Tools, sondern mit einem einzigen geht.</p>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-number">4,2h</span>
+    <span class="stat-label">Ø Admin-Aufwand pro Auftrag ohne System</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">68%</span>
+    <span class="stat-label">der Buchungsanfragen kommen außerhalb der Arbeitszeit</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number">3,1×</span>
+    <span class="stat-label">höhere Weiterempfehlungsrate mit professioneller Galerieübergabe</span>
+  </div>
+</div>
+
+<h2>Das Kernproblem: Zu viele Tools, zu viele Lücken</h2>
+
+<p>Der typische Fotograf in 2026 arbeitet mit einem bizarren Flickenteppich aus Apps:</p>
+
+<ul>
+  <li><strong>Calendly</strong> für Buchungslinks – aber ohne Branding, ohne Anzahlung, ohne Verbindung zu deinem Studio</li>
+  <li><strong>WhatsApp</strong> für Kundenkommunikation – unübersichtlich, unprofessionell, nicht archivierbar</li>
+  <li><strong>Google Sheets</strong> für die Auftragsliste – manuell gepflegt, veraltet sobald du nicht aufpasst</li>
+  <li><strong>WeTransfer oder Dropbox</strong> für die Fotoübergabe – kein Branding, kein Erlebnis, laufen ab</li>
+  <li><strong>Lexware oder DATEV</strong> für Rechnungen – komplex, teuer, nicht für Kreative gebaut</li>
+  <li><strong>PDF-Anhänge</strong> für Verträge – kein digitales Signing, keine Nachverfolgung</li>
+</ul>
+
+<p>Das Ergebnis: Du verlierst Buchungen, weil du nicht schnell genug antwortest. Kunden sind verwirrt, weil sie an fünf verschiedenen Orten suchen müssen. Und du verbringst mehr Zeit mit Admin als mit Fotografie.</p>
+
+<div class="highlight-box">
+  <p style="margin:0;font-style:italic;color:var(--text-secondary);">"Ich hatte einen Interessenten, der um 23 Uhr nach einem Termin fragte. Als ich morgens um 9 antwortete, hatte er bereits jemand anderen gebucht. Das war mein letzter Tropfen."</p>
+  <p style="margin:0.75rem 0 0;font-size:13px;color:var(--text-muted);">— Hochzeitsfotografin, Berlin</p>
+</div>
+
+<h2>Teil 1: Das Online-Buchungssystem – Kunden buchen, während du schläfst</h2>
+
+<p>Ein echtes Buchungssystem für Fotografen ist kein simpler Kalender-Link. Es ist ein vollständiger Self-Service-Flow, der deinen Kunden durch den gesamten Buchungsprozess führt – ohne dass du einen einzigen Schritt manuell erledigen musst.</p>
+
+<p>So sieht der Flow in der Praxis aus:</p>
+
+<div class="demo-window">
+  <div class="demo-window-bar">
+    <div class="demo-dot" style="background:#ff5f57"></div>
+    <div class="demo-dot" style="background:#febc2e"></div>
+    <div class="demo-dot" style="background:#28c840"></div>
+    <span style="font-size:12px;color:var(--text-muted);margin-left:8px;flex:1;text-align:center;">fotonizer.com/b/deinname/hochzeit-reporting</span>
+    <span class="live-dot"></span><span style="font-size:12px;color:var(--text-muted);">Live</span>
+  </div>
+  <div class="demo-content">
+    <div style="margin-bottom:16px;">
+      <div style="font-size:18px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px;">📸 Hochzeit Reportage</div>
+      <div style="font-size:13px;color:var(--text-muted);">8 Std · ab €2.200 · Outdoor / Extern</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;">
+      ${['Mo','Di','Mi','Do','Fr','Sa','So'].map((d,i) => `<div style="text-align:center;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;${i===5?'background:#C4A47C;color:#1A1A18':'background:var(--bg-hover);color:var(--text-muted)'}">${d}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+      ${['10:00','11:00','13:00','14:00','15:00','16:00'].map((t,i) => `<div style="padding:10px;border-radius:10px;text-align:center;font-size:13px;font-weight:600;border:1px solid var(--border-color);${i===1?'background:#C4A47C;color:#1A1A18;border-color:#C4A47C':'background:var(--bg-hover);color:var(--text-primary)'}cursor:pointer;">${t}</div>`).join('')}
+    </div>
+    <div style="padding:10px 14px;border-radius:10px;background:rgba(196,164,124,0.1);border:1px solid rgba(196,164,124,0.25);font-size:13px;color:var(--text-secondary);">
+      ✓ <strong style="color:var(--text-primary);">Sa, 14. Juni · 11:00 Uhr</strong> ausgewählt · Anzahlung: €440
+    </div>
+  </div>
+</div>
+
+<p>Was passiert im Hintergrund, wenn ein Kunde einen Termin bucht?</p>
+
+<div style="border:1px solid var(--border-color);border-radius:16px;overflow:hidden;margin:2rem 0;">
+  <div class="flow-step" style="padding:1rem 1.25rem;">
+    <div class="step-badge">1</div>
+    <div>
+      <strong>Termin wird sofort in Google Calendar blockiert</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">Kein manuelles Eintragen. Doppelbuchungen sind unmöglich. Bei Online-Shootings wird automatisch ein Google Meet Link erstellt.</p>
+    </div>
+  </div>
+  <div class="flow-step" style="padding:1rem 1.25rem;">
+    <div class="step-badge">2</div>
+    <div>
+      <strong>Anzahlung wird angefordert – mit eindeutigem Referenzcode</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">Der Kunde sieht deine Bankdaten + einen eindeutigen Code (z. B. BK-2026-0047). Du weißt sofort, wer bezahlt hat, ohne manuell zu prüfen.</p>
+    </div>
+  </div>
+  <div class="flow-step" style="padding:1rem 1.25rem;">
+    <div class="step-badge">3</div>
+    <div>
+      <strong>E-Mail-Bestätigung geht automatisch raus</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">Du und dein Kunde erhalten sofort eine Bestätigung mit allen Details. Kein manuelles Tippen.</p>
+    </div>
+  </div>
+  <div class="flow-step" style="padding:1rem 1.25rem;">
+    <div class="step-badge">4</div>
+    <div>
+      <strong>Automatische Erinnerungen: 24h + 1h vor dem Shooting</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">Kein "Hab ich's vergessen zu erinnern?" mehr. Das System schickt die Erinnerungen automatisch – du schläfst ruhig.</p>
+    </div>
+  </div>
+  <div class="flow-step" style="padding:1rem 1.25rem;">
+    <div class="step-badge">5</div>
+    <div>
+      <strong>Nach dem Shooting: Rechnung mit Anzahlung bereits abgezogen</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">Ein Klick – und die Schlussrechnung wird erstellt. Der bereits bezahlte Anzahlungsbetrag wird automatisch abgezogen. Kein Taschenrechner nötig.</p>
+    </div>
+  </div>
+</div>
+
+<h3>Drei Verfügbarkeitstypen – für jeden Fotografen-Stil</h3>
+
+<p>Nicht jeder Fotograf arbeitet gleich. Deshalb gibt es drei Arten, wie Kunden buchen können:</p>
+
+<div class="feature-grid">
+  <div class="feature-tile">
+    <div class="feature-icon">📅</div>
+    <strong style="font-size:14px;">Wöchentliche Zeiten</strong>
+    <p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">Du definierst feste Wochentage und Uhrzeiten – z. B. Di–Fr, 9–17 Uhr. Kunden sehen nur echte freie Slots.</p>
+  </div>
+  <div class="feature-tile">
+    <div class="feature-icon">🗓️</div>
+    <strong style="font-size:14px;">Bestimmte Termine</strong>
+    <p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">Ideal für saisonale Shootings. Du legst fest: z. B. 25.05. um 19:00 und 21:00 Uhr. Perfekt für Sunset Sessions.</p>
+  </div>
+  <div class="feature-tile">
+    <div class="feature-icon">✉️</div>
+    <strong style="font-size:14px;">Nur Anfrage</strong>
+    <p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">Kein Kalender – der Kunde schickt eine Anfrage mit Wunschtermin. Du entscheidest und bestätigst manuell.</p>
+  </div>
+  <div class="feature-tile">
+    <div class="feature-icon">🎥</div>
+    <strong style="font-size:14px;">Online Meetings</strong>
+    <p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">Video-Calls für Erstgespräche oder Hochzeitsplanung. Google Meet Link wird automatisch generiert.</p>
+  </div>
+</div>
+
+<div class="feature-demo">
+  <img src="/blog/booking-dashboard.png" alt="Fotonizer Buchungs-Dashboard – Übersicht aller Buchungen mit Status, Anzahlung und Bestätigung" loading="lazy" />
+</div>
+
+<h3>Was Calendly nicht kann – und warum das für Fotografen entscheidend ist</h3>
+
+<p>Calendly ist ein gutes Tool für Sales-Calls und Meetings. Aber für Fotografen fehlen genau die Funktionen, die wichtig sind:</p>
+
+<div class="vs-table">
+<table>
+  <thead>
+    <tr>
+      <th>Funktion</th>
+      <th>Fotonizer</th>
+      <th>Calendly</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Anzahlung direkt bei Buchung</td><td class="check">✅ Ja</td><td class="cross">❌ Nein</td></tr>
+    <tr><td>Eindeutiger Zahlungscode (BK-XXXX)</td><td class="check">✅ Ja</td><td class="cross">❌ Nein</td></tr>
+    <tr><td>Automatische Rechnungserstellung</td><td class="check">✅ Ja</td><td class="cross">❌ Nein</td></tr>
+    <tr><td>Google Calendar Sync + Blockierung</td><td class="check">✅ Ja</td><td class="partial">⚠️ Nur lesen</td></tr>
+    <tr><td>Google Meet Auto-Link</td><td class="check">✅ Ja</td><td class="check">✅ Ja</td></tr>
+    <tr><td>Kunden-Galerie nach dem Shooting</td><td class="check">✅ Ja</td><td class="cross">❌ Nein</td></tr>
+    <tr><td>Branding (dein Name, dein Studio)</td><td class="check">✅ Vollständig</td><td class="partial">⚠️ Eingeschränkt</td></tr>
+    <tr><td>Erinnerungen 24h + 1h vorher</td><td class="check">✅ Automatisch</td><td class="partial">⚠️ Nur 1 Erinnerung</td></tr>
+    <tr><td>Alles in einer Plattform</td><td class="check">✅ Ja</td><td class="cross">❌ Nein</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Teil 2: Die Kundengalerie – dein stärkstes Marketingtool</h2>
+
+<p>Die meisten Fotografen denken bei "Kundengalerie" an Dateienübergabe. Das ist ein Fehler.</p>
+
+<p>Eine professionelle Kundengalerie ist dein letzter Eindruck. Das Erlebnis, das dein Kunde hat, wenn er seine Bilder zum ersten Mal sieht – emotional, aufgewühlt, aufgeregt. Was er in diesem Moment erlebt, bestimmt, ob er dich weiterempfiehlt oder nicht.</p>
+
+<div class="highlight-box">
+  <p style="margin:0;color:var(--text-secondary);"><strong style="color:var(--text-primary);">Ein Beispiel:</strong> Dein Kunde öffnet die Galerie auf dem Handy. Statt einer sauberen, schnell ladenden Präsentation sieht er einen Dropbox-Ordner mit hundert nummerierten Dateien. Er lädt ein paar herunter. Fertig. Weiterempfehlung? Unwahrscheinlich. Wenn er stattdessen eine schön designte Galerie mit seinem Namen, einer persönlichen Nachricht und der Möglichkeit öffnet, Favoriten zu markieren – ist das eine Geschichte, die er weitererzählt.</p>
+</div>
+
+<div class="feature-demo">
+  <img src="/blog/gallery-client-view.png" alt="Fotonizer Kundengalerie – Vollbild Ansicht mit Favoriten-Funktion und Download auf allen Geräten" loading="lazy" />
+</div>
+
+<h3>Was die Galerie in Fotonizer kann</h3>
+
+<p><strong>Mehrere Design-Themes:</strong> Wähle zwischen klassisch-weiß, dunkel-elegant und modern-minimalistisch. Die Galerie passt sich deiner Marke an – nicht umgekehrt.</p>
+
+<p><strong>Sets und Kapitel:</strong> Strukturiere eine Hochzeitsreportage in: Getting Ready → Zeremonie → Portraits → Feier. Dein Kunde findet sich sofort zurecht. 847 Fotos in einer geordneten Struktur wirken professionell – nicht überwältigend.</p>
+
+<p><strong>Favoriten-Selektion:</strong> Kunden markieren ihre Lieblingsbilder direkt in der Galerie. Du siehst die Auswahl sofort im Dashboard – keine E-Mails mit "ich meine das vierte Bild von links, nein das andere". Diese Funktion spart dir jede Woche Stunden.</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2.5rem 0;">
+  <div style="border-radius:14px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+    <img src="/blog/gallery-favorites.png" alt="Fotonizer Favoriten – Kunde wählt Lieblingsbilder direkt in der Galerie" style="width:100%;display:block;" loading="lazy" />
+  </div>
+  <div style="border-radius:14px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+    <img src="/blog/gallery-mobile.png" alt="Fotonizer Galerie Mobile Ansicht – perfekt optimiert für iPhone und Android" style="width:100%;display:block;" loading="lazy" />
+  </div>
+</div>
+
+<p><strong>Download-Kontrolle:</strong> Du entscheidest, ob Kunden einzelne Bilder, die ganze Galerie oder gar nichts herunterladen können. Für Print-Pakete: Download erst freigeben, wenn die Zahlung eingegangen ist.</p>
+
+<p><strong>Passwortschutz:</strong> Die Galerie bleibt privat bis du sie freischaltest. Kein Versehen, keine versehentlich geleakten Hochzeitsfotos.</p>
+
+<p><strong>Kein Ablaufdatum:</strong> Anders als WeTransfer ist die Galerie permanent verfügbar. Drei Jahre später kann das Brautpaar seine Fotos noch herunterladen – und erinnert sich dabei an dich.</p>
+
+<p><strong>Persönliche Nachricht:</strong> Bevor der Kunde die erste Foto sieht, erscheint deine persönliche Nachricht. 30 Sekunden schreiben – und der emotionale Impact der Übergabe vervielfacht sich.</p>
+
+<div class="demo-window">
+  <div class="demo-window-bar">
+    <div class="demo-dot" style="background:#ff5f57"></div>
+    <div class="demo-dot" style="background:#febc2e"></div>
+    <div class="demo-dot" style="background:#28c840"></div>
+    <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">fotonizer.com/portal/lisa-jan-hochzeit</span>
+  </div>
+  <div class="demo-content" style="text-align:center;padding:32px 24px;">
+    <div style="width:56px;height:56px;border-radius:50%;background:rgba(196,164,124,0.15);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:24px;">📸</div>
+    <div style="font-size:20px;font-weight:800;letter-spacing:-0.03em;margin-bottom:8px;">Lisa & Jan · 14. Juni 2026</div>
+    <div style="font-size:14px;color:var(--text-muted);max-width:400px;margin:0 auto 24px;line-height:1.7;font-style:italic;">"Ich hatte so eine wunderschöne Zeit bei eurer Hochzeit. Ich hoffe, diese Bilder bringen jeden Moment dieses Tages zurück. Viel Freude beim Durchsehen — ihr wart ein Traum."<br/><span style="font-size:12px;margin-top:8px;display:block;">— Allan Feitor, Fotograf</span></div>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:#C4A47C;color:#1A1A18;padding:12px 28px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;">📷 Galerie öffnen (847 Fotos)</div>
+  </div>
+</div>
+
+<h2>Teil 3: Buchungssystem + Galerie = Das komplette Studio in einer App</h2>
+
+<p>Der echte Vorteil entsteht, wenn beides zusammenarbeitet. Kein Toolwechsel, kein Copy-Paste von Kundendaten, keine doppelte Arbeit.</p>
+
+<p>So sieht der vollständige Workflow von der ersten Anfrage bis zur finalen Rechnung aus:</p>
+
+<div style="border:1px solid var(--border-color);border-radius:16px;overflow:hidden;margin:2.5rem 0;">
+  <div style="padding:16px 20px;background:var(--bg-hover);border-bottom:1px solid var(--border-color);font-weight:700;font-size:14px;">🗺️ Der komplette Auftragszyklus in Fotonizer</div>
+  ${[
+    ['📲', 'Anfrage kommt rein', 'Über deine Booking-Seite (/b/deinname/service) – 24/7, auch nachts. Kein WhatsApp-Ping mehr nötig.'],
+    ['📅', 'Termin wird automatisch blockiert', 'Google Calendar Sync. Bei Online-Buchungen: automatischer Google Meet Link.'],
+    ['💶', 'Anzahlung wird angefordert', 'Eindeutiger Referenzcode BK-2026-XXXX. Kein manuelles Überweisungsvergleichen.'],
+    ['✅', 'Du bestätigst die Buchung', 'Ein Klick im Dashboard. Kunde erhält Bestätigung + Kalender-Event.'],
+    ['⏰', 'Erinnerungen laufen automatisch', '24h und 1h vor dem Shooting. Kein Vergessen, kein manueller Aufwand.'],
+    ['📁', 'Projekt-Portal für den Kunden', 'Vertrag, Timeline, Meetingpunkt, Moodboard – alles in einem Link.'],
+    ['🖼️', 'Galerie hochladen & freischalten', 'Fotos rauf, Link schicken. Favoriten-Funktion, persönliche Nachricht, Design nach Wahl.'],
+    ['🧾', 'Rechnung erstellen', 'Mit einem Klick. Anzahlung wird automatisch abgezogen. Professionelle PDF-Rechnung.'],
+  ].map(([icon, title, desc]) => `
+  <div class="flow-step" style="padding:1rem 1.25rem;">
+    <div style="font-size:1.5rem;flex-shrink:0;width:36px;text-align:center;">${icon}</div>
+    <div>
+      <strong style="font-size:14px;">${title}</strong>
+      <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted);">${desc}</p>
+    </div>
+  </div>`).join('')}
+</div>
+
+<h2>Wer braucht das? Für welche Fotografen ist Fotonizer gemacht?</h2>
+
+<p>Fotonizer ist kein Tool für alle. Es wurde speziell für Fotografen entwickelt, die ihr Business professionell betreiben:</p>
+
+<ul>
+  <li><strong>Hochzeitsfotografen in Deutschland, Österreich und der Schweiz:</strong> Deutscher Support, DSGVO-konform, IBAN-Zahlungen, deutschsprachige Kundenportale.</li>
+  <li><strong>Portrait- und Family-Fotografen</strong> mit mehreren Buchungen pro Woche, die keine Zeit für manuelles Terminmanagement haben.</li>
+  <li><strong>Business-Fotografen und Personal Brands,</strong> die professionelle Online-Meetings automatisch planen wollen.</li>
+  <li><strong>Studios mit mehreren Fotografen,</strong> die eine zentrale Übersicht über alle Buchungen, Projekte und Kunden brauchen.</li>
+  <li><strong>Fotografen, die gerade starten</strong> und von Anfang an professionell auftreten wollen – ohne einen Haufen teurer Tools zu bezahlen.</li>
+</ul>
+
+<div class="feature-demo">
+  <img src="/blog/studio-dashboard-overview.png" alt="Fotonizer Studio Dashboard – Komplette Übersicht über Buchungen, Projekte, Rechnungen und Kunden" loading="lazy" />
+</div>
+
+<h2>DSGVO-Konformität: Kein Kompromiss</h2>
+
+<p>Als Fotograf in Deutschland speicherst du Kundendaten. Das ist Pflicht – aber es ist auch Verantwortung.</p>
+
+<p>Fotonizer wurde von Anfang an DSGVO-konform gebaut:</p>
+
+<ul>
+  <li>Cookie Consent Banner mit vollständiger Opt-in/Opt-out Kontrolle</li>
+  <li>DSGVO-konforme Datenschutzerklärung und Impressum auf allen öffentlichen Seiten</li>
+  <li>Zustimmungspflicht bei Buchungsformularen (Datenschutzerklärung muss akzeptiert werden)</li>
+  <li>Serverstandort EU (Supabase mit EU-Region)</li>
+  <li>Keine Weitergabe von Kundendaten an Dritte</li>
+</ul>
+
+<h2>Was das in echten Zahlen bedeutet</h2>
+
+<p>Nehmen wir an, du machst 6 Shootings pro Monat. Ohne System verbringst du pro Auftrag etwa 4 Stunden mit Admin (Terminkoordination, Anzahlungs-Follow-up, Galerie-Upload per WeTransfer, Rechnungsstellung, Erinnerungen schicken). Das sind <strong>24 Stunden Admin-Aufwand pro Monat.</strong></p>
+
+<p>Mit Fotonizer reduziert sich das auf unter 45 Minuten pro Auftrag für echte Aufgaben (das Foto-Editing selbst, persönliche Nachrichten, kreative Entscheidungen). <strong>Das sind 18+ Stunden zurückgewonnene Zeit pro Monat</strong> – Zeit, die du für mehr Shootings, bessere Bearbeitung, oder einfach dein Leben nutzen kannst.</p>
+
+<div class="cta-inline">
+  <p style="margin:0 0 0.5rem;font-weight:800;font-size:1.2rem;color:var(--text-primary);">Bereit, deinen Studio-Workflow zu automatisieren?</p>
+  <p style="margin:0 0 1.5rem;color:var(--text-secondary);font-size:15px;">Fotonizer ist kostenlos startbar. Kein Kreditkarte, keine Testphase-Tricks. Einfach anmelden und deinen ersten Booking-Link in 5 Minuten einrichten.</p>
+  <a href="/signup" style="display:inline-flex;align-items:center;gap:8px;background:#C4A47C;color:#1A1A18;font-weight:700;font-size:15px;padding:14px 32px;border-radius:14px;text-decoration:none;">
+    Kostenlos starten → Kein Risiko
+  </a>
+  <p style="margin:1rem 0 0;font-size:12px;color:var(--text-muted);">Bereits genutzt von Fotografen in Berlin, München, Wien, Zürich, Hamburg und ganz Deutschland.</p>
+</div>
+
+<h2>Fazit: Das Ende der Tool-Flut</h2>
+
+<p>Die Fotografen, die 2026 erfolgreich skalieren, sind nicht unbedingt die mit den besten Fotos. Sie sind die, die ihren Workflow im Griff haben.</p>
+
+<p>Ein Buchungssystem, das nachts für dich arbeitet. Eine Galerie, die dein stärkstes Marketingtool ist. Rechnungen, die sich selbst erstellen. Erinnerungen, die automatisch rausgehen. Alles in einem einzigen, sauber gestalteten System.</p>
+
+<p>Das ist nicht Zukunftsmusik. Das ist heute möglich. Und es kostet weniger als du denkst.</p>
+
+<p><a href="/signup" style="color:#C4A47C;font-weight:700;">Starte jetzt kostenlos mit Fotonizer</a> — und erlebe, wie sich ein vollständig automatisiertes Studio anfühlt.</p>
+    `.trim(),
+  },
+  {
     slug: 'online-galerie-hochzeitsfotos-moderne-loesung-2026',
     title: 'Online Galerie für Hochzeitsfotos – Die moderne Lösung 2026',
     excerpt: 'WeTransfer läuft ab, Google Drive verwirrt deine Kunden, und Dropbox fühlt sich unprofessionell an. Es gibt eine bessere Art, Hochzeitsfotos zu übergeben.',
