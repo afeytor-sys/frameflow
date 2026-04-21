@@ -464,7 +464,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div
             className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}
+            style={{ background: 'var(--bg-surface-solid)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}
           >
             {/* Modal header */}
             <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
