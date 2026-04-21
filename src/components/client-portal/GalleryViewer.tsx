@@ -175,7 +175,7 @@ export default function GalleryViewer({
   const [visibleCount, setVisibleCount] = useState(INITIAL_LIMIT)
 
   // Layout & size controls
-  const [layout, setLayout] = useState<GalleryLayout>('masonry')
+  const [layout, setLayout] = useState<GalleryLayout>('grid')
   const [imageSize, setImageSize] = useState(3)
   const [showControls, setShowControls] = useState(false)
   // Sort order
