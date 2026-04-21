@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Calendar, Clock, MapPin, Euro, ExternalLink, Trash2, Edit2, ToggleLeft, ToggleRight, Video, Users, Copy, Check } from 'lucide-react'
+import { Plus, Calendar, Clock, MapPin, Euro, ExternalLink, Trash2, Edit2, ToggleLeft, ToggleRight, Video, Users, Copy, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { generateSlug } from '@/lib/bookingSlots'
 
@@ -12,6 +12,11 @@ interface RecurringAvailability {
   day_of_week: number
   start_time: string
   end_time: string
+}
+
+interface SpecificSlotEntry {
+  date: string
+  times: string[]
 }
 
 interface BookingType {
@@ -28,6 +33,7 @@ interface BookingType {
   max_advance_days: number
   min_notice_hours: number
   questions: Question[]
+  specific_slots: SpecificSlotEntry[]
   anzahlung_enabled: boolean
   anzahlung_type: 'fixed' | 'percent' | null
   anzahlung_amount: number | null
@@ -92,6 +98,7 @@ const DEFAULT_FORM: Omit<BookingType, 'id' | 'booking_recurring_availability'> =
   max_advance_days: 60,
   min_notice_hours: 24,
   questions: [],
+  specific_slots: [],
   anzahlung_enabled: false,
   anzahlung_type: null,
   anzahlung_amount: null,
@@ -125,6 +132,9 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
 
   const [form, setForm] = useState<Omit<BookingType, 'id' | 'booking_recurring_availability'>>(DEFAULT_FORM)
   const [recurringAvailability, setRecurringAvailability] = useState<RecurringAvailability[]>(DEFAULT_RECURRING)
+  const [specificSlots, setSpecificSlots] = useState<SpecificSlotEntry[]>([])
+  const [newSlotDate, setNewSlotDate] = useState('')
+  const [newSlotTimes, setNewSlotTimes] = useState<Record<string, string>>({})
 
   const photographerSlug = photographer.slug ?? ''
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://fotonizer.com'
@@ -133,6 +143,9 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
     setEditingId(null)
     setForm(DEFAULT_FORM)
     setRecurringAvailability(DEFAULT_RECURRING)
+    setSpecificSlots([])
+    setNewSlotDate('')
+    setNewSlotTimes({})
     setActiveTab('basic')
     setShowModal(true)
   }
@@ -152,6 +165,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
       max_advance_days: bt.max_advance_days,
       min_notice_hours: bt.min_notice_hours,
       questions: bt.questions ?? [],
+      specific_slots: bt.specific_slots ?? [],
       anzahlung_enabled: bt.anzahlung_enabled,
       anzahlung_type: bt.anzahlung_type,
       anzahlung_amount: bt.anzahlung_amount,
@@ -163,6 +177,9 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
         ? bt.booking_recurring_availability
         : DEFAULT_RECURRING,
     )
+    setSpecificSlots(bt.specific_slots ?? [])
+    setNewSlotDate('')
+    setNewSlotTimes({})
     setActiveTab('basic')
     setShowModal(true)
   }
@@ -177,6 +194,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
         ...form,
         price: Math.round(form.price * 100),  // euros → cents
         recurring_availability: form.availability_type === 'recurring' ? recurringAvailability : [],
+        specific_slots: form.availability_type === 'slots' ? specificSlots : [],
       }
 
       const url = editingId ? `/api/bookings/types/${editingId}` : '/api/bookings/types'
@@ -266,6 +284,37 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
 
   const updateRecurringWindow = (dow: number, field: 'start_time' | 'end_time', value: string) => {
     setRecurringAvailability(prev => prev.map(w => w.day_of_week === dow ? { ...w, [field]: value } : w))
+  }
+
+  const addSpecificDate = () => {
+    if (!newSlotDate) return
+    if (specificSlots.some(e => e.date === newSlotDate)) return
+    setSpecificSlots(prev => [...prev, { date: newSlotDate, times: [] }])
+    setNewSlotDate('')
+  }
+
+  const removeSpecificDate = (date: string) => {
+    setSpecificSlots(prev => prev.filter(e => e.date !== date))
+  }
+
+  const addTimeToDate = (date: string) => {
+    const t = newSlotTimes[date]
+    if (!t) return
+    setSpecificSlots(prev => prev.map(e =>
+      e.date === date && !e.times.includes(t) ? { ...e, times: [...e.times, t].sort() } : e
+    ))
+    setNewSlotTimes(prev => ({ ...prev, [date]: '' }))
+  }
+
+  const removeTimeFromDate = (date: string, time: string) => {
+    setSpecificSlots(prev => prev.map(e =>
+      e.date === date ? { ...e, times: e.times.filter(t => t !== time) } : e
+    ))
+  }
+
+  const formatDateDE = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-')
+    return `${d}.${m}.${y}`
   }
 
   // form.price is stored in euros (float); converted to cents only on save
@@ -577,8 +626,8 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                           onClick={() => setForm(f => ({ ...f, location_type: loc }))}
                           className="flex-1 py-2 rounded-xl text-[12px] font-semibold transition-all"
                           style={{
-                            background: form.location_type === loc ? 'var(--text-primary)' : 'var(--bg-hover)',
-                            color: form.location_type === loc ? '#fff' : 'var(--text-muted)',
+                            background: form.location_type === loc ? 'var(--accent)' : 'var(--bg-hover)',
+                            color: form.location_type === loc ? '#1A1A18' : 'var(--text-muted)',
                             border: '1px solid var(--border-color)',
                           }}
                         >
@@ -599,8 +648,9 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                     <label className="block text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>Buchungsart</label>
                     <div className="grid grid-cols-1 gap-2">
                       {([
-                        { value: 'recurring', label: 'Wöchentliche Zeiten', desc: 'Feste Wochentage & Uhrzeiten — Kunden wählen aus verfügbaren Slots' },
-                        { value: 'request',   label: 'Nur Anfrage',         desc: 'Kein Kalender — Kunde sendet eine Anfrage mit Wunschtermin' },
+                        { value: 'recurring', label: 'Wöchentliche Zeiten',  desc: 'Feste Wochentage & Uhrzeiten — Kunden wählen aus verfügbaren Slots' },
+                        { value: 'slots',     label: 'Bestimmte Termine',    desc: 'Feste Datum & Uhrzeit — ideal für saisonale oder einmalige Shootings' },
+                        { value: 'request',   label: 'Nur Anfrage',          desc: 'Kein Kalender — Kunde sendet eine Anfrage mit Wunschtermin' },
                       ] as const).map(opt => (
                         <button
                           key={opt.value}
@@ -609,19 +659,19 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                           className="flex items-start gap-3 px-4 py-3 rounded-xl text-left transition-all"
                           style={{
                             border: form.availability_type === opt.value
-                              ? '2px solid var(--text-primary)'
+                              ? '2px solid var(--accent)'
                               : '1px solid var(--border-color)',
-                            background: form.availability_type === opt.value ? 'var(--bg-hover)' : 'transparent',
+                            background: form.availability_type === opt.value ? 'rgba(196,164,124,0.08)' : 'transparent',
                           }}
                         >
                           <div
                             className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 border-2 flex items-center justify-center"
                             style={{
-                              borderColor: form.availability_type === opt.value ? 'var(--text-primary)' : 'var(--border-color)',
+                              borderColor: form.availability_type === opt.value ? 'var(--accent)' : 'var(--border-color)',
                             }}
                           >
                             {form.availability_type === opt.value && (
-                              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--text-primary)' }} />
+                              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />
                             )}
                           </div>
                           <div>
@@ -646,8 +696,8 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                               onClick={() => toggleRecurringDay(dow)}
                               className="w-10 text-[12px] font-bold rounded-lg py-1.5 flex-shrink-0 transition-all"
                               style={{
-                                background: isActive ? 'var(--text-primary)' : 'var(--bg-hover)',
-                                color: isActive ? '#fff' : 'var(--text-muted)',
+                                background: isActive ? 'var(--accent)' : 'var(--bg-hover)',
+                                color: isActive ? '#1A1A18' : 'var(--text-muted)',
                                 border: '1px solid var(--border-color)',
                               }}
                             >
@@ -677,6 +727,87 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                           </div>
                         )
                       })}
+                    </div>
+                  )}
+
+                  {/* Specific slots builder */}
+                  {form.availability_type === 'slots' && (
+                    <div className="space-y-3 pt-2">
+                      <p className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>Termine verwalten</p>
+
+                      {specificSlots.length === 0 && (
+                        <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Noch keine Termine hinzugefügt.</p>
+                      )}
+
+                      {[...specificSlots].sort((a, b) => a.date.localeCompare(b.date)).map(entry => (
+                        <div key={entry.date} className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{formatDateDE(entry.date)}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeSpecificDate(entry.date)}
+                              className="p-1 rounded-lg transition-colors"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5">
+                            {entry.times.map(t => (
+                              <span
+                                key={t}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-medium"
+                                style={{ background: 'rgba(196,164,124,0.15)', color: 'var(--accent)', border: '1px solid rgba(196,164,124,0.3)' }}
+                              >
+                                {t}
+                                <button type="button" onClick={() => removeTimeFromDate(entry.date, t)} className="opacity-70 hover:opacity-100">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <input
+                              type="time"
+                              className="px-2 py-1 rounded-lg text-[12px]"
+                              style={{ background: 'var(--bg-surface-solid)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                              value={newSlotTimes[entry.date] ?? ''}
+                              onChange={e => setNewSlotTimes(prev => ({ ...prev, [entry.date]: e.target.value }))}
+                              onKeyDown={e => e.key === 'Enter' && addTimeToDate(entry.date)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => addTimeToDate(entry.date)}
+                              className="px-3 py-1 rounded-lg text-[12px] font-semibold transition-all"
+                              style={{ background: 'var(--accent)', color: '#1A1A18' }}
+                            >
+                              + Uhrzeit
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Add new date */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="date"
+                          className="px-2 py-1.5 rounded-lg text-[12px] flex-1"
+                          style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                          value={newSlotDate}
+                          onChange={e => setNewSlotDate(e.target.value)}
+                          min={new Date().toISOString().slice(0, 10)}
+                        />
+                        <button
+                          type="button"
+                          onClick={addSpecificDate}
+                          className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex-shrink-0"
+                          style={{ background: 'var(--accent)', color: '#1A1A18' }}
+                        >
+                          Datum hinzufügen
+                        </button>
+                      </div>
                     </div>
                   )}
 

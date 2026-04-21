@@ -10,13 +10,19 @@
 //   5. The date is more than max_advance_days in the future
 //   6. (If caller provides busy periods from Google Calendar freebusy) — overlaps
 
+export interface SpecificSlotEntry {
+  date: string   // "YYYY-MM-DD"
+  times: string[] // ["HH:MM", ...]
+}
+
 export interface BookingTypeConfig {
   id: string
-  availability_type: 'recurring' | 'slots'
+  availability_type: 'recurring' | 'slots' | 'request'
   duration_minutes: number
   buffer_minutes: number
   min_notice_hours: number
   max_advance_days: number
+  specific_slots?: SpecificSlotEntry[]
 }
 
 export interface RecurringWindow {
@@ -106,7 +112,50 @@ export function generateAvailableSlots(
     })
   }
 
-  // Iterate day by day
+  // ── Specific slots mode ──────────────────────────────────────────────────
+  if (config.availability_type === 'slots') {
+    for (const entry of (config.specific_slots ?? [])) {
+      const dateStr = entry.date
+      if (blockedFullDays.has(dateStr)) continue
+
+      const availableTimes: string[] = []
+      for (const rawTime of entry.times) {
+        const slotHHMM = rawTime.slice(0, 5)
+        const slotStart = parseTimeToMinutes(slotHHMM)
+        const slotEnd   = slotStart + duration_minutes
+        const slotDateTime = toDateTime(dateStr, slotHHMM)
+
+        if (slotDateTime < earliest) continue
+        if (blockedDateTimes.has(`${dateStr}T${slotHHMM}`)) continue
+
+        const existingMins = bookingsByDate[dateStr] ?? []
+        const overlapsExisting = existingMins.some(({ start: existStart, dur: existDur }) => {
+          const existEnd     = existStart + existDur + buffer_minutes
+          const candidateEnd = slotEnd + buffer_minutes
+          return slotStart < existEnd && candidateEnd > existStart
+        })
+        if (overlapsExisting) continue
+
+        const slotMs    = slotDateTime.getTime()
+        const slotEndMs = slotMs + duration_minutes * 60 * 1000
+        const overlapsBusy = busyPeriods.some(bp => {
+          const bpStart = new Date(bp.start).getTime()
+          const bpEnd   = new Date(bp.end).getTime()
+          return slotMs < bpEnd && slotEndMs > bpStart
+        })
+        if (overlapsBusy) continue
+
+        availableTimes.push(slotHHMM)
+      }
+
+      if (availableTimes.length > 0) {
+        results.push({ date: dateStr, slots: availableTimes })
+      }
+    }
+    return results
+  }
+
+  // ── Recurring mode — iterate day by day ──────────────────────────────────
   const cursor = new Date(referenceNow)
   cursor.setHours(0, 0, 0, 0)
 

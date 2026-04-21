@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
     .maybeSingle()
 
   if (!bt) return NextResponse.json({ error: 'Booking type not found' }, { status: 404 })
+  if (bt.availability_type === 'request') return NextResponse.json({ slots: [] })
 
   // Fetch recurring availability
   const { data: recurringRaw } = await supabase
@@ -119,6 +120,7 @@ export async function GET(req: NextRequest) {
       buffer_minutes: bt.buffer_minutes,
       min_notice_hours: bt.min_notice_hours,
       max_advance_days: bt.max_advance_days,
+      specific_slots: bt.specific_slots ?? [],
     },
     recurring,
     existing,

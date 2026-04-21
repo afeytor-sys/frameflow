@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     questions = [], anzahlung_enabled = false, anzahlung_type, anzahlung_amount,
     anzahlung_days_due, active = true,
     recurring_availability = [],
+    specific_slots = [],
     slug: customSlug,
   } = body
 
@@ -65,7 +66,8 @@ export async function POST(req: NextRequest) {
       photographer_id: user.id,
       slug, title: title.trim(), description, duration_minutes, location_type,
       price, currency, availability_type, buffer_minutes, max_advance_days,
-      min_notice_hours, questions, anzahlung_enabled,
+      min_notice_hours, questions, specific_slots,
+      anzahlung_enabled,
       anzahlung_type: anzahlung_enabled ? anzahlung_type : null,
       anzahlung_amount: anzahlung_enabled ? anzahlung_amount : null,
       anzahlung_days_due: anzahlung_enabled ? anzahlung_days_due : null,
