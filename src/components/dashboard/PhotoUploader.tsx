@@ -97,13 +97,21 @@ export default function PhotoUploader({
     if (allowed.length === 0) return
 
     // ── 2. Duplicate filename check ──────────────────────────────────────────
+    // Batch into chunks of 100 to avoid URL-length limits (8KB) with large selections
     const supabase = createClient()
     const filenames = allowed.map(f => f.name)
-    const { data: existingPhotos } = await supabase
-      .from('photos').select('id, filename, storage_url')
-      .eq('gallery_id', galleryId).in('filename', filenames)
+    const CHUNK = 100
+    const chunks: string[][] = []
+    for (let i = 0; i < filenames.length; i += CHUNK) chunks.push(filenames.slice(i, i + CHUNK))
 
-    const existingMap = new Map((existingPhotos || []).map(p => [p.filename, p]))
+    const chunkResults = await Promise.all(
+      chunks.map(c =>
+        supabase.from('photos').select('id, filename, storage_url')
+          .eq('gallery_id', galleryId).in('filename', c)
+      )
+    )
+    const allExisting = chunkResults.flatMap(r => r.data ?? [])
+    const existingMap = new Map(allExisting.map(p => [p.filename, p]))
     const duplicates = allowed.filter(f => existingMap.has(f.name))
     const nonDuplicates = allowed.filter(f => !existingMap.has(f.name))
 
@@ -183,7 +191,10 @@ export default function PhotoUploader({
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/'))
     if (imageFiles.length === 0) { toast.error('Nur Bilddateien erlaubt (JPG, PNG, WEBP)'); return }
-    uploadFiles(imageFiles)
+    uploadFiles(imageFiles).catch(err => {
+      console.error('[PhotoUploader] uploadFiles error:', err)
+      toast.error('Upload fehlgeschlagen. Bitte erneut versuchen.')
+    })
   }, [uploadFiles])
 
   const resolveDuplicate = (decision: 'keep' | 'replace' | 'cancel') => {
