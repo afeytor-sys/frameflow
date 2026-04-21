@@ -692,8 +692,8 @@ export default function InboxClient({ conversations: initialConversations, photo
               onClick={() => setStatusFilter('all')}
               className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
               style={{
-                background: statusFilter === 'all' ? 'var(--text-primary)' : 'var(--bg-hover)',
-                color: statusFilter === 'all' ? 'var(--bg-page)' : 'var(--text-muted)',
+                background: statusFilter === 'all' ? '#1A1A18' : 'var(--bg-hover)',
+                color: statusFilter === 'all' ? '#FFFFFF' : 'var(--text-muted)',
               }}
             >
               Alle {conversations.length > 0 && `(${conversations.length})`}
@@ -883,7 +883,7 @@ export default function InboxClient({ conversations: initialConversations, photo
 
                 // Task 7: hover effect on plain message bubbles
                 const leadBg   = isHover ? 'var(--bg-surface, #ebebeb)' : 'var(--bg-hover, #f5f5f3)'
-                const sentBg   = 'var(--msg-sent-bg, #1A1A18)'
+                const sentBg   = 'var(--msg-sent-bg, #C4A47C)'
 
                 return (
                   <div
@@ -902,7 +902,7 @@ export default function InboxClient({ conversations: initialConversations, photo
                           borderBottomLeftRadius: '4px',
                         } : {
                           background: sentBg,
-                          color: 'var(--msg-sent-color, #FFFFFF)',
+                          color: 'var(--msg-sent-color, #1A1A18)',
                           borderBottomRightRadius: '4px',
                           opacity: msg.id.startsWith('optimistic-') ? 0.7 : 1,
                         }}
