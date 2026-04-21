@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       // Get photographer email
       const { data: photographer } = await service
         .from('photographers')
-        .select('email')
+        .select('email, notification_email')
         .eq('id', user.id)
         .single()
 
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         .limit(1)
 
       const originalMessage = originalMessages?.[0]?.content ?? null
-      const photographerEmail = photographer?.email ?? null
+      const photographerEmail = photographer?.notification_email || photographer?.email || null
       const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.fotonizer.com'
 
       const resendKey = process.env.RESEND_API_KEY
@@ -170,7 +170,8 @@ export async function POST(req: NextRequest) {
         const { error: emailError } = await resend.emails.send({
           from: 'Fotonizer <info@fotonizer.com>',
           to: conversation.lead_email,
-          replyTo: photographerEmail,
+          replyTo: photographerEmail ?? undefined,
+          bcc: photographerEmail ?? undefined,
           subject: 'Re: your inquiry',
           html,
         })
