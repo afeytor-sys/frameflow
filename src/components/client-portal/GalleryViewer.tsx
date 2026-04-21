@@ -162,10 +162,13 @@ export default function GalleryViewer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [lightboxLoaded, setLightboxLoaded] = useState(false)
   // ── Download (email-based async) ────────────────────────────────
-  type DlState = 'idle' | 'asking-email' | 'submitting' | 'sent' | 'error'
+  type DlState = 'idle' | 'asking-email' | 'submitting' | 'preparing' | 'sent' | 'error'
   const [dlState, setDlState]   = useState<DlState>('idle')
   const [dlEmail, setDlEmail]   = useState('')
   const [dlError, setDlError]   = useState<string | null>(null)
+  const [dlToken, setDlToken]   = useState<string | null>(null)
+  const [dlJobId, setDlJobId]   = useState<string | null>(null)
+  const dlPollRef               = useRef<ReturnType<typeof setInterval> | null>(null)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
   const [showTagFilters, setShowTagFilters] = useState(false)
@@ -511,6 +514,26 @@ export default function GalleryViewer({
     } catch { toast.error('Download fehlgeschlagen') }
   }
 
+  const startDlPolling = useCallback((jobId: string) => {
+    if (dlPollRef.current) clearInterval(dlPollRef.current)
+    dlPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/galleries/${galleryId}/download/status/${jobId}`)
+        const json = await res.json()
+        if (json.status === 'ready') {
+          clearInterval(dlPollRef.current!); dlPollRef.current = null
+          setDlState('sent')
+        } else if (json.status === 'failed' || json.status === 'expired') {
+          clearInterval(dlPollRef.current!); dlPollRef.current = null
+          setDlError('A preparação falhou. Por favor, tente novamente.')
+          setDlState('error')
+        }
+      } catch { /* ignore network hiccups */ }
+    }, 4000)
+  }, [galleryId])
+
+  useEffect(() => () => { if (dlPollRef.current) clearInterval(dlPollRef.current) }, [])
+
   const submitDownloadRequest = async (email: string) => {
     setDlState('submitting')
     setDlError(null)
@@ -522,8 +545,17 @@ export default function GalleryViewer({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Fehler')
-      setDlState('sent')
+      setDlJobId(json.jobId)
+      setDlToken(json.downloadToken ?? null)
       notifyPhotographer(galleryId, 'gallery_downloaded', clientName || 'Visitante')
+      if (json.status === 'ready' || json.reused) {
+        // Job already ready (reused) — poll once to confirm, then mark sent
+        setDlState('preparing')
+        startDlPolling(json.jobId)
+      } else {
+        setDlState('preparing')
+        startDlPolling(json.jobId)
+      }
     } catch (err) {
       setDlError(err instanceof Error ? err.message : 'Fehler')
       setDlState('error')
@@ -713,49 +745,103 @@ export default function GalleryViewer({
       )}
 
       {/* ── Download email modal ── */}
-      {(dlState === 'asking-email' || dlState === 'submitting' || dlState === 'error') && (
+      {(dlState === 'asking-email' || dlState === 'submitting' || dlState === 'preparing' || dlState === 'sent' || dlState === 'error') && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="px-6 pt-6 pb-2">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ background: '#F5F4F1' }}>
-                <Download className="w-6 h-6 text-[#111110]" />
+
+            {/* — Email input form — */}
+            {(dlState === 'asking-email' || dlState === 'submitting' || dlState === 'error') && (<>
+              <div className="px-6 pt-6 pb-2">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ background: '#F5F4F1' }}>
+                  <Download className="w-6 h-6 text-[#111110]" />
+                </div>
+                <h3 className="text-[17px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
+                  Fotos herunterladen
+                </h3>
+                <p className="text-[13px] text-[#7A7670] mb-5">
+                  Wir schicken dir einen Download-Link per E-Mail, sobald deine Fotos fertig verpackt sind.
+                </p>
+                <input
+                  autoFocus
+                  type="email"
+                  value={dlEmail}
+                  onChange={e => setDlEmail(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && dlEmail.includes('@')) submitDownloadRequest(dlEmail) }}
+                  placeholder="deine@email.de"
+                  className="w-full px-4 py-3 text-[14px] border border-[#E8E4DC] rounded-xl focus:outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/15 transition-all"
+                />
+                {dlError && <p className="text-[12px] text-red-500 mt-2">{dlError}</p>}
               </div>
-              <h3 className="text-[17px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
-                Fotos herunterladen
-              </h3>
-              <p className="text-[13px] text-[#7A7670] mb-5">
-                Wir schicken dir einen Download-Link per E-Mail, sobald deine Fotos fertig verpackt sind.
-              </p>
-              <input
-                autoFocus
-                type="email"
-                value={dlEmail}
-                onChange={e => setDlEmail(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && dlEmail.includes('@')) submitDownloadRequest(dlEmail) }}
-                placeholder="deine@email.de"
-                className="w-full px-4 py-3 text-[14px] border border-[#E8E4DC] rounded-xl focus:outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/15 transition-all"
-              />
-              {dlError && (
-                <p className="text-[12px] text-red-500 mt-2">{dlError}</p>
-              )}
-            </div>
-            <div className="flex gap-2 px-6 py-4">
-              <button
-                onClick={() => submitDownloadRequest(dlEmail)}
-                disabled={dlState === 'submitting' || !dlEmail.includes('@')}
-                className="flex-1 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50 transition-all"
-                style={{ background: '#111110' }}
-              >
-                {dlState === 'submitting' ? 'Wird gesendet…' : 'Link anfordern'}
-              </button>
-              <button
-                onClick={() => { setDlState('idle'); setDlError(null) }}
-                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
-                style={{ background: '#F5F4F1', color: '#7A7670' }}
-              >
-                Abbrechen
-              </button>
-            </div>
+              <div className="flex gap-2 px-6 py-4">
+                <button
+                  onClick={() => submitDownloadRequest(dlEmail)}
+                  disabled={dlState === 'submitting' || !dlEmail.includes('@')}
+                  className="flex-1 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50 transition-all"
+                  style={{ background: '#111110' }}
+                >
+                  {dlState === 'submitting' ? 'Wird gesendet…' : 'Link anfordern'}
+                </button>
+                <button
+                  onClick={() => { setDlState('idle'); setDlError(null) }}
+                  className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                  style={{ background: '#F5F4F1', color: '#7A7670' }}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </>)}
+
+            {/* — Preparing / zipping — */}
+            {dlState === 'preparing' && (
+              <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#F5F4F1' }}>
+                  <Loader2 className="w-7 h-7 animate-spin text-[#111110]" />
+                </div>
+                <div>
+                  <p className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>Fotos werden verpackt…</p>
+                  <p className="text-[13px] text-[#7A7670]">Das kann bei vielen Fotos einige Minuten dauern.<br/>Du erhältst eine E-Mail sobald alles fertig ist.</p>
+                </div>
+                <button
+                  onClick={() => { setDlState('idle'); if (dlPollRef.current) { clearInterval(dlPollRef.current); dlPollRef.current = null } }}
+                  className="mt-2 text-[12px] px-4 py-2 rounded-lg transition-colors"
+                  style={{ color: '#7A7670', background: '#F5F4F1' }}
+                >
+                  Schließen
+                </button>
+              </div>
+            )}
+
+            {/* — Done: email sent + direct link — */}
+            {dlState === 'sent' && (
+              <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(42,155,104,0.1)' }}>
+                  <Check className="w-7 h-7" style={{ color: '#2A9B68' }} />
+                </div>
+                <div>
+                  <p className="text-[16px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>Fotos sind fertig!</p>
+                  <p className="text-[13px] text-[#7A7670]">Der Link wurde an <strong>{dlEmail}</strong> gesendet.<br/>Schau auch in deinem Spam-Ordner nach.</p>
+                </div>
+                {dlToken && (
+                  <a
+                    href={`/download/${dlToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-xl text-[13.5px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                    style={{ background: '#111110' }}
+                  >
+                    <Download className="w-4 h-4" /> Direkt herunterladen
+                  </a>
+                )}
+                <button
+                  onClick={() => setDlState('idle')}
+                  className="text-[12px] px-4 py-2 rounded-lg transition-colors"
+                  style={{ color: '#7A7670', background: '#F5F4F1' }}
+                >
+                  Schließen
+                </button>
+              </div>
+            )}
+
           </div>
         </div>
       )}

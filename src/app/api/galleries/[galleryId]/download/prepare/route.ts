@@ -63,7 +63,7 @@ export async function POST(
     }
     // If pending/processing and recent — worker is still running, it will send email when done.
 
-    return Response.json({ jobId: existingJob.id, reused: true })
+    return Response.json({ jobId: existingJob.id, reused: true, downloadToken })
   }
 
   // Create a fresh job
@@ -103,5 +103,5 @@ export async function POST(
     }).catch(err => console.error('[prepare] worker trigger failed:', err))
   )
 
-  return Response.json({ jobId: job.id })
+  return Response.json({ jobId: job.id, downloadToken })
 }
