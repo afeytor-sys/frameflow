@@ -169,7 +169,7 @@ export async function POST(
 
     // ── Send email (once, only when fully ready) ──────────────────────────
     // Re-read from DB — /prepare may have updated email/token while we ran
-    const { data: finalJob } = await supabase
+    const { data: finalJob, error: finalJobErr } = await supabase
       .from('gallery_download_jobs')
       .select('email, download_token, email_sent_at')
       .eq('id', jobId)
@@ -178,10 +178,18 @@ export async function POST(
     const email = finalJob?.email ?? job?.email
     const downloadToken = finalJob?.download_token ?? job?.download_token
 
+    // ── PRE-SEND DIAGNOSTIC ───────────────────────────────────────────────
+    console.log(`[worker] EMAIL CHECK jobId=${jobId}`)
+    console.log(`[worker]   status=ready processed_parts=${parts.length}/${totalParts}`)
+    console.log(`[worker]   finalJob DB read error: ${finalJobErr?.message ?? 'none'}`)
+    console.log(`[worker]   email="${email ?? 'MISSING'}"`)
+    console.log(`[worker]   downloadToken="${downloadToken ? downloadToken.slice(0, 8) + '...' : 'MISSING'}"`)
+    console.log(`[worker]   email_sent_at="${finalJob?.email_sent_at ?? 'null'}"`)
+
     if (finalJob?.email_sent_at) {
       console.log(`[worker] jobId=${jobId} email already sent at ${finalJob.email_sent_at} — skipping`)
     } else if (email && downloadToken) {
-      console.log(`[worker] jobId=${jobId} sending email to ${email}`)
+      console.log(`[worker] SENDING EMAIL jobId=${jobId} to="${email}" parts=${parts.length}`)
       await sendDownloadReadyEmail(galleryId, email, downloadToken, parts.length)
       await supabase
         .from('gallery_download_jobs')
@@ -189,7 +197,7 @@ export async function POST(
         .eq('id', jobId)
       console.log(`[worker] jobId=${jobId} email sent OK`)
     } else {
-      console.warn(`[worker] jobId=${jobId} missing email or token — skipping email`)
+      console.warn(`[worker] SKIPPING EMAIL jobId=${jobId} — email="${email ?? 'null'}" token="${downloadToken ? 'present' : 'null'}"`)
     }
 
     return Response.json({ ok: true, parts: parts.length })

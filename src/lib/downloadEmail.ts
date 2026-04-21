@@ -83,8 +83,10 @@ export async function sendDownloadReadyEmail(
     ? `<p style="margin:6px 0 0;font-size:13px;color:#aaa;letter-spacing:0.01em;">Galerie: ${galleryName}</p>`
     : ''
 
-  console.log(`[downloadEmail] sending to=${email} gallery=${galleryId} token=${downloadToken.slice(0, 8)}...`)
+  console.log(`[downloadEmail] PREPARE to=${email} gallery=${galleryId} token=${downloadToken.slice(0, 8)}...`)
   console.log(`[downloadEmail] from="${studioName}" replyTo=${replyEmail ?? 'none'} partCount=${partCount}`)
+  console.log(`[downloadEmail] downloadUrl=${downloadUrl}`)
+  console.log(`[downloadEmail] RESEND_API_KEY defined=${!!process.env.RESEND_API_KEY}`)
 
   const sendParams: Parameters<typeof resend.emails.send>[0] = {
     from: `${studioName} <noreply@fotonizer.com>`,
@@ -177,10 +179,12 @@ export async function sendDownloadReadyEmail(
   // Only add replyTo if we actually have an address — passing undefined breaks Resend
   if (replyEmail) sendParams.replyTo = replyEmail
 
+  console.log(`[downloadEmail] calling resend.emails.send...`)
   const { data: resendData, error: resendError } = await resend.emails.send(sendParams)
+  console.log(`[downloadEmail] EMAIL RESULT data=${JSON.stringify(resendData)} error=${JSON.stringify(resendError)}`)
 
   if (resendError) {
-    console.error(`[downloadEmail] Resend API error:`, JSON.stringify(resendError))
+    console.error(`[downloadEmail] EMAIL ERROR:`, JSON.stringify(resendError))
     throw new Error(`Resend error: ${JSON.stringify(resendError)}`)
   }
 
