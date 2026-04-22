@@ -95,11 +95,12 @@ async function writeZipToStream(
             .replace(/[/\\:*?"<>|]/g, '_')
             .replace(/^\.+/, '_') || 'photo.jpg'
 
-        try {
           const res = await fetch(photo.storage_url, {
-            signal: AbortSignal.timeout(60_000), // 60s per photo — skip hangers
+            signal: AbortSignal.timeout(60_000),
           })
-          if (!res.ok || !res.body) continue
+          if (!res.ok || !res.body) {
+            throw new Error(`Failed to fetch photo ${safeName}: HTTP ${res.status}`)
+          }
 
           const entry = new ZipPassThrough(safeName) // STORE — images are pre-compressed
           zip.add(entry)
@@ -114,9 +115,6 @@ async function writeZipToStream(
             }
             entry.push(value, false)
           }
-        } catch {
-          // Skip unreadable/failed photos — never abort the entire batch.
-        }
 
         // After each photo: if the PassThrough signalled backpressure, wait
         // for it to drain before fetching the next photo. This keeps RAM bounded
