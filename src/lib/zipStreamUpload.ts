@@ -96,7 +96,9 @@ async function writeZipToStream(
             .replace(/^\.+/, '_') || 'photo.jpg'
 
         try {
-          const res = await fetch(photo.storage_url)
+          const res = await fetch(photo.storage_url, {
+            signal: AbortSignal.timeout(60_000), // 60s per photo — skip hangers
+          })
           if (!res.ok || !res.body) continue
 
           const entry = new ZipPassThrough(safeName) // STORE — images are pre-compressed

@@ -82,10 +82,11 @@ async function processZipBackground(
       .filter((p): p is NonNullable<typeof p> => p != null)
 
     console.log(`[zip-server] ZIP started — ${orderedPhotos.length} files — key=${r2Key}`)
+    const zipStart = Date.now()
 
     await streamZipToR2(orderedPhotos, r2Key, partName)
 
-    console.log(`[zip-server] ZIP uploaded — partId=${partId}`)
+    console.log(`[zip-server] ZIP uploaded in ${Math.round((Date.now() - zipStart) / 1000)}s — partId=${partId}`)
 
     await supabase
       .from('gallery_download_parts')
