@@ -12,7 +12,6 @@ loadEnv({ path: '.env.local', override: false })
 
 import express from 'express'
 import { createClient } from '@supabase/supabase-js'
-import { streamZipToR2 } from '../src/lib/zipStreamUpload'
 
 const app = express()
 app.use(express.json())
@@ -31,7 +30,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.post('/zip', async (req, res) => {
-  console.log('[zip-server] ZIP endpoint hit')
+  console.log('[zip-server] POST /zip received')
 
   const auth = req.headers['authorization'] ?? ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
@@ -47,12 +46,12 @@ app.post('/zip', async (req, res) => {
     return
   }
 
-  console.log(`[zip-server] Files count: ${photoIds.length} — partId=${partId}`)
+  console.log(`[zip-server] accepted partId=${partId} photos=${photoIds.length} key=${r2Key}`)
 
   // Respond immediately — CF Worker cannot wait for ZIP (Cloudflare 100s timeout)
   res.json({ ok: true, status: 'processing' })
 
-  // Process ZIP in background — updates DB when done
+  // Process ZIP in background
   processZipBackground(partId, photoIds, r2Key, partName).catch(err => {
     console.error('[zip-server] background error:', err.message)
   })
@@ -64,6 +63,8 @@ async function processZipBackground(
   r2Key: string,
   partName: string,
 ): Promise<void> {
+  // Lazy import — keeps startup fast and avoids crashing server if R2 env vars are missing
+  const { streamZipToR2 } = await import('../src/lib/zipStreamUpload')
   const supabase = makeSupabase()
 
   try {
@@ -106,4 +107,5 @@ async function processZipBackground(
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log('[zip-server] ZIP server running on port', PORT)
+  console.log('[zip-server] POST /zip endpoint ready')
 })
