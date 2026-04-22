@@ -1,3 +1,12 @@
+process.on('uncaughtException', (err) => {
+  console.error('[zip-server] CRASH uncaughtException:', err.message, err.stack)
+  process.exit(1)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[zip-server] CRASH unhandledRejection:', reason)
+  process.exit(1)
+})
+
 import { config as loadEnv } from 'dotenv'
 loadEnv({ path: '.env.local', override: false })
 
