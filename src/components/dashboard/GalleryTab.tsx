@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import PhotoUploader from './PhotoUploader'
-import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, LayoutGrid, List } from 'lucide-react'
+import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Palette, ChevronDown, Pencil, Check, X, GripHorizontal, Sparkles, Download, Loader2, Eye, MessageSquare, EyeOff, Star, LayoutGrid, List, Upload, ImageIcon } from 'lucide-react'
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
@@ -133,7 +133,7 @@ function SortablePhoto({
       )}
     >
       <img
-        src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 400, 75, 'cover')}
+        src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 200, 75, 'cover')}
         alt={photo.filename}
         className={cn('w-full aspect-square object-cover', photo.is_private && 'opacity-60')}
         loading="lazy"
@@ -227,6 +227,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [favoritesExpanded, setFavoritesExpanded] = useState(false)
   const [sectionDragOver, setSectionDragOver] = useState<string | null>(null)
   const [globalDragOver, setGlobalDragOver] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
+  const [showCoverPicker, setShowCoverPicker] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const coverUploadRef = useRef<HTMLInputElement>(null)
   const globalDragCounter = useRef(0)
   const draggingPhotoRef = useRef<string | null>(null)
 
@@ -455,6 +459,38 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     toast.success(newCoverId ? 'Titelbild gesetzt' : 'Titelbild entfernt')
   }
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !gallery) return
+    setUploadingCover(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('galleryId', gallery.id)
+      formData.append('filename', file.name)
+      formData.append('contentType', file.type)
+      const res = await fetch('/api/photos/upload', { method: 'POST', body: formData })
+      const json = await res.json()
+      if (!res.ok) { toast.error('Upload fehlgeschlagen'); return }
+      const { data: newPhoto } = await supabase
+        .from('photos')
+        .insert({ gallery_id: gallery.id, storage_url: json.publicUrl, thumbnail_url: json.publicUrl, filename: file.name, file_size: file.size, display_order: photos.length })
+        .select()
+        .single()
+      if (newPhoto) {
+        setPhotos(prev => [...prev, newPhoto as Photo])
+        await supabase.from('galleries').update({ cover_photo_id: newPhoto.id }).eq('id', gallery.id)
+        setGallery(prev => prev ? { ...prev, cover_photo_id: newPhoto.id } : prev)
+        toast.success('Titelbild gesetzt')
+      }
+    } catch {
+      toast.error('Upload fehlgeschlagen')
+    } finally {
+      setUploadingCover(false)
+      if (coverUploadRef.current) coverUploadRef.current.value = ''
+    }
+  }
+
   const saveSettings = async () => {
     if (!gallery) return
     setSavingSettings(true)
@@ -678,54 +714,99 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <h3 className="font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{gallery.title}</h3>
-          <button
-            onClick={toggleGalleryStatus}
-            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer"
-            style={{
-              background: gallery.status === 'active' ? 'rgba(61,186,111,0.12)' : 'rgba(107,114,128,0.10)',
-              color: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)',
-              border: `1px solid ${gallery.status === 'active' ? 'rgba(61,186,111,0.25)' : 'var(--border-color)'}`,
-            }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block" style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
-            {gallery.status === 'active' ? 'Aktiv' : 'Draft'}
-          </button>
-          {/* ── Stats pills ── */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[
-              { icon: Images, label: 'Fotos', value: photos.length, color: 'var(--text-muted)' },
-              { icon: Download, label: 'Foto-DL', value: gallery.photo_download_count ?? 0, color: '#3B82F6', title: 'Einzelfoto-Downloads' },
-              { icon: Download, label: 'Galerie-DL', value: gallery.download_count, color: '#8B5CF6', title: 'Galerie-Downloads (ZIP)' },
-              { icon: Heart, label: 'Favoriten', value: photos.filter(p => p.is_favorite).length, color: '#EF4444' },
-              { icon: EyeOff, label: 'Privat', value: photos.filter(p => p.is_private).length, color: '#8B5CF6', title: 'Private Fotos (nur Kunden-PW)' },
-              { icon: MessageSquare, label: 'Kommentare', value: commentCount, color: '#F59E0B' },
-            ].map(({ icon: Icon, label, value, color, title }) => (
-              <div
-                key={label}
-                title={title}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
-                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
-              >
-                <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
-                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value}</span>
-                <span className="hidden sm:inline">{label}</span>
-              </div>
-            ))}
+      <div className="flex flex-col gap-2">
+        {/* Row 1: Identity */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="font-display text-base font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{gallery.title}</h3>
+            <button
+              onClick={toggleGalleryStatus}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer flex-shrink-0"
+              style={{
+                background: gallery.status === 'active' ? 'rgba(61,186,111,0.12)' : 'rgba(107,114,128,0.10)',
+                color: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)',
+                border: `1px solid ${gallery.status === 'active' ? 'rgba(61,186,111,0.25)' : 'var(--border-color)'}`,
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full mr-1.5 inline-block" style={{ background: gallery.status === 'active' ? '#3DBA6F' : 'var(--text-muted)' }} />
+              {gallery.status === 'active' ? 'Aktiv' : 'Draft'}
+            </button>
+          </div>
+          {/* Row 2: Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={shareGallery}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+              style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Teilen</span>
+            </button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+              style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Einstellungen</span>
+            </button>
+            <button
+              onClick={() => { setUploadSectionId(null); setShowUploader(!showUploader) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white"
+              style={{ background: 'var(--cta-bg)' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              + <span className="hidden sm:inline ml-0.5">Fotos hochladen</span><span className="sm:hidden">Upload</span>
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={shareGallery} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <Share2 className="w-3.5 h-3.5" />Teilen
+
+        {/* Row 3: Light info + Details dropdown */}
+        <div className="flex items-center gap-3">
+          {/* Always-visible stats */}
+          {[
+            { icon: Images, value: photos.length, label: 'Fotos', color: 'var(--text-muted)' },
+            { icon: Download, value: gallery.download_count, label: 'Downloads', color: '#8B5CF6', title: 'Galerie-Downloads (ZIP)' },
+          ].map(({ icon: Icon, value, label, color, title }) => (
+            <div key={label} title={title} className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value}</span>
+              <span>{label}</span>
+            </div>
+          ))}
+
+          {/* Details toggle */}
+          <button
+            onClick={() => setShowDetails(v => !v)}
+            className="flex items-center gap-1 text-[12px] font-medium transition-colors"
+            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            Details
+            <ChevronDown className="w-3.5 h-3.5 transition-transform" style={{ transform: showDetails ? 'rotate(180deg)' : 'rotate(0deg)' }} />
           </button>
-          <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'transparent' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <Settings className="w-3.5 h-3.5" />Einstellungen
-          </button>
-          <button onClick={() => { setUploadSectionId(null); setShowUploader(!showUploader) }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-white" style={{ background: 'var(--cta-bg)' }} onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-            + Fotos hochladen
-          </button>
+
+          {/* Expanded detail stats */}
+          {showDetails && (
+            <div className="flex items-center gap-3">
+              {[
+                { icon: Download, value: gallery.photo_download_count ?? 0, label: 'Foto-DL', color: '#3B82F6', title: 'Einzelfoto-Downloads' },
+                { icon: Heart, value: photos.filter(p => p.is_favorite).length, label: 'Favoriten', color: '#EF4444' },
+                { icon: EyeOff, value: photos.filter(p => p.is_private).length, label: 'Privat', color: '#8B5CF6', title: 'Private Fotos' },
+                { icon: MessageSquare, value: commentCount, label: 'Kommentare', color: '#F59E0B' },
+              ].map(({ icon: Icon, value, label, color, title }) => (
+                <div key={label} title={title} className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value}</span>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -846,8 +927,84 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
           {/* Design tab — 10 themes */}
           {activeSettingsTab === 'design' && (
-            <div className="space-y-3">
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Choose a layout for the client gallery</p>
+            <div className="space-y-4">
+
+              {/* Cover photo */}
+              {(() => {
+                const coverPhoto = photos.find(p => p.id === gallery?.cover_photo_id)
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Titelbild (Hero)</p>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setShowCoverPicker(v => !v)}
+                          className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors"
+                          style={{ background: showCoverPicker ? 'var(--accent)' : 'var(--bg-hover)', color: showCoverPicker ? '#fff' : 'var(--text-primary)' }}
+                        >
+                          <Images className="w-3 h-3" />Aus Galerie
+                        </button>
+                        <label className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg cursor-pointer transition-colors" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>
+                          {uploadingCover ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Upload className="w-3 h-3" />Hochladen</>}
+                          <input ref={coverUploadRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+                        </label>
+                      </div>
+                    </div>
+
+                    {coverPhoto ? (
+                      <div className="relative rounded-xl overflow-hidden" style={{ height: 88 }}>
+                        <img src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 800, 80, 'cover')} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
+                        <span className="absolute bottom-2 left-3 text-[11px] font-medium text-white/90 truncate max-w-[60%]">{coverPhoto.filename}</span>
+                        <button
+                          onClick={() => setCoverPhoto(gallery!.cover_photo_id!)}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-opacity"
+                          style={{ background: 'rgba(0,0,0,0.55)' }}
+                          title="Titelbild entfernen"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 rounded-xl" style={{ height: 64, border: '2px dashed var(--border-color)', background: 'var(--bg-hover)' }}>
+                        <ImageIcon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                        <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Kein Titelbild gewählt</p>
+                      </div>
+                    )}
+
+                    {showCoverPicker && photos.length > 0 && (
+                      <div className="rounded-xl p-2 max-h-44 overflow-y-auto" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
+                        <div className="grid grid-cols-6 gap-1">
+                          {photos.map(photo => (
+                            <button
+                              key={photo.id}
+                              onClick={() => { setCoverPhoto(photo.id); setShowCoverPicker(false) }}
+                              className="relative rounded-lg overflow-hidden aspect-square flex-shrink-0 transition-all"
+                              style={{ outline: gallery?.cover_photo_id === photo.id ? '2px solid var(--accent)' : '2px solid transparent' }}
+                            >
+                              <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 100, 70, 'cover')} alt="" className="w-full h-full object-cover" />
+                              {gallery?.cover_photo_id === photo.id && (
+                                <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.45)' }}>
+                                  <Check className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        {photos.length === 0 && <p className="text-center text-[12px] py-3" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in dieser Galerie</p>}
+                      </div>
+                    )}
+
+                    {showCoverPicker && photos.length === 0 && (
+                      <p className="text-[11px] text-center py-2" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in dieser Galerie</p>
+                    )}
+                  </div>
+                )
+              })()}
+
+              <div className="h-px" style={{ background: 'var(--border-color)' }} />
+
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Layout auswählen</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {GALLERY_THEMES.map(theme => (
                   <button
@@ -1174,7 +1331,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           return (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={filtered.map(p => p.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
                   {filtered.slice(0, visibleCount).map(photo => (
                     <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
                   ))}
@@ -1224,7 +1381,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                       <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
+                        <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
                           {sectionPhotos.slice(0, visibleCount).map(photo => (
                             <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
                           ))}
@@ -1269,7 +1426,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
+                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
                       {unsectionedPhotos.slice(0, visibleCount).map(photo => (
                         <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
                       ))}

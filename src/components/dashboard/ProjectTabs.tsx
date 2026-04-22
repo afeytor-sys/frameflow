@@ -36,6 +36,8 @@ type GalleryItem = {
   view_count: number
   download_count: number
   cover_photo_id?: string | null
+  design_theme?: string | null
+  tags_enabled?: string[] | null
   photos?: Photo[]
 }
 
@@ -1364,6 +1366,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                       expires_at: selectedGallery.expires_at,
                       view_count: selectedGallery.view_count,
                       download_count: selectedGallery.download_count,
+                      design_theme: selectedGallery.design_theme ?? null,
+                      tags_enabled: selectedGallery.tags_enabled ?? null,
                     }}
                     photos={(selectedGallery.photos ?? []) as Photo[]}
                     showWatermark={false}
