@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "worker": "tsx scripts/download-worker.ts"
+    "worker": "tsx scripts/download-worker.ts",
+    "zip-server": "tsx scripts/zip-server.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1014.0",
@@ -26,9 +27,11 @@
     "@tiptap/pm": "^3.20.1",
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
+    "@types/express": "^5.0.6",
     "@vercel/functions": "^3.4.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "express": "^5.2.1",
     "fflate": "^0.8.2",
     "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
