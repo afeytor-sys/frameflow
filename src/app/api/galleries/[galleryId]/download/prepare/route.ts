@@ -62,7 +62,9 @@ export async function POST(
     }).catch(err => console.error('[prepare] worker trigger failed:', err))
   }
 
-  // ── 1. Ready job — reuse immediately, send email now ─────────────────────
+  // ── 1. ZIPs already exist — create a new independent job for this client ──
+  // Each client gets their own token/link. Previous clients' links stay valid.
+  // The existing R2 ZIP files are reused — no reprocessing needed.
   const { data: readyJob } = await service
     .from('gallery_download_jobs')
     .select('id, parts')
@@ -74,14 +76,50 @@ export async function POST(
     .maybeSingle()
 
   if (readyJob) {
-    console.log(`[prepare] reusing ready job ${readyJob.id}`)
-    await service
+    console.log(`[prepare] ZIPs exist — creating new job for ${email} (source: ${readyJob.id})`)
+
+    // Resolve parts from new table or legacy JSONB
+    let existingParts: Array<{ part_number: number; total_parts: number; name: string; key: string; photo_count: number }> =
+      Array.isArray(readyJob.parts) ? readyJob.parts : []
+
+    if (existingParts.length === 0) {
+      const { data: partRows } = await service
+        .from('gallery_download_parts')
+        .select('part_number, total_parts, part_name, r2_key, photo_count')
+        .eq('job_id', readyJob.id)
+        .eq('status', 'done')
+        .order('part_number', { ascending: true })
+
+      if (partRows?.length) {
+        existingParts = partRows.map(r => ({
+          part_number: r.part_number,
+          total_parts: r.total_parts,
+          name: r.part_name,
+          key: r.r2_key,
+          photo_count: r.photo_count,
+        }))
+      }
+    }
+
+    const { data: newJob } = await service
       .from('gallery_download_jobs')
-      .update({ email, download_token: downloadToken, token_expires_at: tokenExpiresAt })
-      .eq('id', readyJob.id)
-    const partCount = Array.isArray(readyJob.parts) ? readyJob.parts.length : 1
+      .insert({
+        gallery_id: galleryId,
+        status: 'ready',
+        expires_at: tokenExpiresAt,
+        email,
+        download_token: downloadToken,
+        token_expires_at: tokenExpiresAt,
+        parts: existingParts.length > 0 ? existingParts : null,
+        processed_parts: existingParts.length,
+        total_parts: existingParts.length,
+      })
+      .select('id')
+      .single()
+
+    const partCount = existingParts.length || 1
     waitUntil(sendDownloadReadyEmail(galleryId, email, downloadToken, partCount).catch(console.error))
-    return Response.json({ jobId: readyJob.id, downloadToken, reused: true })
+    return Response.json({ jobId: newJob?.id ?? readyJob.id, downloadToken, reused: true })
   }
 
   // ── 2. Active job — worker is still running, update email/token and wait ─
