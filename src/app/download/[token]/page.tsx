@@ -28,7 +28,7 @@ export default async function DownloadPage({ params }: { params: Promise<{ token
 
   const { data: job } = await supabase
     .from('gallery_download_jobs')
-    .select('id, status, parts, error, token_expires_at, gallery_id')
+    .select('id, status, parts, error, token_expires_at, gallery_id, total_parts')
     .eq('download_token', token)
     .single()
 
@@ -64,8 +64,28 @@ export default async function DownloadPage({ params }: { params: Promise<{ token
     ? new Date(job.token_expires_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
     : null
 
-  // Build download items with presigned URLs and file sizes
-  const parts: DownloadPart[] = Array.isArray(job.parts) ? job.parts : []
+  // Build download items — prefer gallery_download_parts table (new system),
+  // fall back to legacy job.parts JSONB (old system)
+  let parts: DownloadPart[] = Array.isArray(job.parts) ? job.parts : []
+
+  if (parts.length === 0 && job.status === 'ready') {
+    const { data: partRows } = await supabase
+      .from('gallery_download_parts')
+      .select('part_number, total_parts, part_name, r2_key, photo_count')
+      .eq('job_id', job.id)
+      .eq('status', 'done')
+      .order('part_number', { ascending: true })
+
+    if (partRows?.length) {
+      parts = partRows.map(r => ({
+        part_number: r.part_number,
+        total_parts: r.total_parts,
+        name: r.part_name,
+        key: r.r2_key,
+        photo_count: r.photo_count,
+      }))
+    }
+  }
 
   const downloadItems = await Promise.all(
     parts.map(async (part) => {
