@@ -5,6 +5,88 @@ import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
 import GalleryPasswordGate from './GalleryPasswordGate'
 import { getPhotoUrl } from '@/lib/utils'
+import type { Metadata } from 'next'
+
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params
+  const supabase = createServiceClient()
+
+  let project: { id: string; title: string | null; photographer: { studio_name: string | null; full_name: string } | { studio_name: string | null; full_name: string }[] | null } | null = null
+
+  const { data: bySlug } = await supabase
+    .from('projects')
+    .select('id, title, photographer:photographers(studio_name, full_name)')
+    .eq('custom_slug', token)
+    .single()
+  project = bySlug
+
+  if (!project) {
+    const { data: byToken } = await supabase
+      .from('projects')
+      .select('id, title, photographer:photographers(studio_name, full_name)')
+      .eq('client_token', token)
+      .single()
+    project = byToken
+  }
+
+  if (!project) return {}
+
+  const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string } | null
+
+  const { data: galleries } = await supabase
+    .from('galleries')
+    .select('id, title, cover_photo_id')
+    .eq('project_id', project.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  const gallery = galleries?.[0] ?? null
+  const galleryTitle = gallery?.title || project.title || 'Galerie'
+  const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
+
+  let ogImageUrl: string | null = null
+
+  if (gallery) {
+    if (gallery.cover_photo_id) {
+      const { data: coverPhoto } = await supabase
+        .from('photos')
+        .select('storage_url')
+        .eq('id', gallery.cover_photo_id)
+        .single()
+      ogImageUrl = coverPhoto?.storage_url ?? null
+    }
+    if (!ogImageUrl) {
+      const { data: firstPhoto } = await supabase
+        .from('photos')
+        .select('storage_url')
+        .eq('gallery_id', gallery.id)
+        .order('display_order', { ascending: true })
+        .limit(1)
+        .single()
+      ogImageUrl = firstPhoto?.storage_url ?? null
+    }
+  }
+
+  const ogImage = ogImageUrl ? getPhotoUrl(ogImageUrl, 1200, 85, 'cover') : undefined
+
+  return {
+    title: `${galleryTitle} — ${studioName}`,
+    description: `Fotogalerie von ${studioName}`,
+    openGraph: {
+      title: galleryTitle,
+      description: `Fotogalerie von ${studioName}`,
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: galleryTitle }] } : {}),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: galleryTitle,
+      description: `Fotogalerie von ${studioName}`,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  }
+}
 
 export default async function PublicGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
