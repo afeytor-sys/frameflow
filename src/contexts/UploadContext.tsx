@@ -173,8 +173,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // 5 parallel workers drain the file list — ~5× faster than sequential
-      const CONCURRENCY = 5
+      // 3 parallel workers — enough speed without saturating upload bandwidth
+      // (5 was causing ~50–100 MB in-flight simultaneously, dropping the internet)
+      const CONCURRENCY = 3
       const remaining = [...files]
       await Promise.all(
         Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => {

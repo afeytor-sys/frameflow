@@ -142,7 +142,7 @@ export default function PhotoUploader({
     // ── 5. Add local preview thumbnails ─────────────────────────────────────
     // Only create blob URLs for the first 20 files — decoding hundreds of large
     // JPEGs simultaneously crashes the browser tab.
-    const PREVIEW_LIMIT = 20
+    const PREVIEW_LIMIT = 50
     const newLocalFiles: LocalFile[] = filesToUpload.map((file, i) => ({
       id: `${Date.now()}-${Math.random()}`,
       filename: file.name,
@@ -307,27 +307,27 @@ export default function PhotoUploader({
               </div>
             </div>
           )}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-10 sm:grid-cols-12 md:grid-cols-14 lg:grid-cols-16 gap-1">
             {localFiles.filter(f => f.previewUrl).map(f => (
-              <div key={f.id} className="relative aspect-square overflow-hidden rounded-lg group">
+              <div key={f.id} className="relative aspect-square overflow-hidden rounded group" style={{ borderRadius: 3 }}>
                 <img
                   src={f.previewUrl}
                   alt={f.filename}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="w-full h-full object-cover"
                 />
 
                 {/* Pending / uploading overlay */}
                 {(f.status === 'pending' || f.status === 'uploading') && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="w-6 h-6 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" />
                   </div>
                 )}
 
                 {/* Done */}
                 {f.status === 'done' && (
-                  <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow">
-                    <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center shadow">
+                    <svg className="w-2 h-2 text-white" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 )}
@@ -335,7 +335,7 @@ export default function PhotoUploader({
                 {/* Error */}
                 {f.status === 'error' && (
                   <div className="absolute inset-0 bg-red-500/50 flex items-center justify-center">
-                    <AlertCircle className="w-5 h-5 text-white" />
+                    <AlertCircle className="w-3 h-3 text-white" />
                   </div>
                 )}
 
@@ -343,9 +343,9 @@ export default function PhotoUploader({
                 {(f.status === 'done' || f.status === 'error') && (
                   <button
                     onClick={e => { e.stopPropagation(); removeLocalFile(f.id) }}
-                    className="absolute top-1.5 left-1.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-0.5 left-0.5 w-3 h-3 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                   >
-                    <X className="w-3 h-3 text-white" />
+                    <X className="w-2 h-2 text-white" />
                   </button>
                 )}
               </div>
