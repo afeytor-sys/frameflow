@@ -12,13 +12,14 @@ export async function POST(
   await params // galleryId not needed for sending, but required by Next.js route
 
   const body = await request.json().catch(() => ({}))
-  const { clientEmail, clientName, galleryUrl, password, galleryTitle, studioName } = body as {
+  const { clientEmail, clientName, galleryUrl, password, galleryTitle, studioName, customMessage } = body as {
     clientEmail: string
     clientName?: string
     galleryUrl: string
     password?: string | null
     galleryTitle?: string
     studioName?: string
+    customMessage?: string
   }
 
   if (!clientEmail || !galleryUrl) {
@@ -53,7 +54,7 @@ export async function POST(
       <h1 style="font-size: 24px; font-weight: 800; color: #1A1A18; margin: 0 0 8px; letter-spacing: -0.03em;">📸 ${title}</h1>
       <p style="font-size: 15px; color: #5A5650; margin: 0 0 24px; line-height: 1.6;">
         Hallo ${name},<br><br>
-        deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.
+        ${(customMessage || 'Deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.').replace(/\n/g, '<br>')}
       </p>
 
       <!-- CTA Button -->

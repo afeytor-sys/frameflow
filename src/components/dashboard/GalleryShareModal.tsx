@@ -60,6 +60,7 @@ export default function GalleryShareModal({
   // Email sub-modal
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [shareEmail, setShareEmail] = useState('')
+  const [emailMessage, setEmailMessage] = useState('Deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.')
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
 
@@ -109,6 +110,7 @@ export default function GalleryShareModal({
       setCopiedPassword(false)
       setShowEmailModal(false)
       setEmailSent(false)
+      setEmailMessage('Deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.')
       // Pre-fill with passed email or fetch from DB
       if (clientEmail) {
         setShareEmail(clientEmail)
@@ -186,6 +188,7 @@ export default function GalleryShareModal({
           password: galleryPassword,
           galleryTitle,
           studioName: studioName || undefined,
+          customMessage: emailMessage.trim() || undefined,
         }),
       })
       if (res.ok) {
@@ -216,7 +219,7 @@ export default function GalleryShareModal({
       onClick={() => setShowEmailModal(false)}
     >
       <div
-        className="modal-glass w-full max-w-sm rounded-2xl overflow-hidden"
+        className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -259,7 +262,6 @@ export default function GalleryShareModal({
               type="email"
               value={shareEmail}
               onChange={e => setShareEmail(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && shareEmail.trim()) sendEmail() }}
               placeholder="kunde@email.com"
               autoFocus
               className="w-full px-3.5 py-2.5 rounded-xl text-[13px] outline-none transition-all"
@@ -271,47 +273,63 @@ export default function GalleryShareModal({
             />
           </div>
 
-          {/* Email preview card */}
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ border: '1px solid var(--border-color, #E8E4DC)', background: 'var(--bg-page, #FAFAF8)' }}
-          >
-            {/* Preview header */}
-            <div className="px-4 py-3" style={{ background: '#1A1A18' }}>
-              <p className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: '#C4A47C' }}>
-                {studioName || 'Dein Studio'}
-              </p>
-            </div>
-            {/* Preview body */}
-            <div className="px-4 py-3 space-y-3">
-              <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary, #111110)', letterSpacing: '-0.01em' }}>
-                📸 {galleryTitle}
-              </p>
-              <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-muted, #7A7670)' }}>
-                Deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.
-              </p>
-              {/* CTA button preview */}
-              <div
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white"
-                style={{ background: '#1A1A18' }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Galerie öffnen →
+          {/* Email preview card — message editable inline */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted, #7A7670)' }}>
+              Vorschau · <span className="normal-case tracking-normal font-normal">Text bearbeitbar</span>
+            </label>
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: '1px solid var(--border-color, #E8E4DC)', background: 'var(--bg-page, #FAFAF8)' }}
+            >
+              {/* Preview header */}
+              <div className="px-4 py-3" style={{ background: '#1A1A18' }}>
+                <p className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: '#C4A47C' }}>
+                  {studioName || 'Dein Studio'}
+                </p>
               </div>
-              {/* Password preview */}
-              {galleryPassword && (
+              {/* Preview body */}
+              <div className="px-4 py-3 space-y-3">
+                <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary, #111110)', letterSpacing: '-0.01em' }}>
+                  📸 {galleryTitle}
+                </p>
+                {/* Editable message */}
+                <textarea
+                  value={emailMessage}
+                  onChange={e => setEmailMessage(e.target.value)}
+                  rows={3}
+                  className="w-full resize-none outline-none text-[12px] leading-relaxed bg-transparent"
+                  style={{
+                    color: 'var(--text-muted, #7A7670)',
+                    border: '1px dashed rgba(196,164,124,0.4)',
+                    borderRadius: 8,
+                    padding: '6px 8px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                {/* CTA button preview */}
                 <div
-                  className="px-3 py-2.5 rounded-lg"
-                  style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.2)' }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white"
+                  style={{ background: '#1A1A18' }}
                 >
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: '#9A9590' }}>
-                    🔒 Passwort
-                  </p>
-                  <p className="text-[14px] font-mono font-bold tracking-widest" style={{ color: '#1A1A18' }}>
-                    {galleryPassword}
-                  </p>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Galerie öffnen →
                 </div>
-              )}
+                {/* Password preview */}
+                {galleryPassword && (
+                  <div
+                    className="px-3 py-2.5 rounded-lg"
+                    style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.2)' }}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: '#9A9590' }}>
+                      🔒 Passwort
+                    </p>
+                    <p className="text-[14px] font-mono font-bold tracking-widest" style={{ color: '#1A1A18' }}>
+                      {galleryPassword}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
