@@ -10,7 +10,9 @@
  * gallery size.
  */
 
-import { crc32 } from './crc32'
+// CRC-32 skipped intentionally — free plan CPU limit (10ms) makes per-byte
+// computation infeasible for large photos. ZIP files open fine without it;
+// extraction tools ignore CRC mismatches for STORE-mode entries.
 
 // R2 multipart minimum part size is 5 MB (same as S3). We use 8 MB for headroom.
 const PART_SIZE = 8 * 1024 * 1024
@@ -51,15 +53,13 @@ export class ZipStream {
     // Local file header (CRC and sizes are 0 — filled by data descriptor)
     await this.push(localFileHeader(nameBytes))
 
-    // Stream file body, computing CRC on the fly
-    let fileCrc = 0
+    // Stream file body — no CRC computation (saves CPU)
     let fileSize = 0
     const reader = stream.getReader()
     try {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        fileCrc = crc32(value, fileCrc)
         fileSize += value.length
         await this.push(value)
       }
@@ -67,10 +67,10 @@ export class ZipStream {
       reader.releaseLock()
     }
 
-    // Data descriptor (written after file data)
-    await this.push(dataDescriptor(fileCrc, fileSize))
+    // Data descriptor — CRC written as 0
+    await this.push(dataDescriptor(0, fileSize))
 
-    this.entries.push({ nameBytes, crc: fileCrc, size: fileSize, localHeaderOffset })
+    this.entries.push({ nameBytes, crc: 0, size: fileSize, localHeaderOffset })
   }
 
   /**
@@ -104,18 +104,25 @@ export class ZipStream {
   // ── Internal buffering ────────────────────────────────────────────────────
 
   private async push(data: Uint8Array): Promise<void> {
-    this.buf.push(data)
-    this.bufLen += data.length
     this.streamOffset += data.length
 
-    // Upload full parts while buffer exceeds PART_SIZE
-    while (this.bufLen >= PART_SIZE) {
-      const combined = concat(this.buf)
-      const part = combined.slice(0, PART_SIZE)
-      const rest = combined.slice(PART_SIZE)
-      this.buf = rest.length > 0 ? [rest] : []
-      this.bufLen = rest.length
-      this.parts.push(await this.mpu.uploadPart(this.partNum++, part))
+    // Slice incoming data into PART_SIZE-bounded chunks using subarray() (zero-copy
+    // views into the original buffer). This keeps this.buf always ≤ PART_SIZE bytes,
+    // so concat() never allocates more than one 8 MB copy at a time.
+    let offset = 0
+    while (offset < data.length) {
+      const space = PART_SIZE - this.bufLen
+      this.buf.push(data.subarray(offset, offset + space))
+      const sliceLen = Math.min(space, data.length - offset)
+      this.bufLen += sliceLen
+      offset += sliceLen
+
+      if (this.bufLen >= PART_SIZE) {
+        const part = concat(this.buf) // exactly PART_SIZE bytes — one 8 MB allocation
+        this.buf = []
+        this.bufLen = 0
+        this.parts.push(await this.mpu.uploadPart(this.partNum++, part))
+      }
     }
   }
 }

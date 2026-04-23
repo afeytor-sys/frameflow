@@ -7,6 +7,25 @@ compatibility_flags = ["nodejs_compat"]
 binding = "R2"
 bucket_name = "fotonizer-photos"
 
+[[queues.producers]]
+queue = "fotonizer-zip-queue"
+binding = "ZIP_QUEUE"
+
+[[queues.consumers]]
+queue = "fotonizer-zip-queue"
+max_batch_size = 1
+max_batch_timeout = 5
+max_retries = 5
+max_concurrency = 5
+dead_letter_queue = "fotonizer-zip-dlq"
+
+# DLQ consumer — same Worker handles fotonizer-zip-dlq via batch.queue check
+[[queues.consumers]]
+queue = "fotonizer-zip-dlq"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 1
+
 [vars]
 APP_URL = "https://fotonizer.com"
 
@@ -15,3 +34,4 @@ APP_URL = "https://fotonizer.com"
 # SUPABASE_SERVICE_ROLE_KEY
 # INTERNAL_TOKEN
 # RESEND_API_KEY
+# RAILWAY_ZIP_URL     ← URL of the Railway zip-server, e.g. https://your-app.up.railway.app
