@@ -15,7 +15,7 @@ export async function GET(
 
   const { data: gallery } = await supabase
     .from('galleries')
-    .select('id, title, download_enabled')
+    .select('id, title, download_enabled, download_count')
     .eq('id', galleryId)
     .single()
 
@@ -25,6 +25,13 @@ export async function GET(
       headers: { 'Content-Type': 'application/json' },
     })
   }
+
+  // Increment download counter (fire-and-forget)
+  supabase
+    .from('galleries')
+    .update({ download_count: (gallery.download_count ?? 0) + 1 })
+    .eq('id', galleryId)
+    .then(() => {}).catch(() => {})
 
   const { data: photos } = await supabase
     .from('photos')
