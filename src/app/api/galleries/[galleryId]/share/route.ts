@@ -66,9 +66,15 @@ export async function POST(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>${title}</title>
+  <style>
+    :root { color-scheme: light; supported-color-schemes: light; }
+    body { color-scheme: light; }
+  </style>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #EFECEA; margin: 0; padding: 32px 16px;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #EFECEA; margin: 0; padding: 32px 16px; color-scheme: light;">
   <div style="max-width: 560px; margin: 0 auto;">
 
     <!-- Card -->

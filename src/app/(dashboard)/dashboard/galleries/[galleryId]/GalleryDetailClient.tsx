@@ -36,6 +36,7 @@ interface Props {
   clientName: string | null
   currentSlug: string | null
   clientToken: string | null
+  studioName?: string | null
 }
 
 export default function GalleryDetailClient({
@@ -48,6 +49,7 @@ export default function GalleryDetailClient({
   clientName,
   currentSlug,
   clientToken,
+  studioName,
 }: Props) {
   const planLimits = usePlanLimits()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -101,6 +103,7 @@ export default function GalleryDetailClient({
         clientName={clientName}
         currentSlug={currentSlug}
         clientToken={clientToken}
+        studioName={studioName}
       />
 
       <UpgradeModal

@@ -30,6 +30,14 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
   // Verify this gallery belongs to the authenticated photographer
   if (!project || project.photographer_id !== user.id) return notFound()
 
+  const { data: photographer } = await supabase
+    .from('photographers')
+    .select('studio_name, full_name')
+    .eq('id', user.id)
+    .single()
+
+  const studioName = photographer?.studio_name || photographer?.full_name || null
+
   // Build client portal URL (same pattern as project detail page)
   const headersList = await headers()
   const forwardedHost = headersList.get('x-forwarded-host')
@@ -69,6 +77,7 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
       clientName={client?.full_name ?? null}
       currentSlug={project.custom_slug ?? null}
       clientToken={project.client_token ?? null}
+      studioName={studioName}
     />
   )
 }
