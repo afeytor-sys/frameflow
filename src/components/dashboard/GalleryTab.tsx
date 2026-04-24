@@ -228,6 +228,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [sectionDragOver, setSectionDragOver] = useState<string | null>(null)
   const [globalDragOver, setGlobalDragOver] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [showMoveToSet, setShowMoveToSet] = useState(false)
   const [showCoverPicker, setShowCoverPicker] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const coverUploadRef = useRef<HTMLInputElement>(null)
@@ -665,6 +666,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   }
 
   const unsectionedPhotos = photos.filter(p => !p.section_id)
+  const activePhotos = activeSection === 'all' ? photos : photos.filter(p => p.section_id === activeSection)
   const currentTheme = getTheme(selectedTheme)
 
   return (
@@ -1119,24 +1121,88 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         </div>
       )}
 
-      {/* Bulk actions */}
+      {/* Floating action bar — appears when photos are selected */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg flex-wrap" style={{ background: 'rgba(200,168,130,0.10)', border: '1px solid rgba(200,168,130,0.20)' }}>
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{selected.size} selected</span>
-          <button onClick={clearSelection} className="text-xs" style={{ color: 'var(--text-muted)' }}>Auswahl aufheben</button>
-          <button onClick={selectAll} className="text-xs" style={{ color: 'var(--text-muted)' }}>Select all</button>
-          {sections.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Zuweisen zu:</span>
-              <select onChange={e => assignPhotosToSection(e.target.value || null)} className="text-xs rounded px-2 py-1" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
-                <option value="">Kein Set</option>
-                {sections.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-              </select>
-            </div>
-          )}
-          <button onClick={deleteSelected} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg" style={{ background: '#E84C1A' }}>
-            <Trash2 className="w-3 h-3" />Delete
-          </button>
+        <div className="fixed bottom-6 left-1/2 z-50 pointer-events-auto" style={{ transform: 'translateX(-50%)' }}>
+          <div
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
+              backdropFilter: 'blur(12px)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              {selected.size} {selected.size === 1 ? 'Foto' : 'Fotos'}
+            </span>
+            <div className="w-px h-4 flex-shrink-0" style={{ background: 'var(--border-color)' }} />
+            <button onClick={clearSelection} className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>Aufheben</button>
+            <button onClick={selectAll} className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>Alle</button>
+            {sections.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoveToSet(v => !v)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold transition-colors"
+                  style={{
+                    background: showMoveToSet ? 'var(--accent)' : 'var(--bg-hover)',
+                    color: showMoveToSet ? '#fff' : 'var(--text-primary)',
+                  }}
+                >
+                  <GripHorizontal className="w-3.5 h-3.5" />
+                  Zu Set
+                </button>
+                {showMoveToSet && (
+                  <div
+                    className="absolute bottom-full mb-2 left-0 min-w-[180px] rounded-xl overflow-hidden"
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    }}
+                  >
+                    <button
+                      onClick={() => { assignPhotosToSection(null); setShowMoveToSet(false) }}
+                      className="w-full text-left px-3 py-2.5 text-[12px] transition-colors"
+                      style={{ color: 'var(--text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      Kein Set (allgemein)
+                    </button>
+                    <div className="h-px mx-2" style={{ background: 'var(--border-color)' }} />
+                    {sections.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => { assignPhotosToSection(s.id); setShowMoveToSet(false) }}
+                        className="w-full text-left px-3 py-2.5 text-[13px] font-medium transition-colors flex items-center justify-between"
+                        style={{ color: 'var(--text-primary)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <span>{s.title}</span>
+                        <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          {photos.filter(p => p.section_id === s.id).length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="w-px h-4 flex-shrink-0" style={{ background: 'var(--border-color)' }} />
+            <button
+              onClick={deleteSelected}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold text-white transition-opacity"
+              style={{ background: '#E84C1A' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Löschen
+            </button>
+          </div>
         </div>
       )}
 
@@ -1203,12 +1269,12 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         )
       })()}
 
-      {/* ── Sets pill nav + view toggle ── */}
+      {/* ── Sets tab nav + view toggle ── */}
       {photos.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
           <button
-            onClick={() => setActiveSection('all')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
+            onClick={() => { setActiveSection('all'); setVisibleCount(DASH_LIMIT); setShowMoveToSet(false) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex-shrink-0"
             style={activeSection === 'all'
               ? { background: 'var(--cta-bg)', color: '#fff' }
               : { background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
@@ -1222,26 +1288,25 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             return (
               <button
                 key={s.id}
-                onClick={() => selected.size > 0 ? assignPhotosToSection(s.id) : setActiveSection(s.id)}
+                onClick={() => { setActiveSection(s.id); setVisibleCount(DASH_LIMIT); setShowMoveToSet(false) }}
                 onDragOver={e => { if (draggingPhotoRef.current) { e.preventDefault(); setSectionDragOver(s.id) } }}
                 onDragLeave={() => setSectionDragOver(null)}
                 onDrop={e => { e.preventDefault(); if (draggingPhotoRef.current) assignPhotosToSection(s.id); setSectionDragOver(null) }}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex-shrink-0"
                 style={{
-                  background: isActive ? 'var(--cta-bg)' : isDragTarget ? 'rgba(196,164,124,0.18)' : selected.size > 0 ? 'rgba(196,164,124,0.08)' : 'var(--bg-hover)',
-                  color: isActive ? '#fff' : isDragTarget ? 'var(--cta-bg)' : 'var(--text-muted)',
-                  border: isDragTarget ? '1px dashed rgba(196,164,124,0.6)' : selected.size > 0 && !isActive ? '1px dashed rgba(196,164,124,0.35)' : '1px solid var(--border-color)',
-                  transform: isDragTarget ? 'scale(1.06)' : 'none',
+                  background: isActive ? 'var(--cta-bg)' : isDragTarget ? 'rgba(196,164,124,0.18)' : 'var(--bg-hover)',
+                  color: isActive ? '#fff' : isDragTarget ? 'var(--accent)' : 'var(--text-muted)',
+                  border: isDragTarget ? '1px dashed rgba(196,164,124,0.6)' : '1px solid var(--border-color)',
+                  transform: isDragTarget ? 'scale(1.04)' : 'none',
                 }}
               >
                 {s.title} <span className="font-bold tabular-nums">{cnt}</span>
-                {selected.size > 0 && !isActive && <span style={{ opacity: 0.45, fontSize: '10px' }}>→</span>}
               </button>
             )
           })}
           <button
             onClick={() => addSection()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all flex-shrink-0"
             style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px dashed var(--border-color)' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
@@ -1249,7 +1314,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             <Plus className="w-3 h-3" />Set
           </button>
           {/* View toggle */}
-          <div className="ml-auto flex items-center gap-0.5 p-0.5 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
+          <div className="ml-auto flex items-center gap-0.5 p-0.5 rounded-lg flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
             {([
               { mode: 'grid' as const, Icon: LayoutGrid, title: 'Rasteransicht' },
               { mode: 'list' as const, Icon: List, title: 'Listenansicht' },
@@ -1272,7 +1337,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         </div>
       )}
 
-      {/* Photo grid */}
+      {/* ── Unified photo grid — one tab at a time ── */}
       {photos.length === 0 ? (
         <div
           className="text-center py-16 rounded-xl transition-all cursor-pointer"
@@ -1287,175 +1352,64 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             {globalDragOver ? 'Loslassen zum Hochladen' : 'Fotos hierher ziehen oder klicken zum Hochladen'}
           </p>
         </div>
-      ) : activeSection !== 'all' ? (
-        /* Filtered single-section view */
-        (() => {
-          const filtered = photos.filter(p => p.section_id === activeSection)
-          if (filtered.length === 0) {
+      ) : activePhotos.length === 0 && activeSection !== 'all' ? (
+        <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
+          <Images className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-muted)' }} />
+          <p className="text-[13px] mb-2" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in diesem Set</p>
+          <button onClick={() => { setUploadSectionId(activeSection); setShowUploader(true) }} className="text-[12px] font-semibold" style={{ color: 'var(--accent)' }}>
+            + Fotos hochladen
+          </button>
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="space-y-0.5">
+          {activePhotos.slice(0, visibleCount).map(photo => {
+            const sectionName = activeSection === 'all' ? sections.find(s => s.id === photo.section_id)?.title : undefined
             return (
-              <div className="text-center py-8 rounded-xl" style={{ border: '2px dashed var(--border-color)' }}>
-                <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Keine Fotos in diesem Set</p>
-                <button
-                  onClick={() => { setUploadSectionId(activeSection); setShowUploader(true) }}
-                  className="mt-2 text-[12px] font-medium"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  + Fotos hochladen
+              <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
+                <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
+                  {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
-              </div>
-            )
-          }
-          if (viewMode === 'list') {
-            return (
-              <div className="space-y-0.5">
-                {filtered.slice(0, visibleCount).map(photo => (
-                  <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
-                    <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
-                      {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </button>
-                    <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
-                    <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
-                    <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
-                    {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
-                    {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
-                      <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
-                      <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          }
-          return (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={filtered.map(p => p.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
-                  {filtered.slice(0, visibleCount).map(photo => (
-                    <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
-                  ))}
+                <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
+                <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
+                {sectionName && <span className="text-[11px] px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{sectionName}</span>}
+                <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
+                {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
+                {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
+                  <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
+                  <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
                 </div>
-              </SortableContext>
-            </DndContext>
-          )
-        })()
-      ) : (
-        /* All sections grouped view */
-        <div className="space-y-6">
-          {sections.map(section => {
-            const sectionPhotos = photos.filter(p => p.section_id === section.id)
-            return (
-              <div key={section.id}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{section.title}</span>
-                  <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{sectionPhotos.length}</span>
-                  <button onClick={() => { setUploadSectionId(section.id); setShowUploader(true) }} className="ml-auto flex items-center gap-1 text-[11px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-                    <Plus className="w-3 h-3" />Fotos
-                  </button>
-                </div>
-                {sectionPhotos.length === 0 ? (
-                    <div className="text-center py-6 rounded-lg" style={{ border: '2px dashed var(--border-color)' }}>
-                      <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Keine Fotos in diesem Set</p>
-                    </div>
-                  ) : viewMode === 'list' ? (
-                    <div className="space-y-0.5">
-                      {sectionPhotos.slice(0, visibleCount).map(photo => (
-                        <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
-                          <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
-                            {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                          </button>
-                          <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
-                          <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
-                          <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
-                          {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
-                          {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
-                            <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
-                            <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                      <SortableContext items={sectionPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
-                          {sectionPhotos.slice(0, visibleCount).map(photo => (
-                            <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  )
-                }
               </div>
             )
           })}
-
-          {/* Unsectioned photos */}
-          {(unsectionedPhotos.length > 0 || sections.length === 0) && (
-            <div>
-              {sections.length > 0 && (
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Ohne Set</span>
-                  <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{unsectionedPhotos.length}</span>
-                </div>
-              )}
-              {viewMode === 'list' ? (
-                <div className="space-y-0.5">
-                  {unsectionedPhotos.slice(0, visibleCount).map(photo => (
-                    <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
-                      <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
-                        {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                      </button>
-                      <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
-                      <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
-                      <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
-                      {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
-                      {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
-                        <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
-                        <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={unsectionedPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
-                      {unsectionedPhotos.slice(0, visibleCount).map(photo => (
-                        <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              )}
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={activePhotos.map(p => p.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
+              {activePhotos.slice(0, visibleCount).map(photo => (
+                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
+              ))}
             </div>
-          )}
+          </SortableContext>
+        </DndContext>
+      )}
 
-          {/* ── Load More ── */}
-          {visibleCount < photos.length && (
-            <div className="flex flex-col items-center gap-1.5 pt-2">
-              <button
-                onClick={() => {
-                  setVisibleCount(prev => Math.min(prev + 50, photos.length))
-                  window.scrollBy({ top: 300, behavior: 'smooth' })
-                }}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl text-[13px] font-bold transition-all hover:opacity-90 active:scale-95"
-                style={{ background: 'var(--accent)', color: '#1A1A18', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
-              >
-                <Plus className="w-4 h-4" />
-                Mehr laden ({photos.length - visibleCount} weitere)
-              </button>
-              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                {Math.min(visibleCount, photos.length)} von {photos.length} Fotos
-              </span>
-            </div>
-          )}
+      {/* Load More */}
+      {activePhotos.length > 0 && visibleCount < activePhotos.length && (
+        <div className="flex flex-col items-center gap-1.5 pt-2">
+          <button
+            onClick={() => setVisibleCount(prev => Math.min(prev + 100, activePhotos.length))}
+            className="flex items-center gap-2 px-6 py-2 rounded-xl text-[13px] font-bold transition-all hover:opacity-90 active:scale-95"
+            style={{ background: 'var(--accent)', color: '#1A1A18', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+          >
+            <Plus className="w-4 h-4" />
+            Mehr laden ({activePhotos.length - visibleCount} weitere)
+          </button>
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+            {Math.min(visibleCount, activePhotos.length)} von {activePhotos.length} Fotos
+          </span>
         </div>
       )}
     </div>
