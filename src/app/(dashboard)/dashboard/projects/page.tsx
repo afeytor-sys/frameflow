@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock, AlertTriangle, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import PipelineClient from '../pipeline/PipelineClient'
@@ -161,6 +161,14 @@ export default function ProjectsPage() {
     localStorage.setItem('projects_tab', tab)
   }
 
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState<{
+    id: string; title: string
+    invoiceCount: number; contractCount: number; galleryCount: number; questionnaireCount: number
+  } | null>(null)
+  const [deleteOpts, setDeleteOpts] = useState({ invoices: false, contracts: false, questionnaires: false })
+  const [deleting, setDeleting] = useState(false)
+
   // Calendar sub-state
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date()
@@ -222,14 +230,34 @@ export default function ProjectsPage() {
     localStorage.setItem('projects_view', mode)
   }
 
-  const deleteProject = async (e: React.MouseEvent, id: string, title: string) => {
+  const openDeleteModal = async (e: React.MouseEvent, id: string, title: string) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`Really delete project "${title}"? All related data will be deleted.`)) return
-    const { error } = await supabase.from('projects').delete().eq('id', id)
-    if (error) { toast.error('Error deleting'); return }
-    setProjects(prev => prev.filter(p => p.id !== id))
-    toast.success('Project deleted')
+    const [{ count: invoiceCount }, { count: contractCount }, { count: galleryCount }, { count: questionnaireCount }] = await Promise.all([
+      supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('project_id', id),
+      supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('project_id', id),
+      supabase.from('galleries').select('id', { count: 'exact', head: true }).eq('project_id', id),
+      supabase.from('questionnaires').select('id', { count: 'exact', head: true }).eq('project_id', id),
+    ])
+    setDeleteOpts({ invoices: false, contracts: false, questionnaires: false })
+    setDeleteModal({ id, title, invoiceCount: invoiceCount ?? 0, contractCount: contractCount ?? 0, galleryCount: galleryCount ?? 0, questionnaireCount: questionnaireCount ?? 0 })
+  }
+
+  const confirmDelete = async (deleteAll = false) => {
+    if (!deleteModal) return
+    setDeleting(true)
+    const opts = deleteAll ? { invoices: true, contracts: true, questionnaires: true } : deleteOpts
+    // Explicitly delete items user chose to remove (invoices/contracts won't cascade — they'll be SET NULL)
+    if (opts.invoices) await supabase.from('invoices').delete().eq('project_id', deleteModal.id)
+    if (opts.contracts) await supabase.from('contracts').delete().eq('project_id', deleteModal.id)
+    if (opts.questionnaires) await supabase.from('questionnaires').delete().eq('project_id', deleteModal.id)
+    // Delete project — cascades galleries, photos, timeline, moodboard, etc.
+    const { error } = await supabase.from('projects').delete().eq('id', deleteModal.id)
+    setDeleting(false)
+    if (error) { toast.error(de ? 'Fehler beim Löschen' : 'Error deleting'); return }
+    setProjects(prev => prev.filter(p => p.id !== deleteModal.id))
+    setDeleteModal(null)
+    toast.success(de ? 'Projekt gelöscht' : 'Project deleted')
   }
 
   // ── Drag & Drop handlers ──────────────────────────────────────────────────
@@ -763,7 +791,7 @@ export default function ProjectsPage() {
 
                     {/* Delete button */}
                     <button
-                      onClick={(e) => deleteProject(e, project.id, project.title)}
+                      onClick={(e) => openDeleteModal(e, project.id, project.title)}
                       className="absolute bottom-3 right-3 w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
                       style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}
                       title="Delete project"
@@ -890,7 +918,7 @@ export default function ProjectsPage() {
                       {/* Actions */}
                       <div className="flex items-center gap-1 justify-end" onClick={e => e.preventDefault()}>
                         <button
-                          onClick={(e) => deleteProject(e, project.id, project.title)}
+                          onClick={(e) => openDeleteModal(e, project.id, project.title)}
                           className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                           style={{ background: 'rgba(196,59,44,0.10)', color: '#C43B2C' }}
                           title="Delete"
@@ -1352,6 +1380,95 @@ export default function ProjectsPage() {
         </div>
       )
     })()}
+
+    {/* ── Delete project modal ── */}
+    {deleteModal && (
+      <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
+        <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+          {/* Header */}
+          <div className="flex items-start gap-3 px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,59,44,0.10)' }}>
+              <AlertTriangle className="w-4 h-4" style={{ color: '#C43B2C' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[15px]" style={{ color: 'var(--text-primary)' }}>{de ? 'Projekt löschen' : 'Delete project'}</p>
+              <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{deleteModal.title}</p>
+            </div>
+            <button onClick={() => setDeleteModal(null)} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors" style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="px-5 py-4 space-y-4">
+            {/* Always deleted */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{de ? 'Wird immer gelöscht' : 'Always deleted'}</p>
+              <div className="space-y-1.5">
+                {[
+                  `${de ? 'Galerien & Fotos' : 'Galleries & Photos'}${deleteModal.galleryCount > 0 ? ` (${deleteModal.galleryCount})` : ''}`,
+                  de ? 'Timeline, Moodboard, geplante E-Mails' : 'Timeline, moodboard, scheduled emails',
+                ].map(label => (
+                  <div key={label} className="flex items-center gap-2 text-[12.5px]" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#C43B2C' }} />
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Optional */}
+            {(deleteModal.invoiceCount > 0 || deleteModal.contractCount > 0 || deleteModal.questionnaireCount > 0) && (
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{de ? 'Was soll zusätzlich gelöscht werden?' : 'Also delete?'}</p>
+                <div className="space-y-2.5">
+                  {deleteModal.invoiceCount > 0 && (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={deleteOpts.invoices} onChange={e => setDeleteOpts(o => ({ ...o, invoices: e.target.checked }))} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#C43B2C' }} />
+                      <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
+                        {de ? `Rechnungen (${deleteModal.invoiceCount})` : `Invoices (${deleteModal.invoiceCount})`}
+                      </span>
+                      {!deleteOpts.invoices && <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>{de ? 'bleibt erhalten' : 'kept'}</span>}
+                    </label>
+                  )}
+                  {deleteModal.contractCount > 0 && (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={deleteOpts.contracts} onChange={e => setDeleteOpts(o => ({ ...o, contracts: e.target.checked }))} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#C43B2C' }} />
+                      <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
+                        {de ? `Verträge (${deleteModal.contractCount})` : `Contracts (${deleteModal.contractCount})`}
+                      </span>
+                      {!deleteOpts.contracts && <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>{de ? 'bleibt erhalten' : 'kept'}</span>}
+                    </label>
+                  )}
+                  {deleteModal.questionnaireCount > 0 && (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={deleteOpts.questionnaires} onChange={e => setDeleteOpts(o => ({ ...o, questionnaires: e.target.checked }))} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#C43B2C' }} />
+                      <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
+                        {de ? `Formulare (${deleteModal.questionnaireCount})` : `Forms (${deleteModal.questionnaireCount})`}
+                      </span>
+                      {!deleteOpts.questionnaires && <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>{de ? 'bleibt erhalten' : 'kept'}</span>}
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 px-5 pb-5">
+            <button onClick={() => setDeleteModal(null)} className="flex-1 py-2.5 rounded-xl text-[13px] font-medium transition-colors" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>
+              {de ? 'Abbrechen' : 'Cancel'}
+            </button>
+            <button onClick={() => confirmDelete(false)} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-colors disabled:opacity-50" style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}>
+              {deleting ? '...' : (de ? 'Löschen' : 'Delete')}
+            </button>
+            <button onClick={() => confirmDelete(true)} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-white transition-colors disabled:opacity-50" style={{ background: '#C43B2C' }}>
+              {deleting ? '...' : (de ? 'Alles löschen' : 'Delete all')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }
