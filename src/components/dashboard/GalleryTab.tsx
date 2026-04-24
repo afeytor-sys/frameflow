@@ -1123,7 +1123,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
       {/* Floating action bar — appears when photos are selected */}
       {selected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 z-50 pointer-events-auto" style={{ transform: 'translateX(-50%)' }}>
+        <>
+          {/* Backdrop — click outside to dismiss */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => { clearSelection(); setShowMoveToSet(false) }}
+          />
+          <div className="fixed bottom-6 left-1/2 z-50 pointer-events-auto" style={{ transform: 'translateX(-50%)' }}>
           <div
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl"
             style={{
@@ -1134,11 +1140,21 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               whiteSpace: 'nowrap',
             }}
           >
+            {/* X to cancel */}
+            <button
+              onClick={() => { clearSelection(); setShowMoveToSet(false) }}
+              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(232,76,26,0.12)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+              title="Auswahl aufheben"
+            >
+              <X className="w-3 h-3" />
+            </button>
             <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
               {selected.size} {selected.size === 1 ? 'Foto' : 'Fotos'}
             </span>
             <div className="w-px h-4 flex-shrink-0" style={{ background: 'var(--border-color)' }} />
-            <button onClick={clearSelection} className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>Aufheben</button>
             <button onClick={selectAll} className="text-[12px] font-medium" style={{ color: 'var(--text-muted)' }}>Alle</button>
             {sections.length > 0 && (
               <div className="relative">
@@ -1204,6 +1220,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             </button>
           </div>
         </div>
+        </>
       )}
 
       {/* ── Client Favorites List (compact) ── */}
