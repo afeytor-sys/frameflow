@@ -17,6 +17,7 @@ interface Props {
   studioName?: string
   clientName?: string
   clientEmail?: string | null
+  coverPhotoUrl?: string
   // Slug editing
   projectId?: string | null
   currentSlug?: string | null
@@ -47,6 +48,7 @@ export default function GalleryShareModal({
   studioName,
   clientName,
   clientEmail,
+  coverPhotoUrl,
   projectId,
   currentSlug,
   clientToken,
@@ -188,6 +190,7 @@ export default function GalleryShareModal({
           password: galleryPassword,
           galleryTitle,
           studioName: studioName || undefined,
+          coverPhotoUrl: coverPhotoUrl || undefined,
           customMessage: emailMessage.trim() || undefined,
         }),
       })

@@ -3,22 +3,21 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// POST /api/galleries/[galleryId]/share
-// Sends the gallery link + password to the client via email
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ galleryId: string }> }
 ) {
-  await params // galleryId not needed for sending, but required by Next.js route
+  await params
 
   const body = await request.json().catch(() => ({}))
-  const { clientEmail, clientName, galleryUrl, password, galleryTitle, studioName, customMessage } = body as {
+  const { clientEmail, clientName, galleryUrl, password, galleryTitle, studioName, coverPhotoUrl, customMessage } = body as {
     clientEmail: string
     clientName?: string
     galleryUrl: string
     password?: string | null
     galleryTitle?: string
     studioName?: string
+    coverPhotoUrl?: string
     customMessage?: string
   }
 
@@ -30,55 +29,85 @@ export async function POST(
   const title = galleryTitle || 'Deine Galerie'
   const studio = studioName || 'Dein Fotograf'
 
+  // Build cover image URL via Cloudflare Image Resizing for email-safe dimensions
+  const heroBlock = coverPhotoUrl
+    ? (() => {
+        const cfUrl = coverPhotoUrl.startsWith('https://photos.')
+          ? coverPhotoUrl.replace(
+              'https://photos.fotonizer.com/',
+              'https://photos.fotonizer.com/cdn-cgi/image/width=600,height=280,quality=80,format=jpeg,fit=cover/',
+            )
+          : coverPhotoUrl
+        return `
+      <div style="width: 100%; height: 280px; overflow: hidden; border-radius: 0;">
+        <img src="${cfUrl}" alt="${title}" width="600" height="280"
+          style="width: 100%; height: 280px; object-fit: cover; display: block; border: 0;" />
+      </div>`
+      })()
+    : ''
+
   const passwordBlock = password
     ? `
-      <div style="margin-top: 20px; padding: 16px 20px; background: #F8F7F4; border-radius: 12px; border: 1px solid #E8E4DC;">
-        <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9A9590;">🔒 Passwort</p>
-        <p style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.15em; color: #1A1A18; font-family: monospace;">${password}</p>
+      <div style="margin-top: 24px; padding: 18px 22px; background: #F8F7F4; border-radius: 14px; border: 1px solid #E8E4DC;">
+        <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9A9590;">🔒 Passwort</p>
+        <p style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.2em; color: #1A1A18; font-family: 'Courier New', monospace;">${password}</p>
       </div>`
     : ''
 
+  const messageText = (customMessage || 'Deine Galerie ist fertig! Klicke auf den Button unten, um deine Fotos anzusehen.')
+    .replace(/\n/g, '<br>')
+
   const html = `
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F7F4; margin: 0; padding: 40px 20px;">
-  <div style="max-width: 520px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
-    <!-- Header -->
-    <div style="background: #1A1A18; padding: 28px 36px;">
-      <p style="color: #C4A47C; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">${studio}</p>
-    </div>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #EFECEA; margin: 0; padding: 32px 16px;">
+  <div style="max-width: 560px; margin: 0 auto;">
 
-    <!-- Body -->
-    <div style="padding: 36px;">
-      <h1 style="font-size: 24px; font-weight: 800; color: #1A1A18; margin: 0 0 8px; letter-spacing: -0.03em;">📸 ${title}</h1>
-      <p style="font-size: 15px; color: #5A5650; margin: 0 0 24px; line-height: 1.6;">
-        Hallo ${name},<br><br>
-        ${(customMessage || 'Deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.').replace(/\n/g, '<br>')}
-      </p>
+    <!-- Card -->
+    <div style="background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.10);">
 
-      <!-- CTA Button -->
-      <a href="${galleryUrl}"
-        style="display: inline-block; background: #1A1A18; color: white; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em;">
-        Galerie öffnen →
-      </a>
+      <!-- Cover photo hero -->
+      ${heroBlock}
 
-      <!-- Password block (if any) -->
-      ${passwordBlock}
+      <!-- Body -->
+      <div style="padding: 36px 40px 32px;">
 
-      <!-- URL fallback -->
-      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #F0EDE8;">
-        <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9A9590;">Link</p>
-        <a href="${galleryUrl}" style="font-size: 12px; color: #C4A47C; word-break: break-all;">${galleryUrl}</a>
+        <!-- Studio badge -->
+        <p style="margin: 0 0 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #C4A47C;">${studio}</p>
+
+        <!-- Title -->
+        <h1 style="margin: 0 0 6px; font-size: 26px; font-weight: 800; color: #1A1A18; letter-spacing: -0.03em; line-height: 1.2;">${title}</h1>
+
+        <!-- Greeting & message -->
+        <p style="margin: 16px 0 0; font-size: 15px; color: #5A5650; line-height: 1.7;">Hallo ${name},</p>
+        <p style="margin: 10px 0 28px; font-size: 15px; color: #5A5650; line-height: 1.7;">${messageText}</p>
+
+        <!-- CTA -->
+        <a href="${galleryUrl}"
+          style="display: inline-block; background: #1A1A18; color: #ffffff; text-decoration: none; padding: 15px 32px; border-radius: 14px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em;">
+          Galerie öffnen &rarr;
+        </a>
+
+        <!-- Password -->
+        ${passwordBlock}
+
+        <!-- URL fallback -->
+        <div style="margin-top: 28px; padding-top: 22px; border-top: 1px solid #F0EDE8;">
+          <p style="margin: 0 0 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #B0ACA6;">Link</p>
+          <a href="${galleryUrl}" style="font-size: 12px; color: #C4A47C; word-break: break-all; text-decoration: none;">${galleryUrl}</a>
+        </div>
       </div>
     </div>
 
     <!-- Footer -->
-    <div style="padding: 16px 36px 24px; border-top: 1px solid #F0EDE8;">
-      <p style="color: #B0ACA6; font-size: 12px; margin: 0; line-height: 1.5;">
-        Diese E-Mail wurde von ${studio} über Frameflow gesendet.
-      </p>
-    </div>
+    <p style="text-align: center; color: #B0ACA6; font-size: 11px; margin-top: 20px; line-height: 1.5;">
+      Diese E-Mail wurde von <strong>${studio}</strong> über Fotonizer gesendet.
+    </p>
   </div>
 </body>
 </html>
@@ -86,7 +115,7 @@ export async function POST(
 
   try {
     await resend.emails.send({
-      from: 'Frameflow <noreply@fotonizer.com>',
+      from: `${studio} <noreply@fotonizer.com>`,
       to: clientEmail,
       subject: `📸 ${title} — deine Fotos sind bereit!`,
       html,

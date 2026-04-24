@@ -1379,6 +1379,7 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
                     clientName={client?.full_name}
                     currentSlug={(project.custom_slug as string | null) ?? null}
                     clientToken={(project.client_token as string | null) ?? null}
+                    studioName={photographerName ?? undefined}
                   />
                 </div>
               ) : (

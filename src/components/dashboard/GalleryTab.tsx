@@ -90,6 +90,7 @@ interface Props {
   clientName?: string | null
   currentSlug?: string | null
   clientToken?: string | null
+  studioName?: string | null
 }
 
 // Sortable photo item
@@ -198,7 +199,7 @@ function SortablePhoto({
   )
 }
 
-export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName, currentSlug, clientToken }: Props) {
+export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName, currentSlug, clientToken, studioName }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [sections, setSections] = useState<Section[]>([])
@@ -719,6 +720,11 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         projectId={projectId}
         currentSlug={currentSlug}
         clientToken={clientToken}
+        studioName={studioName || undefined}
+        coverPhotoUrl={(() => {
+          const cover = gallery.cover_photo_id ? photos.find(p => p.id === gallery.cover_photo_id) : null
+          return (cover ?? photos[0])?.storage_url ?? undefined
+        })()}
       />
 
       {/* Header */}
