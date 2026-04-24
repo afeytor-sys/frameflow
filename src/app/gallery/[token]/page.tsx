@@ -235,7 +235,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
           {/* Hero photo */}
           {heroUrl && (
-            <div style={{ width: '100%', height: 'clamp(480px, 65vw, 720px)', overflow: 'hidden', background: '#1A1A18' }}>
+            <div style={{ width: '100%', height: 'clamp(600px, 78vh, 960px)', overflow: 'hidden', background: '#1A1A18' }}>
               <img
                 src={getPhotoUrl(heroUrl, 1920, 80, 'cover')}
                 alt=""
