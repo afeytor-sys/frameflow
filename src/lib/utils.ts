@@ -28,9 +28,23 @@ export function formatRelative(date: string | Date, locale: string = 'de'): stri
   return formatDistanceToNow(d, { addSuffix: true, locale: dateLocale })
 }
 
-export function daysUntil(date: string | Date): number {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return differenceInDays(d, new Date())
+export function daysUntil(dateInput: string | Date): number {
+  // Parse as local calendar date to avoid UTC midnight off-by-one across timezones
+  let year: number, month: number, day: number
+  if (typeof dateInput === 'string') {
+    const parts = dateInput.split('-')
+    year = parseInt(parts[0], 10)
+    month = parseInt(parts[1], 10) - 1
+    day = parseInt(parts[2], 10)
+  } else {
+    year = dateInput.getFullYear()
+    month = dateInput.getMonth()
+    day = dateInput.getDate()
+  }
+  const target = new Date(year, month, day)
+  const now = new Date()
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return differenceInDays(target, todayMidnight)
 }
 
 // Generate random token
