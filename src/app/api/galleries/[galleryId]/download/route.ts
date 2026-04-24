@@ -27,11 +27,10 @@ export async function GET(
   }
 
   // Increment download counter (fire-and-forget)
-  supabase
+  void supabase
     .from('galleries')
     .update({ download_count: (gallery.download_count ?? 0) + 1 })
     .eq('id', galleryId)
-    .then(() => {}).catch(() => {})
 
   const { data: photos } = await supabase
     .from('photos')

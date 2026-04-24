@@ -35,11 +35,10 @@ export async function POST(
   if (!gallery.download_enabled) return Response.json({ error: 'Download not enabled' }, { status: 403 })
 
   // Increment download counter (fire-and-forget)
-  service
+  void service
     .from('galleries')
     .update({ download_count: (gallery.download_count ?? 0) + 1 })
     .eq('id', galleryId)
-    .then(() => {}).catch(() => {})
 
   const downloadToken = crypto.randomUUID()
   const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
