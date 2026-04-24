@@ -964,7 +964,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                         {/* Square preview with focal point picker */}
                         <div
                           className="relative rounded-xl overflow-hidden flex-shrink-0 cursor-crosshair select-none"
-                          style={{ width: 160, height: 160 }}
+                          style={{ width: 320, height: 320 }}
                           title="Klicken um Fokuspunkt zu setzen"
                           onClick={e => {
                             const rect = e.currentTarget.getBoundingClientRect()
