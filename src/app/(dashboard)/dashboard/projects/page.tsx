@@ -166,7 +166,7 @@ export default function ProjectsPage() {
     id: string; title: string
     invoiceCount: number; contractCount: number; galleryCount: number; questionnaireCount: number
   } | null>(null)
-  const [deleteOpts, setDeleteOpts] = useState({ invoices: false, contracts: false, questionnaires: false })
+  const [deleteOpts, setDeleteOpts] = useState({ galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false })
   const [deleting, setDeleting] = useState(false)
 
   // Calendar sub-state
@@ -239,19 +239,20 @@ export default function ProjectsPage() {
       supabase.from('galleries').select('id', { count: 'exact', head: true }).eq('project_id', id),
       supabase.from('questionnaires').select('id', { count: 'exact', head: true }).eq('project_id', id),
     ])
-    setDeleteOpts({ invoices: false, contracts: false, questionnaires: false })
+    setDeleteOpts({ galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false })
     setDeleteModal({ id, title, invoiceCount: invoiceCount ?? 0, contractCount: contractCount ?? 0, galleryCount: galleryCount ?? 0, questionnaireCount: questionnaireCount ?? 0 })
   }
 
-  const confirmDelete = async (deleteAll = false) => {
+  const allDeleteOptsChecked = () => deleteModal
+    ? deleteOpts.galleries && deleteOpts.timeline && deleteOpts.invoices && deleteOpts.contracts && deleteOpts.questionnaires
+    : false
+
+  const confirmDelete = async () => {
     if (!deleteModal) return
     setDeleting(true)
-    const opts = deleteAll ? { invoices: true, contracts: true, questionnaires: true } : deleteOpts
-    // Explicitly delete items user chose to remove (invoices/contracts won't cascade — they'll be SET NULL)
-    if (opts.invoices) await supabase.from('invoices').delete().eq('project_id', deleteModal.id)
-    if (opts.contracts) await supabase.from('contracts').delete().eq('project_id', deleteModal.id)
-    if (opts.questionnaires) await supabase.from('questionnaires').delete().eq('project_id', deleteModal.id)
-    // Delete project — cascades galleries, photos, timeline, moodboard, etc.
+    if (deleteOpts.invoices) await supabase.from('invoices').delete().eq('project_id', deleteModal.id)
+    if (deleteOpts.contracts) await supabase.from('contracts').delete().eq('project_id', deleteModal.id)
+    if (deleteOpts.questionnaires) await supabase.from('questionnaires').delete().eq('project_id', deleteModal.id)
     const { error } = await supabase.from('projects').delete().eq('id', deleteModal.id)
     setDeleting(false)
     if (error) { toast.error(de ? 'Fehler beim Löschen' : 'Error deleting'); return }
@@ -1400,70 +1401,57 @@ export default function ProjectsPage() {
             </button>
           </div>
 
-          <div className="px-5 py-4 space-y-4">
-            {/* Always deleted */}
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{de ? 'Wird immer gelöscht' : 'Always deleted'}</p>
-              <div className="space-y-1.5">
-                {[
-                  `${de ? 'Galerien & Fotos' : 'Galleries & Photos'}${deleteModal.galleryCount > 0 ? ` (${deleteModal.galleryCount})` : ''}`,
-                  de ? 'Timeline, Moodboard, geplante E-Mails' : 'Timeline, moodboard, scheduled emails',
-                ].map(label => (
-                  <div key={label} className="flex items-center gap-2 text-[12.5px]" style={{ color: 'var(--text-secondary)' }}>
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#C43B2C' }} />
-                    {label}
-                  </div>
-                ))}
-              </div>
+          {/* Checklist */}
+          <div className="px-3 py-3">
+            <div className="flex items-center justify-between px-2 mb-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>
+                {de ? 'Was soll gelöscht werden?' : 'What to delete?'}
+              </p>
+              <button
+                onClick={() => setDeleteOpts(allDeleteOptsChecked()
+                  ? { galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false }
+                  : { galleries: true, timeline: true, invoices: true, contracts: true, questionnaires: true })}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors"
+                style={{ color: '#C43B2C', background: 'rgba(196,59,44,0.08)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.15)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.08)')}
+              >
+                {allDeleteOptsChecked() ? (de ? 'Alle abwählen' : 'Deselect all') : (de ? 'Alle markieren' : 'Select all')}
+              </button>
             </div>
-
-            {/* Optional */}
-            {(deleteModal.invoiceCount > 0 || deleteModal.contractCount > 0 || deleteModal.questionnaireCount > 0) && (
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{de ? 'Was soll zusätzlich gelöscht werden?' : 'Also delete?'}</p>
-                <div className="space-y-2.5">
-                  {deleteModal.invoiceCount > 0 && (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={deleteOpts.invoices} onChange={e => setDeleteOpts(o => ({ ...o, invoices: e.target.checked }))} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#C43B2C' }} />
-                      <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
-                        {de ? `Rechnungen (${deleteModal.invoiceCount})` : `Invoices (${deleteModal.invoiceCount})`}
-                      </span>
-                      {!deleteOpts.invoices && <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>{de ? 'bleibt erhalten' : 'kept'}</span>}
-                    </label>
+            {[
+              { key: 'galleries' as const, label: `${de ? 'Galerien & Fotos' : 'Galleries & Photos'}${deleteModal.galleryCount > 0 ? ` (${deleteModal.galleryCount})` : ''}`, kept: false },
+              { key: 'timeline' as const, label: de ? 'Timeline, Moodboard, geplante E-Mails' : 'Timeline, moodboard, scheduled emails', kept: false },
+              ...(deleteModal.invoiceCount > 0 ? [{ key: 'invoices' as const, label: de ? `Rechnungen (${deleteModal.invoiceCount})` : `Invoices (${deleteModal.invoiceCount})`, kept: true }] : []),
+              ...(deleteModal.contractCount > 0 ? [{ key: 'contracts' as const, label: de ? `Verträge (${deleteModal.contractCount})` : `Contracts (${deleteModal.contractCount})`, kept: true }] : []),
+              ...(deleteModal.questionnaireCount > 0 ? [{ key: 'questionnaires' as const, label: de ? `Formulare (${deleteModal.questionnaireCount})` : `Forms (${deleteModal.questionnaireCount})`, kept: true }] : []),
+            ].map(item => {
+              const checked = deleteOpts[item.key]
+              return (
+                <label key={item.key} className="flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-xl transition-colors"
+                  style={{ background: checked ? 'rgba(196,59,44,0.07)' : 'transparent' }}
+                  onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <input type="checkbox" checked={checked} onChange={() => setDeleteOpts(o => ({ ...o, [item.key]: !o[item.key] }))} className="w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#C43B2C' }} />
+                  <span className="text-[13px] flex-1" style={{ color: checked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{item.label}</span>
+                  {item.kept && !checked && (
+                    <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>
+                      {de ? 'bleibt' : 'kept'}
+                    </span>
                   )}
-                  {deleteModal.contractCount > 0 && (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={deleteOpts.contracts} onChange={e => setDeleteOpts(o => ({ ...o, contracts: e.target.checked }))} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#C43B2C' }} />
-                      <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
-                        {de ? `Verträge (${deleteModal.contractCount})` : `Contracts (${deleteModal.contractCount})`}
-                      </span>
-                      {!deleteOpts.contracts && <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>{de ? 'bleibt erhalten' : 'kept'}</span>}
-                    </label>
-                  )}
-                  {deleteModal.questionnaireCount > 0 && (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={deleteOpts.questionnaires} onChange={e => setDeleteOpts(o => ({ ...o, questionnaires: e.target.checked }))} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: '#C43B2C' }} />
-                      <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
-                        {de ? `Formulare (${deleteModal.questionnaireCount})` : `Forms (${deleteModal.questionnaireCount})`}
-                      </span>
-                      {!deleteOpts.questionnaires && <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>{de ? 'bleibt erhalten' : 'kept'}</span>}
-                    </label>
-                  )}
-                </div>
-              </div>
-            )}
+                </label>
+              )
+            })}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 px-5 pb-5">
+          <div className="flex items-center gap-2 px-5 pb-5 pt-2">
             <button onClick={() => setDeleteModal(null)} className="flex-1 py-2.5 rounded-xl text-[13px] font-medium transition-colors" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>
               {de ? 'Abbrechen' : 'Cancel'}
             </button>
-            <button onClick={() => confirmDelete(false)} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-colors disabled:opacity-50" style={{ background: 'rgba(196,59,44,0.12)', color: '#C43B2C' }}>
+            <button onClick={() => confirmDelete()} disabled={deleting} className="flex-1 py-2.5 px-6 rounded-xl text-[13px] font-bold text-white transition-colors disabled:opacity-50" style={{ background: '#C43B2C' }}>
               {deleting ? '...' : (de ? 'Löschen' : 'Delete')}
-            </button>
-            <button onClick={() => confirmDelete(true)} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-white transition-colors disabled:opacity-50" style={{ background: '#C43B2C' }}>
-              {deleting ? '...' : (de ? 'Alles löschen' : 'Delete all')}
             </button>
           </div>
         </div>
