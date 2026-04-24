@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink, Mail, User, CalendarDays, MapPin, Heart } from
 import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import SlugEditor from '@/components/dashboard/SlugEditor'
+import DeleteProjectButton from '@/components/dashboard/DeleteProjectButton'
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -168,6 +169,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   Send Email
                 </a>
               )}
+              <DeleteProjectButton projectId={project.id} projectTitle={project.title} />
             </div>
           </div>
 
@@ -195,6 +197,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 Send Email
               </a>
             )}
+            <DeleteProjectButton projectId={project.id} projectTitle={project.title} />
           </div>
 
           {/* Portal link + QR */}
