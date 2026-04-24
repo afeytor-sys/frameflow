@@ -116,7 +116,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -182,6 +182,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   const galleryPassword = gallery.password ?? null
   const guestPassword = gallery.guest_password ?? null
   const coverPhotoId = gallery.cover_photo_id ?? null
+  const focalX = (gallery as { cover_focal_x?: number | null }).cover_focal_x ?? 50
+  const focalY = (gallery as { cover_focal_y?: number | null }).cover_focal_y ?? 50
 
   const theme = getTheme(gallery.design_theme || 'classic-white')
 
@@ -239,7 +241,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
                 alt=""
                 fetchPriority="high"
                 decoding="async"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%`, display: 'block' }}
               />
             </div>
           )}

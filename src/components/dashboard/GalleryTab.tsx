@@ -69,6 +69,8 @@ interface Gallery {
   photo_download_count?: number
   design_theme?: string | null
   tags_enabled?: string[] | null
+  cover_focal_x?: number | null
+  cover_focal_y?: number | null
 }
 
 interface Props {
@@ -246,6 +248,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [showGuestPassword, setShowGuestPassword] = useState(false)
   const [settingsExpiry, setSettingsExpiry] = useState(gallery?.expires_at?.split('T')[0] || '')
   const [selectedTheme, setSelectedTheme] = useState(gallery?.design_theme || 'classic-white')
+  const [focalX, setFocalX] = useState(gallery?.cover_focal_x ?? 50)
+  const [focalY, setFocalY] = useState(gallery?.cover_focal_y ?? 50)
   // Tags enabled: default all enabled if not set
   const defaultTags = gallery?.tags_enabled ?? ['green', 'yellow', 'red']
   const [enabledTags, setEnabledTags] = useState<string[]>(defaultTags)
@@ -503,6 +507,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       expires_at: settingsExpiry ? new Date(settingsExpiry).toISOString() : null,
       design_theme: selectedTheme,
       tags_enabled: enabledTags,
+      cover_focal_x: focalX,
+      cover_focal_y: focalY,
     }
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
@@ -954,18 +960,60 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     </div>
 
                     {coverPhoto ? (
-                      <div className="relative rounded-xl overflow-hidden" style={{ height: 88 }}>
-                        <img src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 800, 80, 'cover')} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.35) 0%, transparent 60%)' }} />
-                        <span className="absolute bottom-2 left-3 text-[11px] font-medium text-white/90 truncate max-w-[60%]">{coverPhoto.filename}</span>
-                        <button
-                          onClick={() => setCoverPhoto(gallery!.cover_photo_id!)}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-opacity"
-                          style={{ background: 'rgba(0,0,0,0.55)' }}
-                          title="Titelbild entfernen"
+                      <div className="flex gap-3 items-start">
+                        {/* Square preview with focal point picker */}
+                        <div
+                          className="relative rounded-xl overflow-hidden flex-shrink-0 cursor-crosshair select-none"
+                          style={{ width: 160, height: 160 }}
+                          title="Klicken um Fokuspunkt zu setzen"
+                          onClick={e => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+                            const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+                            setFocalX(x)
+                            setFocalY(y)
+                          }}
                         >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
+                          <img
+                            src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 400, 80, 'cover')}
+                            alt=""
+                            className="w-full h-full object-cover pointer-events-none"
+                            style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                          />
+                          {/* Focal point crosshair */}
+                          <div
+                            className="absolute pointer-events-none"
+                            style={{
+                              left: `${focalX}%`,
+                              top: `${focalY}%`,
+                              transform: 'translate(-50%, -50%)',
+                            }}
+                          >
+                            <div className="w-5 h-5 rounded-full border-2 border-white shadow-lg" style={{ background: 'rgba(255,255,255,0.25)' }} />
+                            <div className="absolute left-1/2 top-0 w-px h-2.5 bg-white/80" style={{ transform: 'translateX(-50%) translateY(-100%)' }} />
+                            <div className="absolute left-1/2 bottom-0 w-px h-2.5 bg-white/80" style={{ transform: 'translateX(-50%) translateY(100%)' }} />
+                            <div className="absolute top-1/2 left-0 h-px w-2.5 bg-white/80" style={{ transform: 'translateY(-50%) translateX(-100%)' }} />
+                            <div className="absolute top-1/2 right-0 h-px w-2.5 bg-white/80" style={{ transform: 'translateY(-50%) translateX(100%)' }} />
+                          </div>
+                        </div>
+                        {/* Info + remove */}
+                        <div className="flex flex-col gap-2 flex-1 min-w-0">
+                          <p className="text-[12px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{coverPhoto.filename}</p>
+                          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                            Klick auf das Bild um den Fokuspunkt zu setzen.<br />
+                            Gespeichert mit <strong>Save</strong>.
+                          </p>
+                          <p className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--accent)' }}>
+                            {focalX}% / {focalY}%
+                          </p>
+                          <button
+                            onClick={() => setCoverPhoto(gallery!.cover_photo_id!)}
+                            className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg w-fit transition-colors"
+                            style={{ background: 'rgba(232,76,26,0.1)', color: '#E84C1A' }}
+                          >
+                            <X className="w-3 h-3" />Entfernen
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2 rounded-xl" style={{ height: 64, border: '2px dashed var(--border-color)', background: 'var(--bg-hover)' }}>
