@@ -150,6 +150,7 @@ export default function GalleriesPage() {
   const [creating, setCreating] = useState(false)
   const [shareModal, setShareModal] = useState<ShareModalState | null>(null)
   const [coverPicker, setCoverPicker] = useState<CoverPickerState | null>(null)
+  const [studioName, setStudioName] = useState<string | undefined>(undefined)
 
   const [form, setForm] = useState({
     title: '',
@@ -171,6 +172,13 @@ export default function GalleriesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       userRef.current = user
+
+      const { data: ph } = await supabase
+        .from('photographers')
+        .select('studio_name, full_name')
+        .eq('id', user.id)
+        .single()
+      if (ph) setStudioName(ph.studio_name || ph.full_name || undefined)
 
       const { data: projs } = await supabase
         .from('projects')
@@ -518,6 +526,7 @@ export default function GalleriesPage() {
         galleryPassword={shareModal?.password || null}
         galleryGuestPassword={shareModal?.guestPassword || null}
         galleryId={shareModal?.galleryId}
+        studioName={studioName}
       />
 
       {/* ── Cover Picker Modal ── */}
