@@ -1022,31 +1022,48 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       </div>
                     )}
 
-                    {showCoverPicker && photos.length > 0 && (
-                      <div className="rounded-xl p-2 max-h-44 overflow-y-auto" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                        <div className="grid grid-cols-6 gap-1">
-                          {photos.map(photo => (
-                            <button
-                              key={photo.id}
-                              onClick={() => { setCoverPhoto(photo.id); setShowCoverPicker(false) }}
-                              className="relative rounded-lg overflow-hidden aspect-square flex-shrink-0 transition-all"
-                              style={{ outline: gallery?.cover_photo_id === photo.id ? '2px solid var(--accent)' : '2px solid transparent' }}
-                            >
-                              <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 100, 70, 'cover')} alt="" className="w-full h-full object-cover" />
-                              {gallery?.cover_photo_id === photo.id && (
-                                <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.45)' }}>
-                                  <Check className="w-3 h-3 text-white" />
-                                </div>
-                              )}
+                    {/* Cover picker modal */}
+                    {showCoverPicker && (
+                      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}>
+                        <div className="w-full max-w-3xl rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', maxHeight: '82vh' }}>
+                          {/* Header */}
+                          <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <div>
+                              <p className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Titelbild wählen</p>
+                              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{photos.length} Fotos</p>
+                            </div>
+                            <button onClick={() => setShowCoverPicker(false)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                              <X className="w-4 h-4" />
                             </button>
-                          ))}
+                          </div>
+                          {/* Grid */}
+                          {photos.length === 0 ? (
+                            <div className="flex items-center justify-center py-16">
+                              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in dieser Galerie</p>
+                            </div>
+                          ) : (
+                            <div className="overflow-y-auto p-3">
+                              <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-1">
+                                {photos.map(photo => (
+                                  <button
+                                    key={photo.id}
+                                    onClick={() => { setCoverPhoto(photo.id); setShowCoverPicker(false) }}
+                                    className="relative rounded overflow-hidden aspect-square flex-shrink-0 transition-all"
+                                    style={{ outline: gallery?.cover_photo_id === photo.id ? '2px solid var(--accent)' : '2px solid transparent', outlineOffset: 1 }}
+                                  >
+                                    <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 120, 70, 'cover')} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                    {gallery?.cover_photo_id === photo.id && (
+                                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.4)' }}>
+                                        <Check className="w-3 h-3 text-white" />
+                                      </div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {photos.length === 0 && <p className="text-center text-[12px] py-3" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in dieser Galerie</p>}
                       </div>
-                    )}
-
-                    {showCoverPicker && photos.length === 0 && (
-                      <p className="text-[11px] text-center py-2" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in dieser Galerie</p>
                     )}
                   </div>
                 )
