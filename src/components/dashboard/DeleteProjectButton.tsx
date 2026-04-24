@@ -13,22 +13,37 @@ interface Props {
 }
 
 interface Counts {
-  invoiceCount: number
-  contractCount: number
+  photoCount: number
   galleryCount: number
   questionnaireCount: number
+  invoiceCount: number
+  contractCount: number
+  hasPortal: boolean
+  hasBookingInfo: boolean
+  hasNotes: boolean
 }
 
 interface Opts {
-  galleries: boolean
-  timeline: boolean
-  invoices: boolean
-  contracts: boolean
-  questionnaires: boolean
+  photos: boolean
+  galerie: boolean
+  formulare: boolean
+  rechnungen: boolean
+  vertraege: boolean
+  portal: boolean
+  buchungsInfo: boolean
+  notiz: boolean
 }
 
-const DEFAULT_OPTS: Opts = { galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false }
-const ALL_OPTS: Opts    = { galleries: true, timeline: true, invoices: true,  contracts: true,  questionnaires: true  }
+const DEFAULT_OPTS: Opts = {
+  photos: true, galerie: true, formulare: true,
+  rechnungen: false, vertraege: false,
+  portal: true, buchungsInfo: true, notiz: true,
+}
+const ALL_OPTS: Opts = {
+  photos: true, galerie: true, formulare: true,
+  rechnungen: true, vertraege: true,
+  portal: true, buchungsInfo: true, notiz: true,
+}
 
 export default function DeleteProjectButton({ projectId, projectTitle, locale = 'de' }: Props) {
   const de = locale === 'de'
@@ -40,28 +55,45 @@ export default function DeleteProjectButton({ projectId, projectTitle, locale = 
   const [deleting, setDeleting] = useState(false)
 
   const open = async () => {
-    const [{ count: invoiceCount }, { count: contractCount }, { count: galleryCount }, { count: questionnaireCount }] = await Promise.all([
+    const [galleriesRes, { count: questionnaireCount }, { count: invoiceCount }, { count: contractCount }, projectRes] = await Promise.all([
+      supabase.from('galleries').select('id').eq('project_id', projectId),
+      supabase.from('questionnaires').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
       supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
       supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
-      supabase.from('galleries').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
-      supabase.from('questionnaires').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
+      supabase.from('projects').select('notes, shoot_date, location, shoot_time, client_token').eq('id', projectId).single(),
     ])
+    const galleryIds = galleriesRes.data?.map(g => g.id) ?? []
+    const galleryCount = galleryIds.length
+    const { count: photoCount } = galleryIds.length > 0
+      ? await supabase.from('photos').select('id', { count: 'exact', head: true }).in('gallery_id', galleryIds)
+      : { count: 0 }
+
+    const p = projectRes.data
     setOpts(DEFAULT_OPTS)
-    setModal({ invoiceCount: invoiceCount ?? 0, contractCount: contractCount ?? 0, galleryCount: galleryCount ?? 0, questionnaireCount: questionnaireCount ?? 0 })
+    setModal({
+      photoCount: photoCount ?? 0,
+      galleryCount,
+      questionnaireCount: questionnaireCount ?? 0,
+      invoiceCount: invoiceCount ?? 0,
+      contractCount: contractCount ?? 0,
+      hasPortal: !!p?.client_token,
+      hasBookingInfo: !!(p?.shoot_date || p?.location || p?.shoot_time),
+      hasNotes: !!p?.notes,
+    })
   }
 
-  const allChecked = (m: Counts) =>
-    opts.galleries && opts.timeline && opts.invoices && opts.contracts && opts.questionnaires &&
-    (m.invoiceCount === 0 || opts.invoices) && (m.contractCount === 0 || opts.contracts) && (m.questionnaireCount === 0 || opts.questionnaires)
+  const allChecked = () =>
+    opts.photos && opts.galerie && opts.formulare && opts.rechnungen &&
+    opts.vertraege && opts.portal && opts.buchungsInfo && opts.notiz
 
   const toggle = (k: keyof Opts) => setOpts(o => ({ ...o, [k]: !o[k] }))
 
   const confirmDelete = async () => {
     if (!modal) return
     setDeleting(true)
-    if (opts.invoices) await supabase.from('invoices').delete().eq('project_id', projectId)
-    if (opts.contracts) await supabase.from('contracts').delete().eq('project_id', projectId)
-    if (opts.questionnaires) await supabase.from('questionnaires').delete().eq('project_id', projectId)
+    if (opts.rechnungen) await supabase.from('invoices').delete().eq('project_id', projectId)
+    if (opts.vertraege) await supabase.from('contracts').delete().eq('project_id', projectId)
+    if (opts.formulare) await supabase.from('questionnaires').delete().eq('project_id', projectId)
     const { error } = await supabase.from('projects').delete().eq('id', projectId)
     setDeleting(false)
     if (error) { toast.error(de ? 'Fehler beim Löschen' : 'Error deleting'); return }
@@ -69,21 +101,18 @@ export default function DeleteProjectButton({ projectId, projectTitle, locale = 
     router.push('/dashboard/projects')
   }
 
-  const CheckRow = ({ checked, onChange, label, kept }: { checked: boolean; onChange: () => void; label: string; kept?: boolean }) => (
-    <label className="flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-xl transition-colors"
-      style={{ background: checked ? 'rgba(196,59,44,0.07)' : 'transparent' }}
-      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}
-    >
-      <input type="checkbox" checked={checked} onChange={onChange} className="w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#C43B2C' }} />
-      <span className="text-[13px] flex-1" style={{ color: checked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{label}</span>
-      {kept && !checked && (
-        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>
-          {de ? 'bleibt' : 'kept'}
-        </span>
-      )}
-    </label>
-  )
+  type Item = { key: keyof Opts; label: string; count?: number; canKeep?: boolean; show: boolean }
+
+  const getItems = (m: Counts): Item[] => [
+    { key: 'photos',      label: de ? `Fotos${m.photoCount > 0 ? ` (${m.photoCount})` : ''}` : `Photos${m.photoCount > 0 ? ` (${m.photoCount})` : ''}`,            show: true },
+    { key: 'galerie',     label: de ? `Galerie${m.galleryCount > 0 ? ` (${m.galleryCount})` : ''}` : `Gallery${m.galleryCount > 0 ? ` (${m.galleryCount})` : ''}`, show: true },
+    { key: 'formulare',   label: de ? `Formulare${m.questionnaireCount > 0 ? ` (${m.questionnaireCount})` : ''}` : `Forms${m.questionnaireCount > 0 ? ` (${m.questionnaireCount})` : ''}`, show: m.questionnaireCount > 0 },
+    { key: 'rechnungen',  label: de ? `Rechnungen${m.invoiceCount > 0 ? ` (${m.invoiceCount})` : ''}` : `Invoices${m.invoiceCount > 0 ? ` (${m.invoiceCount})` : ''}`,  canKeep: true, show: m.invoiceCount > 0 },
+    { key: 'vertraege',   label: de ? `Verträge${m.contractCount > 0 ? ` (${m.contractCount})` : ''}` : `Contracts${m.contractCount > 0 ? ` (${m.contractCount})` : ''}`, canKeep: true, show: m.contractCount > 0 },
+    { key: 'portal',      label: de ? 'Portal-Link & Zugang' : 'Portal link & access', show: m.hasPortal },
+    { key: 'buchungsInfo',label: de ? 'Buchungs-Info (Datum, Ort, Zeit)' : 'Booking info (date, location, time)', show: m.hasBookingInfo },
+    { key: 'notiz',       label: de ? 'Notiz' : 'Notes', show: m.hasNotes },
+  ]
 
   return (
     <>
@@ -123,33 +152,35 @@ export default function DeleteProjectButton({ projectId, projectTitle, locale = 
                   {de ? 'Was soll gelöscht werden?' : 'What to delete?'}
                 </p>
                 <button
-                  onClick={() => setOpts(allChecked(modal) ? DEFAULT_OPTS : ALL_OPTS)}
+                  onClick={() => setOpts(allChecked() ? DEFAULT_OPTS : ALL_OPTS)}
                   className="text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors"
                   style={{ color: '#C43B2C', background: 'rgba(196,59,44,0.08)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.15)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.08)')}
                 >
-                  {allChecked(modal) ? (de ? 'Alle abwählen' : 'Deselect all') : (de ? 'Alle markieren' : 'Select all')}
+                  {allChecked() ? (de ? 'Alle abwählen' : 'Deselect all') : (de ? 'Alle markieren' : 'Select all')}
                 </button>
               </div>
 
               <div className="space-y-0.5">
-                <CheckRow checked={opts.galleries} onChange={() => toggle('galleries')}
-                  label={`${de ? 'Galerien & Fotos' : 'Galleries & Photos'}${modal.galleryCount > 0 ? ` (${modal.galleryCount})` : ''}`} />
-                <CheckRow checked={opts.timeline} onChange={() => toggle('timeline')}
-                  label={de ? 'Timeline, Moodboard, geplante E-Mails' : 'Timeline, moodboard, scheduled emails'} />
-                {modal.invoiceCount > 0 && (
-                  <CheckRow checked={opts.invoices} onChange={() => toggle('invoices')} kept
-                    label={de ? `Rechnungen (${modal.invoiceCount})` : `Invoices (${modal.invoiceCount})`} />
-                )}
-                {modal.contractCount > 0 && (
-                  <CheckRow checked={opts.contracts} onChange={() => toggle('contracts')} kept
-                    label={de ? `Verträge (${modal.contractCount})` : `Contracts (${modal.contractCount})`} />
-                )}
-                {modal.questionnaireCount > 0 && (
-                  <CheckRow checked={opts.questionnaires} onChange={() => toggle('questionnaires')} kept
-                    label={de ? `Formulare (${modal.questionnaireCount})` : `Forms (${modal.questionnaireCount})`} />
-                )}
+                {getItems(modal).filter(i => i.show).map(item => {
+                  const checked = opts[item.key]
+                  return (
+                    <label key={item.key} className="flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-xl transition-colors"
+                      style={{ background: checked ? 'rgba(196,59,44,0.07)' : 'transparent' }}
+                      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <input type="checkbox" checked={checked} onChange={() => toggle(item.key)} className="w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#C43B2C' }} />
+                      <span className="text-[13px] flex-1" style={{ color: checked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{item.label}</span>
+                      {item.canKeep && !checked && (
+                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>
+                          {de ? 'bleibt' : 'kept'}
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
               </div>
             </div>
 
@@ -159,7 +190,7 @@ export default function DeleteProjectButton({ projectId, projectTitle, locale = 
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>
                 {de ? 'Abbrechen' : 'Cancel'}
               </button>
-              <button onClick={confirmDelete} disabled={deleting} className="flex-2 py-2.5 px-6 rounded-xl text-[13px] font-bold text-white transition-colors disabled:opacity-50"
+              <button onClick={confirmDelete} disabled={deleting} className="flex-1 py-2.5 px-6 rounded-xl text-[13px] font-bold text-white transition-colors disabled:opacity-50"
                 style={{ background: '#C43B2C' }}>
                 {deleting ? '...' : (de ? 'Löschen' : 'Delete')}
               </button>

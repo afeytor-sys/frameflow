@@ -164,9 +164,15 @@ export default function ProjectsPage() {
   // Delete modal state
   const [deleteModal, setDeleteModal] = useState<{
     id: string; title: string
-    invoiceCount: number; contractCount: number; galleryCount: number; questionnaireCount: number
+    photoCount: number; galleryCount: number; questionnaireCount: number
+    invoiceCount: number; contractCount: number
+    hasPortal: boolean; hasBookingInfo: boolean; hasNotes: boolean
   } | null>(null)
-  const [deleteOpts, setDeleteOpts] = useState({ galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false })
+  const [deleteOpts, setDeleteOpts] = useState({
+    photos: true, galerie: true, formulare: true,
+    rechnungen: false, vertraege: false,
+    portal: true, buchungsInfo: true, notiz: true,
+  })
   const [deleting, setDeleting] = useState(false)
 
   // Calendar sub-state
@@ -233,26 +239,41 @@ export default function ProjectsPage() {
   const openDeleteModal = async (e: React.MouseEvent, id: string, title: string) => {
     e.preventDefault()
     e.stopPropagation()
-    const [{ count: invoiceCount }, { count: contractCount }, { count: galleryCount }, { count: questionnaireCount }] = await Promise.all([
+    const [galleriesRes, { count: questionnaireCount }, { count: invoiceCount }, { count: contractCount }, projectRes] = await Promise.all([
+      supabase.from('galleries').select('id').eq('project_id', id),
+      supabase.from('questionnaires').select('id', { count: 'exact', head: true }).eq('project_id', id),
       supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('project_id', id),
       supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('project_id', id),
-      supabase.from('galleries').select('id', { count: 'exact', head: true }).eq('project_id', id),
-      supabase.from('questionnaires').select('id', { count: 'exact', head: true }).eq('project_id', id),
+      supabase.from('projects').select('notes, shoot_date, location, shoot_time, client_token').eq('id', id).single(),
     ])
-    setDeleteOpts({ galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false })
-    setDeleteModal({ id, title, invoiceCount: invoiceCount ?? 0, contractCount: contractCount ?? 0, galleryCount: galleryCount ?? 0, questionnaireCount: questionnaireCount ?? 0 })
+    const galleryIds = galleriesRes.data?.map(g => g.id) ?? []
+    const { count: photoCount } = galleryIds.length > 0
+      ? await supabase.from('photos').select('id', { count: 'exact', head: true }).in('gallery_id', galleryIds)
+      : { count: 0 }
+    const p = projectRes.data
+    setDeleteOpts({ photos: true, galerie: true, formulare: true, rechnungen: false, vertraege: false, portal: true, buchungsInfo: true, notiz: true })
+    setDeleteModal({
+      id, title,
+      photoCount: photoCount ?? 0, galleryCount: galleryIds.length,
+      questionnaireCount: questionnaireCount ?? 0,
+      invoiceCount: invoiceCount ?? 0, contractCount: contractCount ?? 0,
+      hasPortal: !!p?.client_token,
+      hasBookingInfo: !!(p?.shoot_date || p?.location || p?.shoot_time),
+      hasNotes: !!p?.notes,
+    })
   }
 
-  const allDeleteOptsChecked = () => deleteModal
-    ? deleteOpts.galleries && deleteOpts.timeline && deleteOpts.invoices && deleteOpts.contracts && deleteOpts.questionnaires
-    : false
+  const allDeleteOptsChecked = () =>
+    deleteOpts.photos && deleteOpts.galerie && deleteOpts.formulare &&
+    deleteOpts.rechnungen && deleteOpts.vertraege &&
+    deleteOpts.portal && deleteOpts.buchungsInfo && deleteOpts.notiz
 
   const confirmDelete = async () => {
     if (!deleteModal) return
     setDeleting(true)
-    if (deleteOpts.invoices) await supabase.from('invoices').delete().eq('project_id', deleteModal.id)
-    if (deleteOpts.contracts) await supabase.from('contracts').delete().eq('project_id', deleteModal.id)
-    if (deleteOpts.questionnaires) await supabase.from('questionnaires').delete().eq('project_id', deleteModal.id)
+    if (deleteOpts.rechnungen) await supabase.from('invoices').delete().eq('project_id', deleteModal.id)
+    if (deleteOpts.vertraege) await supabase.from('contracts').delete().eq('project_id', deleteModal.id)
+    if (deleteOpts.formulare) await supabase.from('questionnaires').delete().eq('project_id', deleteModal.id)
     const { error } = await supabase.from('projects').delete().eq('id', deleteModal.id)
     setDeleting(false)
     if (error) { toast.error(de ? 'Fehler beim Löschen' : 'Error deleting'); return }
@@ -1409,8 +1430,8 @@ export default function ProjectsPage() {
               </p>
               <button
                 onClick={() => setDeleteOpts(allDeleteOptsChecked()
-                  ? { galleries: true, timeline: true, invoices: false, contracts: false, questionnaires: false }
-                  : { galleries: true, timeline: true, invoices: true, contracts: true, questionnaires: true })}
+                  ? { photos: true, galerie: true, formulare: true, rechnungen: false, vertraege: false, portal: true, buchungsInfo: true, notiz: true }
+                  : { photos: true, galerie: true, formulare: true, rechnungen: true,  vertraege: true,  portal: true, buchungsInfo: true, notiz: true })}
                 className="text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors"
                 style={{ color: '#C43B2C', background: 'rgba(196,59,44,0.08)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(196,59,44,0.15)')}
@@ -1419,30 +1440,35 @@ export default function ProjectsPage() {
                 {allDeleteOptsChecked() ? (de ? 'Alle abwählen' : 'Deselect all') : (de ? 'Alle markieren' : 'Select all')}
               </button>
             </div>
-            {[
-              { key: 'galleries' as const, label: `${de ? 'Galerien & Fotos' : 'Galleries & Photos'}${deleteModal.galleryCount > 0 ? ` (${deleteModal.galleryCount})` : ''}`, kept: false },
-              { key: 'timeline' as const, label: de ? 'Timeline, Moodboard, geplante E-Mails' : 'Timeline, moodboard, scheduled emails', kept: false },
-              ...(deleteModal.invoiceCount > 0 ? [{ key: 'invoices' as const, label: de ? `Rechnungen (${deleteModal.invoiceCount})` : `Invoices (${deleteModal.invoiceCount})`, kept: true }] : []),
-              ...(deleteModal.contractCount > 0 ? [{ key: 'contracts' as const, label: de ? `Verträge (${deleteModal.contractCount})` : `Contracts (${deleteModal.contractCount})`, kept: true }] : []),
-              ...(deleteModal.questionnaireCount > 0 ? [{ key: 'questionnaires' as const, label: de ? `Formulare (${deleteModal.questionnaireCount})` : `Forms (${deleteModal.questionnaireCount})`, kept: true }] : []),
-            ].map(item => {
-              const checked = deleteOpts[item.key]
-              return (
-                <label key={item.key} className="flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-xl transition-colors"
-                  style={{ background: checked ? 'rgba(196,59,44,0.07)' : 'transparent' }}
-                  onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}
-                >
-                  <input type="checkbox" checked={checked} onChange={() => setDeleteOpts(o => ({ ...o, [item.key]: !o[item.key] }))} className="w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#C43B2C' }} />
-                  <span className="text-[13px] flex-1" style={{ color: checked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{item.label}</span>
-                  {item.kept && !checked && (
-                    <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>
-                      {de ? 'bleibt' : 'kept'}
-                    </span>
-                  )}
-                </label>
-              )
-            })}
+            {([
+              { key: 'photos',       label: `${de ? 'Fotos' : 'Photos'}${deleteModal.photoCount > 0 ? ` (${deleteModal.photoCount})` : ''}`,         show: true },
+              { key: 'galerie',      label: `${de ? 'Galerie' : 'Gallery'}${deleteModal.galleryCount > 0 ? ` (${deleteModal.galleryCount})` : ''}`,    show: true },
+              { key: 'formulare',    label: `${de ? 'Formulare' : 'Forms'}${deleteModal.questionnaireCount > 0 ? ` (${deleteModal.questionnaireCount})` : ''}`, show: deleteModal.questionnaireCount > 0 },
+              { key: 'rechnungen',   label: `${de ? 'Rechnungen' : 'Invoices'}${deleteModal.invoiceCount > 0 ? ` (${deleteModal.invoiceCount})` : ''}`,  canKeep: true, show: deleteModal.invoiceCount > 0 },
+              { key: 'vertraege',    label: `${de ? 'Verträge' : 'Contracts'}${deleteModal.contractCount > 0 ? ` (${deleteModal.contractCount})` : ''}`, canKeep: true, show: deleteModal.contractCount > 0 },
+              { key: 'portal',       label: de ? 'Portal-Link & Zugang' : 'Portal link & access',                  show: deleteModal.hasPortal },
+              { key: 'buchungsInfo', label: de ? 'Buchungs-Info (Datum, Ort, Zeit)' : 'Booking info (date, location, time)', show: deleteModal.hasBookingInfo },
+              { key: 'notiz',        label: de ? 'Notiz' : 'Notes',                                                show: deleteModal.hasNotes },
+            ] as { key: keyof typeof deleteOpts; label: string; canKeep?: boolean; show: boolean }[])
+              .filter(i => i.show)
+              .map(item => {
+                const checked = deleteOpts[item.key]
+                return (
+                  <label key={item.key} className="flex items-center gap-3 cursor-pointer py-1.5 px-3 rounded-xl transition-colors"
+                    style={{ background: checked ? 'rgba(196,59,44,0.07)' : 'transparent' }}
+                    onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                    onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <input type="checkbox" checked={checked} onChange={() => setDeleteOpts(o => ({ ...o, [item.key]: !o[item.key] }))} className="w-4 h-4 cursor-pointer flex-shrink-0" style={{ accentColor: '#C43B2C' }} />
+                    <span className="text-[13px] flex-1" style={{ color: checked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{item.label}</span>
+                    {item.canKeep && !checked && (
+                      <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'rgba(61,186,111,0.10)', color: '#3DBA6F' }}>
+                        {de ? 'bleibt' : 'kept'}
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
           </div>
 
           {/* Actions */}
