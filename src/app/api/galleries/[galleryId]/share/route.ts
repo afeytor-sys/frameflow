@@ -54,8 +54,11 @@ export async function POST(
       </div>`
     : ''
 
-  const messageText = (customMessage || 'Deine Galerie ist fertig! Klicke auf den Button unten, um deine Fotos anzusehen.')
-    .replace(/\n/g, '<br>')
+  // If user wrote a custom message, use it as-is (they already wrote their own greeting).
+  // If not, generate a default greeting+message.
+  const messageHtml = customMessage
+    ? customMessage.replace(/\n/g, '<br>')
+    : `Hallo ${name},<br><br>Deine Galerie ist fertig! Klicke auf den Button unten, um deine Fotos anzusehen.`
 
   const html = `
 <!DOCTYPE html>
@@ -83,9 +86,8 @@ export async function POST(
         <!-- Title -->
         <h1 style="margin: 0 0 6px; font-size: 26px; font-weight: 800; color: #1A1A18; letter-spacing: -0.03em; line-height: 1.2;">${title}</h1>
 
-        <!-- Greeting & message -->
-        <p style="margin: 16px 0 0; font-size: 15px; color: #5A5650; line-height: 1.7;">Hallo ${name},</p>
-        <p style="margin: 10px 0 28px; font-size: 15px; color: #5A5650; line-height: 1.7;">${messageText}</p>
+        <!-- Message -->
+        <p style="margin: 16px 0 28px; font-size: 15px; color: #5A5650; line-height: 1.7;">${messageHtml}</p>
 
         <!-- CTA -->
         <a href="${galleryUrl}"

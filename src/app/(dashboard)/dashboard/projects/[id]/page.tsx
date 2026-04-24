@@ -230,7 +230,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         invoicesInitial={invoices || []}
         plan={photographer?.plan || 'free'}
         userTemplates={userTemplates || []}
-        photographerName={photographer?.full_name || photographer?.studio_name || null}
+        photographerName={photographer?.studio_name || photographer?.full_name || null}
         photographerMessageTemplates={(photographer?.portal_message_templates as { label: string; text: string }[] | null) ?? null}
         clientUrl={clientUrl}
         hasTimeline={(timeline?.events as unknown[])?.length > 0}
