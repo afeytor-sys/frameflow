@@ -20,6 +20,8 @@ interface Gallery {
   cover_url?: string | null
   cover_photo_id?: string | null
   client_token?: string | null
+  custom_slug?: string | null
+  project_id?: string | null
   password?: string | null
   guest_password?: string | null
   project?: { id: string; title: string; client?: { full_name: string } | { full_name: string }[] | null } | null
@@ -31,6 +33,9 @@ interface ShareModalState {
   password: string | null
   guestPassword: string | null
   title: string
+  clientToken?: string | null
+  currentSlug?: string | null
+  projectId?: string | null
 }
 
 interface CoverPickerState {
@@ -193,7 +198,7 @@ export default function GalleriesPage() {
       const { data } = await supabase
         .from('galleries')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .select('id, title, status, view_count, download_count, password, guest_password, cover_photo_id, project:projects(id, title, client_token, client:clients(full_name))' as any)
+        .select('id, title, status, view_count, download_count, password, guest_password, cover_photo_id, project_id, project:projects(id, title, client_token, custom_slug, client:clients(full_name))' as any)
         .in('project_id', projectIds)
         .order('created_at', { ascending: false })
 
@@ -228,6 +233,8 @@ export default function GalleriesPage() {
           cover_url: coverUrl,
           cover_photo_id: coverPhotoId || null,
           client_token: proj?.client_token || null,
+          custom_slug: proj?.custom_slug || null,
+          project_id: proj?.id || (g as unknown as { project_id?: string }).project_id || null,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           password: (g as any).password || null,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -400,13 +407,17 @@ export default function GalleriesPage() {
             const handleShare = (e: React.MouseEvent) => {
               e.preventDefault(); e.stopPropagation()
               if (!gallery.client_token) { toast.error(t.errorNoToken); return }
-              const url = `${window.location.origin}/gallery/${gallery.client_token}`
+              const slug = gallery.custom_slug || gallery.client_token
+              const url = `${window.location.origin}/gallery/${slug}`
               setShareModal({
                 galleryId: gallery.id,
                 url,
                 password: gallery.password || null,
                 guestPassword: gallery.guest_password || null,
                 title: gallery.title,
+                clientToken: gallery.client_token,
+                currentSlug: gallery.custom_slug || null,
+                projectId: gallery.project_id || null,
               })
             }
 
@@ -527,6 +538,17 @@ export default function GalleriesPage() {
         galleryGuestPassword={shareModal?.guestPassword || null}
         galleryId={shareModal?.galleryId}
         studioName={studioName}
+        clientToken={shareModal?.clientToken || null}
+        currentSlug={shareModal?.currentSlug || null}
+        projectId={shareModal?.projectId || null}
+        onSlugChange={(newSlug) => {
+          const base = window.location.origin
+          const url = newSlug ? `${base}/gallery/${newSlug}` : `${base}/gallery/${shareModal?.clientToken}`
+          setShareModal(prev => prev ? { ...prev, currentSlug: newSlug, url } : prev)
+          setGalleries(prev => prev.map(g =>
+            g.project_id === shareModal?.projectId ? { ...g, custom_slug: newSlug || null } : g
+          ))
+        }}
       />
 
       {/* ── Cover Picker Modal ── */}
