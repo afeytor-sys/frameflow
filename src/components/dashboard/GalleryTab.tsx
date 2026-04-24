@@ -237,6 +237,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const coverUploadRef = useRef<HTMLInputElement>(null)
   const globalDragCounter = useRef(0)
   const draggingPhotoRef = useRef<string | null>(null)
+  const draggingSectionRef = useRef<string | null>(null)
+  const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
 
   // Settings form state
   const [settingsTitle, setSettingsTitle] = useState(gallery?.title || 'Galerie')
@@ -567,6 +569,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     setSections(prev => prev.map(s => s.id === id ? { ...s, title: editingSectionTitle.trim() } : s))
     setEditingSectionId(null)
     toast.success('Set umbenannt')
+  }
+
+  const reorderSection = async (fromId: string, toId: string) => {
+    const fromIdx = sections.findIndex(s => s.id === fromId)
+    const toIdx = sections.findIndex(s => s.id === toId)
+    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
+    const reordered = [...sections]
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+    const updated = reordered.map((s, i) => ({ ...s, display_order: i }))
+    setSections(updated)
+    await Promise.all(updated.map(s =>
+      supabase.from('gallery_sections').update({ display_order: s.display_order }).eq('id', s.id)
+    ))
   }
 
   const deleteSection = async (id: string) => {
@@ -1132,7 +1148,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               ) : (
                 <div className="space-y-2">
                   {sections.map(section => (
-                    <div key={section.id} className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                    <div
+                      key={section.id}
+                      draggable
+                      onDragStart={() => { draggingSectionRef.current = section.id }}
+                      onDragEnd={() => { draggingSectionRef.current = null; setDragOverSectionId(null) }}
+                      onDragOver={e => { if (!draggingSectionRef.current || draggingPhotoRef.current) return; e.preventDefault(); setDragOverSectionId(section.id) }}
+                      onDrop={e => { e.preventDefault(); if (draggingSectionRef.current && draggingSectionRef.current !== section.id) reorderSection(draggingSectionRef.current, section.id); setDragOverSectionId(null) }}
+                      className="flex items-center gap-2 p-2.5 rounded-lg transition-all"
+                      style={{
+                        background: dragOverSectionId === section.id ? 'rgba(196,164,124,0.10)' : 'var(--bg-surface)',
+                        border: `1px solid ${dragOverSectionId === section.id ? 'var(--accent)' : 'var(--border-color)'}`,
+                        cursor: 'grab',
+                      }}
+                    >
                       <GripHorizontal className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                       {editingSectionId === section.id ? (
                         <div className="flex items-center gap-1.5 flex-1">
