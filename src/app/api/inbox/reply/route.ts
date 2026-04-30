@@ -98,65 +98,55 @@ export async function POST(req: NextRequest) {
 
         const html = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
   <title>Re: your inquiry</title>
+  <style>:root { color-scheme: light; } body { color-scheme: light; }</style>
 </head>
-<body style="margin:0;padding:0;background:#F5F4F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F4F0;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#F2F1EE;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color-scheme:light;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F2F1EE;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #E8E8E4;">
-
-          <!-- Header -->
-          <tr>
-            <td style="background:#1A1A1A;padding:28px 32px;">
-              <p style="margin:0;font-size:20px;font-weight:700;color:#FFFFFF;letter-spacing:-0.03em;">Fotonizer</p>
-            </td>
-          </tr>
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#FFFFFF;border-radius:12px;overflow:hidden;border:1px solid #E2E0DC;">
 
           <!-- Body -->
           <tr>
-            <td style="padding:32px;">
-              <p style="margin:0 0 6px;font-size:13px;color:#6B6B6B;">
-                Hello ${conversation.lead_name},
-              </p>
-              <p style="margin:0 0 24px;font-size:14px;color:#6B6B6B;">
-                You have a new reply to your inquiry.
+            <td style="padding:36px 40px 28px;">
+              <p style="margin:0 0 20px;font-size:14px;color:#3A3A38;line-height:1.6;">
+                Hallo ${conversation.lead_name},<br />
+                du hast eine neue Antwort auf deine Anfrage erhalten.
               </p>
 
-              <!-- Reply card -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAF8;border:1px solid #E8E8E4;border-radius:12px;margin-bottom:${escapedOriginal ? '24px' : '0'};">
-                <tr>
-                  <td style="padding:20px 24px;">
-                    <p style="margin:0;font-size:14px;color:#1A1A1A;line-height:1.7;">${escapedContent}</p>
-                  </td>
-                </tr>
-              </table>
-
-              ${escapedOriginal ? `
-              <!-- Original message -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="border-left:3px solid #E8E8E4;margin-top:0;">
-                <tr>
-                  <td style="padding:12px 16px;">
-                    <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.06em;">
-                      Your original message
-                    </p>
-                    <p style="margin:0;font-size:13px;color:#6B6B6B;line-height:1.6;">${escapedOriginal}</p>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
+              <!-- Reply content — plain, like a normal email -->
+              <div style="font-size:15px;color:#1A1A18;line-height:1.75;white-space:pre-wrap;">${escapedContent}</div>
             </td>
           </tr>
 
+          ${escapedOriginal ? `
+          <!-- Original message -->
+          <tr>
+            <td style="padding:0 40px 28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-left:3px solid #D8D5D0;">
+                <tr>
+                  <td style="padding:10px 16px;">
+                    <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#9A9590;text-transform:uppercase;letter-spacing:0.07em;">Deine ursprüngliche Nachricht</p>
+                    <p style="margin:0;font-size:13px;color:#6B6860;line-height:1.6;">${escapedOriginal}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          ` : ''}
+
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 32px;border-top:1px solid #E8E8E4;">
-              <p style="margin:0;font-size:12px;color:#9B9B9B;">
-                To reply, simply respond to this email — your message will go directly to the photographer.
+            <td style="padding:18px 40px;border-top:1px solid #EDECE8;">
+              <p style="margin:0;font-size:12px;color:#9A9590;">
+                Antworte einfach auf diese E-Mail — deine Nachricht geht direkt an ${senderName}.
               </p>
             </td>
           </tr>
