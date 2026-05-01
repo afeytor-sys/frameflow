@@ -502,14 +502,11 @@ export default function GalleryViewer({
   // ── Download ─────────────────────────────────────────────────────
   const downloadPhoto = async (photo: Photo) => {
     try {
-      const response = await fetch(photo.storage_url)
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = photo.filename; a.click()
-      URL.revokeObjectURL(url)
+      a.href = `/api/photos/${photo.id}/download`
+      a.download = photo.filename
+      a.click()
       try { await supabase.rpc('increment_photo_download_count', { gallery_id: galleryId }) } catch {}
-      // Notify photographer (fire & forget) — always notify, even for public galleries
       notifyPhotographer(galleryId, 'photo_downloaded', clientName || 'Visitante', photo.filename)
     } catch { toast.error('Download fehlgeschlagen') }
   }
