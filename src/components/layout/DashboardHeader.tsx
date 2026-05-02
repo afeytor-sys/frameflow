@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Photographer } from '@/types/database'
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import WeatherWidget from '@/components/dashboard/WeatherWidget'
 import { createClient } from '@/lib/supabase/client'
@@ -10,6 +10,7 @@ import NotificationBell from '@/components/layout/NotificationBell'
 
 interface Props {
   photographer: Photographer
+  onMenuOpen?: () => void
 }
 
 function getTrialDaysLeft(trialEndsAt: string | null | undefined): number | null {
@@ -19,7 +20,7 @@ function getTrialDaysLeft(trialEndsAt: string | null | undefined): number | null
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
-export default function DashboardHeader({ photographer }: Props) {
+export default function DashboardHeader({ photographer, onMenuOpen }: Props) {
   const { theme, toggleTheme } = useTheme()
   const [currentLocale, setCurrentLocale] = useState<string>('de')
 
@@ -57,8 +58,19 @@ export default function DashboardHeader({ photographer }: Props) {
         boxShadow: '0 1px 0 rgba(255,255,255,0.5)',
       }}
     >
-      {/* Trial countdown pill — left side */}
-      {isTrialing && trialDaysLeft !== null ? (
+      {/* Left side: hamburger (mobile) + trial pill */}
+      <div className="flex items-center gap-2">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuOpen}
+          className="md:hidden header-icon-btn w-8 h-8 rounded-xl flex items-center justify-center"
+          aria-label="Open menu"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+
+        {/* Trial countdown pill */}
+        {isTrialing && trialDaysLeft !== null ? (
         <a
           href="/dashboard/billing"
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-opacity hover:opacity-80"
@@ -68,9 +80,8 @@ export default function DashboardHeader({ photographer }: Props) {
           <span className="hidden sm:inline">Noch {trialDaysLeft} Tage kostenlos</span>
           <span className="sm:hidden">{trialDaysLeft}d</span>
         </a>
-      ) : (
-        <div />
-      )}
+        ) : null}
+      </div>
 
       <div className="flex items-center gap-2">
         <WeatherWidget />

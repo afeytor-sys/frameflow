@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import DashboardSidebar from '@/components/layout/DashboardSidebar'
-import DashboardHeader from '@/components/layout/DashboardHeader'
+import DashboardShell from '@/components/layout/DashboardShell'
 import { UploadProvider } from '@/contexts/UploadContext'
 import PushRegistrar from '@/components/layout/PushRegistrar'
 
@@ -34,20 +33,9 @@ export default async function DashboardLayout({
   return (
     <UploadProvider>
       <PushRegistrar />
-      <div className="flex h-screen overflow-hidden page-bg">
-        {/* Sidebar */}
-        <DashboardSidebar photographer={photographer} />
-
-        {/* Main content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
-          <DashboardHeader photographer={photographer} />
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-[1400px] mx-auto px-6 py-8 md:px-8 lg:px-12">
-              {children}
-            </div>
-          </main>
-        </div>
-      </div>
+      <DashboardShell photographer={photographer}>
+        {children}
+      </DashboardShell>
     </UploadProvider>
   )
 }
