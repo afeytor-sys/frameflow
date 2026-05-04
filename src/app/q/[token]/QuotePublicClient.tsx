@@ -72,7 +72,7 @@ const T = {
     emailPlaceholder: 'deine@email.de',
     missingRequired: 'Bitte wähle eine Option in allen Pflichtfeldern.',
     sending: 'Wird gesendet…',
-    submitBtn: (total: string) => `Angebot annehmen — ${total}`,
+    submitBtn: (total: string) => `Auswahl senden — ${total}`,
     thankYouTitle: 'Angebot angenommen',
     thankYouSub: (total: string) => `Deine Auswahl mit einem Gesamtbetrag von ${total} wurde übermittelt.`,
     thankYouContact: (name: string) => `${name} wird sich in Kürze bei dir melden.`,
