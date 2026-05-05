@@ -530,9 +530,8 @@ export default function ContractsClient({
                 <a
                   key={contract.id}
                   href={`/dashboard/projects/${contract.project_id}?tab=contracts`}
-                  className="group grid items-center px-5 py-3.5 transition-all duration-150 cursor-pointer"
+                  className="group grid items-center px-5 py-3.5 transition-all duration-150 cursor-pointer [grid-template-columns:minmax(0,1fr)_auto] sm:[grid-template-columns:minmax(0,1fr)_190px_140px_88px]"
                   style={{
-                    gridTemplateColumns: 'minmax(0,1fr) 190px 140px 88px',
                     borderBottom: i < contracts.length - 1 ? '1px solid var(--border-color)' : 'none',
                     animation: 'fadeSlideUp 0.35s ease forwards',
                     animationDelay: `${i * 40}ms`,
