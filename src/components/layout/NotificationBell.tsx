@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { Bell, X, CheckCheck, ExternalLink } from 'lucide-react'
 import { useLocale } from '@/hooks/useLocale'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Notification {
   id: string
@@ -33,6 +34,39 @@ const TYPE_ICONS: Record<string, string> = {
   favorite_marked: '❤️',
 }
 
+function getNotificationUrl(type: string, projectId: string | null): string {
+  if (type === 'new_inquiry') return '/dashboard/inbox'
+  if (type === 'new_booking') return '/dashboard/booking-types'
+
+  if (!projectId) {
+    const fallbacks: Record<string, string> = {
+      contract_signed: '/dashboard/contracts',
+      contract_sent: '/dashboard/contracts',
+      questionnaire_filled: '/dashboard/questionnaires',
+      gallery_viewed: '/dashboard/galleries',
+      gallery_delivered: '/dashboard/galleries',
+      photo_downloaded: '/dashboard/galleries',
+      gallery_downloaded: '/dashboard/galleries',
+      favorite_marked: '/dashboard/galleries',
+    }
+    return fallbacks[type] ?? '/dashboard'
+  }
+
+  const tabMap: Record<string, string> = {
+    contract_signed: 'contracts',
+    contract_sent: 'contracts',
+    questionnaire_filled: 'questionnaires',
+    gallery_viewed: 'galleries',
+    gallery_delivered: 'galleries',
+    photo_downloaded: 'galleries',
+    gallery_downloaded: 'galleries',
+    favorite_marked: 'galleries',
+  }
+  const tab = tabMap[type]
+  const base = `/dashboard/projects/${projectId}`
+  return tab ? `${base}?tab=${tab}` : base
+}
+
 function timeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -54,6 +88,7 @@ function timeAgo(dateStr: string, locale: string): string {
 
 export default function NotificationBell() {
   const locale = useLocale()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
@@ -178,14 +213,18 @@ export default function NotificationBell() {
               const body = locale === 'de' ? n.body_de : n.body_en
               const icon = TYPE_ICONS[n.type] ?? '🔔'
 
+              const notifUrl = getNotificationUrl(n.type, n.project_id)
               return (
                 <div
                   key={n.id}
-                  className="flex items-start gap-3 px-4 py-3 group transition-all hover:opacity-90"
+                  className="flex items-start gap-3 px-4 py-3 group transition-all cursor-pointer"
                   style={{
                     background: n.read ? 'transparent' : 'rgba(196,164,124,0.06)',
                     borderBottom: '1px solid var(--border-color)',
                   }}
+                  onClick={() => { setOpen(false); router.push(notifUrl) }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(196,164,124,0.06)' }}
                 >
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-[16px]"
                     style={{ background: 'var(--bg-hover)' }}>
@@ -197,7 +236,7 @@ export default function NotificationBell() {
                         {title}
                       </p>
                       <button
-                        onClick={() => deleteNotification(n.id)}
+                        onClick={(e) => { e.stopPropagation(); deleteNotification(n.id) }}
                         className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80"
                         style={{ color: 'var(--text-muted)' }}
                       >
@@ -216,7 +255,7 @@ export default function NotificationBell() {
                       {n.project_id && (
                         <Link
                           href={`/dashboard/projects/${n.project_id}`}
-                          onClick={() => setOpen(false)}
+                          onClick={(e) => { e.stopPropagation(); setOpen(false) }}
                           className="flex items-center gap-0.5 text-[10px] font-medium transition-all hover:opacity-80"
                           style={{ color: 'var(--accent)' }}
                         >
