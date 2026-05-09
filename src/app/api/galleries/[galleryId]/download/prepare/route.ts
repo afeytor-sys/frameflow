@@ -27,18 +27,15 @@ export async function POST(
 
   const { data: gallery } = await supabase
     .from('galleries')
-    .select('id, title, download_enabled, download_count')
+    .select('id, title, download_enabled')
     .eq('id', galleryId)
     .single()
 
   if (!gallery) return Response.json({ error: 'Gallery not found' }, { status: 404 })
   if (!gallery.download_enabled) return Response.json({ error: 'Download not enabled' }, { status: 403 })
 
-  // Increment download counter (fire-and-forget)
-  void service
-    .from('galleries')
-    .update({ download_count: (gallery.download_count ?? 0) + 1 })
-    .eq('id', galleryId)
+  // download_count is now incremented atomically by DB trigger (084_gallery_download_count_trigger)
+  // when gallery_download_jobs.status becomes 'ready' — no manual increment needed here.
 
   const downloadToken = crypto.randomUUID()
   const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()

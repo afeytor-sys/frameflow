@@ -224,6 +224,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [favDownloadProgress, setFavDownloadProgress] = useState(0)
   // Comment count
   const [commentCount, setCommentCount] = useState(0)
+  // Download jobs (for email list)
+  interface DownloadJob { id: string; email: string; created_at: string; status: string; parts: unknown[] | null }
+  const [downloadJobs, setDownloadJobs] = useState<DownloadJob[]>([])
+  const [showDownloadList, setShowDownloadList] = useState(false)
   // Gallery UX
   const [activeSection, setActiveSection] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -308,6 +312,16 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       .in('photo_id', initialPhotos.map(p => p.id))
       .then(({ count }) => {
         if (count !== null) setCommentCount(count)
+      })
+    // Fetch download jobs (email list)
+    supabase
+      .from('gallery_download_jobs')
+      .select('id, email, created_at, status, parts')
+      .eq('gallery_id', gallery.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (data) setDownloadJobs(data as DownloadJob[])
       })
   }, [gallery?.id])
 
@@ -797,18 +811,26 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         </div>
 
         {/* Row 3: Light info + Details dropdown */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Always-visible stats */}
-          {[
-            { icon: Images, value: photos.length, label: 'Fotos', color: 'var(--text-muted)' },
-            { icon: Download, value: gallery.download_count, label: 'Downloads', color: '#8B5CF6', title: 'Galerie-Downloads (ZIP)' },
-          ].map(({ icon: Icon, value, label, color, title }) => (
-            <div key={label} title={title} className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
-              <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
-              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value}</span>
-              <span>{label}</span>
-            </div>
-          ))}
+          <div className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+            <Images className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{photos.length}</span>
+            <span>Fotos</span>
+          </div>
+
+          {/* Downloads — clickable to show email list */}
+          <button
+            onClick={() => setShowDownloadList(v => !v)}
+            className="flex items-center gap-1 text-[12px] transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            title="Galerie-Downloads (ZIP) — klicken für E-Mail-Liste"
+          >
+            <Download className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{gallery.download_count}</span>
+            <span>Downloads</span>
+            <ChevronDown className="w-3 h-3 ml-0.5 transition-transform" style={{ transform: showDownloadList ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+          </button>
 
           {/* Details toggle */}
           <button
@@ -838,6 +860,44 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             </div>
           )}
         </div>
+
+        {/* Download email list */}
+        {showDownloadList && (
+          <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+            <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-hover)' }}>
+              <Download className="w-3.5 h-3.5" style={{ color: '#8B5CF6' }} />
+              <span className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>Download-Anfragen</span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.1)', color: '#8B5CF6' }}>
+                {downloadJobs.filter(j => j.status === 'ready').length} abgeschlossen
+              </span>
+            </div>
+            {downloadJobs.length === 0 ? (
+              <p className="text-[12px] text-center py-4" style={{ color: 'var(--text-muted)' }}>Noch keine Downloads</p>
+            ) : (
+              <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                {downloadJobs.map(job => {
+                  const partCount = Array.isArray(job.parts) ? job.parts.length : 1
+                  const date = new Date(job.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  const statusColor = job.status === 'ready' ? '#22C55E' : job.status === 'failed' ? '#EF4444' : '#F59E0B'
+                  const statusLabel = job.status === 'ready' ? 'Fertig' : job.status === 'failed' ? 'Fehler' : 'Läuft'
+                  return (
+                    <div key={job.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusColor }} />
+                      <span className="text-[12px] font-medium flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{job.email}</span>
+                      {job.status === 'ready' && partCount > 1 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                          {partCount} Teile
+                        </span>
+                      )}
+                      <span className="text-[10px] font-medium" style={{ color: statusColor }}>{statusLabel}</span>
+                      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{date}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Settings panel */}
