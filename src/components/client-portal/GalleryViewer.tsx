@@ -522,7 +522,8 @@ export default function GalleryViewer({
           setDlState('sent')
         } else if (json.status === 'failed' || json.status === 'expired') {
           clearInterval(dlPollRef.current!); dlPollRef.current = null
-          setDlError('A preparação falhou. Por favor, tente novamente.')
+          console.error('[download] job failed:', json.error)
+          setDlError(json.error || 'Die Vorbereitung ist fehlgeschlagen. Bitte versuche es erneut.')
           setDlState('error')
         }
       } catch { /* ignore network hiccups */ }
