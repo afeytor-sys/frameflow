@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Images, Plus, Eye, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal, Trash2, ImageIcon } from 'lucide-react'
+import { Images, Plus, Download, Share2, X, Check, Lock, Sparkles, GripHorizontal, Trash2, ImageIcon } from 'lucide-react'
 import { getPhotoUrl } from '@/lib/utils'
 import { GALLERY_THEMES } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
@@ -487,16 +487,13 @@ export default function GalleriesPage() {
                   <div className="px-3.5 py-3">
                     <h3 className="font-bold text-[13.5px] truncate leading-tight" style={{ color: 'var(--text-primary)' }}>{gallery.title}</h3>
                     {clientName && <p className="text-[12px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{clientName}</p>}
-                    <div className="flex items-center gap-3 mt-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                        <Eye className="w-3 h-3" />{gallery.view_count}
-                      </span>
-                      {gallery.download_count > 0 && (
+                    {gallery.download_count > 0 && (
+                      <div className="flex items-center gap-3 mt-2.5">
                         <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
                           <Download className="w-3 h-3" />{gallery.download_count}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </Link>
 
