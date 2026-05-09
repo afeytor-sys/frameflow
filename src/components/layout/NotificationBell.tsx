@@ -112,8 +112,15 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications()
+    // Poll every 60s as fallback
     const interval = setInterval(fetchNotifications, 60000)
-    return () => clearInterval(interval)
+    // Re-fetch when tab becomes visible (catches background arrivals)
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchNotifications() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   useEffect(() => {

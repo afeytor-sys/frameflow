@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ interface Props {
   conversations: Conversation[]
   photographerEmail: string | null
   emailTemplates: EmailTemplate[]
+  photographerId: string
 }
 
 interface LeadData {
@@ -484,7 +486,7 @@ function LeadStatusDropdown({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function InboxClient({ conversations: initialConversations, photographerEmail: _photographerEmail, emailTemplates }: Props) {
+export default function InboxClient({ conversations: initialConversations, photographerEmail: _photographerEmail, emailTemplates, photographerId }: Props) {
   const locale = useLocale()
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedId, setSelectedId]       = useState<string | null>(
@@ -502,6 +504,32 @@ export default function InboxClient({ conversations: initialConversations, photo
 
   const [hoveredConvId, setHoveredConvId]   = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  // Realtime: new conversations arrive without page reload
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('inbox-new-conversations')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, async (payload) => {
+        const row = payload.new as { id: string; photographer_id: string }
+        if (row.photographer_id !== photographerId) return
+        // Give message insert time to complete before fetching
+        await new Promise(r => setTimeout(r, 600))
+        const { data } = await supabase
+          .from('conversations')
+          .select('id, photographer_id, lead_name, lead_email, created_at, lead_status, status_changed_at, messages(id, sender, content, created_at, opened_at, open_count)')
+          .eq('id', row.id)
+          .single()
+        if (!data) return
+        setConversations(prev => {
+          if (prev.some(c => c.id === data.id)) return prev
+          return [data as Conversation, ...prev]
+        })
+        toast.success(`Neue Anfrage von ${(data as Conversation).lead_name}`, { duration: 5000 })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [photographerId])
 
   const handleStatusChange = (id: string, status: LeadStatus) => {
     setConversations(prev => prev.map(c => c.id === id ? { ...c, lead_status: status } : c))

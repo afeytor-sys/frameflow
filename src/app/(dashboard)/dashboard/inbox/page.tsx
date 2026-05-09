@@ -36,6 +36,7 @@ export default async function InboxPage() {
       conversations={conversations ?? []}
       photographerEmail={photographer?.email ?? null}
       emailTemplates={emailTemplates ?? []}
+      photographerId={user.id}
     />
   )
 }

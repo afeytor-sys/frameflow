@@ -98,6 +98,87 @@ interface InquiryEmailPayload {
   message: string
 }
 
+function parseFormFields(message: string): Array<{ label: string; value: string }> | null {
+  const lines = message.split('\n').map(l => l.trim()).filter(Boolean)
+  if (lines.length < 2) return null
+  const pairs: Array<{ label: string; value: string }> = []
+  for (const line of lines) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx > 0 && colonIdx < line.length - 1) {
+      const label = line.slice(0, colonIdx).trim()
+      const value = line.slice(colonIdx + 1).trim()
+      if (label && value) pairs.push({ label, value })
+    } else {
+      return null
+    }
+  }
+  return pairs.length >= 2 ? pairs : null
+}
+
+function buildFieldsHtml(name: string, email: string, message: string): string {
+  const fields = parseFormFields(message)
+
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  const contactRow = `
+    <tr>
+      <td style="padding:0 0 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="50%" style="padding-right:12px;vertical-align:top;">
+              <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.07em;">Name</p>
+              <p style="margin:0;font-size:15px;font-weight:600;color:#1A1A1A;">${esc(name)}</p>
+            </td>
+            <td width="50%" style="vertical-align:top;">
+              <p style="margin:0 0 3px;font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.07em;">E-Mail</p>
+              <p style="margin:0;font-size:15px;color:#1A1A1A;">
+                <a href="mailto:${esc(email)}" style="color:#C4A47C;text-decoration:none;font-weight:500;">${esc(email)}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`
+
+  if (fields) {
+    // Format date values (YYYY-MM-DD → German format)
+    const formatVal = (v: string) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        try {
+          return new Date(v + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
+        } catch { return esc(v) }
+      }
+      return esc(v)
+    }
+
+    const fieldRows = fields.map(({ label, value }, i) => {
+      const isLast = i === fields.length - 1
+      const isLong = value.length > 60
+      return `
+    <tr>
+      <td style="padding:14px 0;border-top:1px solid #F0EFEC;">
+        <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.07em;">${esc(label)}</p>
+        <p style="margin:0;font-size:${isLong ? '13px' : '14px'};color:#1A1A1A;line-height:1.55;${isLast ? '' : ''}">${formatVal(value)}</p>
+      </td>
+    </tr>`
+    }).join('')
+
+    return `<table width="100%" cellpadding="0" cellspacing="0">${contactRow}${fieldRows}</table>`
+  }
+
+  // Fallback: plain message
+  return `
+  <table width="100%" cellpadding="0" cellspacing="0">
+    ${contactRow}
+    <tr>
+      <td style="padding:14px 0;border-top:1px solid #F0EFEC;">
+        <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#9B9B9B;text-transform:uppercase;letter-spacing:0.07em;">Nachricht</p>
+        <p style="margin:0;font-size:14px;color:#1A1A1A;line-height:1.6;white-space:pre-wrap;">${esc(message)}</p>
+      </td>
+    </tr>
+  </table>`
+}
+
 async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
@@ -108,88 +189,91 @@ async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.fotonizer.com'
   const resend = new Resend(resendKey)
   const { to, replyTo, name, email, message } = payload
+  const fieldsHtml = buildFieldsHtml(name, email, message)
 
-  const html = `
-<!DOCTYPE html>
-<html lang="en">
+  const html = `<!DOCTYPE html>
+<html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New inquiry received</title>
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>Neue Anfrage erhalten</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; padding: 0; background: #F5F4F1; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#F5F4F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F4F0;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#F5F4F1;-webkit-text-size-adjust:100%;color-scheme:light;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F5F4F1;padding:48px 16px 64px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #E8E8E4;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;">
 
-          <!-- Header -->
+          <!-- Brand line -->
           <tr>
-            <td style="background:#1A1A1A;padding:28px 32px;">
-              <p style="margin:0;font-size:20px;font-weight:700;color:#FFFFFF;letter-spacing:-0.03em;">Fotonizer</p>
+            <td style="padding:0 4px 20px;">
+              <p style="margin:0;font-size:13px;font-weight:700;color:#9B9B9B;letter-spacing:0.04em;text-transform:uppercase;">Fotonizer</p>
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Main card -->
           <tr>
-            <td style="padding:32px;">
-              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1A1A1A;letter-spacing:-0.02em;">
-                New inquiry received 📩
-              </p>
-              <p style="margin:0 0 24px;font-size:14px;color:#6B6B6B;">
-                Someone submitted your inquiry form.
-              </p>
+            <td style="background:#FFFFFF;border-radius:20px;border:1px solid #E8E6E1;overflow:hidden;">
 
-              <!-- Inquiry details card -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAF8;border:1px solid #E8E8E4;border-radius:12px;margin-bottom:24px;">
+              <!-- Top accent bar -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
-                  <td style="padding:20px 24px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
+                  <td style="height:4px;background:linear-gradient(90deg,#C4A47C 0%,#D4B48C 100%);"></td>
+                </tr>
+              </table>
+
+              <!-- Card body -->
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="padding:36px 40px 32px;">
+
+                    <!-- Heading -->
+                    <p style="margin:0 0 6px;font-size:26px;font-weight:800;color:#111111;letter-spacing:-0.03em;line-height:1.2;">
+                      Neue Anfrage 📩
+                    </p>
+                    <p style="margin:0 0 32px;font-size:14px;color:#888888;line-height:1.5;">
+                      Jemand hat dein Anfrageformular ausgefüllt — antworte so schnell wie möglich.
+                    </p>
+
+                    <!-- Fields -->
+                    ${fieldsHtml}
+
+                    <!-- Divider -->
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:32px 0 28px;">
+                      <tr><td style="height:1px;background:#F0EFEC;"></td></tr>
+                    </table>
+
+                    <!-- CTA -->
+                    <table cellpadding="0" cellspacing="0" role="presentation">
                       <tr>
-                        <td style="padding-bottom:12px;">
-                          <p style="margin:0 0 2px;font-size:11px;font-weight:600;color:#6B6B6B;text-transform:uppercase;letter-spacing:0.06em;">Name</p>
-                          <p style="margin:0;font-size:15px;font-weight:600;color:#1A1A1A;">${name}</p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom:12px;">
-                          <p style="margin:0 0 2px;font-size:11px;font-weight:600;color:#6B6B6B;text-transform:uppercase;letter-spacing:0.06em;">Email</p>
-                          <p style="margin:0;font-size:15px;color:#1A1A1A;">
-                            <a href="mailto:${email}" style="color:#C8A882;text-decoration:none;">${email}</a>
-                          </p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#6B6B6B;text-transform:uppercase;letter-spacing:0.06em;">Message</p>
-                          <p style="margin:0;font-size:14px;color:#1A1A1A;line-height:1.6;white-space:pre-wrap;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                        <td style="border-radius:12px;background:#C4A47C;">
+                          <a href="${appUrl}/dashboard/inbox"
+                             style="display:inline-block;padding:15px 32px;font-size:14px;font-weight:700;color:#FFFFFF;text-decoration:none;letter-spacing:-0.01em;line-height:1;">
+                            Im Posteingang öffnen →
+                          </a>
                         </td>
                       </tr>
                     </table>
+
                   </td>
                 </tr>
               </table>
 
-              <!-- CTA -->
-              <table cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="border-radius:10px;background:#1A1A1A;">
-                    <a href="${appUrl}/dashboard/inbox"
-                       style="display:inline-block;padding:14px 28px;font-size:14px;font-weight:700;color:#FFFFFF;text-decoration:none;letter-spacing:-0.01em;">
-                      Open in Fotonizer →
-                    </a>
-                  </td>
-                </tr>
-              </table>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 32px;border-top:1px solid #E8E8E4;">
-              <p style="margin:0;font-size:12px;color:#9B9B9B;">
-                You're receiving this because you have email notifications enabled in your Fotonizer settings.
-                <a href="${appUrl}/dashboard/settings" style="color:#C8A882;text-decoration:none;">Manage notifications</a>
+            <td style="padding:24px 4px 0;">
+              <p style="margin:0;font-size:12px;color:#AAAAAA;line-height:1.6;">
+                Du erhältst diese E-Mail, weil du E-Mail-Benachrichtigungen in deinen
+                <a href="${appUrl}/dashboard/settings" style="color:#C4A47C;text-decoration:none;">Fotonizer-Einstellungen</a> aktiviert hast.
               </p>
             </td>
           </tr>
@@ -199,14 +283,13 @@ async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
     </tr>
   </table>
 </body>
-</html>
-`
+</html>`
 
   const { error } = await resend.emails.send({
     from: 'Fotonizer <info@fotonizer.com>',
     to: payload.to,
     replyTo: payload.replyTo,
-    subject: 'New inquiry received 📩',
+    subject: `Neue Anfrage von ${name}`,
     html,
   })
 
