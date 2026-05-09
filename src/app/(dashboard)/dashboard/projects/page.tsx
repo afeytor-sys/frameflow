@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock, AlertTriangle, X } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock, AlertTriangle, X, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import PipelineClient from '../pipeline/PipelineClient'
@@ -87,6 +87,8 @@ function getClientName(client: Project['client']): string | null {
   return client.full_name || null
 }
 
+interface BookingQuestion { id: string; label: string; type: string; required: boolean; options?: string[] }
+
 interface OnlineBooking {
   id: string
   client_name: string
@@ -99,13 +101,18 @@ interface OnlineBooking {
   google_meet_link: string | null
   invoice_id: string | null
   notes: string | null
-  booking_types: { title: string; duration_minutes: number; location_type: string; price: number } | null
+  answers: Record<string, string> | null
+  booking_types: { title: string; duration_minutes: number; location_type: string; price: number; questions: BookingQuestion[] } | null
 }
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [onlineBookings, setOnlineBookings] = useState<OnlineBooking[]>([])
   const [bookingModal, setBookingModal] = useState<OnlineBooking | null>(null)
+  const [bookingEditMode, setBookingEditMode] = useState(false)
+  const [bookingEditNotes, setBookingEditNotes] = useState('')
+  const [bookingEditLink, setBookingEditLink] = useState('')
+  const [bookingEditSaving, setBookingEditSaving] = useState(false)
   const [bookingLoading, setBookingLoading] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -194,7 +201,7 @@ export default function ProjectsPage() {
           .order('sort_order', { ascending: true }),
         supabase
           .from('bookings')
-          .select('id, client_name, client_email, booked_date, booked_time, status, payment_reference, deposit_amount, google_meet_link, invoice_id, notes, booking_types(title, duration_minutes, location_type, price)')
+          .select('id, client_name, client_email, booked_date, booked_time, status, payment_reference, deposit_amount, google_meet_link, invoice_id, notes, answers, booking_types(title, duration_minutes, location_type, price, questions)')
           .eq('photographer_id', user.id)
           .not('status', 'eq', 'cancelled')
           .order('booked_date', { ascending: true }),
@@ -428,6 +435,24 @@ export default function ProjectsPage() {
       toast.success('Storniert')
     } else toast.error('Fehler')
     setBookingLoading(null)
+  }
+
+  const handleBookingUpdate = async () => {
+    if (!bookingModal) return
+    setBookingEditSaving(true)
+    const res = await fetch(`/api/bookings/${bookingModal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: bookingEditNotes || null, google_meet_link: bookingEditLink || null }),
+    })
+    if (res.ok) {
+      const updated = { ...bookingModal, notes: bookingEditNotes || null, google_meet_link: bookingEditLink || null }
+      setBookingModal(updated)
+      setOnlineBookings(bs => bs.map(b => b.id === bookingModal.id ? updated : b))
+      setBookingEditMode(false)
+      toast.success('Gespeichert')
+    } else toast.error('Fehler beim Speichern')
+    setBookingEditSaving(false)
   }
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -1280,90 +1305,191 @@ export default function ProjectsPage() {
       )}
     </div>
 
-    {/* Booking detail modal — outside animate-in to avoid transform stacking context breaking fixed positioning */}
+    {/* Booking detail modal */}
     {bm && bkSt && (() => {
       const isOnline = bm.booking_types?.location_type === 'online'
       const price = bm.booking_types?.price ?? 0
+      const questions = bm.booking_types?.questions ?? []
+      const answers = bm.answers ?? {}
+      const answeredQs = questions.filter(q => answers[q.id]?.trim())
       return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setBookingModal(null)}
+          onClick={() => { setBookingModal(null); setBookingEditMode(false) }}
         >
           <div
-            className="w-full max-w-md rounded-2xl p-6 space-y-5"
-            style={{ background: 'var(--bg-surface)', maxHeight: '90vh', overflowY: 'auto' }}
+            className="w-full max-w-md rounded-2xl flex flex-col"
+            style={{ background: 'var(--bg-surface)', maxHeight: '90vh' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-black text-[17px]" style={{ color: 'var(--text-primary)' }}>{bm.booking_types?.title ?? 'Buchung'}</p>
-                  {isOnline && <Video className="w-4 h-4 flex-shrink-0" style={{ color: '#6366F1' }} />}
-                </div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold" style={{ background: bkSt.color + '18', color: bkSt.color }}>{bkSt.label}</span>
-              </div>
-              <button onClick={() => setBookingModal(null)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-4">
 
-            {/* Details */}
-            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
-              <div className="flex items-center gap-2 text-[13px]">
-                <User className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{bm.client_name}</span>
-                <span style={{ color: 'var(--text-muted)' }}>·</span>
-                <span style={{ color: 'var(--text-muted)' }}>{bm.client_email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[13px]">
-                <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                <span style={{ color: 'var(--text-primary)' }}>
-                  {new Date(bm.booked_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  {' · '}{String(bm.booked_time).slice(0, 5)} {de ? 'Uhr' : ''}
-                </span>
-              </div>
-              {bm.booking_types?.duration_minutes && (
-                <div className="flex items-center gap-2 text-[13px]">
-                  <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                  <span style={{ color: 'var(--text-primary)' }}>{bm.booking_types.duration_minutes} {de ? 'Minuten' : 'minutes'}</span>
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <p className="font-black text-[17px] leading-tight" style={{ color: 'var(--text-primary)' }}>{bm.booking_types?.title ?? 'Buchung'}</p>
+                    {isOnline && <Video className="w-4 h-4 flex-shrink-0" style={{ color: '#6366F1' }} />}
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold" style={{ background: bkSt.color + '18', color: bkSt.color }}>{bkSt.label}</span>
                 </div>
-              )}
-              {price > 0 && (
+                <button onClick={() => { setBookingModal(null); setBookingEditMode(false) }} className="p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Details card */}
+              <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-2 text-[13px]">
-                  <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price / 100)}
-                    {bm.deposit_amount ? ` · Anzahlung: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(bm.deposit_amount / 100)}` : ''}
+                  <User className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{bm.client_name}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>·</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{bm.client_email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[13px]">
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ color: 'var(--text-primary)' }}>
+                    {new Date(bm.booked_date + 'T00:00:00').toLocaleDateString(de ? 'de-DE' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    {' · '}{String(bm.booked_time).slice(0, 5)} {de ? 'Uhr' : ''}
                   </span>
                 </div>
-              )}
-              {bm.payment_reference && (
-                <div className="flex items-center gap-2 text-[13px]">
-                  <span className="text-[11px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{bm.payment_reference}</span>
+                {bm.booking_types?.duration_minutes && (
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ color: 'var(--text-primary)' }}>{bm.booking_types.duration_minutes} {de ? 'Minuten' : 'minutes'}</span>
+                  </div>
+                )}
+                {price > 0 && (
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <FileText className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                      {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(price / 100)}
+                      {bm.deposit_amount ? ` · Anzahlung: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(bm.deposit_amount / 100)}` : ''}
+                    </span>
+                  </div>
+                )}
+                {bm.payment_reference && (
+                  <span className="inline-block text-[11px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{bm.payment_reference}</span>
+                )}
+                {bm.google_meet_link && !bookingEditMode && (
+                  <a href={bm.google_meet_link} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80"
+                    style={{ color: '#6366F1' }}>
+                    <Video className="w-3.5 h-3.5" />
+                    {bm.google_meet_link.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
+                {bm.notes && !bookingEditMode && (
+                  <div className="flex items-start gap-2 text-[13px]">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{bm.notes}</span>
+                  </div>
+                )}
+                {bm.invoice_id && (
+                  <Link href={`/dashboard/invoices/${bm.invoice_id}`}
+                    className="flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80"
+                    style={{ color: '#10B981' }}>
+                    <FileText className="w-3.5 h-3.5" />
+                    {de ? 'Rechnung öffnen' : 'Open invoice'}
+                  </Link>
+                )}
+              </div>
+
+              {/* Client answers */}
+              {answeredQs.length > 0 && (
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
+                  <div className="px-4 py-2.5" style={{ background: 'var(--bg-hover)', borderBottom: '1px solid var(--border-color)' }}>
+                    <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      {de ? 'Antworten des Kunden' : 'Client answers'}
+                    </p>
+                  </div>
+                  <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                    {answeredQs.map(q => {
+                      const val = answers[q.id]
+                      const isMulti = val.includes('||')
+                      return (
+                        <div key={q.id} className="px-4 py-3">
+                          <p className="text-[11px] font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>{q.label}</p>
+                          {isMulti
+                            ? <div className="flex flex-wrap gap-1">{val.split('||').map(v => (
+                                <span key={v} className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>{v}</span>
+                              ))}</div>
+                            : <p className="text-[13px]" style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{val}</p>
+                          }
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
-              {bm.google_meet_link && (
-                <a href={bm.google_meet_link} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80"
-                  style={{ color: '#6366F1' }}>
-                  <Video className="w-3.5 h-3.5" />
-                  Google Meet beitreten
-                </a>
+
+              {/* Edit section */}
+              {bookingEditMode ? (
+                <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--accent)', borderColor: 'var(--accent)' }}>
+                  <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
+                    {de ? 'Buchung bearbeiten' : 'Edit booking'}
+                  </p>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                      {de ? 'Treffpunkt / Notizen' : 'Meeting point / Notes'}
+                    </label>
+                    <textarea
+                      value={bookingEditNotes}
+                      onChange={e => setBookingEditNotes(e.target.value)}
+                      rows={3}
+                      placeholder={de ? 'z.B. Treffpunkt: Hauptbahnhof Eingang Nord...' : 'e.g. Meeting point: Main station north entrance...'}
+                      className="w-full rounded-xl px-3 py-2.5 text-[13px] resize-none transition-all outline-none"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                      {de ? 'Meeting-Link (optional)' : 'Meeting link (optional)'}
+                    </label>
+                    <input
+                      type="url"
+                      value={bookingEditLink}
+                      onChange={e => setBookingEditLink(e.target.value)}
+                      placeholder="https://meet.google.com/..."
+                      className="w-full rounded-xl px-3 py-2.5 text-[13px] transition-all outline-none"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={handleBookingUpdate}
+                      disabled={bookingEditSaving}
+                      className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: 'var(--accent)', color: '#1A1A18' }}
+                    >
+                      {bookingEditSaving ? '...' : (de ? 'Speichern' : 'Save')}
+                    </button>
+                    <button
+                      onClick={() => setBookingEditMode(false)}
+                      className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                    >
+                      {de ? 'Abbrechen' : 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setBookingEditNotes(bm.notes ?? ''); setBookingEditLink(bm.google_meet_link ?? ''); setBookingEditMode(true) }}
+                  className="w-full py-2.5 rounded-xl text-[13px] font-medium transition-all hover:opacity-80 flex items-center justify-center gap-2"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px dashed var(--border-color)' }}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {de ? 'Treffpunkt / Link hinzufügen' : 'Add meeting point / link'}
+                </button>
               )}
-              {bm.invoice_id && (
-                <Link href={`/dashboard/invoices/${bm.invoice_id}`}
-                  className="flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80"
-                  style={{ color: '#10B981' }}>
-                  <FileText className="w-3.5 h-3.5" />
-                  {de ? 'Rechnung öffnen' : 'Open invoice'}
-                </Link>
-              )}
+
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col gap-2">
+            {/* Sticky action buttons */}
+            <div className="p-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-color)' }}>
               {(bm.status === 'pending' || bm.status === 'deposit_received') && (
                 <button
                   className="w-full py-2.5 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
