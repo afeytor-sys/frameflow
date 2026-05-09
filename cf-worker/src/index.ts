@@ -231,9 +231,40 @@ async function processZipPart(job: ZipJobMessage, env: Env): Promise<void> {
 
   const p = part as DownloadPart
 
-  // Idempotency: skip if already completed (duplicate delivery)
+  // Idempotency: part already done — but still check if email needs sending
   if (p.status === 'done') {
-    console.log(`[consumer] part ${p.part_number}/${p.total_parts} already done — skipping`)
+    console.log(`[consumer] part ${p.part_number}/${p.total_parts} already done — checking email`)
+    const { count: remaining } = await supabase
+      .from('gallery_download_parts')
+      .select('*', { count: 'exact', head: true })
+      .eq('job_id', job.jobId)
+      .neq('status', 'done')
+
+    if ((remaining ?? 1) !== 0) return
+
+    const { data: emailJob } = await supabase
+      .from('gallery_download_jobs')
+      .select('email, download_token, email_sent_at, status')
+      .eq('id', job.jobId)
+      .single()
+
+    if (!emailJob?.email || !emailJob?.download_token || emailJob?.email_sent_at) return
+    if (emailJob.status !== 'ready') return
+
+    // Atomic claim to prevent double-send
+    const { data: claimed } = await supabase
+      .from('gallery_download_jobs')
+      .update({ email_sent_at: new Date().toISOString() })
+      .eq('id', job.jobId)
+      .is('email_sent_at', null)
+      .select('id')
+      .maybeSingle()
+
+    if (!claimed) return
+
+    console.log(`[consumer] idempotency retry — sending email for job ${job.jobId}`)
+    await sendDownloadReadyEmail(p.gallery_id, emailJob.email, emailJob.download_token, p.total_parts, env, supabase)
+    console.log(`[consumer] idempotency retry email sent OK`)
     return
   }
 
