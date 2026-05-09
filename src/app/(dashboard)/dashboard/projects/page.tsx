@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock, AlertTriangle, X, Pencil } from 'lucide-react'
+import { FolderOpen, Plus, Trash2, Calendar, CalendarDays, User, ArrowUpRight, LayoutGrid, List, GripVertical, Camera, ChevronDown, SlidersHorizontal, Kanban, MapPin, ChevronLeft, ChevronRight, Video, CheckCircle2, XCircle, FileText, Clock, AlertTriangle, X, Pencil, Share2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import PipelineClient from '../pipeline/PipelineClient'
@@ -156,6 +157,7 @@ export default function ProjectsPage() {
   const de = locale === 'de'
   const STATUS_CONFIG = de ? STATUS_CONFIG_DE : STATUS_CONFIG_EN
   const supabase = createClient()
+  const router = useRouter()
   // Tab state — persisted to localStorage
   const [activeTab, setActiveTab] = useState<'pipeline' | 'list' | 'calendar'>(() => {
     if (typeof window !== 'undefined') {
@@ -414,14 +416,24 @@ export default function ProjectsPage() {
     setBookingLoading(null)
   }
 
-  const handleBookingComplete = async (id: string) => {
+  const handleBookingComplete = async (id: string, skipInvoice = false) => {
     setBookingLoading(id + '_complete')
-    const res = await fetch(`/api/bookings/${id}/complete`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    const res = await fetch(`/api/bookings/${id}/complete`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skip_invoice: skipInvoice }),
+    })
     const data = await res.json()
     if (res.ok) {
-      setOnlineBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'completed', invoice_id: data.invoiceId } : b))
+      setOnlineBookings(bs => bs.map(b => b.id === id ? { ...b, status: 'completed', invoice_id: data.invoiceId ?? null } : b))
       setBookingModal(null)
-      toast.success(data.invoiceId ? 'Abgeschlossen — Rechnung erstellt' : 'Abgeschlossen')
+      setBookingEditMode(false)
+      if (data.invoiceId) {
+        toast.success(de ? 'Abgeschlossen — Rechnung erstellt' : 'Completed — invoice created')
+        router.push(`/dashboard/invoices/${data.invoiceId}`)
+      } else {
+        toast.success(de ? 'Abgeschlossen' : 'Completed')
+      }
     } else toast.error(data.error ?? 'Fehler')
     setBookingLoading(null)
   }
@@ -1502,16 +1514,38 @@ export default function ProjectsPage() {
                 </button>
               )}
               {(bm.status === 'confirmed' || bm.status === 'deposit_received') && (
-                <button
-                  className="w-full py-2.5 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
-                  style={{ background: '#8B5CF6' }}
-                  disabled={bookingLoading === bm.id + '_complete'}
-                  onClick={() => handleBookingComplete(bm.id)}
-                >
-                  <FileText className="w-4 h-4" />
-                  {bookingLoading === bm.id + '_complete' ? '...' : (de ? 'Abschließen & Rechnung erstellen' : 'Complete & create invoice')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 py-2.5 rounded-xl text-[14px] font-medium transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                    disabled={bookingLoading === bm.id + '_complete'}
+                    onClick={() => handleBookingComplete(bm.id, true)}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {bookingLoading === bm.id + '_complete' ? '...' : (de ? 'Abschließen' : 'Complete')}
+                  </button>
+                  <button
+                    className="flex-1 py-2.5 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                    style={{ background: '#8B5CF6' }}
+                    disabled={bookingLoading === bm.id + '_complete'}
+                    onClick={() => handleBookingComplete(bm.id, false)}
+                  >
+                    <FileText className="w-4 h-4" />
+                    {bookingLoading === bm.id + '_complete' ? '...' : (de ? 'Rechnung erstellen' : 'Create invoice')}
+                  </button>
+                </div>
               )}
+              <button
+                className="w-full py-2.5 rounded-xl text-[13px] font-medium transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                onClick={() => {
+                  const url = `${window.location.origin}/b/booking/${bm.id}`
+                  navigator.clipboard.writeText(url).then(() => toast.success(de ? 'Link kopiert!' : 'Link copied!'))
+                }}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                {de ? 'Link für Kunden teilen' : 'Share link with client'}
+              </button>
               {bm.status !== 'completed' && bm.status !== 'cancelled' && (
                 <button
                   className="w-full py-2.5 rounded-xl text-[14px] font-medium transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
