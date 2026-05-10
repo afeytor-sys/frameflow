@@ -9,7 +9,7 @@ export default async function OffersPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: photographer }, { data: offers }, { data: clients }] = await Promise.all([
+  const [{ data: photographer }, { data: offers }, { data: clients }, { data: servicePresets }] = await Promise.all([
     supabase
       .from('photographers')
       .select('id, full_name, studio_name, logo_url, email')
@@ -32,6 +32,12 @@ export default async function OffersPage() {
       .eq('photographer_id', user.id)
       .eq('status', 'active')
       .order('full_name'),
+    supabase
+      .from('photographer_service_presets')
+      .select('id, title, description, price, sort_order')
+      .eq('photographer_id', user.id)
+      .order('sort_order')
+      .order('created_at'),
   ])
 
   return (
@@ -39,6 +45,7 @@ export default async function OffersPage() {
       initialOffers={offers || []}
       clients={clients || []}
       photographer={photographer}
+      initialServicePresets={servicePresets || []}
     />
   )
 }

@@ -23,7 +23,7 @@ interface OfferExtra {
   sort_order: number
 }
 
-interface GalleryLink { label: string; url: string }
+interface GalleryLink { label: string; description?: string; url: string; image_url?: string }
 
 interface Offer {
   id: string
@@ -319,7 +319,7 @@ export default function OfferPublicClient({ offer, photographer, clientName, ser
             <h2 style={{ margin: '0 0 20px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5ADA3' }}>
               Beispiele & Links
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {offer.gallery_links.map((lnk, i) => (
                 <a
                   key={i}
@@ -327,20 +327,62 @@ export default function OfferPublicClient({ offer, photographer, clientName, ser
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
+                    display: 'block',
                     background: '#fff',
                     border: '1px solid #EDE9E3',
-                    borderRadius: '14px',
+                    borderRadius: '20px',
                     textDecoration: 'none',
-                    transition: 'all 0.15s',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+                    transition: 'box-shadow 0.18s, border-color 0.18s',
+                  }}
+                  onMouseEnter={e => {
+                    ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 32px rgba(196,164,124,0.18)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(196,164,124,0.4)'
+                  }}
+                  onMouseLeave={e => {
+                    ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 2px 16px rgba(0,0,0,0.05)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.borderColor = '#EDE9E3'
                   }}
                 >
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#1C1C1A' }}>{lnk.label || lnk.url}</span>
-                  <ExternalLink style={{ width: '15px', height: '15px', color: '#C4A47C', flexShrink: 0 }} />
+                  {/* Cover image */}
+                  {lnk.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={lnk.image_url}
+                      alt={lnk.label}
+                      style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
+                    />
+                  )}
+                  <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1C1C1A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {lnk.label || lnk.url}
+                      </p>
+                      {lnk.description && (
+                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#9A9188', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {lnk.description}
+                        </p>
+                      )}
+                    </div>
+                    <span style={{
+                      flexShrink: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      background: 'rgba(196,164,124,0.1)',
+                      borderRadius: '100px',
+                      border: '1px solid rgba(196,164,124,0.25)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#C4A47C',
+                      letterSpacing: '0.04em',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Ansehen <ExternalLink style={{ width: '11px', height: '11px' }} />
+                    </span>
+                  </div>
                 </a>
               ))}
             </div>

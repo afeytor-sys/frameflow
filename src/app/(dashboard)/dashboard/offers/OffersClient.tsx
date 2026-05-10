@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
-  Plus, Send, CheckCircle2, Clock, XCircle, FileEdit,
-  Trash2, Copy, ExternalLink, ChevronRight, Eye, X,
-  Check, ArrowLeft, ArrowRight, Sparkles, Link2,
-  GripVertical, ToggleLeft, ToggleRight,
+  Plus, Send, CheckCircle2, Clock, XCircle, FileEdit, Trash2,
+  Copy, ExternalLink, Eye, X, Check, Sparkles, Link2, ChevronDown,
+  ArrowLeft, BookOpen, ToggleRight, ToggleLeft, Save,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -13,117 +12,57 @@ import { OFFER_TEMPLATES, OfferTemplate } from '@/lib/offerTemplates'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface Client {
-  id: string
-  full_name: string
-  email: string | null
-}
+interface Client { id: string; full_name: string; email: string | null }
+
+interface ServicePreset { id: string; title: string; description: string | null; price: number | null }
 
 interface OfferService {
-  id?: string
-  title: string
-  description?: string | null
-  included: boolean
-  price?: number | null
-  sort_order: number
+  id?: string; title: string; description?: string | null
+  included: boolean; price?: number | null; sort_order: number
 }
-
 interface OfferExtra {
-  id?: string
-  title: string
-  description?: string | null
-  price: number
-  selectable: boolean
-  sort_order: number
+  id?: string; title: string; description?: string | null
+  price: number; selectable: boolean; sort_order: number
 }
-
-interface GalleryLink {
-  label: string
-  url: string
-}
+interface LinkBlock { label: string; description?: string; url: string; image_url?: string }
 
 interface Offer {
-  id: string
-  title: string
-  slug: string
+  id: string; title: string; slug: string
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'expired' | 'declined'
-  event_date: string | null
-  valid_until: string | null
-  base_price: number
-  currency: string
-  deposit_amount: number | null
-  intro_text: string | null
-  notes: string | null
-  gallery_links: GalleryLink[]
-  created_at: string
+  event_date: string | null; valid_until: string | null
+  base_price: number; currency: string; deposit_amount: number | null
+  intro_text: string | null; notes: string | null
+  gallery_links: LinkBlock[]; created_at: string
   client?: { id: string; full_name: string; email: string | null } | { id: string; full_name: string; email: string | null }[] | null
-  services?: OfferService[]
-  extras?: OfferExtra[]
+  services?: OfferService[]; extras?: OfferExtra[]
 }
 
 interface Photographer {
-  id: string
-  full_name: string | null
-  studio_name: string | null
-  logo_url: string | null
-  email: string | null
+  id: string; full_name: string | null; studio_name: string | null
+  logo_url: string | null; email: string | null
 }
 
 interface Props {
-  initialOffers: Offer[]
-  clients: Client[]
+  initialOffers: Offer[]; clients: Client[]
   photographer: Photographer | null
+  initialServicePresets: ServicePreset[]
 }
 
-// ── Builder state types ───────────────────────────────────────────────────────
+// ── Builder item types ────────────────────────────────────────────────────────
 
-interface BuilderService {
-  _id: string
-  title: string
-  description: string
-  included: boolean
-  price: string
-}
-
-interface BuilderExtra {
-  _id: string
-  title: string
-  description: string
-  price: string
-}
-
-interface BuilderLink {
-  _id: string
-  label: string
-  url: string
-}
+interface BService { _id: string; title: string; description: string; included: boolean; price: string }
+interface BExtra  { _id: string; title: string; description: string; price: string }
+interface BLink   { _id: string; label: string; description: string; url: string; image_url: string }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatEur(cents: number) {
-  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
-}
+const uid = () => Math.random().toString(36).slice(2, 10)
+const formatEur = (c: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(c / 100)
+const parseCents = (v: string) => { const n = parseFloat(v.replace(',', '.')); return isNaN(n) ? 0 : Math.round(n * 100) }
+const getClientName = (o: Offer) => { if (!o.client) return null; const c = Array.isArray(o.client) ? o.client[0] : o.client; return c?.full_name || null }
+const getSiteUrl = () => typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '')
 
-function parsePriceCents(val: string): number {
-  const n = parseFloat(val.replace(',', '.'))
-  return isNaN(n) ? 0 : Math.round(n * 100)
-}
-
-function getClientName(offer: Offer): string | null {
-  if (!offer.client) return null
-  const c = Array.isArray(offer.client) ? offer.client[0] : offer.client
-  return c?.full_name || null
-}
-
-function getSiteUrl() {
-  return typeof window !== 'undefined'
-    ? window.location.origin
-    : (process.env.NEXT_PUBLIC_APP_URL || 'https://fotonizer.com')
-}
-
-function uid() { return Math.random().toString(36).slice(2, 10) }
-
-const STATUS_CONFIG = {
+const STATUS_CFG = {
   draft:    { label: 'Entwurf',    color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', Icon: FileEdit },
   sent:     { label: 'Versendet',  color: '#6366F1', bg: 'rgba(99,102,241,0.12)',  Icon: Send },
   viewed:   { label: 'Angesehen',  color: '#3B82F6', bg: 'rgba(59,130,246,0.12)',  Icon: Eye },
@@ -132,382 +71,784 @@ const STATUS_CONFIG = {
   declined: { label: 'Abgelehnt',  color: '#EF4444', bg: 'rgba(239,68,68,0.12)',   Icon: XCircle },
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Section wrapper ───────────────────────────────────────────────────────────
 
-export default function OffersClient({ initialOffers, clients, photographer }: Props) {
-  const locale = useLocale()
+function Section({ label, count, actions, children, defaultOpen = true }: {
+  label: string; count?: number; actions?: React.ReactNode
+  children: React.ReactNode; defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #E8E4DC', overflow: 'hidden', marginBottom: '10px' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 20px', cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setOpen(o => !o)}
+      >
+        <ChevronDown style={{ width: 15, height: 15, color: '#B5ADA3', transition: 'transform 0.2s', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', flexShrink: 0 }} />
+        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B5ADA3' }}>{label}</span>
+        {count !== undefined && count > 0 && (
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#C4A47C', background: 'rgba(196,164,124,0.12)', borderRadius: '100px', padding: '1px 7px' }}>{count}</span>
+        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+          {actions}
+        </div>
+      </div>
+      {open && <div style={{ padding: '2px 20px 20px' }}>{children}</div>}
+    </div>
+  )
+}
+
+// ── Inline action button ──────────────────────────────────────────────────────
+
+function ActBtn({ onClick, children, color }: { onClick: () => void; children: React.ReactNode; color?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '4px',
+        padding: '4px 10px', borderRadius: '8px', border: 'none',
+        background: 'transparent', cursor: 'pointer', fontSize: '12px',
+        fontWeight: 600, color: color || '#B5ADA3',
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {children}
+    </button>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function OffersClient({ initialOffers, clients, photographer, initialServicePresets }: Props) {
+  useLocale()
   const [offers, setOffers] = useState<Offer[]>(initialOffers)
   const [tab, setTab] = useState<'all' | 'draft' | 'sent' | 'accepted' | 'expired'>('all')
-  const [showBuilder, setShowBuilder] = useState(false)
+  const [view, setView] = useState<'list' | 'builder'>('list')
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [saving, setSaving] = useState(false)
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [servicePresets, setServicePresets] = useState<ServicePreset[]>(initialServicePresets)
 
   // ── Builder form state ─────────────────────────────────────────────────────
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    title: '', clientId: '', eventDate: '', validUntil: '',
-    basePrice: '', depositAmount: '', introText: '',
-  })
-  const [services, setServices] = useState<BuilderService[]>([])
-  const [extras, setExtras] = useState<BuilderExtra[]>([])
-  const [links, setLinks] = useState<BuilderLink[]>([])
+  const [title, setTitle] = useState('')
+  const [clientId, setClientId] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [validUntil, setValidUntil] = useState('')
+  const [basePrice, setBasePrice] = useState('')
+  const [depositAmount, setDepositAmount] = useState('')
+  const [introText, setIntroText] = useState('')
+  const [services, setServices] = useState<BService[]>([])
+  const [extras, setExtras] = useState<BExtra[]>([])
+  const [links, setLinks] = useState<BLink[]>([])
+
+  // ── Builder UI state ───────────────────────────────────────────────────────
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved')
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [addingSvc, setAddingSvc] = useState(false)
+  const [newSvc, setNewSvc] = useState({ title: '', description: '', price: '', saveToLib: false })
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const isFirstRender = useRef(true)
+
+  // ── Autosave for existing offers ───────────────────────────────────────────
+  const formSnapshot = JSON.stringify({ title, clientId, eventDate, validUntil, basePrice, depositAmount, introText, services, extras, links })
+
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return }
+    if (!editingOffer) return
+    setSaveStatus('unsaved')
+    clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = setTimeout(() => {
+      doSave(editingOffer.id)
+    }, 2500)
+    return () => clearTimeout(autosaveTimer.current)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formSnapshot])
 
   // ── Open builder ───────────────────────────────────────────────────────────
   const openNew = () => {
     setEditingOffer(null)
-    setStep(1)
-    setSelectedTemplate(null)
-    setForm({ title: '', clientId: '', eventDate: '', validUntil: '', basePrice: '', depositAmount: '', introText: '' })
-    setServices([])
-    setExtras([])
-    setLinks([])
-    setShowBuilder(true)
+    setTitle(''); setClientId(''); setEventDate(''); setValidUntil('')
+    setBasePrice(''); setDepositAmount(''); setIntroText('')
+    setServices([]); setExtras([]); setLinks([])
+    setSaveStatus('saved'); setShowLibrary(false); setAddingSvc(false)
+    isFirstRender.current = true
+    setView('builder')
   }
 
   const openEdit = (offer: Offer) => {
     setEditingOffer(offer)
-    setStep(1)
-    setSelectedTemplate(null)
-    const clientId = offer.client
-      ? (Array.isArray(offer.client) ? offer.client[0]?.id : offer.client?.id) || ''
-      : ''
-    setForm({
-      title: offer.title,
-      clientId,
-      eventDate: offer.event_date || '',
-      validUntil: offer.valid_until || '',
-      basePrice: offer.base_price ? (offer.base_price / 100).toFixed(2) : '',
-      depositAmount: offer.deposit_amount ? (offer.deposit_amount / 100).toFixed(2) : '',
-      introText: offer.intro_text || '',
-    })
-    setServices((offer.services || []).map(s => ({
-      _id: uid(),
-      title: s.title,
-      description: s.description || '',
-      included: s.included,
-      price: s.price ? (s.price / 100).toFixed(2) : '',
-    })))
-    setExtras((offer.extras || []).map(e => ({
-      _id: uid(),
-      title: e.title,
-      description: e.description || '',
-      price: e.price ? (e.price / 100).toFixed(2) : '',
-    })))
-    setLinks((offer.gallery_links || []).map(l => ({ _id: uid(), label: l.label, url: l.url })))
-    setShowBuilder(true)
+    const cId = offer.client ? (Array.isArray(offer.client) ? offer.client[0]?.id : offer.client?.id) || '' : ''
+    setTitle(offer.title)
+    setClientId(cId)
+    setEventDate(offer.event_date || '')
+    setValidUntil(offer.valid_until || '')
+    setBasePrice(offer.base_price ? (offer.base_price / 100).toFixed(2) : '')
+    setDepositAmount(offer.deposit_amount ? (offer.deposit_amount / 100).toFixed(2) : '')
+    setIntroText(offer.intro_text || '')
+    setServices((offer.services || []).map(s => ({ _id: uid(), title: s.title, description: s.description || '', included: s.included, price: s.price ? (s.price / 100).toFixed(2) : '' })))
+    setExtras((offer.extras || []).map(e => ({ _id: uid(), title: e.title, description: e.description || '', price: e.price ? (e.price / 100).toFixed(2) : '' })))
+    setLinks((offer.gallery_links || []).map(l => ({ _id: uid(), label: l.label, description: l.description || '', url: l.url, image_url: l.image_url || '' })))
+    setSaveStatus('saved'); setShowLibrary(false); setAddingSvc(false)
+    isFirstRender.current = true
+    setView('builder')
   }
 
   // ── Apply template ─────────────────────────────────────────────────────────
   const applyTemplate = useCallback((tpl: OfferTemplate) => {
-    setSelectedTemplate(tpl.id)
-    setForm(prev => ({
-      ...prev,
-      introText: prev.introText || tpl.introText,
-      basePrice: prev.basePrice || (tpl.basePrice / 100).toFixed(2),
-    }))
-    setServices(tpl.services.map(s => ({
-      _id: uid(),
-      title: s.title,
-      description: s.description || '',
-      included: s.included,
-      price: '',
-    })))
-    setExtras(tpl.extras.map(e => ({
-      _id: uid(),
-      title: e.title,
-      description: '',
-      price: e.price ? (e.price / 100).toFixed(2) : '',
-    })))
-  }, [])
+    if (introText.trim() === '') setIntroText(tpl.introText)
+    if (basePrice === '') setBasePrice((tpl.basePrice / 100).toFixed(2))
+    setServices(tpl.services.map(s => ({ _id: uid(), title: s.title, description: s.description || '', included: s.included, price: '' })))
+    setExtras(tpl.extras.map(e => ({ _id: uid(), title: e.title, description: '', price: e.price ? (e.price / 100).toFixed(2) : '' })))
+  }, [introText, basePrice])
 
   // ── Service helpers ────────────────────────────────────────────────────────
-  const addService = () => setServices(prev => [...prev, { _id: uid(), title: '', description: '', included: true, price: '' }])
-  const removeService = (id: string) => setServices(prev => prev.filter(s => s._id !== id))
-  const updateService = useCallback((id: string, patch: Partial<BuilderService>) =>
-    setServices(prev => prev.map(s => s._id === id ? { ...s, ...patch } : s)), [])
+  const addSvcFromPreset = (p: ServicePreset) => {
+    setServices(prev => [...prev, { _id: uid(), title: p.title, description: p.description || '', included: true, price: p.price ? (p.price / 100).toFixed(2) : '' }])
+    setShowLibrary(false)
+  }
 
-  // ── Extra helpers ──────────────────────────────────────────────────────────
-  const addExtra = () => setExtras(prev => [...prev, { _id: uid(), title: '', description: '', price: '' }])
-  const removeExtra = (id: string) => setExtras(prev => prev.filter(e => e._id !== id))
-  const updateExtra = useCallback((id: string, patch: Partial<BuilderExtra>) =>
-    setExtras(prev => prev.map(e => e._id === id ? { ...e, ...patch } : e)), [])
-
-  // ── Link helpers ───────────────────────────────────────────────────────────
-  const addLink = () => setLinks(prev => [...prev, { _id: uid(), label: '', url: '' }])
-  const removeLink = (id: string) => setLinks(prev => prev.filter(l => l._id !== id))
-  const updateLink = useCallback((id: string, patch: Partial<BuilderLink>) =>
-    setLinks(prev => prev.map(l => l._id === id ? { ...l, ...patch } : l)), [])
-
-  // ── Save offer ─────────────────────────────────────────────────────────────
-  const handleSave = async () => {
-    if (!form.title.trim()) { toast.error('Bitte Titel eingeben'); return }
-    setSaving(true)
-    try {
-      const payload = {
-        title: form.title.trim(),
-        client_id: form.clientId || null,
-        event_date: form.eventDate || null,
-        valid_until: form.validUntil || null,
-        base_price: parsePriceCents(form.basePrice),
-        deposit_amount: form.depositAmount ? parsePriceCents(form.depositAmount) : null,
-        intro_text: form.introText.trim() || null,
-        gallery_links: links.filter(l => l.url.trim()).map(l => ({ label: l.label, url: l.url })),
-        services: services.filter(s => s.title.trim()).map(s => ({
-          title: s.title.trim(),
-          description: s.description.trim() || null,
-          included: s.included,
-          price: s.price ? parsePriceCents(s.price) : null,
-        })),
-        extras: extras.filter(e => e.title.trim()).map(e => ({
-          title: e.title.trim(),
-          description: e.description.trim() || null,
-          price: parsePriceCents(e.price),
-          selectable: true,
-        })),
-      }
-
-      if (editingOffer) {
-        const res = await fetch(`/api/offers/${editingOffer.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) { toast.error('Fehler beim Speichern'); return }
-
-        setOffers(prev => prev.map(o => o.id !== editingOffer.id ? o : {
-          ...o, ...payload,
-          client: clients.find(c => c.id === payload.client_id) || o.client,
-          services: services.filter(s => s.title.trim()).map((s, i) => ({ title: s.title, description: s.description || null, included: s.included, price: s.price ? parsePriceCents(s.price) : null, sort_order: i })),
-          extras: extras.filter(e => e.title.trim()).map((e, i) => ({ title: e.title, description: e.description || null, price: parsePriceCents(e.price), selectable: true, sort_order: i })),
-          gallery_links: links.filter(l => l.url.trim()).map(l => ({ label: l.label, url: l.url })),
-        }))
-        toast.success('Angebot gespeichert')
-      } else {
-        const res = await fetch('/api/offers', {
+  const commitNewSvc = async () => {
+    if (!newSvc.title.trim()) return
+    setServices(prev => [...prev, { _id: uid(), title: newSvc.title.trim(), description: newSvc.description.trim(), included: true, price: newSvc.price }])
+    if (newSvc.saveToLib) {
+      try {
+        const res = await fetch('/api/offers/service-presets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ title: newSvc.title.trim(), description: newSvc.description.trim() || null, price: newSvc.price ? parseCents(newSvc.price) : null }),
         })
-        if (!res.ok) { toast.error('Fehler beim Erstellen'); return }
-        const { id, slug } = await res.json()
-        const newOffer: Offer = {
-          id, slug, status: 'draft', created_at: new Date().toISOString(),
-          currency: 'EUR', notes: null, ...payload,
-          client: clients.find(c => c.id === payload.client_id) || null,
-          services: services.filter(s => s.title.trim()).map((s, i) => ({ title: s.title, description: s.description || null, included: s.included, price: s.price ? parsePriceCents(s.price) : null, sort_order: i })),
-          extras: extras.filter(e => e.title.trim()).map((e, i) => ({ title: e.title, description: e.description || null, price: parsePriceCents(e.price), selectable: true, sort_order: i })),
+        if (res.ok) {
+          const preset = await res.json()
+          setServicePresets(prev => [...prev, preset])
+          toast.success('In Bibliothek gespeichert')
         }
-        setOffers(prev => [newOffer, ...prev])
-        toast.success('Angebot erstellt')
+      } catch { /* non-critical */ }
+    }
+    setNewSvc({ title: '', description: '', price: '', saveToLib: false })
+    setAddingSvc(false)
+  }
+
+  const deletePreset = async (id: string) => {
+    setServicePresets(prev => prev.filter(p => p.id !== id))
+    await fetch(`/api/offers/service-presets/${id}`, { method: 'DELETE' })
+  }
+
+  const updateSvc = useCallback((id: string, patch: Partial<BService>) =>
+    setServices(prev => prev.map(s => s._id === id ? { ...s, ...patch } : s)), [])
+  const removeSvc = (id: string) => setServices(prev => prev.filter(s => s._id !== id))
+
+  const addExtra = () => setExtras(prev => [...prev, { _id: uid(), title: '', description: '', price: '' }])
+  const updateExtra = useCallback((id: string, patch: Partial<BExtra>) =>
+    setExtras(prev => prev.map(e => e._id === id ? { ...e, ...patch } : e)), [])
+  const removeExtra = (id: string) => setExtras(prev => prev.filter(e => e._id !== id))
+
+  const addLink = () => setLinks(prev => [...prev, { _id: uid(), label: '', description: '', url: '', image_url: '' }])
+  const updateLink = useCallback((id: string, patch: Partial<BLink>) =>
+    setLinks(prev => prev.map(l => l._id === id ? { ...l, ...patch } : l)), [])
+  const removeLink = (id: string) => setLinks(prev => prev.filter(l => l._id !== id))
+
+  // ── Build payload ──────────────────────────────────────────────────────────
+  const buildPayload = () => ({
+    title: title.trim(),
+    client_id: clientId || null,
+    event_date: eventDate || null,
+    valid_until: validUntil || null,
+    base_price: parseCents(basePrice),
+    deposit_amount: depositAmount ? parseCents(depositAmount) : null,
+    intro_text: introText.trim() || null,
+    gallery_links: links.filter(l => l.url.trim()).map(l => ({ label: l.label, description: l.description || undefined, url: l.url, image_url: l.image_url || undefined })),
+    services: services.filter(s => s.title.trim()).map(s => ({ title: s.title.trim(), description: s.description.trim() || null, included: s.included, price: s.price ? parseCents(s.price) : null })),
+    extras: extras.filter(e => e.title.trim()).map(e => ({ title: e.title.trim(), description: e.description.trim() || null, price: parseCents(e.price), selectable: true })),
+  })
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  const doSave = async (id: string) => {
+    setSaveStatus('saving')
+    try {
+      const res = await fetch(`/api/offers/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      })
+      if (!res.ok) { setSaveStatus('unsaved'); return }
+      const payload = buildPayload()
+      setOffers(prev => prev.map(o => o.id !== id ? o : {
+        ...o, ...payload,
+        client: clients.find(c => c.id === payload.client_id) || o.client,
+        services: payload.services.map((s, i) => ({ ...s, sort_order: i })),
+        extras: payload.extras.map((e, i) => ({ ...e, sort_order: i })),
+      }))
+      setSaveStatus('saved')
+    } catch { setSaveStatus('unsaved') }
+  }
+
+  const handleCreate = async () => {
+    if (!title.trim()) { toast.error('Bitte Titel eingeben'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/offers', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      })
+      if (!res.ok) { toast.error('Fehler beim Erstellen'); return }
+      const { id, slug } = await res.json()
+      const payload = buildPayload()
+      const newOffer: Offer = {
+        id, slug, status: 'draft', currency: 'EUR', notes: null,
+        created_at: new Date().toISOString(), ...payload,
+        client: clients.find(c => c.id === payload.client_id) || null,
+        services: payload.services.map((s, i) => ({ ...s, sort_order: i })),
+        extras: payload.extras.map((e, i) => ({ ...e, sort_order: i })),
       }
-      setShowBuilder(false)
-    } finally {
-      setSaving(false)
+      setOffers(prev => [newOffer, ...prev])
+      setEditingOffer(newOffer)
+      toast.success('Angebot erstellt')
+      setSaveStatus('saved')
+    } finally { setSaving(false) }
+  }
+
+  const handleManualSave = () => {
+    if (!title.trim()) { toast.error('Bitte Titel eingeben'); return }
+    if (editingOffer) {
+      clearTimeout(autosaveTimer.current)
+      doSave(editingOffer.id)
+    } else {
+      handleCreate()
     }
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ── List actions ───────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     if (!confirm('Angebot löschen?')) return
     const res = await fetch(`/api/offers/${id}`, { method: 'DELETE' })
-    if (!res.ok) { toast.error('Fehler beim Löschen'); return }
+    if (!res.ok) { toast.error('Fehler'); return }
     setOffers(prev => prev.filter(o => o.id !== id))
     toast.success('Gelöscht')
   }
 
-  // ── Status change ──────────────────────────────────────────────────────────
   const setStatus = async (id: string, status: string) => {
     const res = await fetch(`/api/offers/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
     if (!res.ok) { toast.error('Fehler'); return }
     setOffers(prev => prev.map(o => o.id === id ? { ...o, status: status as Offer['status'] } : o))
-    setOpenMenu(null)
   }
 
-  // ── Copy share link ────────────────────────────────────────────────────────
   const copyLink = (slug: string) => {
-    const url = `${getSiteUrl()}/a/${slug}`
-    navigator.clipboard.writeText(url)
+    navigator.clipboard.writeText(`${getSiteUrl()}/a/${slug}`)
     toast.success('Link kopiert')
   }
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
-  const filtered = offers.filter(o => {
-    if (tab === 'all') return true
-    if (tab === 'sent') return o.status === 'sent' || o.status === 'viewed'
-    return o.status === tab
-  })
+  // ── Filtered offers ────────────────────────────────────────────────────────
+  const filtered = offers.filter(o =>
+    tab === 'all' ? true :
+    tab === 'sent' ? (o.status === 'sent' || o.status === 'viewed') :
+    o.status === tab
+  )
 
   const tabs: { key: typeof tab; label: string }[] = [
-    { key: 'all',      label: 'Alle' },
-    { key: 'draft',    label: 'Entwurf' },
-    { key: 'sent',     label: 'Versendet' },
-    { key: 'accepted', label: 'Angenommen' },
-    { key: 'expired',  label: 'Abgelaufen' },
+    { key: 'all', label: 'Alle' }, { key: 'draft', label: 'Entwurf' },
+    { key: 'sent', label: 'Versendet' }, { key: 'accepted', label: 'Angenommen' },
+    { key: 'expired', label: 'Abgelaufen' },
   ]
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+  // ─────────────────────────────────────────────────────────────────────────
+  // ── BUILDER VIEW ──────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  if (view === 'builder') {
+    const saveLabel = saveStatus === 'saving' ? 'Speichert…' : saveStatus === 'unsaved' ? 'Speichern *' : 'Gespeichert'
+    const saveLabelColor = saveStatus === 'unsaved' ? '#C4A47C' : saveStatus === 'saving' ? '#9CA3AF' : '#10B981'
 
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* ── Sticky top bar ─────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 24px', background: 'rgba(248,245,241,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #EDE9E3', flexShrink: 0, zIndex: 10 }}>
+          <button
+            onClick={() => { clearTimeout(autosaveTimer.current); setView('list') }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '8px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#9A9188', fontSize: '13px', fontWeight: 600 }}
+          >
+            <ArrowLeft style={{ width: 15, height: 15 }} />
+            Angebote
+          </button>
+
+          <div style={{ width: '1px', height: '20px', background: '#E8E4DC' }} />
+
+          {/* Title input */}
+          <input
+            type="text"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Angebot benennen…"
+            autoFocus={!editingOffer}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '15px', fontWeight: 700, color: '#1C1C1A', minWidth: 0 }}
+          />
+
+          {/* Autosave / status */}
+          {editingOffer && (
+            <span style={{ fontSize: '12px', fontWeight: 600, color: saveLabelColor, flexShrink: 0 }}>{saveLabel}</span>
+          )}
+
+          {/* Preview */}
+          {editingOffer && (
+            <a
+              href={`/a/${editingOffer.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '10px', background: 'transparent', border: '1px solid #E8E4DC', color: '#7A7468', fontSize: '12px', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}
+            >
+              <ExternalLink style={{ width: 13, height: 13 }} />
+              Vorschau
+            </a>
+          )}
+
+          {/* Save / Create button */}
+          <button
+            onClick={handleManualSave}
+            disabled={saving || !title.trim()}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '8px 18px', borderRadius: '10px', background: 'linear-gradient(135deg,#C4A47C,#B8956A)', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, cursor: title.trim() ? 'pointer' : 'default', opacity: title.trim() ? 1 : 0.4, flexShrink: 0 }}
+          >
+            {saving ? '…' : <Save style={{ width: 13, height: 13 }} />}
+            {editingOffer ? 'Speichern' : 'Erstellen'}
+          </button>
+        </div>
+
+        {/* ── Scrollable body ────────────────────────────────────────────── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 80px' }}>
+          <div style={{ maxWidth: '780px', margin: '0 auto' }}>
+
+            {/* ── GRUNDINFO ──────────────────────────────────────────────── */}
+            <Section label="Grundinfo" actions={
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {OFFER_TEMPLATES.map(tpl => null).length === 0 ? null : (
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      onChange={e => { if (e.target.value) { applyTemplate(OFFER_TEMPLATES.find(t => t.id === e.target.value)!); e.target.value = '' } }}
+                      defaultValue=""
+                      style={{ padding: '4px 8px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#7A7468', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      <option value="">✦ Vorlage</option>
+                      {OFFER_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+            }>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Client */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Kunde</label>
+                  <select
+                    value={clientId}
+                    onChange={e => setClientId(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A' }}
+                  >
+                    <option value="">— Kein Kunde verknüpft —</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                  </select>
+                </div>
+                {/* Event date */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Termin / Event</label>
+                  <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A', boxSizing: 'border-box' }} />
+                </div>
+                {/* Valid until */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Gültig bis</label>
+                  <input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A', boxSizing: 'border-box' }} />
+                </div>
+                {/* Price */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Basispreis (€)</label>
+                  <input type="number" min="0" step="0.01" placeholder="0,00" value={basePrice} onChange={e => setBasePrice(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A', boxSizing: 'border-box' }} />
+                </div>
+                {/* Deposit */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Anzahlung (€)</label>
+                  <input type="number" min="0" step="0.01" placeholder="Optional" value={depositAmount} onChange={e => setDepositAmount(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+            </Section>
+
+            {/* ── EINLEITUNG ─────────────────────────────────────────────── */}
+            <Section label="Einleitung">
+              <textarea
+                rows={5}
+                placeholder="Persönliche Ansprache — direkt und warm. Erzähle dem Kunden kurz, worum es geht und was dich daran freut…"
+                value={introText}
+                onChange={e => setIntroText(e.target.value)}
+                style={{ width: '100%', padding: '12px 0', border: 'none', outline: 'none', resize: 'none', fontSize: '15px', color: '#1C1C1A', background: 'transparent', lineHeight: 1.7, boxSizing: 'border-box' }}
+              />
+            </Section>
+
+            {/* ── LEISTUNGEN ─────────────────────────────────────────────── */}
+            <Section
+              label="Leistungen"
+              count={services.filter(s => s.title.trim()).length}
+              actions={
+                <>
+                  <ActBtn onClick={() => setShowLibrary(v => !v)} color={showLibrary ? '#C4A47C' : '#B5ADA3'}>
+                    <BookOpen style={{ width: 13, height: 13 }} />
+                    Bibliothek
+                  </ActBtn>
+                  <ActBtn onClick={() => { setAddingSvc(true); setShowLibrary(false) }} color="#C4A47C">
+                    <Plus style={{ width: 13, height: 13 }} />
+                    Hinzufügen
+                  </ActBtn>
+                </>
+              }
+            >
+              {/* Library panel */}
+              {showLibrary && (
+                <div style={{ marginBottom: '14px', padding: '14px 16px', background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE' }}>Deine Bibliothek</span>
+                    <button onClick={() => setShowLibrary(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', lineHeight: 1 }}>
+                      <X style={{ width: 13, height: 13 }} />
+                    </button>
+                  </div>
+                  {servicePresets.length === 0 && (
+                    <p style={{ margin: 0, fontSize: '13px', color: '#B5ADA3' }}>Noch keine gespeicherten Leistungen. Füge eine Leistung hinzu und aktiviere "In Bibliothek speichern".</p>
+                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {servicePresets.map(p => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          onClick={() => addSvcFromPreset(p)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#fff', border: '1px solid #E8E4DC', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1C1C1A', transition: 'all 0.12s' }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4A47C'; e.currentTarget.style.color = '#C4A47C' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8E4DC'; e.currentTarget.style.color = '#1C1C1A' }}
+                        >
+                          <Plus style={{ width: 11, height: 11 }} />
+                          {p.title}
+                          {p.price != null && <span style={{ fontWeight: 400, color: '#9A9188' }}> · {formatEur(p.price)}</span>}
+                        </button>
+                        <button onClick={() => deletePreset(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px' }}>
+                          <X style={{ width: 11, height: 11 }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Services list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {services.map(svc => (
+                  <div key={svc._id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: '#FAF8F5', border: '1px solid #EDE9E3' }}>
+                    <button
+                      onClick={() => updateSvc(svc._id, { included: !svc.included })}
+                      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', marginTop: '1px', padding: 0 }}
+                      title={svc.included ? 'Enthalten' : 'Nicht enthalten'}
+                    >
+                      {svc.included
+                        ? <ToggleRight style={{ width: 20, height: 20, color: '#10B981' }} />
+                        : <ToggleLeft style={{ width: 20, height: 20, color: '#C0B8AE' }} />
+                      }
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <input
+                        type="text"
+                        value={svc.title}
+                        onChange={e => updateSvc(svc._id, { title: e.target.value })}
+                        placeholder="Leistung…"
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', fontWeight: 600, color: '#1C1C1A', padding: 0 }}
+                      />
+                      <input
+                        type="text"
+                        value={svc.description}
+                        onChange={e => updateSvc(svc._id, { description: e.target.value })}
+                        placeholder="Kurze Beschreibung (optional)"
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '12px', color: '#9A9188', padding: 0, marginTop: '2px' }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeSvc(svc._id)}
+                      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px', marginTop: '1px' }}
+                    >
+                      <X style={{ width: 14, height: 14 }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add new service form */}
+              {addingSvc && (
+                <div style={{ marginTop: '10px', padding: '14px 16px', background: '#fff', borderRadius: '12px', border: '1.5px solid #C4A47C' }}>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Leistungsbezeichnung *"
+                    value={newSvc.title}
+                    onChange={e => setNewSvc(p => ({ ...p, title: e.target.value }))}
+                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', fontWeight: 600, color: '#1C1C1A', marginBottom: '6px', padding: 0 }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Beschreibung (optional)"
+                    value={newSvc.description}
+                    onChange={e => setNewSvc(p => ({ ...p, description: e.target.value }))}
+                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#7A7468', marginBottom: '10px', padding: 0 }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12px', color: '#9A9188', fontWeight: 600 }}>Preis (€)</span>
+                    <input
+                      type="number" min="0" step="0.01" placeholder="0"
+                      value={newSvc.price}
+                      onChange={e => setNewSvc(p => ({ ...p, price: e.target.value }))}
+                      style={{ width: '90px', padding: '5px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '13px', color: '#1C1C1A' }}
+                    />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '12px' }}>
+                    <input
+                      type="checkbox"
+                      checked={newSvc.saveToLib}
+                      onChange={e => setNewSvc(p => ({ ...p, saveToLib: e.target.checked }))}
+                      style={{ width: '14px', height: '14px', accentColor: '#C4A47C' }}
+                    />
+                    <span style={{ fontSize: '12px', color: '#7A7468', fontWeight: 500 }}>In Bibliothek speichern — dann wiederverwendbar in zukünftigen Angeboten</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={commitNewSvc}
+                      disabled={!newSvc.title.trim()}
+                      style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, cursor: newSvc.title.trim() ? 'pointer' : 'default', opacity: newSvc.title.trim() ? 1 : 0.4 }}>
+                      + Hinzufügen
+                    </button>
+                    <button onClick={() => { setAddingSvc(false); setNewSvc({ title: '', description: '', price: '', saveToLib: false }) }}
+                      style={{ padding: '8px 14px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {services.length === 0 && !addingSvc && (
+                <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Noch keine Leistungen — wähle aus der Bibliothek oder füge eine neue hinzu.</p>
+              )}
+            </Section>
+
+            {/* ── EXTRAS ─────────────────────────────────────────────────── */}
+            <Section
+              label="Extras"
+              count={extras.filter(e => e.title.trim()).length}
+              actions={<ActBtn onClick={addExtra} color="#C4A47C"><Plus style={{ width: 13, height: 13 }} />Hinzufügen</ActBtn>}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {extras.map(ext => (
+                  <div key={ext._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: '#FAF8F5', border: '1px solid #EDE9E3' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <input
+                        type="text"
+                        value={ext.title}
+                        onChange={e => updateExtra(ext._id, { title: e.target.value })}
+                        placeholder="Extra, z. B. Zweiter Fotograf"
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', fontWeight: 600, color: '#1C1C1A', padding: 0 }}
+                      />
+                      <input
+                        type="text"
+                        value={ext.description}
+                        onChange={e => updateExtra(ext._id, { description: e.target.value })}
+                        placeholder="Kurze Beschreibung (optional)"
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '12px', color: '#9A9188', padding: 0, marginTop: '2px' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '12px', color: '#9A9188', fontWeight: 600 }}>+€</span>
+                      <input
+                        type="number" min="0" step="0.01"
+                        value={ext.price}
+                        onChange={e => updateExtra(ext._id, { price: e.target.value })}
+                        placeholder="0"
+                        style={{ width: '72px', padding: '5px 8px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#1C1C1A', textAlign: 'right' }}
+                      />
+                    </div>
+                    <button onClick={() => removeExtra(ext._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px', flexShrink: 0 }}>
+                      <X style={{ width: 14, height: 14 }} />
+                    </button>
+                  </div>
+                ))}
+                {extras.length === 0 && (
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Keine Extras — der Kunde kann keine Zusatzleistungen wählen.</p>
+                )}
+              </div>
+            </Section>
+
+            {/* ── LINKS & REFERENZEN ──────────────────────────────────────── */}
+            <Section
+              label="Links & Referenzen"
+              count={links.filter(l => l.url.trim()).length}
+              actions={<ActBtn onClick={addLink} color="#C4A47C"><Plus style={{ width: 13, height: 13 }} />Block hinzufügen</ActBtn>}
+              defaultOpen={links.length > 0}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {links.map(lnk => (
+                  <div key={lnk._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '1px solid #EDE9E3' }}>
+                      <Link2 style={{ width: 14, height: 14, color: '#C4A47C', flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        value={lnk.label}
+                        onChange={e => updateLink(lnk._id, { label: e.target.value })}
+                        placeholder="TITEL DES BLOCKS (z. B. SCHLOSS WULKOW HOCHZEIT)"
+                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1C1C1A', padding: 0 }}
+                      />
+                      <button onClick={() => removeLink(lnk._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px', flexShrink: 0 }}>
+                        <X style={{ width: 13, height: 13 }} />
+                      </button>
+                    </div>
+                    <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                      <input
+                        type="text"
+                        value={lnk.description}
+                        onChange={e => updateLink(lnk._id, { description: e.target.value })}
+                        placeholder="Kurze Beschreibung (z. B. Eine vollständige Hochzeitsreportage in ähnlichem Stil…)"
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#7A7468', padding: 0 }}
+                      />
+                      <input
+                        type="url"
+                        value={lnk.url}
+                        onChange={e => updateLink(lnk._id, { url: e.target.value })}
+                        placeholder="https://fotonizer.com/g/example-gallery"
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#1C1C1A', boxSizing: 'border-box' }}
+                      />
+                      <input
+                        type="url"
+                        value={lnk.image_url}
+                        onChange={e => updateLink(lnk._id, { image_url: e.target.value })}
+                        placeholder="Vorschau-Bild URL (optional — für Cover-Thumbnail)"
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#9A9188', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {links.length === 0 && (
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Füge Links zu Beispielgalerien, Instagram, Videos oder anderen Referenzen hinzu.</p>
+                )}
+              </div>
+            </Section>
+
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ── LIST VIEW ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>Angebote</h1>
-          <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Interaktive Proposals für deine Kunden
-          </p>
+          <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' }}>Angebote</h1>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>Interaktive Proposals für deine Kunden</p>
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #C4A47C, #B8956A)' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 18px', borderRadius: '12px', background: 'linear-gradient(135deg,#C4A47C,#B8956A)', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus style={{ width: 15, height: 15 }} />
           Neues Angebot
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-5 p-1 rounded-xl w-fit" style={{ background: 'var(--bg-hover)' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', padding: '4px', background: 'var(--bg-hover)', borderRadius: '12px', width: 'fit-content' }}>
         {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
-            style={tab === t.key
-              ? { background: 'var(--bg-card)', color: '#C4A47C', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
-              : { color: 'var(--text-muted)' }
-            }
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{
+              padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
+              background: tab === t.key ? 'var(--bg-card)' : 'transparent',
+              color: tab === t.key ? '#C4A47C' : 'var(--text-muted)',
+              boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+            }}
           >
             {t.label}
-            {t.key !== 'all' && <span className="ml-1.5 opacity-60">{offers.filter(o => t.key === 'sent' ? o.status === 'sent' || o.status === 'viewed' : o.status === t.key).length}</span>}
+            {t.key !== 'all' && (
+              <span style={{ marginLeft: '5px', opacity: 0.6 }}>
+                {offers.filter(o => t.key === 'sent' ? o.status === 'sent' || o.status === 'viewed' : o.status === t.key).length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(196,164,124,0.12)' }}>
-            <Sparkles className="w-6 h-6" style={{ color: '#C4A47C' }} />
+        <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'rgba(196,164,124,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Sparkles style={{ width: 22, height: 22, color: '#C4A47C' }} />
           </div>
-          <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+          <p style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
             {tab === 'all' ? 'Noch keine Angebote' : 'Keine Angebote hier'}
           </p>
-          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            {tab === 'all' ? 'Erstelle dein erstes interaktives Proposal' : ''}
-          </p>
           {tab === 'all' && (
-            <button
-              onClick={openNew}
-              className="mt-4 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #C4A47C, #B8956A)' }}
-            >
-              + Neues Angebot
+            <button onClick={openNew} style={{ marginTop: '16px', padding: '10px 22px', borderRadius: '12px', background: 'linear-gradient(135deg,#C4A47C,#B8956A)', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+              + Neues Angebot erstellen
             </button>
           )}
         </div>
       )}
 
       {/* Offer cards */}
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {filtered.map(offer => {
-          const cfg = STATUS_CONFIG[offer.status] || STATUS_CONFIG.draft
+          const cfg = STATUS_CFG[offer.status] || STATUS_CFG.draft
           const StatusIcon = cfg.Icon
           const clientName = getClientName(offer)
-
           return (
-            <div
-              key={offer.id}
-              className="rounded-2xl p-4 transition-all"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
-            >
-              <div className="flex items-start gap-3">
-                {/* Status dot */}
-                <div className="mt-0.5 w-2 h-2 rounded-full flex-shrink-0 mt-2" style={{ background: cfg.color }} />
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[15px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{offer.title}</p>
-                      {clientName && <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{clientName}</p>}
+            <div key={offer.id} style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '16px 20px', border: '1px solid var(--border-color)', transition: 'box-shadow 0.15s' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cfg.color, flexShrink: 0, marginTop: '7px' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: '0 0 2px', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{offer.title}</p>
+                      {clientName && <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>{clientName}</p>}
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ color: cfg.color, background: cfg.bg }}>
-                        <StatusIcon className="w-3 h-3" />
-                        {cfg.label}
-                      </span>
-                    </div>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 700, color: cfg.color, background: cfg.bg, flexShrink: 0 }}>
+                      <StatusIcon style={{ width: 11, height: 11 }} />
+                      {cfg.label}
+                    </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 mt-2">
-                    {offer.event_date && (
-                      <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                        📅 {new Date(offer.event_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    )}
-                    {offer.base_price > 0 && (
-                      <span className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {formatEur(offer.base_price)}
-                      </span>
-                    )}
-                    {offer.valid_until && (
-                      <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                        Gültig bis {new Date(offer.valid_until).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}
-                      </span>
-                    )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', margin: '8px 0' }}>
+                    {offer.event_date && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>📅 {new Date(offer.event_date).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
+                    {offer.base_price > 0 && <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatEur(offer.base_price)}</span>}
+                    {offer.valid_until && <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Gültig bis {new Date(offer.valid_until).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <button
-                      onClick={() => copyLink(offer.slug)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:opacity-80"
-                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {[
+                      { label: 'Bearbeiten', icon: FileEdit, onClick: () => openEdit(offer), color: undefined },
+                      { label: 'Link kopieren', icon: Copy, onClick: () => copyLink(offer.slug), color: undefined },
+                      offer.status === 'draft' ? { label: 'Versenden', icon: Send, onClick: () => setStatus(offer.id, 'sent'), color: '#6366F1' } : null,
+                    ].filter(Boolean).map((a, i) => a && (
+                      <button key={i} onClick={a.onClick}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', background: 'var(--bg-hover)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: a.color || 'var(--text-muted)' }}
+                      >
+                        <a.icon style={{ width: 13, height: 13 }} />
+                        {a.label}
+                      </button>
+                    ))}
+                    <a href={`/a/${offer.slug}`} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', background: 'var(--bg-hover)', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none' }}
                     >
-                      <Copy className="w-3.5 h-3.5" />
-                      Link kopieren
-                    </button>
-                    <a
-                      href={`/a/${offer.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:opacity-80"
-                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLink style={{ width: 13, height: 13 }} />
                       Vorschau
                     </a>
-                    {offer.status === 'draft' && (
-                      <button
-                        onClick={() => setStatus(offer.id, 'sent')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:opacity-80"
-                        style={{ background: 'rgba(99,102,241,0.10)', color: '#6366F1' }}
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        Versenden
-                      </button>
-                    )}
-                    <button
-                      onClick={() => openEdit(offer)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:opacity-80"
-                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                    <button onClick={() => handleDelete(offer.id)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', background: 'var(--bg-hover)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#EF4444' }}
                     >
-                      <FileEdit className="w-3.5 h-3.5" />
-                      Bearbeiten
-                    </button>
-                    <button
-                      onClick={() => handleDelete(offer.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all hover:opacity-80"
-                      style={{ background: 'var(--bg-hover)', color: '#EF4444' }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 style={{ width: 13, height: 13 }} />
                     </button>
                   </div>
                 </div>
@@ -517,403 +858,12 @@ export default function OffersClient({ initialOffers, clients, photographer }: P
         })}
       </div>
 
-      {/* Old quotes link */}
-      <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
-        <a href="/dashboard/quotes" className="text-[12px] flex items-center gap-1.5 w-fit hover:opacity-80 transition-opacity" style={{ color: 'var(--text-muted)' }}>
-          <ChevronRight className="w-3.5 h-3.5" />
-          Kostenvoranschläge (klassisch)
+      {/* Link to old quotes */}
+      <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
+        <a href="/dashboard/quotes" style={{ fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          → Kostenvoranschläge (klassisch)
         </a>
       </div>
-
-      {/* ── Builder overlay ───────────────────────────────────────────────── */}
-      {showBuilder && (
-        <div className="fixed inset-0 z-50 flex items-stretch" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-          <div className="ml-auto w-full max-w-2xl flex flex-col" style={{ background: 'var(--bg-card)' }}>
-
-            {/* Builder header */}
-            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setShowBuilder(false)} className="p-1.5 rounded-lg transition-opacity hover:opacity-70" style={{ color: 'var(--text-muted)' }}>
-                  <X className="w-4 h-4" />
-                </button>
-                <h2 className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {editingOffer ? 'Angebot bearbeiten' : 'Neues Angebot'}
-                </h2>
-              </div>
-              {/* Steps */}
-              <div className="flex items-center gap-2">
-                {[1, 2, 3].map(n => (
-                  <div
-                    key={n}
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold transition-all"
-                    style={step === n
-                      ? { background: '#C4A47C', color: '#fff' }
-                      : step > n
-                        ? { background: 'rgba(196,164,124,0.2)', color: '#C4A47C' }
-                        : { background: 'var(--bg-hover)', color: 'var(--text-muted)' }
-                    }
-                  >
-                    {step > n ? <Check className="w-3.5 h-3.5" /> : n}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Builder body */}
-            <div className="flex-1 overflow-y-auto">
-
-              {/* ── Step 1: Basic info + template ─────────────────────────── */}
-              {step === 1 && (
-                <div className="p-6 space-y-5">
-                  {/* Template picker */}
-                  {!editingOffer && (
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wide block mb-2" style={{ color: 'var(--text-muted)' }}>
-                        Vorlage wählen
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedTemplate(null)
-                            setServices([])
-                            setExtras([])
-                          }}
-                          className="px-3 py-2.5 rounded-xl text-[12px] font-semibold text-left transition-all"
-                          style={selectedTemplate === null
-                            ? { background: 'rgba(196,164,124,0.15)', border: '1.5px solid #C4A47C', color: '#C4A47C' }
-                            : { background: 'var(--bg-hover)', border: '1.5px solid transparent', color: 'var(--text-muted)' }
-                          }
-                        >
-                          ✦ Leer starten
-                        </button>
-                        {OFFER_TEMPLATES.map(tpl => (
-                          <button
-                            key={tpl.id}
-                            onClick={() => applyTemplate(tpl)}
-                            className="px-3 py-2.5 rounded-xl text-[12px] font-semibold text-left transition-all"
-                            style={selectedTemplate === tpl.id
-                              ? { background: 'rgba(196,164,124,0.15)', border: '1.5px solid #C4A47C', color: '#C4A47C' }
-                              : { background: 'var(--bg-hover)', border: '1.5px solid transparent', color: 'var(--text-muted)' }
-                            }
-                          >
-                            {tpl.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Title */}
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Titel *</label>
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="z. B. Angebot Hochzeit Meyer – Juni 2026"
-                      className="w-full px-3 py-2.5 rounded-xl text-[14px]"
-                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                      value={form.title}
-                      onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-                    />
-                  </div>
-
-                  {/* Client */}
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Kunde</label>
-                    <select
-                      className="w-full px-3 py-2.5 rounded-xl text-[14px]"
-                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                      value={form.clientId}
-                      onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))}
-                    >
-                      <option value="">— Kein Kunde verknüpft —</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.full_name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Termin / Event</label>
-                      <input
-                        type="date"
-                        className="w-full px-3 py-2.5 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.eventDate}
-                        onChange={e => setForm(p => ({ ...p, eventDate: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Gültig bis</label>
-                      <input
-                        type="date"
-                        className="w-full px-3 py-2.5 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.validUntil}
-                        onChange={e => setForm(p => ({ ...p, validUntil: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Basispreis (€)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0,00"
-                        className="w-full px-3 py-2.5 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.basePrice}
-                        onChange={e => setForm(p => ({ ...p, basePrice: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Anzahlung (€)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Optional"
-                        className="w-full px-3 py-2.5 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.depositAmount}
-                        onChange={e => setForm(p => ({ ...p, depositAmount: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Intro text */}
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Einleitungstext</label>
-                    <textarea
-                      rows={4}
-                      placeholder="Persönliche Ansprache an den Kunden…"
-                      className="w-full px-3 py-2.5 rounded-xl text-[14px] resize-none"
-                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                      value={form.introText}
-                      onChange={e => setForm(p => ({ ...p, introText: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step 2: Services + Extras ──────────────────────────────── */}
-              {step === 2 && (
-                <div className="p-6 space-y-6">
-
-                  {/* Services */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                        Leistungen
-                      </label>
-                      <button onClick={addService} className="text-[12px] font-semibold flex items-center gap-1 hover:opacity-80" style={{ color: '#C4A47C' }}>
-                        <Plus className="w-3.5 h-3.5" /> Hinzufügen
-                      </button>
-                    </div>
-                    {services.length === 0 && (
-                      <p className="text-[13px] py-3" style={{ color: 'var(--text-muted)' }}>Noch keine Leistungen. Wähle eine Vorlage in Schritt 1 oder füge manuell hinzu.</p>
-                    )}
-                    <div className="space-y-2">
-                      {services.map((svc) => (
-                        <div key={svc._id} className="rounded-xl p-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateService(svc._id, { included: !svc.included })}
-                              className="flex-shrink-0 transition-opacity hover:opacity-80"
-                              title="In / Nicht enthalten"
-                            >
-                              {svc.included
-                                ? <ToggleRight className="w-5 h-5" style={{ color: '#10B981' }} />
-                                : <ToggleLeft className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-                              }
-                            </button>
-                            <input
-                              type="text"
-                              placeholder="Leistung, z. B. 8h Reportage"
-                              className="flex-1 px-2 py-1.5 rounded-lg text-[13px] font-medium"
-                              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none' }}
-                              value={svc.title}
-                              onChange={e => updateService(svc._id, { title: e.target.value })}
-                            />
-                            <button onClick={() => removeService(svc._id)} className="p-1 flex-shrink-0 hover:opacity-70" style={{ color: '#EF4444' }}>
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Kurze Beschreibung (optional)"
-                            className="w-full mt-1 px-2 py-1 rounded-lg text-[12px]"
-                            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', outline: 'none' }}
-                            value={svc.description}
-                            onChange={e => updateService(svc._id, { description: e.target.value })}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Extras */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                        Extras (optional buchbar)
-                      </label>
-                      <button onClick={addExtra} className="text-[12px] font-semibold flex items-center gap-1 hover:opacity-80" style={{ color: '#C4A47C' }}>
-                        <Plus className="w-3.5 h-3.5" /> Hinzufügen
-                      </button>
-                    </div>
-                    {extras.length === 0 && (
-                      <p className="text-[13px] py-2" style={{ color: 'var(--text-muted)' }}>Keine Extras — der Kunde kann keine Zusatzleistungen wählen.</p>
-                    )}
-                    <div className="space-y-2">
-                      {extras.map((ext) => (
-                        <div key={ext._id} className="rounded-xl p-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              placeholder="Extra, z. B. Zweiter Fotograf"
-                              className="flex-1 px-2 py-1.5 rounded-lg text-[13px] font-medium"
-                              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none' }}
-                              value={ext.title}
-                              onChange={e => updateExtra(ext._id, { title: e.target.value })}
-                            />
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>+€</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0"
-                                className="w-20 px-2 py-1.5 rounded-lg text-[13px] text-right"
-                                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                value={ext.price}
-                                onChange={e => updateExtra(ext._id, { price: e.target.value })}
-                              />
-                            </div>
-                            <button onClick={() => removeExtra(ext._id)} className="p-1 flex-shrink-0 hover:opacity-70" style={{ color: '#EF4444' }}>
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Kurze Beschreibung (optional)"
-                            className="w-full mt-1 px-2 py-1 text-[12px]"
-                            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', outline: 'none' }}
-                            value={ext.description}
-                            onChange={e => updateExtra(ext._id, { description: e.target.value })}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step 3: Gallery links + summary ───────────────────────── */}
-              {step === 3 && (
-                <div className="p-6 space-y-6">
-
-                  {/* Gallery links */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                        Links (Galerie-Beispiele, Instagram…)
-                      </label>
-                      <button onClick={addLink} className="text-[12px] font-semibold flex items-center gap-1 hover:opacity-80" style={{ color: '#C4A47C' }}>
-                        <Plus className="w-3.5 h-3.5" /> Link hinzufügen
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {links.map(lnk => (
-                        <div key={lnk._id} className="flex items-center gap-2">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--bg-hover)' }}>
-                            <Link2 className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Bezeichnung"
-                            className="w-28 flex-shrink-0 px-3 py-2 rounded-lg text-[13px]"
-                            style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                            value={lnk.label}
-                            onChange={e => updateLink(lnk._id, { label: e.target.value })}
-                          />
-                          <input
-                            type="url"
-                            placeholder="https://..."
-                            className="flex-1 px-3 py-2 rounded-lg text-[13px]"
-                            style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                            value={lnk.url}
-                            onChange={e => updateLink(lnk._id, { url: e.target.value })}
-                          />
-                          <button onClick={() => removeLink(lnk._id)} className="p-1 flex-shrink-0 hover:opacity-70" style={{ color: '#EF4444' }}>
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    {links.length === 0 && (
-                      <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Optional — zeige dem Kunden Beispielgalerien oder Social-Links.</p>
-                    )}
-                  </div>
-
-                  {/* Summary */}
-                  <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}>
-                    <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Zusammenfassung</p>
-                    <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>{form.title || '–'}</p>
-                    {form.clientId && <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{clients.find(c => c.id === form.clientId)?.full_name}</p>}
-                    {form.eventDate && <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>📅 {new Date(form.eventDate).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</p>}
-                    {form.basePrice && <p className="text-[20px] font-black mt-2" style={{ color: '#C4A47C' }}>€ {parseFloat(form.basePrice).toLocaleString('de-DE', { minimumFractionDigits: 2 })}</p>}
-                    <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                      {services.filter(s => s.title.trim()).length} Leistungen · {extras.filter(e => e.title.trim()).length} Extras · {links.filter(l => l.url.trim()).length} Links
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Builder footer */}
-            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button
-                onClick={() => step > 1 ? setStep((step - 1) as 1 | 2 | 3) : setShowBuilder(false)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all hover:opacity-80"
-                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {step === 1 ? 'Abbrechen' : 'Zurück'}
-              </button>
-              {step < 3 ? (
-                <button
-                  onClick={() => {
-                    if (step === 1 && !form.title.trim()) { toast.error('Bitte Titel eingeben'); return }
-                    setStep((step + 1) as 2 | 3)
-                  }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #C4A47C, #B8956A)' }}
-                >
-                  Weiter
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !form.title.trim()}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background: 'linear-gradient(135deg, #C4A47C, #B8956A)' }}
-                >
-                  <Check className="w-4 h-4" />
-                  {saving ? 'Speichern…' : (editingOffer ? 'Speichern' : 'Angebot erstellen')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
