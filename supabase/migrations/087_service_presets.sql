@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS photographer_service_presets (
   description     text,
   price           integer,   -- cents, optional
   sort_order      integer NOT NULL DEFAULT 0,
+  preset_type     text NOT NULL DEFAULT 'service' CHECK (preset_type IN ('service', 'extra')),
   created_at      timestamptz NOT NULL DEFAULT now()
 );
 

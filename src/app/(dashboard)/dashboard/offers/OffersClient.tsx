@@ -344,9 +344,12 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
       const preset = await res.json()
       if (type === 'service') setServicePresets(prev => [...prev, preset])
       else setExtraPresets(prev => [...prev, preset])
+      setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice(''); setPanelAdding(false)
       toast.success('Hinzugefügt')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error || 'Fehler beim Speichern')
     }
-    setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice(''); setPanelAdding(false)
   }
 
   // From library panel → add to current offer
