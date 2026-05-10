@@ -136,11 +136,18 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
   const [newSlotDate, setNewSlotDate] = useState('')
   const [newSlotTime, setNewSlotTime] = useState('')
   const [showBulkGen, setShowBulkGen] = useState(false)
-  const [bulkDate, setBulkDate] = useState('')
+  const [bulkDateFrom, setBulkDateFrom] = useState('')
+  const [bulkDateTo, setBulkDateTo] = useState('')
+  const [bulkWeekdays, setBulkWeekdays] = useState<number[]>([])
   const [bulkStart, setBulkStart] = useState('10:00')
   const [bulkEnd, setBulkEnd] = useState('18:00')
   const [bulkDuration, setBulkDuration] = useState(60)
   const [bulkGap, setBulkGap] = useState(0)
+  // Recurring template — apply one schedule to multiple days at once
+  const [showRecurringTemplate, setShowRecurringTemplate] = useState(false)
+  const [recurringTemplateStart, setRecurringTemplateStart] = useState('09:00')
+  const [recurringTemplateEnd, setRecurringTemplateEnd] = useState('17:00')
+  const [recurringTemplateDays, setRecurringTemplateDays] = useState<number[]>([])
 
   const photographerSlug = photographer.slug ?? ''
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://fotonizer.com'
@@ -153,6 +160,11 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
     setNewSlotDate('')
     setNewSlotTime('')
     setShowBulkGen(false)
+    setBulkDateFrom('')
+    setBulkDateTo('')
+    setBulkWeekdays([])
+    setShowRecurringTemplate(false)
+    setRecurringTemplateDays([])
     setActiveTab('basic')
     setShowModal(true)
   }
@@ -188,6 +200,11 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
     setNewSlotDate('')
     setNewSlotTime('')
     setShowBulkGen(false)
+    setBulkDateFrom('')
+    setBulkDateTo('')
+    setBulkWeekdays([])
+    setShowRecurringTemplate(false)
+    setRecurringTemplateDays([])
     setActiveTab('basic')
     setShowModal(true)
   }
@@ -339,21 +356,67 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
     return times
   }
 
+  const getDatesInRange = (from: string, to: string, weekdays: number[]): string[] => {
+    const dates: string[] = []
+    const cursor = new Date(from + 'T00:00:00')
+    const end = new Date(to + 'T00:00:00')
+    while (cursor <= end) {
+      if (weekdays.length === 0 || weekdays.includes(cursor.getDay())) {
+        dates.push(cursor.toISOString().slice(0, 10))
+      }
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return dates
+  }
+
   const handleBulkGenerate = () => {
-    if (!bulkDate || !bulkStart || !bulkEnd || bulkDuration <= 0) return
+    if (!bulkDateFrom || !bulkStart || !bulkEnd || bulkDuration <= 0) return
+    const toDate = bulkDateTo || bulkDateFrom
+    const matchingDates = getDatesInRange(bulkDateFrom, toDate, bulkWeekdays)
+    if (matchingDates.length === 0) { toast.error('Keine Termine im gewählten Zeitraum'); return }
     const newTimes = computeBulkTimes(bulkStart, bulkEnd, bulkDuration, bulkGap)
     if (newTimes.length === 0) { toast.error('Zeitraum zu kurz für einen Slot'); return }
     setSpecificSlots(prev => {
-      const entry = prev.find(e => e.date === bulkDate)
-      if (entry) {
-        const merged = [...new Set([...entry.times, ...newTimes])].sort()
-        return prev.map(e => e.date === bulkDate ? { ...e, times: merged } : e)
+      const updated = prev.map(e => ({ ...e, times: [...e.times] }))
+      for (const date of matchingDates) {
+        const entry = updated.find(e => e.date === date)
+        if (entry) {
+          entry.times = [...new Set([...entry.times, ...newTimes])].sort()
+        } else {
+          updated.push({ date, times: [...newTimes] })
+        }
       }
-      return [...prev, { date: bulkDate, times: newTimes }]
+      return updated
     })
-    toast.success(`${newTimes.length} Slots für ${formatDateDE(bulkDate)} hinzugefügt`)
-    setBulkDate('')
+    const total = newTimes.length * matchingDates.length
+    toast.success(matchingDates.length === 1
+      ? `${newTimes.length} Slots für ${formatDateDE(matchingDates[0])} hinzugefügt`
+      : `${total} Slots über ${matchingDates.length} Tage hinzugefügt`)
+    setBulkDateFrom('')
+    setBulkDateTo('')
+    setBulkWeekdays([])
     setShowBulkGen(false)
+  }
+
+  const applyRecurringTemplate = () => {
+    if (recurringTemplateDays.length === 0) return
+    setRecurringAvailability(prev => {
+      const existing = new Map(prev.map(w => [w.day_of_week, w]))
+      const updated = prev.map(w =>
+        recurringTemplateDays.includes(w.day_of_week)
+          ? { ...w, start_time: recurringTemplateStart, end_time: recurringTemplateEnd }
+          : w
+      )
+      for (const d of recurringTemplateDays) {
+        if (!existing.has(d)) {
+          updated.push({ day_of_week: d, start_time: recurringTemplateStart, end_time: recurringTemplateEnd })
+        }
+      }
+      return updated
+    })
+    toast.success(`Zeiten auf ${recurringTemplateDays.length} Tag${recurringTemplateDays.length !== 1 ? 'e' : ''} angewendet`)
+    setRecurringTemplateDays([])
+    setShowRecurringTemplate(false)
   }
 
   // form.price is stored in euros (float); converted to cents only on save
@@ -757,7 +820,74 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                   {/* Recurring schedule — only shown when mode = recurring */}
                   {form.availability_type === 'recurring' && (
                     <div className="space-y-2 pt-2">
-                      <p className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>Verfügbare Wochentage</p>
+                      {/* Header + template toggle */}
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>Verfügbare Wochentage</p>
+                        <button
+                          type="button"
+                          onClick={() => { setShowRecurringTemplate(v => !v); setRecurringTemplateDays([]) }}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
+                          style={{
+                            background: showRecurringTemplate ? 'rgba(196,164,124,0.15)' : 'var(--bg-hover)',
+                            color: showRecurringTemplate ? 'var(--accent)' : 'var(--text-muted)',
+                            border: '1px solid var(--border-color)',
+                          }}
+                        >
+                          ⚡ Mehrere Tage einrichten
+                        </button>
+                      </div>
+
+                      {/* Recurring template — apply same hours to many days at once */}
+                      {showRecurringTemplate && (
+                        <div className="rounded-xl p-3 space-y-2.5" style={{ background: 'rgba(196,164,124,0.06)', border: '1px solid rgba(196,164,124,0.25)' }}>
+                          <p className="text-[11px]" style={{ color: 'var(--accent)', opacity: 0.8 }}>Gleiche Zeiten auf mehrere Tage anwenden</p>
+                          <div className="flex items-center gap-2">
+                            <input type="time" className="flex-1 px-2.5 py-2 rounded-xl text-[13px]"
+                              style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                              value={recurringTemplateStart} onChange={e => setRecurringTemplateStart(e.target.value)} />
+                            <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>bis</span>
+                            <input type="time" className="flex-1 px-2.5 py-2 rounded-xl text-[13px]"
+                              style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                              value={recurringTemplateEnd} onChange={e => setRecurringTemplateEnd(e.target.value)} />
+                          </div>
+                          <div className="flex gap-1">
+                            {['So','Mo','Di','Mi','Do','Fr','Sa'].map((day, dow) => {
+                              const active = recurringTemplateDays.includes(dow)
+                              return (
+                                <button
+                                  key={dow}
+                                  type="button"
+                                  onClick={() => setRecurringTemplateDays(prev => active ? prev.filter(d => d !== dow) : [...prev, dow])}
+                                  className="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                                  style={{
+                                    background: active ? 'rgba(196,164,124,0.25)' : 'var(--bg-hover)',
+                                    color: active ? 'var(--accent)' : 'var(--text-muted)',
+                                    border: active ? '1.5px solid rgba(196,164,124,0.5)' : '1px solid var(--border-color)',
+                                  }}
+                                >{day}</button>
+                              )
+                            })}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={applyRecurringTemplate}
+                              disabled={recurringTemplateDays.length === 0}
+                              className="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-40"
+                              style={{ background: 'var(--accent)', color: '#1A1A18' }}
+                            >
+                              {recurringTemplateDays.length > 0 ? `Auf ${recurringTemplateDays.length} Tag${recurringTemplateDays.length !== 1 ? 'e' : ''} anwenden` : 'Tage auswählen'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowRecurringTemplate(false); setRecurringTemplateDays([]) }}
+                              className="px-3 py-2 rounded-xl text-[12px] transition-all"
+                              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                            >Abbrechen</button>
+                          </div>
+                        </div>
+                      )}
+
                       {[0, 1, 2, 3, 4, 5, 6].map(dow => {
                         const window = recurringAvailability.find(w => w.day_of_week === dow)
                         const isActive = !!window
@@ -807,9 +937,6 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                     const flatSlots = specificSlots
                       .flatMap(e => e.times.map(t => ({ date: e.date, time: t })))
                       .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-                    const bulkPreview = bulkDate && bulkStart && bulkEnd && bulkDuration > 0
-                      ? computeBulkTimes(bulkStart, bulkEnd, bulkDuration, bulkGap)
-                      : []
                     return (
                       <div className="space-y-4 pt-2">
 
@@ -829,7 +956,9 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                                 setBulkGap(form.buffer_minutes || 0)
                                 setBulkStart('10:00')
                                 setBulkEnd('18:00')
-                                setBulkDate('')
+                                setBulkDateFrom('')
+                                setBulkDateTo('')
+                                setBulkWeekdays([])
                               }
                               setShowBulkGen(v => !v)
                             }}
@@ -874,99 +1003,145 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                         </div>
 
                         {/* Bulk generator */}
-                        {showBulkGen && (
-                          <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
-                            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: '#6366F1' }}>⚡ Bulk-Generator</p>
-                            <p className="text-[11px]" style={{ color: '#6366F1', opacity: 0.7 }}>Wähle einen Tag und Zeitraum — alle Slots werden automatisch generiert</p>
+                        {showBulkGen && (() => {
+                          const toDate = bulkDateTo || bulkDateFrom
+                          const matchingDates = bulkDateFrom
+                            ? getDatesInRange(bulkDateFrom, toDate, bulkWeekdays)
+                            : []
+                          const slotTimes = bulkStart && bulkEnd && bulkDuration > 0
+                            ? computeBulkTimes(bulkStart, bulkEnd, bulkDuration, bulkGap)
+                            : []
+                          const totalSlots = matchingDates.length * slotTimes.length
+                          const canGenerate = matchingDates.length > 0 && slotTimes.length > 0
+                          return (
+                            <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
+                              <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: '#6366F1' }}>⚡ Bulk-Generator</p>
+                              <p className="text-[11px]" style={{ color: '#6366F1', opacity: 0.7 }}>Wähle Zeitraum & Wochentage — Slots werden für alle passenden Tage generiert</p>
 
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Datum</label>
-                                <input
-                                  type="date"
-                                  className="w-full px-2.5 py-2 rounded-xl text-[13px]"
-                                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                  value={bulkDate}
-                                  min={new Date().toISOString().slice(0, 10)}
-                                  onChange={e => setBulkDate(e.target.value)}
-                                />
-                              </div>
-                              <div className="flex items-end gap-1.5">
-                                <div className="flex-1">
-                                  <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Von</label>
-                                  <input type="time" className="w-full px-2.5 py-2 rounded-xl text-[13px]"
+                              {/* Date range */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Von Datum</label>
+                                  <input
+                                    type="date"
+                                    className="w-full px-2.5 py-2 rounded-xl text-[13px]"
                                     style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                    value={bulkStart} onChange={e => setBulkStart(e.target.value)} />
+                                    value={bulkDateFrom}
+                                    min={new Date().toISOString().slice(0, 10)}
+                                    onChange={e => { setBulkDateFrom(e.target.value); if (!bulkDateTo) setBulkDateTo(e.target.value) }}
+                                  />
                                 </div>
-                                <span className="text-[12px] pb-2.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>bis</span>
-                                <div className="flex-1">
-                                  <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Bis</label>
-                                  <input type="time" className="w-full px-2.5 py-2 rounded-xl text-[13px]"
+                                <div>
+                                  <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Bis Datum</label>
+                                  <input
+                                    type="date"
+                                    className="w-full px-2.5 py-2 rounded-xl text-[13px]"
                                     style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                    value={bulkEnd} onChange={e => setBulkEnd(e.target.value)} />
+                                    value={bulkDateTo}
+                                    min={bulkDateFrom || new Date().toISOString().slice(0, 10)}
+                                    onChange={e => setBulkDateTo(e.target.value)}
+                                  />
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="grid grid-cols-2 gap-2">
+                              {/* Weekday filter */}
                               <div>
-                                <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Dauer pro Slot (min)</label>
-                                <input
-                                  type="number"
-                                  min={5} max={480}
-                                  className="w-full px-2.5 py-2 rounded-xl text-[13px]"
-                                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                  value={bulkDuration}
-                                  onChange={e => setBulkDuration(parseInt(e.target.value) || 0)}
-                                />
+                                <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                                  Wochentage <span style={{ opacity: 0.6, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(leer = alle Tage)</span>
+                                </label>
+                                <div className="flex gap-1">
+                                  {['So','Mo','Di','Mi','Do','Fr','Sa'].map((day, dow) => {
+                                    const active = bulkWeekdays.includes(dow)
+                                    return (
+                                      <button
+                                        key={dow}
+                                        type="button"
+                                        onClick={() => setBulkWeekdays(prev => active ? prev.filter(d => d !== dow) : [...prev, dow])}
+                                        className="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                                        style={{
+                                          background: active ? 'rgba(99,102,241,0.2)' : 'var(--bg-hover)',
+                                          color: active ? '#6366F1' : 'var(--text-muted)',
+                                          border: active ? '1.5px solid rgba(99,102,241,0.4)' : '1px solid var(--border-color)',
+                                        }}
+                                      >{day}</button>
+                                    )
+                                  })}
+                                </div>
                               </div>
-                              <div>
-                                <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Pause zwischen Slots (min)</label>
-                                <input
-                                  type="number"
-                                  min={0} max={120}
-                                  className="w-full px-2.5 py-2 rounded-xl text-[13px]"
-                                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                                  value={bulkGap}
-                                  onChange={e => setBulkGap(parseInt(e.target.value) || 0)}
-                                />
+
+                              {/* Time range + duration + gap */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="flex items-end gap-1.5">
+                                  <div className="flex-1">
+                                    <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Uhrzeit von</label>
+                                    <input type="time" className="w-full px-2.5 py-2 rounded-xl text-[13px]"
+                                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                      value={bulkStart} onChange={e => setBulkStart(e.target.value)} />
+                                  </div>
+                                  <span className="text-[12px] pb-2.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>–</span>
+                                  <div className="flex-1">
+                                    <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>bis</label>
+                                    <input type="time" className="w-full px-2.5 py-2 rounded-xl text-[13px]"
+                                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                      value={bulkEnd} onChange={e => setBulkEnd(e.target.value)} />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <div>
+                                    <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Dauer (min)</label>
+                                    <input type="number" min={5} max={480}
+                                      className="w-full px-2.5 py-2 rounded-xl text-[13px]"
+                                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                      value={bulkDuration} onChange={e => setBulkDuration(parseInt(e.target.value) || 0)} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[11px] font-semibold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Pause (min)</label>
+                                    <input type="number" min={0} max={120}
+                                      className="w-full px-2.5 py-2 rounded-xl text-[13px]"
+                                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                      value={bulkGap} onChange={e => setBulkGap(parseInt(e.target.value) || 0)} />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Preview */}
+                              {canGenerate && (
+                                <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(99,102,241,0.08)' }}>
+                                  <p className="text-[11px] font-semibold mb-1" style={{ color: '#6366F1' }}>
+                                    {matchingDates.length > 1
+                                      ? `${matchingDates.length} Tage × ${slotTimes.length} Slots = ${totalSlots} Termine`
+                                      : `${slotTimes.length} Slots am ${formatDateDE(matchingDates[0])}`}
+                                  </p>
+                                  <p className="text-[11px]" style={{ color: '#6366F1', opacity: 0.8 }}>
+                                    {matchingDates.length > 1
+                                      ? matchingDates.slice(0, 3).map(d => formatDateDE(d)).join('  ·  ') + (matchingDates.length > 3 ? `  +  ${matchingDates.length - 3} weitere` : '')
+                                      : slotTimes.slice(0, 4).map(t => `${t}–${computeEndTime(t, bulkDuration)}`).join('  ·  ') + (slotTimes.length > 4 ? `  +  ${slotTimes.length - 4} weitere` : '')}
+                                  </p>
+                                </div>
+                              )}
+
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleBulkGenerate}
+                                  disabled={!canGenerate}
+                                  className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all disabled:opacity-40"
+                                  style={{ background: '#6366F1', color: '#FFFFFF' }}
+                                >
+                                  {canGenerate ? `${totalSlots} Termine hinzufügen` : 'Slots generieren'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowBulkGen(false)}
+                                  className="px-4 py-2.5 rounded-xl text-[13px] transition-all"
+                                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                                >
+                                  Abbrechen
+                                </button>
                               </div>
                             </div>
-
-                            {/* Preview */}
-                            {bulkPreview.length > 0 && (
-                              <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(99,102,241,0.08)' }}>
-                                <p className="text-[11px] font-semibold mb-1" style={{ color: '#6366F1' }}>
-                                  {bulkPreview.length} Slots werden generiert
-                                </p>
-                                <p className="text-[11px]" style={{ color: '#6366F1', opacity: 0.8 }}>
-                                  {bulkPreview.slice(0, 4).map(t => `${t}–${computeEndTime(t, bulkDuration)}`).join('  ·  ')}
-                                  {bulkPreview.length > 4 ? `  +  ${bulkPreview.length - 4} weitere` : ''}
-                                </p>
-                              </div>
-                            )}
-
-                            <div className="flex gap-2 pt-1">
-                              <button
-                                type="button"
-                                onClick={handleBulkGenerate}
-                                disabled={!bulkDate || bulkPreview.length === 0}
-                                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all disabled:opacity-40"
-                                style={{ background: '#6366F1', color: '#FFFFFF' }}
-                              >
-                                {bulkPreview.length > 0 ? `${bulkPreview.length} Slots hinzufügen` : 'Slots generieren'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setShowBulkGen(false)}
-                                className="px-4 py-2.5 rounded-xl text-[13px] transition-all"
-                                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                              >
-                                Abbrechen
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                          )
+                        })()}
 
                         {/* Slot list */}
                         {flatSlots.length > 0 ? (
