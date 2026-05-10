@@ -5,7 +5,7 @@ import {
   Plus, Send, CheckCircle2, Clock, XCircle, FileEdit, Trash2,
   Copy, ExternalLink, Eye, X, Sparkles, Link2, ChevronDown,
   ArrowLeft, BookOpen, ToggleRight, ToggleLeft, Save, AlignLeft,
-  Pencil, Check,
+  Pencil, Check, Bookmark,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -18,6 +18,13 @@ interface Client { id: string; full_name: string; email: string | null }
 interface ServicePreset {
   id: string; title: string; description: string | null
   price: number | null; sort_order: number; preset_type?: string
+}
+
+interface ContentPreset {
+  id: string
+  preset_type: 'intro' | 'link' | 'textblock'
+  name: string
+  data: { content?: string; heading?: string; label?: string; url?: string; description?: string }
 }
 
 interface UserTemplate {
@@ -63,6 +70,7 @@ interface Props {
   initialServicePresets: ServicePreset[]
   initialExtraPresets: ServicePreset[]
   initialUserTemplates: UserTemplate[]
+  initialContentPresets: ContentPreset[]
 }
 
 interface BService { _id: string; title: string; description: string; included: boolean; price: string }
@@ -137,7 +145,7 @@ function ActBtn({ onClick, children, color, active }: { onClick: () => void; chi
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function OffersClient({ initialOffers, clients, photographer, initialServicePresets, initialExtraPresets, initialUserTemplates }: Props) {
+export default function OffersClient({ initialOffers, clients, photographer, initialServicePresets, initialExtraPresets, initialUserTemplates, initialContentPresets }: Props) {
   useLocale()
   const [offers, setOffers] = useState<Offer[]>(initialOffers)
   const [tab, setTab] = useState<'all' | 'draft' | 'sent' | 'accepted' | 'expired'>('all')
@@ -146,6 +154,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const [servicePresets, setServicePresets] = useState<ServicePreset[]>(initialServicePresets)
   const [extraPresets, setExtraPresets] = useState<ServicePreset[]>(initialExtraPresets)
   const [userTemplates, setUserTemplates] = useState<UserTemplate[]>(initialUserTemplates)
+  const [contentPresets, setContentPresets] = useState<ContentPreset[]>(initialContentPresets)
 
   // ── Builder form state ─────────────────────────────────────────────────────
   const [title, setTitle] = useState('')
@@ -176,13 +185,22 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
 
   // ── Library panel state ────────────────────────────────────────────────────
   const [showLibraryPanel, setShowLibraryPanel] = useState(false)
-  const [libraryTab, setLibraryTab] = useState<'services' | 'extras'>('services')
+  const [libraryTab, setLibraryTab] = useState<'services' | 'extras' | 'intros' | 'links'>('services')
   const [editingPresetId, setEditingPresetId] = useState<string | null>(null)
   const [editingPresetFields, setEditingPresetFields] = useState({ title: '', description: '', price: '' })
   const [panelNewTitle, setPanelNewTitle] = useState('')
   const [panelNewDescription, setPanelNewDescription] = useState('')
   const [panelNewPrice, setPanelNewPrice] = useState('')
   const [panelAdding, setPanelAdding] = useState(false)
+  // Content presets panel state
+  const [editingContentId, setEditingContentId] = useState<string | null>(null)
+  const [editingContentFields, setEditingContentFields] = useState({ name: '', data: {} as ContentPreset['data'] })
+  const [panelContentAdding, setPanelContentAdding] = useState(false)
+  const [panelContentNewType, setPanelContentNewType] = useState<'link' | 'textblock'>('link')
+  const [panelContentNew, setPanelContentNew] = useState({ name: '', content: '', heading: '', label: '', url: '', description: '' })
+  // Save-to-library state (used in builder)
+  const [savingToLib, setSavingToLib] = useState<string | null>(null)
+  const [saveToLibName, setSaveToLibName] = useState('')
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const isFirstRender = useRef(true)
@@ -212,6 +230,10 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     setNewExtra({ title: '', description: '', price: '' })
     setEditingPresetId(null)
     setPanelAdding(false); setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice('')
+    setEditingContentId(null)
+    setPanelContentAdding(false)
+    setPanelContentNew({ name: '', content: '', heading: '', label: '', url: '', description: '' })
+    setSavingToLib(null); setSaveToLibName('')
     isFirstRender.current = true
   }
 
@@ -239,6 +261,10 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     setNewExtra({ title: '', description: '', price: '' })
     setEditingPresetId(null)
     setPanelAdding(false); setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice('')
+    setEditingContentId(null)
+    setPanelContentAdding(false)
+    setPanelContentNew({ name: '', content: '', heading: '', label: '', url: '', description: '' })
+    setSavingToLib(null); setSaveToLibName('')
     isFirstRender.current = true
     setView('builder')
   }
@@ -352,6 +378,88 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     }
   }
 
+  // ── Content preset CRUD ────────────────────────────────────────────────────
+  const addContentPresetFromPanel = async () => {
+    const type = libraryTab === 'intros' ? 'intro' : panelContentNewType
+    const name = panelContentNew.name.trim()
+    if (!name) return
+    const data: ContentPreset['data'] = type === 'intro'
+      ? { content: panelContentNew.content }
+      : type === 'link'
+        ? { label: panelContentNew.label, url: panelContentNew.url, description: panelContentNew.description }
+        : { heading: panelContentNew.heading, content: panelContentNew.content }
+    const res = await fetch('/api/offers/content-presets', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset_type: type, name, data }),
+    })
+    if (res.ok) {
+      const preset = await res.json()
+      setContentPresets(prev => [preset, ...prev])
+      setPanelContentNew({ name: '', content: '', heading: '', label: '', url: '', description: '' })
+      setPanelContentAdding(false)
+      toast.success('In Bibliothek gespeichert')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      toast.error(err.error || 'Fehler beim Speichern')
+    }
+  }
+
+  const saveContentPreset = async (id: string) => {
+    setEditingContentId(null)
+    setContentPresets(prev => prev.map(p => p.id === id ? { ...p, name: editingContentFields.name, data: editingContentFields.data } : p))
+    await fetch(`/api/offers/content-presets/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editingContentFields.name, data: editingContentFields.data }),
+    })
+  }
+
+  const deleteContentPreset = async (id: string) => {
+    setContentPresets(prev => prev.filter(p => p.id !== id))
+    await fetch(`/api/offers/content-presets/${id}`, { method: 'DELETE' })
+  }
+
+  const applyContentPreset = (p: ContentPreset) => {
+    if (p.preset_type === 'intro') {
+      setIntroText(p.data.content || '')
+      toast.success(`"${p.name}" eingefügt`)
+    } else if (p.preset_type === 'link') {
+      setLinks(prev => [...prev, { _id: uid(), label: p.data.label || p.name, description: p.data.description || '', url: p.data.url || '', image_url: '' }])
+      toast.success(`"${p.name}" hinzugefügt`)
+    } else {
+      setTextBlocks(prev => [...prev, { _id: uid(), heading: p.data.heading || p.name, content: p.data.content || '' }])
+      toast.success(`"${p.name}" hinzugefügt`)
+    }
+  }
+
+  // ── Save offer items to library ────────────────────────────────────────────
+  const commitSaveToLib = async () => {
+    if (!savingToLib || !saveToLibName.trim()) { setSavingToLib(null); setSaveToLibName(''); return }
+    let preset_type: 'intro' | 'link' | 'textblock'
+    let data: ContentPreset['data']
+    if (savingToLib === '__intro__') {
+      preset_type = 'intro'; data = { content: introText.trim() }
+    } else {
+      const link = links.find(l => l._id === savingToLib)
+      if (link) {
+        preset_type = 'link'; data = { label: link.label, url: link.url, description: link.description }
+      } else {
+        const tb = textBlocks.find(t => t._id === savingToLib)
+        if (!tb) { setSavingToLib(null); setSaveToLibName(''); return }
+        preset_type = 'textblock'; data = { heading: tb.heading, content: tb.content }
+      }
+    }
+    const res = await fetch('/api/offers/content-presets', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset_type, name: saveToLibName.trim(), data }),
+    })
+    if (res.ok) {
+      const preset = await res.json()
+      setContentPresets(prev => [preset, ...prev])
+      toast.success('In Bibliothek gespeichert')
+    }
+    setSavingToLib(null); setSaveToLibName('')
+  }
+
   // From library panel → add to current offer
   const addPresetToOffer = (p: ServicePreset, type: 'service' | 'extra') => {
     if (type === 'service') {
@@ -445,6 +553,15 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   // ── Library panel JSX ──────────────────────────────────────────────────────
   const currentPresets = libraryTab === 'services' ? servicePresets : extraPresets
   const currentType = libraryTab === 'services' ? 'service' as const : 'extra' as const
+  const introPresets = contentPresets.filter(p => p.preset_type === 'intro')
+  const linkPresets = contentPresets.filter(p => p.preset_type === 'link' || p.preset_type === 'textblock')
+
+  const libTabCfg = [
+    { key: 'services' as const, label: 'Leistungen', count: servicePresets.length },
+    { key: 'extras' as const, label: 'Extras', count: extraPresets.length },
+    { key: 'intros' as const, label: 'Einleitung', count: introPresets.length },
+    { key: 'links' as const, label: 'Links', count: linkPresets.length },
+  ]
 
   const libraryPanel = showLibraryPanel && (
     <div style={{
@@ -462,161 +579,289 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
         </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', padding: '10px 12px 0', gap: '4px', flexShrink: 0 }}>
-        {(['services', 'extras'] as const).map(t => (
+      {/* Tabs — 2x2 grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '10px 12px 0', gap: '4px', flexShrink: 0 }}>
+        {libTabCfg.map(t => (
           <button
-            key={t}
-            onClick={() => { setLibraryTab(t); setEditingPresetId(null); setPanelAdding(false) }}
+            key={t.key}
+            onClick={() => { setLibraryTab(t.key); setEditingPresetId(null); setEditingContentId(null); setPanelAdding(false); setPanelContentAdding(false) }}
             style={{
-              flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-              fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
-              background: libraryTab === t ? 'rgba(196,164,124,0.12)' : 'transparent',
-              color: libraryTab === t ? '#C4A47C' : '#9A9188',
+              padding: '6px 8px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              fontSize: '11px', fontWeight: 700, transition: 'all 0.15s', textAlign: 'left',
+              background: libraryTab === t.key ? 'rgba(196,164,124,0.12)' : 'transparent',
+              color: libraryTab === t.key ? '#C4A47C' : '#9A9188',
             }}
           >
-            {t === 'services' ? 'Leistungen' : 'Extras'}
-            <span style={{ marginLeft: '5px', fontSize: '11px', opacity: 0.7 }}>
-              {t === 'services' ? servicePresets.length : extraPresets.length}
-            </span>
+            {t.label}
+            <span style={{ marginLeft: '5px', fontSize: '10px', opacity: 0.7 }}>{t.count}</span>
           </button>
         ))}
       </div>
 
       {/* Preset list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-        {currentPresets.length === 0 && !panelAdding && (
-          <p style={{ margin: '8px 4px', fontSize: '13px', color: '#C0B8AE', lineHeight: 1.5 }}>
-            Noch keine {libraryTab === 'services' ? 'Leistungen' : 'Extras'} in der Bibliothek.
-          </p>
+
+        {/* ── Leistungen / Extras list ── */}
+        {(libraryTab === 'services' || libraryTab === 'extras') && (
+          <>
+            {currentPresets.length === 0 && !panelAdding && (
+              <p style={{ margin: '8px 4px', fontSize: '13px', color: '#C0B8AE', lineHeight: 1.5 }}>
+                Noch keine {libraryTab === 'services' ? 'Leistungen' : 'Extras'} in der Bibliothek.
+              </p>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {currentPresets.map(p => (
+                <div key={p.id} style={{ background: '#FAF8F5', borderRadius: '12px', border: `1px solid ${editingPresetId === p.id ? '#C4A47C' : '#EDE9E3'}`, overflow: 'hidden', transition: 'border-color 0.15s' }}>
+                  {editingPresetId === p.id ? (
+                    <div style={{ padding: '12px' }}>
+                      <input autoFocus value={editingPresetFields.title} onChange={e => setEditingPresetFields(f => ({ ...f, title: e.target.value }))} placeholder="Bezeichnung *" style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', fontWeight: 700, color: '#1C1C1A', padding: 0, marginBottom: '6px', boxSizing: 'border-box' }} />
+                      <input value={editingPresetFields.description} onChange={e => setEditingPresetFields(f => ({ ...f, description: e.target.value }))} placeholder="Beschreibung (optional)" style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '12px', color: '#7A7468', padding: 0, marginBottom: '8px', boxSizing: 'border-box' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '11px', color: '#9A9188', fontWeight: 600 }}>{currentType === 'extra' ? '+' : ''}€</span>
+                        <input type="number" min="0" step="0.01" placeholder="0" value={editingPresetFields.price} onChange={e => setEditingPresetFields(f => ({ ...f, price: e.target.value }))} style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => savePreset(p.id, currentType)} disabled={!editingPresetFields.title.trim()} style={{ flex: 1, padding: '6px', borderRadius: '7px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          <Check style={{ width: 12, height: 12 }} /> Speichern
+                        </button>
+                        <button onClick={() => setEditingPresetId(null)} style={{ padding: '6px 10px', borderRadius: '7px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px' }}>
+                      {view === 'builder' && (
+                        <button onClick={() => addPresetToOffer(p, currentType)} title="Zum Angebot hinzufügen" style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(196,164,124,0.12)', border: '1px solid rgba(196,164,124,0.25)', color: '#C4A47C', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#C4A47C'; e.currentTarget.style.color = '#fff' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,164,124,0.12)'; e.currentTarget.style.color = '#C4A47C' }}>
+                          <Plus style={{ width: 12, height: 12 }} />
+                        </button>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1C1C1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
+                        {p.description && <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#9A9188', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</p>}
+                        {p.price != null && <p style={{ margin: '1px 0 0', fontSize: '11px', fontWeight: 700, color: '#C4A47C' }}>{currentType === 'extra' ? '+' : ''}{formatEur(p.price)}</p>}
+                      </div>
+                      <button onClick={() => startEditPreset(p)} title="Bearbeiten" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', padding: '3px', flexShrink: 0 }}><Pencil style={{ width: 12, height: 12 }} /></button>
+                      <button onClick={() => deletePreset(p.id, currentType)} title="Löschen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '3px', flexShrink: 0 }}><X style={{ width: 12, height: 12 }} /></button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {currentPresets.map(p => (
-            <div
-              key={p.id}
-              style={{ background: '#FAF8F5', borderRadius: '12px', border: `1px solid ${editingPresetId === p.id ? '#C4A47C' : '#EDE9E3'}`, overflow: 'hidden', transition: 'border-color 0.15s' }}
-            >
-              {editingPresetId === p.id ? (
-                /* Edit mode */
-                <div style={{ padding: '12px' }}>
-                  <input
-                    autoFocus
-                    value={editingPresetFields.title}
-                    onChange={e => setEditingPresetFields(f => ({ ...f, title: e.target.value }))}
-                    placeholder="Bezeichnung *"
-                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', fontWeight: 700, color: '#1C1C1A', padding: 0, marginBottom: '6px', boxSizing: 'border-box' }}
-                  />
-                  <input
-                    value={editingPresetFields.description}
-                    onChange={e => setEditingPresetFields(f => ({ ...f, description: e.target.value }))}
-                    placeholder="Beschreibung (optional)"
-                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '12px', color: '#7A7468', padding: 0, marginBottom: '8px', boxSizing: 'border-box' }}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '11px', color: '#9A9188', fontWeight: 600 }}>{currentType === 'extra' ? '+' : ''}€</span>
-                    <input
-                      type="number" min="0" step="0.01" placeholder="0"
-                      value={editingPresetFields.price}
-                      onChange={e => setEditingPresetFields(f => ({ ...f, price: e.target.value }))}
-                      style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => savePreset(p.id, currentType)}
-                      disabled={!editingPresetFields.title.trim()}
-                      style={{ flex: 1, padding: '6px', borderRadius: '7px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                    >
-                      <Check style={{ width: 12, height: 12 }} /> Speichern
-                    </button>
-                    <button
-                      onClick={() => setEditingPresetId(null)}
-                      style={{ padding: '6px 10px', borderRadius: '7px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Abbrechen
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* View mode */
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px' }}>
-                  {/* Add to offer button (only in builder mode) */}
-                  {view === 'builder' && (
-                    <button
-                      onClick={() => addPresetToOffer(p, currentType)}
-                      title="Zum Angebot hinzufügen"
-                      style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(196,164,124,0.12)', border: '1px solid rgba(196,164,124,0.25)', color: '#C4A47C', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#C4A47C'; e.currentTarget.style.color = '#fff' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,164,124,0.12)'; e.currentTarget.style.color = '#C4A47C' }}
-                    >
-                      <Plus style={{ width: 12, height: 12 }} />
-                    </button>
+        {/* ── Einleitung list ── */}
+        {libraryTab === 'intros' && (
+          <>
+            {introPresets.length === 0 && !panelContentAdding && (
+              <p style={{ margin: '8px 4px', fontSize: '13px', color: '#C0B8AE', lineHeight: 1.5 }}>
+                Noch keine Einleitungstexte gespeichert.<br />Schreibe einen Einleitungstext im Angebot und klicke auf das Lesezeichen-Symbol.
+              </p>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {introPresets.map(p => (
+                <div key={p.id} style={{ background: '#FAF8F5', borderRadius: '12px', border: `1px solid ${editingContentId === p.id ? '#C4A47C' : '#EDE9E3'}`, overflow: 'hidden' }}>
+                  {editingContentId === p.id ? (
+                    <div style={{ padding: '12px' }}>
+                      <input autoFocus value={editingContentFields.name} onChange={e => setEditingContentFields(f => ({ ...f, name: e.target.value }))} placeholder="Name *" style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', fontWeight: 700, color: '#1C1C1A', padding: 0, marginBottom: '6px', boxSizing: 'border-box' }} />
+                      <textarea rows={4} value={editingContentFields.data.content || ''} onChange={e => setEditingContentFields(f => ({ ...f, data: { ...f.data, content: e.target.value } }))} style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: '8px' }} />
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => saveContentPreset(p.id)} disabled={!editingContentFields.name.trim()} style={{ flex: 1, padding: '6px', borderRadius: '7px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          <Check style={{ width: 12, height: 12 }} /> Speichern
+                        </button>
+                        <button onClick={() => setEditingContentId(null)} style={{ padding: '6px 10px', borderRadius: '7px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        {view === 'builder' && (
+                          <button onClick={() => applyContentPreset(p)} title="Einleitung übernehmen" style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(196,164,124,0.12)', border: '1px solid rgba(196,164,124,0.25)', color: '#C4A47C', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#C4A47C'; e.currentTarget.style.color = '#fff' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,164,124,0.12)'; e.currentTarget.style.color = '#C4A47C' }}>
+                            <Plus style={{ width: 12, height: 12 }} />
+                          </button>
+                        )}
+                        <p style={{ margin: 0, flex: 1, fontSize: '13px', fontWeight: 600, color: '#1C1C1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+                        <button onClick={() => { setEditingContentId(p.id); setEditingContentFields({ name: p.name, data: p.data }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', padding: '3px', flexShrink: 0 }}><Pencil style={{ width: 12, height: 12 }} /></button>
+                        <button onClick={() => deleteContentPreset(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '3px', flexShrink: 0 }}><X style={{ width: 12, height: 12 }} /></button>
+                      </div>
+                      {p.data.content && <p style={{ margin: 0, fontSize: '11px', color: '#9A9188', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.data.content}</p>}
+                    </div>
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1C1C1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
-                    {p.description && <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#9A9188', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</p>}
-                    {p.price != null && <p style={{ margin: '1px 0 0', fontSize: '11px', fontWeight: 700, color: '#C4A47C' }}>{currentType === 'extra' ? '+' : ''}{formatEur(p.price)}</p>}
-                  </div>
-                  <button onClick={() => startEditPreset(p)} title="Bearbeiten" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', padding: '3px', flexShrink: 0 }}>
-                    <Pencil style={{ width: 12, height: 12 }} />
-                  </button>
-                  <button onClick={() => deletePreset(p.id, currentType)} title="Löschen" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '3px', flexShrink: 0 }}>
-                    <X style={{ width: 12, height: 12 }} />
-                  </button>
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
+
+        {/* ── Links & Blöcke list ── */}
+        {libraryTab === 'links' && (
+          <>
+            {linkPresets.length === 0 && !panelContentAdding && (
+              <p style={{ margin: '8px 4px', fontSize: '13px', color: '#C0B8AE', lineHeight: 1.5 }}>
+                Noch keine Links oder Textblöcke gespeichert.<br />Klicke auf das Lesezeichen-Symbol bei einem Block im Angebot.
+              </p>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {linkPresets.map(p => (
+                <div key={p.id} style={{ background: '#FAF8F5', borderRadius: '12px', border: `1px solid ${editingContentId === p.id ? '#C4A47C' : '#EDE9E3'}`, overflow: 'hidden' }}>
+                  {editingContentId === p.id ? (
+                    <div style={{ padding: '12px' }}>
+                      <input autoFocus value={editingContentFields.name} onChange={e => setEditingContentFields(f => ({ ...f, name: e.target.value }))} placeholder="Name *" style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', fontWeight: 700, color: '#1C1C1A', padding: 0, marginBottom: '8px', boxSizing: 'border-box' }} />
+                      {p.preset_type === 'link' ? (
+                        <>
+                          <input value={editingContentFields.data.label || ''} onChange={e => setEditingContentFields(f => ({ ...f, data: { ...f.data, label: e.target.value } }))} placeholder="Titel" style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+                          <input value={editingContentFields.data.url || ''} onChange={e => setEditingContentFields(f => ({ ...f, data: { ...f.data, url: e.target.value } }))} placeholder="URL" style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+                          <input value={editingContentFields.data.description || ''} onChange={e => setEditingContentFields(f => ({ ...f, data: { ...f.data, description: e.target.value } }))} placeholder="Beschreibung (optional)" style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
+                        </>
+                      ) : (
+                        <>
+                          <input value={editingContentFields.data.heading || ''} onChange={e => setEditingContentFields(f => ({ ...f, data: { ...f.data, heading: e.target.value } }))} placeholder="Überschrift" style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+                          <textarea rows={3} value={editingContentFields.data.content || ''} onChange={e => setEditingContentFields(f => ({ ...f, data: { ...f.data, content: e.target.value } }))} style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '12px', color: '#1C1C1A', resize: 'vertical', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
+                        </>
+                      )}
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => saveContentPreset(p.id)} disabled={!editingContentFields.name.trim()} style={{ flex: 1, padding: '6px', borderRadius: '7px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          <Check style={{ width: 12, height: 12 }} /> Speichern
+                        </button>
+                        <button onClick={() => setEditingContentId(null)} style={{ padding: '6px 10px', borderRadius: '7px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', padding: '2px 5px', borderRadius: '4px', background: p.preset_type === 'link' ? 'rgba(196,164,124,0.12)' : 'rgba(181,173,163,0.15)', color: p.preset_type === 'link' ? '#C4A47C' : '#9A9188', flexShrink: 0 }}>
+                        {p.preset_type === 'link' ? 'LINK' : 'TEXT'}
+                      </span>
+                      {view === 'builder' && (
+                        <button onClick={() => applyContentPreset(p)} title="Zum Angebot hinzufügen" style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(196,164,124,0.12)', border: '1px solid rgba(196,164,124,0.25)', color: '#C4A47C', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#C4A47C'; e.currentTarget.style.color = '#fff' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(196,164,124,0.12)'; e.currentTarget.style.color = '#C4A47C' }}>
+                          <Plus style={{ width: 12, height: 12 }} />
+                        </button>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1C1C1A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+                        <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#9A9188', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.preset_type === 'link' ? (p.data.url || '') : (p.data.heading || p.data.content || '').slice(0, 60)}
+                        </p>
+                      </div>
+                      <button onClick={() => { setEditingContentId(p.id); setEditingContentFields({ name: p.name, data: { ...p.data } }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', padding: '3px', flexShrink: 0 }}><Pencil style={{ width: 12, height: 12 }} /></button>
+                      <button onClick={() => deleteContentPreset(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '3px', flexShrink: 0 }}><X style={{ width: 12, height: 12 }} /></button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Add new preset */}
+      {/* Add new — footer changes per tab */}
       <div style={{ borderTop: '1px solid #EDE9E3', padding: '12px', flexShrink: 0 }}>
-        {panelAdding ? (
-          <div>
-            <input
-              autoFocus
-              value={panelNewTitle}
-              onChange={e => setPanelNewTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addPresetFromPanel(); if (e.key === 'Escape') { setPanelAdding(false); setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice('') } }}
-              placeholder={`${libraryTab === 'services' ? 'Leistung' : 'Extra'} benennen *`}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #C4A47C', background: '#fff', fontSize: '13px', fontWeight: 600, color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }}
-            />
-            <input
-              value={panelNewDescription}
-              onChange={e => setPanelNewDescription(e.target.value)}
-              placeholder="Beschreibung (optional)"
-              style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#7A7468', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '11px', color: '#9A9188', fontWeight: 600 }}>{libraryTab === 'extras' ? '+' : ''}€</span>
-              <input
-                type="number" min="0" step="0.01" placeholder="Preis (optional)"
-                value={panelNewPrice}
-                onChange={e => setPanelNewPrice(e.target.value)}
-                style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', outline: 'none' }}
-              />
+
+        {/* Leistungen / Extras add form */}
+        {(libraryTab === 'services' || libraryTab === 'extras') && (
+          panelAdding ? (
+            <div>
+              <input autoFocus value={panelNewTitle} onChange={e => setPanelNewTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addPresetFromPanel(); if (e.key === 'Escape') { setPanelAdding(false); setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice('') } }}
+                placeholder={`${libraryTab === 'services' ? 'Leistung' : 'Extra'} benennen *`}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #C4A47C', background: '#fff', fontSize: '13px', fontWeight: 600, color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+              <input value={panelNewDescription} onChange={e => setPanelNewDescription(e.target.value)} placeholder="Beschreibung (optional)"
+                style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#7A7468', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#9A9188', fontWeight: 600 }}>{libraryTab === 'extras' ? '+' : ''}€</span>
+                <input type="number" min="0" step="0.01" placeholder="Preis (optional)" value={panelNewPrice} onChange={e => setPanelNewPrice(e.target.value)}
+                  style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', outline: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={addPresetFromPanel} disabled={!panelNewTitle.trim()} style={{ flex: 1, padding: '7px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: panelNewTitle.trim() ? 'pointer' : 'default', opacity: panelNewTitle.trim() ? 1 : 0.4 }}>Hinzufügen</button>
+                <button onClick={() => { setPanelAdding(false); setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice('') }} style={{ padding: '7px 12px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button onClick={addPresetFromPanel} disabled={!panelNewTitle.trim()} style={{ flex: 1, padding: '7px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: panelNewTitle.trim() ? 'pointer' : 'default', opacity: panelNewTitle.trim() ? 1 : 0.4 }}>
-                Hinzufügen
-              </button>
-              <button onClick={() => { setPanelAdding(false); setPanelNewTitle(''); setPanelNewDescription(''); setPanelNewPrice('') }} style={{ padding: '7px 12px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                Abbrechen
-              </button>
+          ) : (
+            <button onClick={() => { setPanelAdding(true); setEditingPresetId(null) }}
+              style={{ width: '100%', padding: '8px', borderRadius: '10px', background: 'transparent', border: '1.5px dashed #D9D4CE', color: '#9A9188', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4A47C'; e.currentTarget.style.color = '#C4A47C' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#D9D4CE'; e.currentTarget.style.color = '#9A9188' }}>
+              <Plus style={{ width: 13, height: 13 }} />
+              Neue {libraryTab === 'services' ? 'Leistung' : 'Extra'} anlegen
+            </button>
+          )
+        )}
+
+        {/* Einleitung add form */}
+        {libraryTab === 'intros' && (
+          panelContentAdding ? (
+            <div>
+              <input autoFocus value={panelContentNew.name} onChange={e => setPanelContentNew(f => ({ ...f, name: e.target.value }))} placeholder="Name (z. B. Hochzeit Warme Begrüßung) *"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #C4A47C', background: '#fff', fontSize: '13px', fontWeight: 600, color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+              <textarea rows={4} value={panelContentNew.content} onChange={e => setPanelContentNew(f => ({ ...f, content: e.target.value }))} placeholder="Einleitungstext…"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', resize: 'vertical', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={addContentPresetFromPanel} disabled={!panelContentNew.name.trim()} style={{ flex: 1, padding: '7px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: panelContentNew.name.trim() ? 'pointer' : 'default', opacity: panelContentNew.name.trim() ? 1 : 0.4 }}>Hinzufügen</button>
+                <button onClick={() => { setPanelContentAdding(false); setPanelContentNew(f => ({ ...f, name: '', content: '' })) }} style={{ padding: '7px 12px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => { setPanelAdding(true); setEditingPresetId(null) }}
-            style={{ width: '100%', padding: '8px', borderRadius: '10px', background: 'transparent', border: '1.5px dashed #D9D4CE', color: '#9A9188', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4A47C'; e.currentTarget.style.color = '#C4A47C' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#D9D4CE'; e.currentTarget.style.color = '#9A9188' }}
-          >
-            <Plus style={{ width: 13, height: 13 }} />
-            Neue {libraryTab === 'services' ? 'Leistung' : 'Extra'} anlegen
-          </button>
+          ) : (
+            <button onClick={() => { setPanelContentAdding(true); setEditingContentId(null) }}
+              style={{ width: '100%', padding: '8px', borderRadius: '10px', background: 'transparent', border: '1.5px dashed #D9D4CE', color: '#9A9188', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4A47C'; e.currentTarget.style.color = '#C4A47C' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#D9D4CE'; e.currentTarget.style.color = '#9A9188' }}>
+              <Plus style={{ width: 13, height: 13 }} />
+              Neuen Einleitungstext anlegen
+            </button>
+          )
+        )}
+
+        {/* Links add form */}
+        {libraryTab === 'links' && (
+          panelContentAdding ? (
+            <div>
+              {/* Type toggle */}
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                {(['link', 'textblock'] as const).map(t => (
+                  <button key={t} onClick={() => setPanelContentNewType(t)}
+                    style={{ flex: 1, padding: '5px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, background: panelContentNewType === t ? 'rgba(196,164,124,0.12)' : '#F5F2EE', color: panelContentNewType === t ? '#C4A47C' : '#9A9188' }}>
+                    {t === 'link' ? 'Link-Block' : 'Textblock'}
+                  </button>
+                ))}
+              </div>
+              <input autoFocus value={panelContentNew.name} onChange={e => setPanelContentNew(f => ({ ...f, name: e.target.value }))} placeholder="Name *"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #C4A47C', background: '#fff', fontSize: '13px', fontWeight: 600, color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+              {panelContentNewType === 'link' ? (
+                <>
+                  <input value={panelContentNew.label} onChange={e => setPanelContentNew(f => ({ ...f, label: e.target.value }))} placeholder="Titel des Blocks"
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+                  <input value={panelContentNew.url} onChange={e => setPanelContentNew(f => ({ ...f, url: e.target.value }))} placeholder="https://…"
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+                  <input value={panelContentNew.description} onChange={e => setPanelContentNew(f => ({ ...f, description: e.target.value }))} placeholder="Beschreibung (optional)"
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
+                </>
+              ) : (
+                <>
+                  <input value={panelContentNew.heading} onChange={e => setPanelContentNew(f => ({ ...f, heading: e.target.value }))} placeholder="Überschrift"
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' }} />
+                  <textarea rows={3} value={panelContentNew.content} onChange={e => setPanelContentNew(f => ({ ...f, content: e.target.value }))} placeholder="Freitext…"
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#1C1C1A', resize: 'vertical', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' }} />
+                </>
+              )}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={addContentPresetFromPanel} disabled={!panelContentNew.name.trim()} style={{ flex: 1, padding: '7px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: panelContentNew.name.trim() ? 'pointer' : 'default', opacity: panelContentNew.name.trim() ? 1 : 0.4 }}>Hinzufügen</button>
+                <button onClick={() => { setPanelContentAdding(false); setPanelContentNew(f => ({ ...f, name: '', label: '', url: '', description: '', heading: '', content: '' })) }} style={{ padding: '7px 12px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Abbrechen</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => { setPanelContentAdding(true); setEditingContentId(null) }}
+              style={{ width: '100%', padding: '8px', borderRadius: '10px', background: 'transparent', border: '1.5px dashed #D9D4CE', color: '#9A9188', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4A47C'; e.currentTarget.style.color = '#C4A47C' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#D9D4CE'; e.currentTarget.style.color = '#9A9188' }}>
+              <Plus style={{ width: 13, height: 13 }} />
+              Neuen Link oder Textblock anlegen
+            </button>
+          )
         )}
       </div>
     </div>
@@ -780,9 +1025,22 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
               </Section>
 
               {/* ── EINLEITUNG ─────────────────────────────────────────────── */}
-              <Section label="Einleitung">
+              <Section label="Einleitung" actions={
+                <ActBtn onClick={() => { if (savingToLib === '__intro__') { setSavingToLib(null); setSaveToLibName('') } else { setSavingToLib('__intro__'); setSaveToLibName('') } }} active={savingToLib === '__intro__'}>
+                  <Bookmark style={{ width: 12, height: 12 }} />
+                  Speichern
+                </ActBtn>
+              }>
                 <textarea rows={5} placeholder="Persönliche Ansprache — direkt und warm…" value={introText} onChange={e => setIntroText(e.target.value)}
                   style={{ width: '100%', padding: '12px 0', border: 'none', outline: 'none', resize: 'none', fontSize: '15px', color: '#1C1C1A', background: 'transparent', lineHeight: 1.7, boxSizing: 'border-box' }} />
+                {savingToLib === '__intro__' && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', padding: '10px 12px', background: 'rgba(196,164,124,0.06)', borderRadius: '10px', border: '1px solid rgba(196,164,124,0.2)' }}>
+                    <input autoFocus value={saveToLibName} onChange={e => setSaveToLibName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitSaveToLib(); if (e.key === 'Escape') { setSavingToLib(null); setSaveToLibName('') } }} placeholder="Name für die Bibliothek…"
+                      style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#1C1C1A', outline: 'none' }} />
+                    <button onClick={commitSaveToLib} disabled={!saveToLibName.trim()} style={{ padding: '6px 14px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: saveToLibName.trim() ? 'pointer' : 'default', opacity: saveToLibName.trim() ? 1 : 0.4 }}>Speichern</button>
+                    <button onClick={() => { setSavingToLib(null); setSaveToLibName('') }} style={{ padding: '6px 10px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '12px', cursor: 'pointer' }}>×</button>
+                  </div>
+                )}
               </Section>
 
               {/* ── LEISTUNGEN ─────────────────────────────────────────────── */}
@@ -892,6 +1150,10 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
                 count={links.filter(l => l.url.trim()).length + textBlocks.filter(t => t.content.trim() || t.heading.trim()).length}
                 actions={
                   <>
+                    <ActBtn onClick={() => { setShowLibraryPanel(true); setLibraryTab('links') }} active={showLibraryPanel && libraryTab === 'links'}>
+                      <BookOpen style={{ width: 13, height: 13 }} />
+                      Bibliothek
+                    </ActBtn>
                     <ActBtn onClick={addTextBlock} color="#B5ADA3"><AlignLeft style={{ width: 13, height: 13 }} />Textblock</ActBtn>
                     <ActBtn onClick={addLink} color="#C4A47C"><Link2 style={{ width: 13, height: 13 }} />Link-Block</ActBtn>
                   </>
@@ -900,27 +1162,45 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {links.map(lnk => (
-                    <div key={lnk._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3', overflow: 'hidden' }}>
+                    <div key={lnk._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: `1px solid ${savingToLib === lnk._id ? '#C4A47C' : '#EDE9E3'}`, overflow: 'hidden', transition: 'border-color 0.15s' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '1px solid #EDE9E3' }}>
                         <Link2 style={{ width: 14, height: 14, color: '#C4A47C', flexShrink: 0 }} />
                         <input type="text" value={lnk.label} onChange={e => updateLink(lnk._id, { label: e.target.value })} placeholder="TITEL DES BLOCKS" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1C1C1A', padding: 0 }} />
+                        <button onClick={() => { if (savingToLib === lnk._id) { setSavingToLib(null); setSaveToLibName('') } else { setSavingToLib(lnk._id); setSaveToLibName(lnk.label || '') } }} title="In Bibliothek speichern" style={{ background: 'none', border: 'none', cursor: 'pointer', color: savingToLib === lnk._id ? '#C4A47C' : '#D1C9C0', padding: '2px', flexShrink: 0 }}><Bookmark style={{ width: 13, height: 13 }} /></button>
                         <button onClick={() => removeLink(lnk._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px', flexShrink: 0 }}><X style={{ width: 13, height: 13 }} /></button>
                       </div>
                       <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
                         <input type="text" value={lnk.description} onChange={e => updateLink(lnk._id, { description: e.target.value })} placeholder="Kurze Beschreibung (optional)" style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#7A7468', padding: 0 }} />
                         <input type="url" value={lnk.url} onChange={e => updateLink(lnk._id, { url: e.target.value })} placeholder="https://fotonizer.com/g/example-gallery" style={{ width: '100%', padding: '7px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#1C1C1A', boxSizing: 'border-box' }} />
+                        {savingToLib === lnk._id && (
+                          <div style={{ display: 'flex', gap: '8px', padding: '8px 0 2px' }}>
+                            <input autoFocus value={saveToLibName} onChange={e => setSaveToLibName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitSaveToLib(); if (e.key === 'Escape') { setSavingToLib(null); setSaveToLibName('') } }} placeholder="Name für die Bibliothek…"
+                              style={{ flex: 1, padding: '5px 10px', borderRadius: '8px', border: '1px solid #C4A47C', background: '#fff', fontSize: '12px', color: '#1C1C1A', outline: 'none' }} />
+                            <button onClick={commitSaveToLib} disabled={!saveToLibName.trim()} style={{ padding: '5px 12px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: saveToLibName.trim() ? 'pointer' : 'default', opacity: saveToLibName.trim() ? 1 : 0.4 }}>OK</button>
+                            <button onClick={() => { setSavingToLib(null); setSaveToLibName('') }} style={{ padding: '5px 8px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', cursor: 'pointer' }}>×</button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                   {textBlocks.map(tb => (
-                    <div key={tb._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3', overflow: 'hidden' }}>
+                    <div key={tb._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: `1px solid ${savingToLib === tb._id ? '#C4A47C' : '#EDE9E3'}`, overflow: 'hidden', transition: 'border-color 0.15s' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '1px solid #EDE9E3' }}>
                         <AlignLeft style={{ width: 14, height: 14, color: '#B5ADA3', flexShrink: 0 }} />
                         <input type="text" value={tb.heading} onChange={e => updateTextBlock(tb._id, { heading: e.target.value })} placeholder="ÜBERSCHRIFT (z. B. KONDITIONEN, FAQ)" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1C1C1A', padding: 0 }} />
+                        <button onClick={() => { if (savingToLib === tb._id) { setSavingToLib(null); setSaveToLibName('') } else { setSavingToLib(tb._id); setSaveToLibName(tb.heading || '') } }} title="In Bibliothek speichern" style={{ background: 'none', border: 'none', cursor: 'pointer', color: savingToLib === tb._id ? '#C4A47C' : '#D1C9C0', padding: '2px', flexShrink: 0 }}><Bookmark style={{ width: 13, height: 13 }} /></button>
                         <button onClick={() => removeTextBlock(tb._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px', flexShrink: 0 }}><X style={{ width: 13, height: 13 }} /></button>
                       </div>
                       <div style={{ padding: '10px 14px' }}>
                         <textarea rows={4} value={tb.content} onChange={e => updateTextBlock(tb._id, { content: e.target.value })} placeholder="Freitext — Konditionen, Ablauf, FAQ…" style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', fontSize: '13px', color: '#1C1C1A', lineHeight: 1.65, padding: 0, boxSizing: 'border-box' }} />
+                        {savingToLib === tb._id && (
+                          <div style={{ display: 'flex', gap: '8px', paddingTop: '8px' }}>
+                            <input autoFocus value={saveToLibName} onChange={e => setSaveToLibName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitSaveToLib(); if (e.key === 'Escape') { setSavingToLib(null); setSaveToLibName('') } }} placeholder="Name für die Bibliothek…"
+                              style={{ flex: 1, padding: '5px 10px', borderRadius: '8px', border: '1px solid #C4A47C', background: '#fff', fontSize: '12px', color: '#1C1C1A', outline: 'none' }} />
+                            <button onClick={commitSaveToLib} disabled={!saveToLibName.trim()} style={{ padding: '5px 12px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: saveToLibName.trim() ? 'pointer' : 'default', opacity: saveToLibName.trim() ? 1 : 0.4 }}>OK</button>
+                            <button onClick={() => { setSavingToLib(null); setSaveToLibName('') }} style={{ padding: '5px 8px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', cursor: 'pointer' }}>×</button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

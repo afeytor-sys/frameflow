@@ -16,6 +16,7 @@ export default async function OffersPage() {
     { data: servicePresets },
     { data: extraPresets },
     { data: userTemplates },
+    { data: contentPresets },
   ] = await Promise.all([
     supabase
       .from('photographers')
@@ -58,6 +59,11 @@ export default async function OffersPage() {
       .select('id, name, intro_text, base_price, services, extras, gallery_links')
       .eq('photographer_id', user.id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('photographer_content_presets')
+      .select('id, preset_type, name, data, created_at')
+      .eq('photographer_id', user.id)
+      .order('created_at', { ascending: false }),
   ])
 
   return (
@@ -68,6 +74,7 @@ export default async function OffersPage() {
       initialServicePresets={servicePresets || []}
       initialExtraPresets={extraPresets || []}
       initialUserTemplates={userTemplates || []}
+      initialContentPresets={contentPresets || []}
     />
   )
 }
