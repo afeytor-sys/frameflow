@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data } = await supabase
     .from('photographer_offer_templates')
-    .select('id, name, intro_text, base_price, services, extras, created_at')
+    .select('id, name, intro_text, base_price, services, extras, gallery_links, created_at')
     .eq('photographer_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { name, intro_text, base_price, services, extras } = await req.json()
+  const { name, intro_text, base_price, services, extras, gallery_links } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })
 
   const service = createServiceClient()
@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
       base_price: base_price || null,
       services: services || [],
       extras: extras || [],
+      gallery_links: gallery_links || [],
     })
-    .select('id, name, intro_text, base_price, services, extras, created_at')
+    .select('id, name, intro_text, base_price, services, extras, gallery_links, created_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

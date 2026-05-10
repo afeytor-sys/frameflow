@@ -55,7 +55,7 @@ export default async function OffersPage() {
       .order('created_at'),
     supabase
       .from('photographer_offer_templates')
-      .select('id, name, intro_text, base_price, services, extras')
+      .select('id, name, intro_text, base_price, services, extras, gallery_links')
       .eq('photographer_id', user.id)
       .order('created_at', { ascending: false }),
   ])

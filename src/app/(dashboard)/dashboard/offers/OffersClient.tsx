@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   Plus, Send, CheckCircle2, Clock, XCircle, FileEdit, Trash2,
   Copy, ExternalLink, Eye, X, Check, Sparkles, Link2, ChevronDown,
-  ArrowLeft, BookOpen, ToggleRight, ToggleLeft, Save, AlignLeft,
+  ArrowLeft, BookOpen, ToggleRight, ToggleLeft, Save, AlignLeft, Pencil,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -20,6 +20,7 @@ interface UserTemplate {
   id: string; name: string; intro_text: string | null; base_price: number | null
   services: { title: string; description?: string | null; included: boolean; price?: number | null }[]
   extras: { title: string; description?: string | null; price: number }[]
+  gallery_links: Array<{ type?: string; label?: string; url?: string; description?: string; image_url?: string; heading?: string; content?: string }>
 }
 
 interface OfferService {
@@ -175,6 +176,9 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [savingTemplate, setSavingTemplate] = useState(false)
+  // Rename template
+  const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null)
+  const [renamingName, setRenamingName] = useState('')
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const isFirstRender = useRef(true)
@@ -257,6 +261,17 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     if (basePrice === '') setBasePrice(tpl.base_price ? (tpl.base_price / 100).toFixed(2) : '')
     setServices(tpl.services.map(s => ({ _id: uid(), title: s.title, description: s.description || '', included: s.included, price: s.price ? (s.price / 100).toFixed(2) : '' })))
     setExtras(tpl.extras.map(e => ({ _id: uid(), title: e.title, description: e.description || '', price: e.price ? (e.price / 100).toFixed(2) : '' })))
+    const items = tpl.gallery_links || []
+    setLinks(
+      items
+        .filter(b => !b.type || b.type === 'link')
+        .map(l => ({ _id: uid(), label: l.label || '', description: l.description || '', url: l.url || '', image_url: l.image_url || '' }))
+    )
+    setTextBlocks(
+      items
+        .filter(b => b.type === 'text')
+        .map(t => ({ _id: uid(), heading: t.heading || '', content: t.content || '' }))
+    )
   }, [introText, basePrice])
 
   const saveAsTemplate = async () => {
@@ -273,6 +288,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
           base_price: payload.base_price || null,
           services: payload.services,
           extras: payload.extras,
+          gallery_links: payload.gallery_links,
         }),
       })
       if (res.ok) {
@@ -288,6 +304,18 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const deleteUserTemplate = async (id: string) => {
     setUserTemplates(prev => prev.filter(t => t.id !== id))
     await fetch(`/api/offers/templates/${id}`, { method: 'DELETE' })
+  }
+
+  const commitRenameTemplate = async (id: string) => {
+    const name = renamingName.trim()
+    setRenamingTemplateId(null)
+    if (!name) return
+    setUserTemplates(prev => prev.map(t => t.id === id ? { ...t, name } : t))
+    await fetch(`/api/offers/templates/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
   }
 
   // ── Service helpers ────────────────────────────────────────────────────────
@@ -581,15 +609,37 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
             {userTemplates.length > 0 && (
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderLeft: '1px solid #E8E4DC', paddingLeft: '12px' }}>
                 {userTemplates.map(t => (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    {renamingTemplateId === t.id ? (
+                      <input
+                        autoFocus
+                        value={renamingName}
+                        onChange={e => setRenamingName(e.target.value)}
+                        onBlur={() => commitRenameTemplate(t.id)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') commitRenameTemplate(t.id)
+                          if (e.key === 'Escape') setRenamingTemplateId(null)
+                        }}
+                        style={{ padding: '4px 10px', borderRadius: '8px', border: '1.5px solid #C4A47C', background: '#fff', fontSize: '12px', fontWeight: 600, color: '#1C1C1A', outline: 'none', minWidth: '120px' }}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => { applyUserTemplate(t); setShowSaveTemplate(false) }}
+                        style={{ padding: '4px 10px', borderRadius: '100px', background: '#fff', border: '1px solid #E8E4DC', fontSize: '12px', fontWeight: 600, color: '#5A534E', cursor: 'pointer' }}
+                      >
+                        {t.name}
+                      </button>
+                    )}
                     <button
-                      onClick={() => { applyUserTemplate(t); setShowSaveTemplate(false) }}
-                      style={{ padding: '4px 10px', borderRadius: '100px', background: '#fff', border: '1px solid #E8E4DC', fontSize: '12px', fontWeight: 600, color: '#5A534E', cursor: 'pointer' }}
+                      onClick={() => { setRenamingTemplateId(t.id); setRenamingName(t.name) }}
+                      title="Umbenennen"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', padding: '2px' }}
                     >
-                      {t.name}
+                      <Pencil style={{ width: 10, height: 10 }} />
                     </button>
                     <button
                       onClick={() => deleteUserTemplate(t.id)}
+                      title="Löschen"
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px' }}
                     >
                       <X style={{ width: 10, height: 10 }} />
