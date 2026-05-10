@@ -23,7 +23,10 @@ interface OfferExtra {
   sort_order: number
 }
 
-interface GalleryLink { label: string; description?: string; url: string; image_url?: string }
+type GalleryLink =
+  | { type: 'link'; label: string; description?: string; url: string; image_url?: string }
+  | { type: 'text'; heading: string; content: string }
+  | { label: string; url: string; description?: string; image_url?: string }
 
 interface Offer {
   id: string
@@ -313,78 +316,88 @@ export default function OfferPublicClient({ offer, photographer, clientName, ser
           </section>
         )}
 
-        {/* ── Gallery links ────────────────────────────────────────────────── */}
+        {/* ── Gallery links & text blocks ──────────────────────────────────── */}
         {offer.gallery_links && offer.gallery_links.length > 0 && (
           <section style={{ marginBottom: '48px' }}>
             <h2 style={{ margin: '0 0 20px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5ADA3' }}>
               Beispiele & Links
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {offer.gallery_links.map((lnk, i) => (
-                <a
-                  key={i}
-                  href={lnk.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'block',
-                    background: '#fff',
-                    border: '1px solid #EDE9E3',
-                    borderRadius: '20px',
-                    textDecoration: 'none',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
-                    transition: 'box-shadow 0.18s, border-color 0.18s',
-                  }}
-                  onMouseEnter={e => {
-                    ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 32px rgba(196,164,124,0.18)'
-                    ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(196,164,124,0.4)'
-                  }}
-                  onMouseLeave={e => {
-                    ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 2px 16px rgba(0,0,0,0.05)'
-                    ;(e.currentTarget as HTMLAnchorElement).style.borderColor = '#EDE9E3'
-                  }}
-                >
-                  {/* Cover image */}
-                  {lnk.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={lnk.image_url}
-                      alt={lnk.label}
-                      style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
-                    />
-                  )}
-                  <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1C1C1A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {lnk.label || lnk.url}
-                      </p>
-                      {lnk.description && (
-                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#9A9188', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {lnk.description}
-                        </p>
+              {offer.gallery_links.map((item, i) => {
+                // Text block
+                if ('type' in item && item.type === 'text') {
+                  const tb = item as { type: 'text'; heading: string; content: string }
+                  return (
+                    <div key={i} style={{ background: '#fff', borderRadius: '20px', border: '1px solid #EDE9E3', overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.04)' }}>
+                      {tb.heading && (
+                        <div style={{ padding: '14px 24px 0' }}>
+                          <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5ADA3' }}>{tb.heading}</p>
+                        </div>
                       )}
+                      <div style={{ padding: tb.heading ? '10px 24px 20px' : '20px 24px' }}>
+                        <p style={{ margin: 0, fontSize: '15px', color: '#6B6460', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{tb.content}</p>
+                      </div>
                     </div>
-                    <span style={{
-                      flexShrink: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 16px',
-                      background: 'rgba(196,164,124,0.1)',
-                      borderRadius: '100px',
-                      border: '1px solid rgba(196,164,124,0.25)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: '#C4A47C',
-                      letterSpacing: '0.04em',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      Ansehen <ExternalLink style={{ width: '11px', height: '11px' }} />
-                    </span>
-                  </div>
-                </a>
-              ))}
+                  )
+                }
+                // Link block (type: 'link' or legacy without type)
+                const lnk = item as { label?: string; url: string; description?: string; image_url?: string }
+                return (
+                  <a
+                    key={i}
+                    href={lnk.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'block',
+                      background: '#fff',
+                      border: '1px solid #EDE9E3',
+                      borderRadius: '20px',
+                      textDecoration: 'none',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+                      transition: 'box-shadow 0.18s, border-color 0.18s',
+                    }}
+                    onMouseEnter={e => {
+                      ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 32px rgba(196,164,124,0.18)'
+                      ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(196,164,124,0.4)'
+                    }}
+                    onMouseLeave={e => {
+                      ;(e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 2px 16px rgba(0,0,0,0.05)'
+                      ;(e.currentTarget as HTMLAnchorElement).style.borderColor = '#EDE9E3'
+                    }}
+                  >
+                    {lnk.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={lnk.image_url}
+                        alt={lnk.label || ''}
+                        style={{ width: '100%', height: '200px', objectFit: 'cover', display: 'block' }}
+                      />
+                    )}
+                    <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1C1C1A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {lnk.label || lnk.url}
+                        </p>
+                        {lnk.description && (
+                          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#9A9188', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {lnk.description}
+                          </p>
+                        )}
+                      </div>
+                      <span style={{
+                        flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '8px 16px', background: 'rgba(196,164,124,0.1)', borderRadius: '100px',
+                        border: '1px solid rgba(196,164,124,0.25)', fontSize: '12px', fontWeight: 700,
+                        color: '#C4A47C', letterSpacing: '0.04em', whiteSpace: 'nowrap',
+                      }}>
+                        Ansehen <ExternalLink style={{ width: '11px', height: '11px' }} />
+                      </span>
+                    </div>
+                  </a>
+                )
+              })}
             </div>
           </section>
         )}

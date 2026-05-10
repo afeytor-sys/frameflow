@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   Plus, Send, CheckCircle2, Clock, XCircle, FileEdit, Trash2,
   Copy, ExternalLink, Eye, X, Check, Sparkles, Link2, ChevronDown,
-  ArrowLeft, BookOpen, ToggleRight, ToggleLeft, Save,
+  ArrowLeft, BookOpen, ToggleRight, ToggleLeft, Save, AlignLeft,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
@@ -16,6 +16,12 @@ interface Client { id: string; full_name: string; email: string | null }
 
 interface ServicePreset { id: string; title: string; description: string | null; price: number | null }
 
+interface UserTemplate {
+  id: string; name: string; intro_text: string | null; base_price: number | null
+  services: { title: string; description?: string | null; included: boolean; price?: number | null }[]
+  extras: { title: string; description?: string | null; price: number }[]
+}
+
 interface OfferService {
   id?: string; title: string; description?: string | null
   included: boolean; price?: number | null; sort_order: number
@@ -24,7 +30,13 @@ interface OfferExtra {
   id?: string; title: string; description?: string | null
   price: number; selectable: boolean; sort_order: number
 }
-interface LinkBlock { label: string; description?: string; url: string; image_url?: string }
+
+// gallery_links holds both link-blocks and text-blocks as mixed JSONB
+type GalleryItem =
+  | { type: 'link'; label: string; description?: string; url: string; image_url?: string }
+  | { type: 'text'; heading: string; content: string }
+  // legacy items without type field
+  | { label: string; url: string; description?: string; image_url?: string }
 
 interface Offer {
   id: string; title: string; slug: string
@@ -32,7 +44,7 @@ interface Offer {
   event_date: string | null; valid_until: string | null
   base_price: number; currency: string; deposit_amount: number | null
   intro_text: string | null; notes: string | null
-  gallery_links: LinkBlock[]; created_at: string
+  gallery_links: GalleryItem[]; created_at: string
   client?: { id: string; full_name: string; email: string | null } | { id: string; full_name: string; email: string | null }[] | null
   services?: OfferService[]; extras?: OfferExtra[]
 }
@@ -46,6 +58,8 @@ interface Props {
   initialOffers: Offer[]; clients: Client[]
   photographer: Photographer | null
   initialServicePresets: ServicePreset[]
+  initialExtraPresets: ServicePreset[]
+  initialUserTemplates: UserTemplate[]
 }
 
 // ── Builder item types ────────────────────────────────────────────────────────
@@ -53,6 +67,7 @@ interface Props {
 interface BService { _id: string; title: string; description: string; included: boolean; price: string }
 interface BExtra  { _id: string; title: string; description: string; price: string }
 interface BLink   { _id: string; label: string; description: string; url: string; image_url: string }
+interface BTextBlock { _id: string; heading: string; content: string }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -122,13 +137,15 @@ function ActBtn({ onClick, children, color }: { onClick: () => void; children: R
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function OffersClient({ initialOffers, clients, photographer, initialServicePresets }: Props) {
+export default function OffersClient({ initialOffers, clients, photographer, initialServicePresets, initialExtraPresets, initialUserTemplates }: Props) {
   useLocale()
   const [offers, setOffers] = useState<Offer[]>(initialOffers)
   const [tab, setTab] = useState<'all' | 'draft' | 'sent' | 'accepted' | 'expired'>('all')
   const [view, setView] = useState<'list' | 'builder'>('list')
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
   const [servicePresets, setServicePresets] = useState<ServicePreset[]>(initialServicePresets)
+  const [extraPresets, setExtraPresets] = useState<ServicePreset[]>(initialExtraPresets)
+  const [userTemplates, setUserTemplates] = useState<UserTemplate[]>(initialUserTemplates)
 
   // ── Builder form state ─────────────────────────────────────────────────────
   const [title, setTitle] = useState('')
@@ -141,18 +158,29 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const [services, setServices] = useState<BService[]>([])
   const [extras, setExtras] = useState<BExtra[]>([])
   const [links, setLinks] = useState<BLink[]>([])
+  const [textBlocks, setTextBlocks] = useState<BTextBlock[]>([])
 
   // ── Builder UI state ───────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved')
+  // Services
   const [showLibrary, setShowLibrary] = useState(false)
   const [addingSvc, setAddingSvc] = useState(false)
   const [newSvc, setNewSvc] = useState({ title: '', description: '', price: '', saveToLib: false })
+  // Extras
+  const [showExtraLibrary, setShowExtraLibrary] = useState(false)
+  const [addingExtra, setAddingExtra] = useState(false)
+  const [newExtra, setNewExtra] = useState({ title: '', description: '', price: '', saveToLib: false })
+  // Save as template
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [savingTemplate, setSavingTemplate] = useState(false)
+
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const isFirstRender = useRef(true)
 
   // ── Autosave for existing offers ───────────────────────────────────────────
-  const formSnapshot = JSON.stringify({ title, clientId, eventDate, validUntil, basePrice, depositAmount, introText, services, extras, links })
+  const formSnapshot = JSON.stringify({ title, clientId, eventDate, validUntil, basePrice, depositAmount, introText, services, extras, links, textBlocks })
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
@@ -171,8 +199,13 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     setEditingOffer(null)
     setTitle(''); setClientId(''); setEventDate(''); setValidUntil('')
     setBasePrice(''); setDepositAmount(''); setIntroText('')
-    setServices([]); setExtras([]); setLinks([])
-    setSaveStatus('saved'); setShowLibrary(false); setAddingSvc(false)
+    setServices([]); setExtras([]); setLinks([]); setTextBlocks([])
+    setSaveStatus('saved')
+    setShowLibrary(false); setAddingSvc(false)
+    setShowExtraLibrary(false); setAddingExtra(false)
+    setShowSaveTemplate(false); setTemplateName('')
+    setNewSvc({ title: '', description: '', price: '', saveToLib: false })
+    setNewExtra({ title: '', description: '', price: '', saveToLib: false })
     isFirstRender.current = true
     setView('builder')
   }
@@ -189,19 +222,73 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     setIntroText(offer.intro_text || '')
     setServices((offer.services || []).map(s => ({ _id: uid(), title: s.title, description: s.description || '', included: s.included, price: s.price ? (s.price / 100).toFixed(2) : '' })))
     setExtras((offer.extras || []).map(e => ({ _id: uid(), title: e.title, description: e.description || '', price: e.price ? (e.price / 100).toFixed(2) : '' })))
-    setLinks((offer.gallery_links || []).map(l => ({ _id: uid(), label: l.label, description: l.description || '', url: l.url, image_url: l.image_url || '' })))
-    setSaveStatus('saved'); setShowLibrary(false); setAddingSvc(false)
+    // Separate gallery_links into link-blocks and text-blocks
+    const allItems = offer.gallery_links || []
+    setLinks(
+      allItems
+        .filter((b): b is Extract<GalleryItem, { url: string }> => !('type' in b) || (b as { type: string }).type === 'link')
+        .map(l => ({ _id: uid(), label: (l as { label?: string }).label || '', description: (l as { description?: string }).description || '', url: (l as { url: string }).url, image_url: (l as { image_url?: string }).image_url || '' }))
+    )
+    setTextBlocks(
+      allItems
+        .filter((b): b is Extract<GalleryItem, { heading: string }> => ('type' in b) && (b as { type: string }).type === 'text')
+        .map(t => ({ _id: uid(), heading: (t as { heading: string }).heading || '', content: (t as { content: string }).content || '' }))
+    )
+    setSaveStatus('saved')
+    setShowLibrary(false); setAddingSvc(false)
+    setShowExtraLibrary(false); setAddingExtra(false)
+    setShowSaveTemplate(false); setTemplateName('')
+    setNewSvc({ title: '', description: '', price: '', saveToLib: false })
+    setNewExtra({ title: '', description: '', price: '', saveToLib: false })
     isFirstRender.current = true
     setView('builder')
   }
 
   // ── Apply template ─────────────────────────────────────────────────────────
-  const applyTemplate = useCallback((tpl: OfferTemplate) => {
+  const applyBuiltinTemplate = useCallback((tpl: OfferTemplate) => {
     if (introText.trim() === '') setIntroText(tpl.introText)
     if (basePrice === '') setBasePrice((tpl.basePrice / 100).toFixed(2))
     setServices(tpl.services.map(s => ({ _id: uid(), title: s.title, description: s.description || '', included: s.included, price: '' })))
     setExtras(tpl.extras.map(e => ({ _id: uid(), title: e.title, description: '', price: e.price ? (e.price / 100).toFixed(2) : '' })))
   }, [introText, basePrice])
+
+  const applyUserTemplate = useCallback((tpl: UserTemplate) => {
+    if (introText.trim() === '') setIntroText(tpl.intro_text || '')
+    if (basePrice === '') setBasePrice(tpl.base_price ? (tpl.base_price / 100).toFixed(2) : '')
+    setServices(tpl.services.map(s => ({ _id: uid(), title: s.title, description: s.description || '', included: s.included, price: s.price ? (s.price / 100).toFixed(2) : '' })))
+    setExtras(tpl.extras.map(e => ({ _id: uid(), title: e.title, description: e.description || '', price: e.price ? (e.price / 100).toFixed(2) : '' })))
+  }, [introText, basePrice])
+
+  const saveAsTemplate = async () => {
+    if (!templateName.trim()) return
+    setSavingTemplate(true)
+    try {
+      const payload = buildPayload()
+      const res = await fetch('/api/offers/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName.trim(),
+          intro_text: payload.intro_text,
+          base_price: payload.base_price || null,
+          services: payload.services,
+          extras: payload.extras,
+        }),
+      })
+      if (res.ok) {
+        const tpl = await res.json()
+        setUserTemplates(prev => [tpl, ...prev])
+        toast.success('Als Vorlage gespeichert')
+        setShowSaveTemplate(false)
+        setTemplateName('')
+      }
+    } finally { setSavingTemplate(false) }
+  }
+
+  const deleteUserTemplate = async (id: string) => {
+    setUserTemplates(prev => prev.filter(t => t.id !== id))
+    await fetch(`/api/offers/templates/${id}`, { method: 'DELETE' })
+  }
 
   // ── Service helpers ────────────────────────────────────────────────────────
   const addSvcFromPreset = (p: ServicePreset) => {
@@ -217,7 +304,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
         const res = await fetch('/api/offers/service-presets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: newSvc.title.trim(), description: newSvc.description.trim() || null, price: newSvc.price ? parseCents(newSvc.price) : null }),
+          body: JSON.stringify({ title: newSvc.title.trim(), description: newSvc.description.trim() || null, price: newSvc.price ? parseCents(newSvc.price) : null, preset_type: 'service' }),
         })
         if (res.ok) {
           const preset = await res.json()
@@ -239,15 +326,52 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     setServices(prev => prev.map(s => s._id === id ? { ...s, ...patch } : s)), [])
   const removeSvc = (id: string) => setServices(prev => prev.filter(s => s._id !== id))
 
-  const addExtra = () => setExtras(prev => [...prev, { _id: uid(), title: '', description: '', price: '' }])
+  // ── Extra helpers ──────────────────────────────────────────────────────────
+  const addExtraFromPreset = (p: ServicePreset) => {
+    setExtras(prev => [...prev, { _id: uid(), title: p.title, description: p.description || '', price: p.price ? (p.price / 100).toFixed(2) : '' }])
+    setShowExtraLibrary(false)
+  }
+
+  const commitNewExtra = async () => {
+    if (!newExtra.title.trim()) return
+    setExtras(prev => [...prev, { _id: uid(), title: newExtra.title.trim(), description: newExtra.description.trim(), price: newExtra.price }])
+    if (newExtra.saveToLib) {
+      try {
+        const res = await fetch('/api/offers/service-presets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newExtra.title.trim(), description: newExtra.description.trim() || null, price: newExtra.price ? parseCents(newExtra.price) : null, preset_type: 'extra' }),
+        })
+        if (res.ok) {
+          const preset = await res.json()
+          setExtraPresets(prev => [...prev, preset])
+          toast.success('In Bibliothek gespeichert')
+        }
+      } catch { /* non-critical */ }
+    }
+    setNewExtra({ title: '', description: '', price: '', saveToLib: false })
+    setAddingExtra(false)
+  }
+
+  const deleteExtraPreset = async (id: string) => {
+    setExtraPresets(prev => prev.filter(p => p.id !== id))
+    await fetch(`/api/offers/service-presets/${id}`, { method: 'DELETE' })
+  }
+
   const updateExtra = useCallback((id: string, patch: Partial<BExtra>) =>
     setExtras(prev => prev.map(e => e._id === id ? { ...e, ...patch } : e)), [])
   const removeExtra = (id: string) => setExtras(prev => prev.filter(e => e._id !== id))
 
+  // ── Link + text block helpers ──────────────────────────────────────────────
   const addLink = () => setLinks(prev => [...prev, { _id: uid(), label: '', description: '', url: '', image_url: '' }])
   const updateLink = useCallback((id: string, patch: Partial<BLink>) =>
     setLinks(prev => prev.map(l => l._id === id ? { ...l, ...patch } : l)), [])
   const removeLink = (id: string) => setLinks(prev => prev.filter(l => l._id !== id))
+
+  const addTextBlock = () => setTextBlocks(prev => [...prev, { _id: uid(), heading: '', content: '' }])
+  const updateTextBlock = useCallback((id: string, patch: Partial<BTextBlock>) =>
+    setTextBlocks(prev => prev.map(t => t._id === id ? { ...t, ...patch } : t)), [])
+  const removeTextBlock = (id: string) => setTextBlocks(prev => prev.filter(t => t._id !== id))
 
   // ── Build payload ──────────────────────────────────────────────────────────
   const buildPayload = () => ({
@@ -258,7 +382,10 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
     base_price: parseCents(basePrice),
     deposit_amount: depositAmount ? parseCents(depositAmount) : null,
     intro_text: introText.trim() || null,
-    gallery_links: links.filter(l => l.url.trim()).map(l => ({ label: l.label, description: l.description || undefined, url: l.url, image_url: l.image_url || undefined })),
+    gallery_links: [
+      ...links.filter(l => l.url.trim()).map(l => ({ type: 'link' as const, label: l.label, description: l.description || undefined, url: l.url, image_url: l.image_url || undefined })),
+      ...textBlocks.filter(t => t.content.trim() || t.heading.trim()).map(t => ({ type: 'text' as const, heading: t.heading, content: t.content })),
+    ],
     services: services.filter(s => s.title.trim()).map(s => ({ title: s.title.trim(), description: s.description.trim() || null, included: s.included, price: s.price ? parseCents(s.price) : null })),
     extras: extras.filter(e => e.title.trim()).map(e => ({ title: e.title.trim(), description: e.description.trim() || null, price: parseCents(e.price), selectable: true })),
   })
@@ -391,6 +518,15 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
             <span style={{ fontSize: '12px', fontWeight: 600, color: saveLabelColor, flexShrink: 0 }}>{saveLabel}</span>
           )}
 
+          {/* Als Vorlage speichern */}
+          <button
+            onClick={() => setShowSaveTemplate(v => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 14px', borderRadius: '10px', background: showSaveTemplate ? 'rgba(196,164,124,0.12)' : 'transparent', border: '1px solid #E8E4DC', color: '#9A9188', fontSize: '12px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+          >
+            <BookOpen style={{ width: 13, height: 13 }} />
+            Vorlage
+          </button>
+
           {/* Preview */}
           {editingOffer && (
             <a
@@ -415,6 +551,56 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
           </button>
         </div>
 
+        {/* ── Save as template panel ──────────────────────────────────────── */}
+        {showSaveTemplate && (
+          <div style={{ padding: '12px 24px', background: 'rgba(196,164,124,0.06)', borderBottom: '1px solid #EDE9E3', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <span style={{ fontSize: '12px', color: '#9A9188', fontWeight: 600, whiteSpace: 'nowrap' }}>Vorlage speichern als:</span>
+            <input
+              autoFocus
+              type="text"
+              placeholder="z. B. Hochzeit Komplett, Branding Standard…"
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveAsTemplate(); if (e.key === 'Escape') setShowSaveTemplate(false) }}
+              style={{ flex: 1, padding: '7px 12px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#fff', fontSize: '13px', color: '#1C1C1A', outline: 'none' }}
+            />
+            <button
+              onClick={saveAsTemplate}
+              disabled={savingTemplate || !templateName.trim()}
+              style={{ padding: '7px 16px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 700, cursor: templateName.trim() ? 'pointer' : 'default', opacity: templateName.trim() ? 1 : 0.4, whiteSpace: 'nowrap' }}
+            >
+              {savingTemplate ? '…' : 'Speichern'}
+            </button>
+            <button
+              onClick={() => setShowSaveTemplate(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', padding: '4px' }}
+            >
+              <X style={{ width: 14, height: 14 }} />
+            </button>
+            {/* Saved templates list */}
+            {userTemplates.length > 0 && (
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderLeft: '1px solid #E8E4DC', paddingLeft: '12px' }}>
+                {userTemplates.map(t => (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <button
+                      onClick={() => { applyUserTemplate(t); setShowSaveTemplate(false) }}
+                      style={{ padding: '4px 10px', borderRadius: '100px', background: '#fff', border: '1px solid #E8E4DC', fontSize: '12px', fontWeight: 600, color: '#5A534E', cursor: 'pointer' }}
+                    >
+                      {t.name}
+                    </button>
+                    <button
+                      onClick={() => deleteUserTemplate(t.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px' }}
+                    >
+                      <X style={{ width: 10, height: 10 }} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Scrollable body ────────────────────────────────────────────── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 80px' }}>
           <div style={{ maxWidth: '780px', margin: '0 auto' }}>
@@ -422,18 +608,32 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
             {/* ── GRUNDINFO ──────────────────────────────────────────────── */}
             <Section label="Grundinfo" actions={
               <div style={{ display: 'flex', gap: '4px' }}>
-                {OFFER_TEMPLATES.map(tpl => null).length === 0 ? null : (
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      onChange={e => { if (e.target.value) { applyTemplate(OFFER_TEMPLATES.find(t => t.id === e.target.value)!); e.target.value = '' } }}
-                      defaultValue=""
-                      style={{ padding: '4px 8px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#7A7468', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      <option value="">✦ Vorlage</option>
-                      {OFFER_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                    </select>
-                  </div>
-                )}
+                <select
+                  onChange={e => {
+                    const val = e.target.value
+                    if (!val) return
+                    e.target.value = ''
+                    if (val.startsWith('user:')) {
+                      const tpl = userTemplates.find(t => t.id === val.slice(5))
+                      if (tpl) applyUserTemplate(tpl)
+                    } else {
+                      const tpl = OFFER_TEMPLATES.find(t => t.id === val)
+                      if (tpl) applyBuiltinTemplate(tpl)
+                    }
+                  }}
+                  defaultValue=""
+                  style={{ padding: '4px 8px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '12px', color: '#7A7468', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  <option value="">✦ Vorlage</option>
+                  {userTemplates.length > 0 && (
+                    <optgroup label="Meine Vorlagen">
+                      {userTemplates.map(t => <option key={t.id} value={`user:${t.id}`}>{t.name}</option>)}
+                    </optgroup>
+                  )}
+                  <optgroup label="Standard-Vorlagen">
+                    {OFFER_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </optgroup>
+                </select>
               </div>
             }>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -508,13 +708,13 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
               {showLibrary && (
                 <div style={{ marginBottom: '14px', padding: '14px 16px', background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE' }}>Deine Bibliothek</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE' }}>Leistungs-Bibliothek</span>
                     <button onClick={() => setShowLibrary(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', lineHeight: 1 }}>
                       <X style={{ width: 13, height: 13 }} />
                     </button>
                   </div>
                   {servicePresets.length === 0 && (
-                    <p style={{ margin: 0, fontSize: '13px', color: '#B5ADA3' }}>Noch keine gespeicherten Leistungen. Füge eine Leistung hinzu und aktiviere "In Bibliothek speichern".</p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#B5ADA3' }}>Noch keine gespeicherten Leistungen. Füge eine hinzu und aktiviere "In Bibliothek speichern".</p>
                   )}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {servicePresets.map(p => (
@@ -612,7 +812,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
                       onChange={e => setNewSvc(p => ({ ...p, saveToLib: e.target.checked }))}
                       style={{ width: '14px', height: '14px', accentColor: '#C4A47C' }}
                     />
-                    <span style={{ fontSize: '12px', color: '#7A7468', fontWeight: 500 }}>In Bibliothek speichern — dann wiederverwendbar in zukünftigen Angeboten</span>
+                    <span style={{ fontSize: '12px', color: '#7A7468', fontWeight: 500 }}>In Bibliothek speichern — wiederverwendbar in zukünftigen Angeboten</span>
                   </label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={commitNewSvc}
@@ -637,8 +837,54 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
             <Section
               label="Extras"
               count={extras.filter(e => e.title.trim()).length}
-              actions={<ActBtn onClick={addExtra} color="#C4A47C"><Plus style={{ width: 13, height: 13 }} />Hinzufügen</ActBtn>}
+              actions={
+                <>
+                  <ActBtn onClick={() => setShowExtraLibrary(v => !v)} color={showExtraLibrary ? '#C4A47C' : '#B5ADA3'}>
+                    <BookOpen style={{ width: 13, height: 13 }} />
+                    Bibliothek
+                  </ActBtn>
+                  <ActBtn onClick={() => { setAddingExtra(true); setShowExtraLibrary(false) }} color="#C4A47C">
+                    <Plus style={{ width: 13, height: 13 }} />
+                    Hinzufügen
+                  </ActBtn>
+                </>
+              }
             >
+              {/* Extra library panel */}
+              {showExtraLibrary && (
+                <div style={{ marginBottom: '14px', padding: '14px 16px', background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE' }}>Extras-Bibliothek</span>
+                    <button onClick={() => setShowExtraLibrary(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0B8AE', lineHeight: 1 }}>
+                      <X style={{ width: 13, height: 13 }} />
+                    </button>
+                  </div>
+                  {extraPresets.length === 0 && (
+                    <p style={{ margin: 0, fontSize: '13px', color: '#B5ADA3' }}>Noch keine gespeicherten Extras. Füge eines hinzu und aktiviere "In Bibliothek speichern".</p>
+                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {extraPresets.map(p => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          onClick={() => addExtraFromPreset(p)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#fff', border: '1px solid #E8E4DC', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#1C1C1A', transition: 'all 0.12s' }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4A47C'; e.currentTarget.style.color = '#C4A47C' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8E4DC'; e.currentTarget.style.color = '#1C1C1A' }}
+                        >
+                          <Plus style={{ width: 11, height: 11 }} />
+                          {p.title}
+                          {p.price != null && <span style={{ fontWeight: 400, color: '#9A9188' }}> · +{formatEur(p.price)}</span>}
+                        </button>
+                        <button onClick={() => deleteExtraPreset(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px' }}>
+                          <X style={{ width: 11, height: 11 }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Extras list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {extras.map(ext => (
                   <div key={ext._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: '#FAF8F5', border: '1px solid #EDE9E3' }}>
@@ -673,20 +919,84 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
                     </button>
                   </div>
                 ))}
-                {extras.length === 0 && (
-                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Keine Extras — der Kunde kann keine Zusatzleistungen wählen.</p>
-                )}
               </div>
+
+              {/* Add new extra form */}
+              {addingExtra && (
+                <div style={{ marginTop: '10px', padding: '14px 16px', background: '#fff', borderRadius: '12px', border: '1.5px solid #C4A47C' }}>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Extra-Bezeichnung *"
+                    value={newExtra.title}
+                    onChange={e => setNewExtra(p => ({ ...p, title: e.target.value }))}
+                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', fontWeight: 600, color: '#1C1C1A', marginBottom: '6px', padding: 0 }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Beschreibung (optional)"
+                    value={newExtra.description}
+                    onChange={e => setNewExtra(p => ({ ...p, description: e.target.value }))}
+                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#7A7468', marginBottom: '10px', padding: 0 }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12px', color: '#9A9188', fontWeight: 600 }}>Preis (€)</span>
+                    <input
+                      type="number" min="0" step="0.01" placeholder="0"
+                      value={newExtra.price}
+                      onChange={e => setNewExtra(p => ({ ...p, price: e.target.value }))}
+                      style={{ width: '90px', padding: '5px 10px', borderRadius: '8px', border: '1px solid #E8E4DC', background: '#FAF8F5', fontSize: '13px', color: '#1C1C1A' }}
+                    />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '12px' }}>
+                    <input
+                      type="checkbox"
+                      checked={newExtra.saveToLib}
+                      onChange={e => setNewExtra(p => ({ ...p, saveToLib: e.target.checked }))}
+                      style={{ width: '14px', height: '14px', accentColor: '#C4A47C' }}
+                    />
+                    <span style={{ fontSize: '12px', color: '#7A7468', fontWeight: 500 }}>In Bibliothek speichern — wiederverwendbar in zukünftigen Angeboten</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={commitNewExtra}
+                      disabled={!newExtra.title.trim()}
+                      style={{ flex: 1, padding: '8px', borderRadius: '8px', background: '#C4A47C', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 700, cursor: newExtra.title.trim() ? 'pointer' : 'default', opacity: newExtra.title.trim() ? 1 : 0.4 }}>
+                      + Hinzufügen
+                    </button>
+                    <button onClick={() => { setAddingExtra(false); setNewExtra({ title: '', description: '', price: '', saveToLib: false }) }}
+                      style={{ padding: '8px 14px', borderRadius: '8px', background: '#F5F2EE', color: '#7A7468', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {extras.length === 0 && !addingExtra && (
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Keine Extras — der Kunde kann keine Zusatzleistungen wählen.</p>
+              )}
             </Section>
 
             {/* ── LINKS & REFERENZEN ──────────────────────────────────────── */}
             <Section
               label="Links & Referenzen"
-              count={links.filter(l => l.url.trim()).length}
-              actions={<ActBtn onClick={addLink} color="#C4A47C"><Plus style={{ width: 13, height: 13 }} />Block hinzufügen</ActBtn>}
-              defaultOpen={links.length > 0}
+              count={links.filter(l => l.url.trim()).length + textBlocks.filter(t => t.content.trim() || t.heading.trim()).length}
+              actions={
+                <>
+                  <ActBtn onClick={addTextBlock} color="#B5ADA3">
+                    <AlignLeft style={{ width: 13, height: 13 }} />
+                    Textblock
+                  </ActBtn>
+                  <ActBtn onClick={addLink} color="#C4A47C">
+                    <Link2 style={{ width: 13, height: 13 }} />
+                    Link-Block
+                  </ActBtn>
+                </>
+              }
+              defaultOpen={links.length > 0 || textBlocks.length > 0}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+                {/* Link blocks */}
                 {links.map(lnk => (
                   <div key={lnk._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3', overflow: 'hidden' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '1px solid #EDE9E3' }}>
@@ -707,7 +1017,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
                         type="text"
                         value={lnk.description}
                         onChange={e => updateLink(lnk._id, { description: e.target.value })}
-                        placeholder="Kurze Beschreibung (z. B. Eine vollständige Hochzeitsreportage in ähnlichem Stil…)"
+                        placeholder="Kurze Beschreibung (z. B. Hochzeitsreportage in ähnlichem Stil…)"
                         style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#7A7468', padding: 0 }}
                       />
                       <input
@@ -727,8 +1037,37 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
                     </div>
                   </div>
                 ))}
-                {links.length === 0 && (
-                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Füge Links zu Beispielgalerien, Instagram, Videos oder anderen Referenzen hinzu.</p>
+
+                {/* Text blocks */}
+                {textBlocks.map(tb => (
+                  <div key={tb._id} style={{ background: '#FAF8F5', borderRadius: '12px', border: '1px solid #EDE9E3', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: '1px solid #EDE9E3' }}>
+                      <AlignLeft style={{ width: 14, height: 14, color: '#B5ADA3', flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        value={tb.heading}
+                        onChange={e => updateTextBlock(tb._id, { heading: e.target.value })}
+                        placeholder="ÜBERSCHRIFT (z. B. KONDITIONEN, HINWEISE, FAQ)"
+                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1C1C1A', padding: 0 }}
+                      />
+                      <button onClick={() => removeTextBlock(tb._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1C9C0', padding: '2px', flexShrink: 0 }}>
+                        <X style={{ width: 13, height: 13 }} />
+                      </button>
+                    </div>
+                    <div style={{ padding: '10px 14px' }}>
+                      <textarea
+                        rows={4}
+                        value={tb.content}
+                        onChange={e => updateTextBlock(tb._id, { content: e.target.value })}
+                        placeholder="Freitext — z. B. Konditionen, Ablauf, Hinweise, häufige Fragen…"
+                        style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', fontSize: '13px', color: '#1C1C1A', lineHeight: 1.65, padding: 0, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {links.length === 0 && textBlocks.length === 0 && (
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#C0B8AE' }}>Füge Link-Blöcke (Galerien, Instagram, Videos) oder Textblöcke (Konditionen, FAQ, Hinweise) hinzu.</p>
                 )}
               </div>
             </Section>

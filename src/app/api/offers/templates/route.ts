@@ -2,20 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const type = req.nextUrl.searchParams.get('type') || 'service'
-
   const { data } = await supabase
-    .from('photographer_service_presets')
-    .select('id, title, description, price, sort_order, preset_type')
+    .from('photographer_offer_templates')
+    .select('id, name, intro_text, base_price, services, extras, created_at')
     .eq('photographer_id', user.id)
-    .eq('preset_type', type)
-    .order('sort_order')
-    .order('created_at')
+    .order('created_at', { ascending: false })
 
   return NextResponse.json(data || [])
 }
@@ -25,20 +21,21 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { title, description, price, preset_type } = await req.json()
-  if (!title?.trim()) return NextResponse.json({ error: 'title required' }, { status: 400 })
+  const { name, intro_text, base_price, services, extras } = await req.json()
+  if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })
 
   const service = createServiceClient()
   const { data, error } = await service
-    .from('photographer_service_presets')
+    .from('photographer_offer_templates')
     .insert({
       photographer_id: user.id,
-      title: title.trim(),
-      description: description?.trim() || null,
-      price: price ?? null,
-      preset_type: preset_type || 'service',
+      name: name.trim(),
+      intro_text: intro_text || null,
+      base_price: base_price || null,
+      services: services || [],
+      extras: extras || [],
     })
-    .select('id, title, description, price, sort_order, preset_type')
+    .select('id, name, intro_text, base_price, services, extras, created_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
