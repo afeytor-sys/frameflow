@@ -195,12 +195,27 @@ export default function ProjectsPage() {
   const [newBkEmail, setNewBkEmail] = useState('')
   const [newBkNotes, setNewBkNotes] = useState('')
   const [newBkSaving, setNewBkSaving] = useState(false)
+  const [clientList, setClientList] = useState<{ id: string; full_name: string; email: string | null }[]>([])
+  const [clientDropOpen, setClientDropOpen] = useState(false)
 
-  const openNewBookingModal = () => {
+  const clientSuggestions = newBkClient.trim().length > 0
+    ? clientList.filter(c =>
+        c.full_name.toLowerCase().includes(newBkClient.toLowerCase()) ||
+        (c.email ?? '').toLowerCase().includes(newBkClient.toLowerCase())
+      ).slice(0, 6)
+    : []
+
+  const openNewBookingModal = async () => {
     setNewBookingStep('choose')
     setNewBkTitle(''); setNewBkDate(''); setNewBkTime('10:00')
     setNewBkClient(''); setNewBkEmail(''); setNewBkNotes('')
+    setClientDropOpen(false)
     setShowNewBookingModal(true)
+    const { data: { user: u } } = await supabase.auth.getUser()
+    if (u) {
+      const { data } = await supabase.from('clients').select('id, full_name, email').eq('photographer_id', u.id).eq('status', 'active').order('full_name')
+      if (data) setClientList(data)
+    }
   }
 
   const handleCreateManualBooking = async () => {
@@ -1774,15 +1789,49 @@ export default function ProjectsPage() {
                     />
                   </div>
                 </div>
-                <div>
+                <div className="relative">
                   <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Kundenname' : 'Client name'}</label>
                   <input
                     type="text"
-                    placeholder={de ? 'Optional' : 'Optional'}
+                    placeholder={de ? 'Name oder suchen...' : 'Name or search...'}
                     className="w-full px-3 py-2.5 rounded-xl text-[14px]"
                     style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                     value={newBkClient}
-                    onChange={e => setNewBkClient(e.target.value)}
+                    autoComplete="off"
+                    onChange={e => { setNewBkClient(e.target.value); setClientDropOpen(true) }}
+                    onFocus={() => setClientDropOpen(true)}
+                    onBlur={() => setTimeout(() => setClientDropOpen(false), 150)}
+                  />
+                  {clientDropOpen && clientSuggestions.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 rounded-xl overflow-hidden shadow-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                      {clientSuggestions.map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 flex flex-col hover:opacity-80 transition-opacity"
+                          style={{ borderBottom: '1px solid var(--border-color)' }}
+                          onMouseDown={() => {
+                            setNewBkClient(c.full_name)
+                            setNewBkEmail(c.email ?? '')
+                            setClientDropOpen(false)
+                          }}
+                        >
+                          <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{c.full_name}</span>
+                          {c.email && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{c.email}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'E-Mail des Kunden' : 'Client email'}</label>
+                  <input
+                    type="email"
+                    placeholder={de ? 'Für automatische Erinnerungen' : 'For automatic reminders'}
+                    className="w-full px-3 py-2.5 rounded-xl text-[14px]"
+                    style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    value={newBkEmail}
+                    onChange={e => setNewBkEmail(e.target.value)}
                   />
                 </div>
                 <div>
