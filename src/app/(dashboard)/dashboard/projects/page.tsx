@@ -1789,7 +1789,7 @@ export default function ProjectsPage() {
                     />
                   </div>
                 </div>
-                <div className="relative">
+                <div>
                   <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Kundenname' : 'Client name'}</label>
                   <input
                     type="text"
@@ -1803,13 +1803,13 @@ export default function ProjectsPage() {
                     onBlur={() => setTimeout(() => setClientDropOpen(false), 150)}
                   />
                   {clientDropOpen && clientSuggestions.length > 0 && (
-                    <div className="absolute z-50 left-0 right-0 mt-1 rounded-xl overflow-hidden shadow-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-                      {clientSuggestions.map(c => (
+                    <div className="mt-1 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+                      {clientSuggestions.map((c, i) => (
                         <button
                           key={c.id}
                           type="button"
-                          className="w-full text-left px-3 py-2 flex flex-col hover:opacity-80 transition-opacity"
-                          style={{ borderBottom: '1px solid var(--border-color)' }}
+                          className="w-full text-left px-3 py-2.5 flex flex-col hover:opacity-75 transition-opacity"
+                          style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : undefined }}
                           onMouseDown={() => {
                             setNewBkClient(c.full_name)
                             setNewBkEmail(c.email ?? '')
