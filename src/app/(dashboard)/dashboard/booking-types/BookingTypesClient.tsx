@@ -683,6 +683,38 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                     </div>
                   </div>
 
+                  {/* Buffer between shootings */}
+                  {form.availability_type !== 'request' && (
+                    <div>
+                      <div className="mb-2">
+                        <label className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Pause zwischen Shootings</label>
+                        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>Automatisch blockierte Zeit nach jeder Buchung</p>
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {[0, 15, 30, 45, 60].map(mins => (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, buffer_minutes: mins }))}
+                            className="px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all"
+                            style={{
+                              background: form.buffer_minutes === mins ? 'var(--accent)' : 'var(--bg-hover)',
+                              color: form.buffer_minutes === mins ? '#1A1A18' : 'var(--text-muted)',
+                              border: form.buffer_minutes === mins ? '1.5px solid var(--accent)' : '1px solid var(--border-color)',
+                            }}
+                          >
+                            {mins === 0 ? 'Keine' : `${mins} min`}
+                          </button>
+                        ))}
+                      </div>
+                      {form.buffer_minutes > 0 && (
+                        <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                          Nach jedem Shooting werden {form.buffer_minutes} Min. automatisch blockiert — der nächste buchbare Slot beginnt frühestens {form.buffer_minutes} Min. nach Shootingend.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Recurring schedule — only shown when mode = recurring */}
                   {form.availability_type === 'recurring' && (
                     <div className="space-y-2 pt-2">
