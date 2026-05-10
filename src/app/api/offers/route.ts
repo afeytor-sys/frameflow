@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const {
-    title, client_id, event_date, valid_until, base_price,
+    title, client_id, client_name, event_date, valid_until, base_price,
     deposit_amount, intro_text, notes, gallery_links,
     services, extras,
   } = body
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       title: title.trim(),
       slug,
       client_id: client_id || null,
+      client_name: client_id ? null : (client_name?.trim() || null),
       event_date: event_date || null,
       valid_until: valid_until || null,
       base_price: base_price ?? 0,

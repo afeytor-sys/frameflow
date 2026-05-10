@@ -27,7 +27,7 @@ export default async function OffersPage() {
       .from('offers')
       .select(`
         id, title, slug, status, event_date, valid_until,
-        base_price, currency, deposit_amount, intro_text, notes, gallery_links, created_at,
+        base_price, currency, deposit_amount, intro_text, notes, gallery_links, client_name, created_at,
         client:clients(id, full_name, email),
         services:offer_services(id, title, description, included, price, sort_order),
         extras:offer_extras(id, title, description, price, selectable, sort_order)

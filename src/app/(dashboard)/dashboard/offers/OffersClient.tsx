@@ -54,7 +54,7 @@ interface Offer {
   event_date: string | null; valid_until: string | null
   base_price: number; currency: string; deposit_amount: number | null
   intro_text: string | null; notes: string | null
-  gallery_links: GalleryItem[]; created_at: string
+  gallery_links: GalleryItem[]; client_name: string | null; created_at: string
   client?: { id: string; full_name: string; email: string | null } | { id: string; full_name: string; email: string | null }[] | null
   services?: OfferService[]; extras?: OfferExtra[]
 }
@@ -83,7 +83,7 @@ interface BTextBlock { _id: string; heading: string; content: string }
 const uid = () => Math.random().toString(36).slice(2, 10)
 const formatEur = (c: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(c / 100)
 const parseCents = (v: string) => { const n = parseFloat(v.replace(',', '.')); return isNaN(n) ? 0 : Math.round(n * 100) }
-const getClientName = (o: Offer) => { if (!o.client) return null; const c = Array.isArray(o.client) ? o.client[0] : o.client; return c?.full_name || null }
+const getClientName = (o: Offer) => { if (o.client_name) return o.client_name; if (!o.client) return null; const c = Array.isArray(o.client) ? o.client[0] : o.client; return c?.full_name || null }
 const getSiteUrl = () => typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '')
 
 const STATUS_CFG = {
@@ -159,6 +159,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   // ── Builder form state ─────────────────────────────────────────────────────
   const [title, setTitle] = useState('')
   const [clientId, setClientId] = useState('')
+  const [clientNameText, setClientNameText] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [validUntil, setValidUntil] = useState('')
   const [basePrice, setBasePrice] = useState('')
@@ -206,7 +207,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const isFirstRender = useRef(true)
 
   // ── Autosave ───────────────────────────────────────────────────────────────
-  const formSnapshot = JSON.stringify({ title, clientId, eventDate, validUntil, basePrice, depositAmount, introText, services, extras, links, textBlocks })
+  const formSnapshot = JSON.stringify({ title, clientId, clientNameText, eventDate, validUntil, basePrice, depositAmount, introText, services, extras, links, textBlocks })
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
@@ -220,7 +221,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
 
   // ── Open builder ───────────────────────────────────────────────────────────
   const resetBuilder = () => {
-    setTitle(''); setClientId(''); setEventDate(''); setValidUntil('')
+    setTitle(''); setClientId(''); setClientNameText(''); setEventDate(''); setValidUntil('')
     setBasePrice(''); setDepositAmount(''); setIntroText('')
     setServices([]); setExtras([]); setLinks([]); setTextBlocks([])
     setSaveStatus('saved')
@@ -242,8 +243,12 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const openEdit = (offer: Offer) => {
     setEditingOffer(offer)
     const cId = offer.client ? (Array.isArray(offer.client) ? offer.client[0]?.id : offer.client?.id) || '' : ''
+    const cName = cId
+      ? (Array.isArray(offer.client) ? offer.client[0]?.full_name : offer.client?.full_name) || ''
+      : offer.client_name || ''
     setTitle(offer.title)
     setClientId(cId)
+    setClientNameText(cName)
     setEventDate(offer.event_date || '')
     setValidUntil(offer.valid_until || '')
     setBasePrice(offer.base_price ? (offer.base_price / 100).toFixed(2) : '')
@@ -291,6 +296,7 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
   const buildPayload = () => ({
     title: title.trim(),
     client_id: clientId || null,
+    client_name: clientId ? null : (clientNameText.trim() || null),
     event_date: eventDate || null,
     valid_until: validUntil || null,
     base_price: parseCents(basePrice),
@@ -1000,10 +1006,24 @@ export default function OffersClient({ initialOffers, clients, photographer, ini
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Kunde</label>
-                    <select value={clientId} onChange={e => setClientId(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A' }}>
-                      <option value="">— Kein Kunde verknüpft —</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-                    </select>
+                    <input
+                      type="text"
+                      list="clients-datalist"
+                      value={clientNameText}
+                      onChange={e => {
+                        const text = e.target.value
+                        setClientNameText(text)
+                        const match = clients.find(c => c.full_name === text)
+                        setClientId(match ? match.id : '')
+                      }}
+                      placeholder="Name eingeben oder auswählen…"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #E8E4DC', background: '#FAF8F5', fontSize: '14px', color: '#1C1C1A', outline: 'none', boxSizing: 'border-box' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#C4A47C' }}
+                      onBlur={e => { e.currentTarget.style.borderColor = '#E8E4DC' }}
+                    />
+                    <datalist id="clients-datalist">
+                      {clients.map(c => <option key={c.id} value={c.full_name} />)}
+                    </datalist>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#C0B8AE', marginBottom: '5px' }}>Termin / Event</label>

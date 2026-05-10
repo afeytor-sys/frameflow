@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const {
-    title, client_id, event_date, valid_until, base_price,
+    title, client_id, client_name, event_date, valid_until, base_price,
     deposit_amount, intro_text, notes, gallery_links, status,
     services, extras,
   } = body
@@ -27,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const patch: Record<string, unknown> = {}
   if (title !== undefined) patch.title = title?.trim()
   if (client_id !== undefined) patch.client_id = client_id || null
+  if (client_name !== undefined) patch.client_name = client_name?.trim() || null
   if (event_date !== undefined) patch.event_date = event_date || null
   if (valid_until !== undefined) patch.valid_until = valid_until || null
   if (base_price !== undefined) patch.base_price = base_price
