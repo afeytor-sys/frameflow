@@ -134,10 +134,13 @@ export default function BookingPortalClient({ booking, bookingType, photographer
             )}
             {booking.google_meet_link && (
               <div className="flex items-center gap-3 text-[14px]">
-                <Video className="w-4 h-4 flex-shrink-0" style={{ color: '#6366F1' }} />
+                {bookingType.location_type === 'online'
+                  ? <Video className="w-4 h-4 flex-shrink-0" style={{ color: '#6366F1' }} />
+                  : <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: '#C4A47C' }} />
+                }
                 <a href={booking.google_meet_link} target="_blank" rel="noopener noreferrer"
                   className="transition-opacity hover:opacity-70"
-                  style={{ color: '#6366F1' }}>
+                  style={{ color: bookingType.location_type === 'online' ? '#6366F1' : '#C4A47C' }}>
                   {booking.google_meet_link.replace(/^https?:\/\//, '')}
                 </a>
               </div>

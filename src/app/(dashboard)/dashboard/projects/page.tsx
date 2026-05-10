@@ -103,6 +103,7 @@ interface OnlineBooking {
   invoice_id: string | null
   notes: string | null
   answers: Record<string, string> | null
+  manual_title: string | null
   booking_types: { title: string; duration_minutes: number; location_type: string; price: number; questions: BookingQuestion[] } | null
 }
 
@@ -184,6 +185,50 @@ export default function ProjectsPage() {
   })
   const [deleting, setDeleting] = useState(false)
 
+  // New booking modal
+  const [showNewBookingModal, setShowNewBookingModal] = useState(false)
+  const [newBookingStep, setNewBookingStep] = useState<'choose' | 'form'>('choose')
+  const [newBkTitle, setNewBkTitle] = useState('')
+  const [newBkDate, setNewBkDate] = useState('')
+  const [newBkTime, setNewBkTime] = useState('10:00')
+  const [newBkClient, setNewBkClient] = useState('')
+  const [newBkEmail, setNewBkEmail] = useState('')
+  const [newBkNotes, setNewBkNotes] = useState('')
+  const [newBkSaving, setNewBkSaving] = useState(false)
+
+  const openNewBookingModal = () => {
+    setNewBookingStep('choose')
+    setNewBkTitle(''); setNewBkDate(''); setNewBkTime('10:00')
+    setNewBkClient(''); setNewBkEmail(''); setNewBkNotes('')
+    setShowNewBookingModal(true)
+  }
+
+  const handleCreateManualBooking = async () => {
+    if (!newBkTitle.trim() || !newBkDate || !newBkTime) return
+    setNewBkSaving(true)
+    try {
+      const res = await fetch('/api/bookings/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newBkTitle, booked_date: newBkDate, booked_time: newBkTime, client_name: newBkClient || undefined, client_email: newBkEmail || undefined, notes: newBkNotes || undefined }),
+      })
+      if (!res.ok) { toast.error('Fehler beim Erstellen'); return }
+      const { id } = await res.json()
+      const newEntry: OnlineBooking = {
+        id, client_name: newBkClient || 'Manuell', client_email: newBkEmail,
+        booked_date: newBkDate, booked_time: newBkTime, status: 'confirmed',
+        payment_reference: null, deposit_amount: null, google_meet_link: null,
+        invoice_id: null, notes: newBkNotes || null, answers: null,
+        manual_title: newBkTitle.trim(), booking_types: null,
+      }
+      setOnlineBookings(prev => [...prev, newEntry].sort((a, b) => a.booked_date.localeCompare(b.booked_date)))
+      setShowNewBookingModal(false)
+      toast.success('Booking erstellt')
+    } finally {
+      setNewBkSaving(false)
+    }
+  }
+
   // Calendar sub-state
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date()
@@ -203,7 +248,7 @@ export default function ProjectsPage() {
           .order('sort_order', { ascending: true }),
         supabase
           .from('bookings')
-          .select('id, client_name, client_email, booked_date, booked_time, status, payment_reference, deposit_amount, google_meet_link, invoice_id, notes, answers, booking_types(title, duration_minutes, location_type, price, questions)')
+          .select('id, client_name, client_email, booked_date, booked_time, status, payment_reference, deposit_amount, google_meet_link, invoice_id, notes, answers, manual_title, booking_types(title, duration_minutes, location_type, price, questions)')
           .eq('photographer_id', user.id)
           .not('status', 'eq', 'cancelled')
           .order('booked_date', { ascending: true }),
@@ -365,7 +410,7 @@ export default function ProjectsPage() {
 
   const bookingEntries: CalEntry[] = onlineBookings.map(b => ({
     id: b.id,
-    title: b.booking_types?.title ?? 'Buchung',
+    title: b.manual_title ?? b.booking_types?.title ?? 'Buchung',
     shoot_date: b.booked_date,
     booked_time: String(b.booked_time).slice(0, 5),
     location: b.booking_types?.location_type === 'online' ? 'Online' : null,
@@ -504,7 +549,7 @@ export default function ProjectsPage() {
         {([
           { id: 'pipeline', Icon: Kanban, label: 'Pipeline' },
           { id: 'list',     Icon: FolderOpen, label: de ? 'Liste' : 'List' },
-          { id: 'calendar', Icon: CalendarDays, label: de ? 'Kalender' : 'Calendar' },
+          { id: 'calendar', Icon: CalendarDays, label: 'Bookings' },
         ] as const).map(({ id, Icon, label }) => (
           <button
             key={id}
@@ -1033,28 +1078,28 @@ export default function ProjectsPage() {
         </>
       )}
 
-      {/* ── Kalender Tab ── */}
+      {/* ── Bookings Tab ── */}
       {activeTab === 'calendar' && (
         <>
           {/* Header */}
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="font-black" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
-                {de ? 'Kalender' : 'Calendar'}
+                Bookings
               </h1>
               <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
                 {calUpcoming.length} {de ? 'bevorstehend' : 'upcoming'} · {calPast.length} {de ? 'vergangen' : 'past'}
               </p>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <Link
-                href="/dashboard/projects/new"
+              <button
+                onClick={openNewBookingModal}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98]"
                 style={{ background: '#F59E0B', boxShadow: '0 1px 8px rgba(245,158,11,0.30)' }}
               >
                 <Plus className="w-4 h-4" />
-                {de ? 'Neues Projekt' : 'New project'}
-              </Link>
+                {de ? 'Neues Booking' : 'New booking'}
+              </button>
               <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
                 <button
                   onClick={() => setCalSubView('list')}
@@ -1083,11 +1128,11 @@ export default function ProjectsPage() {
                   <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'var(--bg-hover)' }}>
                     <CalendarDays className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
                   </div>
-                  <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{de ? 'Keine Shootings' : 'No shoots scheduled'}</h3>
-                  <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{de ? 'Füge einem Projekt ein Datum hinzu' : 'Add a date to a project to see it here'}</p>
-                  <Link href="/dashboard/projects/new" className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#F59E0B' }}>
-                    <Plus className="w-3.5 h-3.5" />{de ? 'Neues Projekt' : 'New project'}
-                  </Link>
+                  <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>{de ? 'Keine Bookings' : 'No bookings yet'}</h3>
+                  <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{de ? 'Erstelle dein erstes Booking' : 'Create your first booking'}</p>
+                  <button onClick={openNewBookingModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: '#F59E0B' }}>
+                    <Plus className="w-3.5 h-3.5" />{de ? 'Neues Booking' : 'New booking'}
+                  </button>
                 </div>
               ) : (
                 <>
@@ -1342,7 +1387,7 @@ export default function ProjectsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <p className="font-black text-[17px] leading-tight" style={{ color: 'var(--text-primary)' }}>{bm.booking_types?.title ?? 'Buchung'}</p>
+                    <p className="font-black text-[17px] leading-tight" style={{ color: 'var(--text-primary)' }}>{bm.manual_title ?? bm.booking_types?.title ?? 'Buchung'}</p>
                     {isOnline && <Video className="w-4 h-4 flex-shrink-0" style={{ color: '#6366F1' }} />}
                   </div>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold" style={{ background: bkSt.color + '18', color: bkSt.color }}>{bkSt.label}</span>
@@ -1643,6 +1688,138 @@ export default function ProjectsPage() {
         </div>
       </div>
     )}
+      {/* ── New Booking Modal ── */}
+      {showNewBookingModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} onClick={() => setShowNewBookingModal(false)}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }} onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <p className="font-black text-[15px]" style={{ color: 'var(--text-primary)' }}>{de ? 'Neues Booking' : 'New booking'}</p>
+              <button onClick={() => setShowNewBookingModal(false)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            {newBookingStep === 'choose' ? (
+              <div className="p-5 space-y-3">
+                <p className="text-[13px] mb-4" style={{ color: 'var(--text-muted)' }}>
+                  {de ? 'Was möchtest du erstellen?' : 'What would you like to create?'}
+                </p>
+
+                {/* Option 1: Full project */}
+                <Link
+                  href="/dashboard/projects/new"
+                  onClick={() => setShowNewBookingModal(false)}
+                  className="flex items-start gap-4 p-4 rounded-xl transition-all hover:opacity-90 block"
+                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)' }}
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F59E0B20' }}>
+                    <FolderOpen className="w-4 h-4" style={{ color: '#F59E0B' }} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[14px]" style={{ color: 'var(--text-primary)' }}>{de ? 'Vollständiges Projekt' : 'Full project'}</p>
+                    <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Mit Galerie, Vertrag, Rechnung & CRM-Pipeline' : 'With gallery, contract, invoice & CRM pipeline'}</p>
+                  </div>
+                </Link>
+
+                {/* Option 2: Booking only */}
+                <button
+                  onClick={() => setNewBookingStep('form')}
+                  className="w-full flex items-start gap-4 p-4 rounded-xl text-left transition-all hover:opacity-90"
+                  style={{ background: 'rgba(99,102,241,0.06)', border: '1.5px solid rgba(99,102,241,0.25)' }}
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.12)' }}>
+                    <CalendarDays className="w-4 h-4" style={{ color: '#6366F1' }} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[14px]" style={{ color: '#6366F1' }}>{de ? 'Nur Booking' : 'Booking only'}</p>
+                    <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Leichter Kalendereintrag — ideal für Mini Sessions, Consultations & schnelle Termine' : 'Lightweight entry — ideal for mini sessions, consultations & quick appointments'}</p>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="p-5 space-y-3">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Bezeichnung' : 'Title'} *</label>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder={de ? 'z. B. Mini Session, Video Call...' : 'e.g. Mini Session, Video Call...'}
+                    className="w-full px-3 py-2.5 rounded-xl text-[14px]"
+                    style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    value={newBkTitle}
+                    onChange={e => setNewBkTitle(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Datum' : 'Date'} *</label>
+                    <input
+                      type="date"
+                      className="w-full px-3 py-2.5 rounded-xl text-[14px]"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      value={newBkDate}
+                      onChange={e => setNewBkDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Uhrzeit' : 'Time'} *</label>
+                    <input
+                      type="time"
+                      className="w-full px-3 py-2.5 rounded-xl text-[14px]"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      value={newBkTime}
+                      onChange={e => setNewBkTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Kundenname' : 'Client name'}</label>
+                  <input
+                    type="text"
+                    placeholder={de ? 'Optional' : 'Optional'}
+                    className="w-full px-3 py-2.5 rounded-xl text-[14px]"
+                    style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    value={newBkClient}
+                    onChange={e => setNewBkClient(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>Notiz / Ort</label>
+                  <input
+                    type="text"
+                    placeholder={de ? 'Treffpunkt, Thema, Hinweis...' : 'Location, topic, notes...'}
+                    className="w-full px-3 py-2.5 rounded-xl text-[14px]"
+                    style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    value={newBkNotes}
+                    onChange={e => setNewBkNotes(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setNewBookingStep('choose')}
+                    className="px-4 py-2.5 rounded-xl text-[13px] transition-all"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                  >
+                    ← {de ? 'Zurück' : 'Back'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateManualBooking}
+                    disabled={!newBkTitle.trim() || !newBkDate || !newBkTime || newBkSaving}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-40"
+                    style={{ background: '#6366F1' }}
+                  >
+                    {newBkSaving ? '...' : (de ? 'Booking erstellen' : 'Create booking')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

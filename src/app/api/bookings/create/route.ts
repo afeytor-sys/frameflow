@@ -279,6 +279,7 @@ export async function POST(req: NextRequest) {
           locationType: bt.location_type,
           meetLink: google_meet_link,
           confirmUrl,
+          portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/b/booking/${booking.id}`,
         }),
         type: 'booking_reminder',
         reference_id: booking.id,
@@ -346,6 +347,145 @@ function buildNewBookingEmail(data: {
 </body></html>`
 }
 
+function bookingEmailShell(opts: {
+  studioName: string
+  heading: string
+  subheading: string
+  body: string
+  ctaUrl: string
+  ctaLabel: string
+  infoRows: Array<{ label: string; value: string }>
+  extraBlock?: string
+  footerLine: string
+}): string {
+  const infoRowsHtml = opts.infoRows.map(r => `
+    <tr>
+      <td style="padding-bottom:16px;">
+        <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#C0B8AE;">${r.label}</p>
+        <p style="margin:5px 0 0;font-size:14px;font-weight:600;color:#1C1C1A;">${r.value}</p>
+      </td>
+    </tr>`).join('')
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; padding: 0; background: #F7F5F2; }
+    @media only screen and (max-width: 640px) {
+      .outer-pad { padding: 24px 12px 48px !important; }
+      .card-pad  { padding: 40px 28px 36px !important; }
+      .heading   { font-size: 30px !important; line-height: 1.1 !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#F7F5F2;-webkit-text-size-adjust:100%;color-scheme:light;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F7F5F2;">
+    <tr>
+      <td align="center" class="outer-pad" style="padding:52px 20px 64px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:620px;">
+
+          <!-- Studio label -->
+          <tr>
+            <td style="padding:0 2px 18px;">
+              <p style="margin:0;font-size:10.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#C0B8AE;">${opts.studioName}</p>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 2px 32px rgba(0,0,0,0.07),0 1px 3px rgba(0,0,0,0.04);">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td class="card-pad" style="padding:52px 52px 48px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+
+                      <!-- Heading -->
+                      <tr>
+                        <td>
+                          <h1 class="heading" style="margin:0;font-size:38px;font-weight:800;color:#1C1C1A;letter-spacing:-0.04em;line-height:1.08;">${opts.heading}</h1>
+                        </td>
+                      </tr>
+
+                      <!-- Subheading -->
+                      <tr>
+                        <td style="padding-top:22px;">
+                          <p style="margin:0;font-size:15px;font-weight:500;color:#7A7468;line-height:1.75;">${opts.subheading}</p>
+                        </td>
+                      </tr>
+
+                      <!-- Body -->
+                      <tr>
+                        <td style="padding-top:10px;">
+                          <p style="margin:0;font-size:15px;color:#9A9188;line-height:1.75;">${opts.body}</p>
+                        </td>
+                      </tr>
+
+                      <!-- CTA -->
+                      <tr>
+                        <td style="padding-top:36px;">
+                          <table cellpadding="0" cellspacing="0" role="presentation">
+                            <tr>
+                              <td style="border-radius:100px;background:#C4A47C;box-shadow:0 6px 20px rgba(196,164,124,0.38);">
+                                <a href="${opts.ctaUrl}" style="display:inline-block;padding:18px 52px;font-size:15px;font-weight:700;color:#FFFFFF;text-decoration:none;letter-spacing:0.01em;line-height:1;white-space:nowrap;">
+                                  ${opts.ctaLabel} &nbsp;→
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+
+                      ${opts.extraBlock ? `<tr><td style="padding-top:24px;">${opts.extraBlock}</td></tr>` : ''}
+
+                      <!-- Divider -->
+                      <tr>
+                        <td style="padding:40px 0 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                            <tr><td style="height:1px;background:#EDE9E3;"></td></tr>
+                          </table>
+                        </td>
+                      </tr>
+
+                      <!-- Info card -->
+                      <tr>
+                        <td style="padding-top:28px;">
+                          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#FAF8F5;border-radius:14px;">
+                            <tr>
+                              <td style="padding:22px 24px;">
+                                <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                                  ${infoRowsHtml}
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 2px 0;">
+              <p style="margin:0;font-size:11px;color:#BDB5AA;line-height:1.7;">${opts.footerLine}</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body></html>`
+}
+
 function buildClientConfirmationEmail(data: {
   clientName: string
   studioName: string
@@ -369,74 +509,46 @@ function buildClientConfirmationEmail(data: {
   }
 
   const depositBlock = data.requiresDeposit && data.depositAmount
-    ? `<div style="margin:20px 0;padding:16px;background:#FFF7ED;border-radius:8px;border:1px solid #FED7AA">
-        <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#C2410C;text-transform:uppercase;letter-spacing:0.05em">Anzahlung erforderlich</p>
-        <p style="margin:0 0 8px;font-size:14px;color:#92400E">Bitte überweise <strong>€${(data.depositAmount / 100).toFixed(2)}</strong> mit dem Verwendungszweck:</p>
-        <p style="margin:0;font-size:20px;font-weight:900;letter-spacing:0.1em;color:#C2410C">${data.payment_reference}</p>
-        <p style="margin:8px 0 0;font-size:12px;color:#92400E">Dein Termin wird nach Zahlungseingang bestätigt.</p>
-      </div>`
-    : `<div style="margin:20px 0;padding:12px 16px;background:#ECFDF5;border-radius:8px;border:1px solid #A7F3D0">
-        <p style="margin:0;font-size:14px;color:#065F46;font-weight:600">✓ Buchung eingegangen — der Fotograf bestätigt in Kürze.</p>
-      </div>`
-
-  const meetBlock = data.meetLink
-    ? `<div style="margin:16px 0;padding:14px 16px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE">
-        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.05em">Google Meet Link</p>
-        <a href="${data.meetLink}" style="color:#2563EB;font-weight:600;font-size:14px;word-break:break-all">${data.meetLink}</a>
-      </div>`
+    ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#FFF7ED;border-radius:12px;border:1px solid #FED7AA;">
+        <tr><td style="padding:18px 20px;">
+          <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#C2410C;">Anzahlung erforderlich</p>
+          <p style="margin:0 0 10px;font-size:14px;color:#92400E;line-height:1.5;">Bitte überweise <strong>€${(data.depositAmount / 100).toFixed(2)}</strong> mit dem Verwendungszweck:</p>
+          <p style="margin:0 0 8px;font-size:22px;font-weight:900;letter-spacing:0.1em;color:#C2410C;">${data.payment_reference}</p>
+          <p style="margin:0;font-size:12px;color:#92400E;">Dein Termin wird nach Zahlungseingang bestätigt.</p>
+        </td></tr>
+      </table>`
     : ''
 
-  return `
-<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:sans-serif;color:#111;background:#f9f9f7;margin:0;padding:0">
-  <div style="max-width:540px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
-    <div style="height:4px;background:linear-gradient(90deg,#C9A96E,#d4b483)"></div>
-    <div style="padding:32px">
-      <h2 style="margin:0 0 4px;font-size:20px;letter-spacing:-0.02em">Buchungsbestätigung</h2>
-      <p style="margin:0 0 24px;color:#6B7280;font-size:14px">${data.studioName}</p>
+  const meetBlock = data.meetLink && data.locationType === 'online'
+    ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#EFF6FF;border-radius:12px;border:1px solid #BFDBFE;">
+        <tr><td style="padding:16px 20px;">
+          <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#1D4ED8;">Google Meet</p>
+          <a href="${data.meetLink}" style="color:#2563EB;font-weight:700;font-size:14px;word-break:break-all;">${data.meetLink}</a>
+        </td></tr>
+      </table>`
+    : ''
 
-      <p style="margin:0 0 16px;color:#374151;font-size:15px">Hallo <strong>${data.clientName}</strong>,</p>
-      <p style="margin:0 0 20px;color:#374151;font-size:14px">deine Buchungsanfrage wurde erfolgreich übermittelt. Hier sind deine Details:</p>
+  const extraParts = [depositBlock, meetBlock].filter(Boolean).join('<div style="height:12px;"></div>')
 
-      <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin:0 0 16px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280;width:110px">Leistung</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.btTitle}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Datum</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.shootDate}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Uhrzeit</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.booked_time} Uhr</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Dauer</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.durationMinutes} Minuten</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Ort</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${locationLabel[data.locationType] ?? data.locationType}</td>
-          </tr>
-        </table>
-      </div>
-
-      ${buildAnswersBlock(data.questions, data.answers)}
-      ${depositBlock}
-      ${meetBlock}
-
-      <div style="margin:20px 0 0;text-align:center">
-        <a href="${data.confirmUrl}" style="display:inline-block;padding:12px 28px;background:#1A1A18;color:#fff;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none">
-          Buchung ansehen →
-        </a>
-      </div>
-
-      <p style="margin:24px 0 0;font-size:12px;color:#9CA3AF;text-align:center">Bei Fragen wende dich direkt an ${data.studioName}.</p>
-    </div>
-  </div>
-</body></html>`
+  return bookingEmailShell({
+    studioName: data.studioName,
+    heading: 'Deine Buchung<br>ist eingegangen.',
+    subheading: `Hallo ${data.clientName}.`,
+    body: data.requiresDeposit
+      ? 'Überweise bitte die Anzahlung, um deinen Termin zu sichern.'
+      : 'Der Fotograf wird deine Anfrage in Kürze bestätigen.',
+    ctaUrl: data.confirmUrl,
+    ctaLabel: 'Buchung ansehen',
+    infoRows: [
+      { label: 'Leistung',  value: data.btTitle },
+      { label: 'Datum',     value: data.shootDate },
+      { label: 'Uhrzeit',   value: data.booked_time + ' Uhr' },
+      { label: 'Dauer',     value: data.durationMinutes + ' Minuten' },
+      { label: 'Ort',       value: locationLabel[data.locationType] ?? data.locationType },
+    ],
+    extraBlock: extraParts || undefined,
+    footerLine: `Bereitgestellt von ${data.studioName}`,
+  })
 }
 
 function buildClientReminderEmail(data: {
@@ -449,6 +561,7 @@ function buildClientReminderEmail(data: {
   locationType: string
   meetLink: string | null
   confirmUrl: string
+  portalUrl: string
 }): string {
   const locationLabel: Record<string, string> = {
     studio: 'Studio',
@@ -456,54 +569,31 @@ function buildClientReminderEmail(data: {
     online: 'Online (Google Meet)',
   }
 
-  const meetBlock = data.meetLink
-    ? `<div style="margin:16px 0;padding:14px 16px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE">
-        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.05em">Google Meet</p>
-        <a href="${data.meetLink}" style="color:#2563EB;font-weight:700;font-size:14px">${data.meetLink}</a>
-      </div>`
+  const meetBlock = data.meetLink && data.locationType === 'online'
+    ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#EFF6FF;border-radius:12px;border:1px solid #BFDBFE;">
+        <tr><td style="padding:16px 20px;">
+          <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#1D4ED8;">Google Meet</p>
+          <a href="${data.meetLink}" style="color:#2563EB;font-weight:700;font-size:14px;word-break:break-all;">${data.meetLink}</a>
+        </td></tr>
+      </table>`
     : ''
 
-  return `
-<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:sans-serif;color:#111;background:#f9f9f7;margin:0;padding:0">
-  <div style="max-width:540px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
-    <div style="height:4px;background:linear-gradient(90deg,#C9A96E,#d4b483)"></div>
-    <div style="padding:32px">
-      <h2 style="margin:0 0 4px;font-size:20px;letter-spacing:-0.02em">Erinnerung: Morgen ist dein Termin</h2>
-      <p style="margin:0 0 24px;color:#6B7280;font-size:14px">${data.studioName}</p>
-      <p style="margin:0 0 16px;color:#374151;font-size:15px">Hallo <strong>${data.clientName}</strong>,</p>
-      <p style="margin:0 0 20px;color:#374151;font-size:14px">nur zur Erinnerung — morgen findet dein Shooting statt:</p>
-      <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin:0 0 16px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280;width:110px">Leistung</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.btTitle}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Datum</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:700;color:#111">${data.shootDate}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Uhrzeit</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:700;color:#111">${data.booked_time} Uhr</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Dauer</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${data.durationMinutes} Minuten</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:13px;color:#6B7280">Ort</td>
-            <td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${locationLabel[data.locationType] ?? data.locationType}</td>
-          </tr>
-        </table>
-      </div>
-      ${meetBlock}
-      <div style="margin:20px 0 0;text-align:center">
-        <a href="${data.confirmUrl}" style="display:inline-block;padding:12px 28px;background:#1A1A18;color:#fff;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none">
-          Buchung ansehen →
-        </a>
-      </div>
-    </div>
-  </div>
-</body></html>`
+  return bookingEmailShell({
+    studioName: data.studioName,
+    heading: 'Dein Termin<br>steht bevor.',
+    subheading: `Hallo ${data.clientName}.`,
+    body: 'Alle Details zum Termin findest du unten.',
+    ctaUrl: data.portalUrl,
+    ctaLabel: 'Alle Details ansehen',
+    infoRows: [
+      { label: 'Leistung',  value: data.btTitle },
+      { label: 'Datum',     value: data.shootDate },
+      { label: 'Uhrzeit',   value: data.booked_time + ' Uhr' },
+      { label: 'Dauer',     value: data.durationMinutes + ' Minuten' },
+      { label: 'Ort',       value: locationLabel[data.locationType] ?? data.locationType },
+    ],
+    extraBlock: meetBlock || undefined,
+    footerLine: `Bereitgestellt von ${data.studioName}`,
+  })
 }
+

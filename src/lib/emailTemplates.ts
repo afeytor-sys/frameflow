@@ -210,17 +210,16 @@ Herzliche Grüße,
     name: 'Fragebogen senden',
     description: 'Bitte den Kunden, den Fragebogen auszufüllen',
     category: 'fragebogen',
-    subject: '📋 Kurzer Fragebogen für dein Shooting – {{project_title}}',
+    subject: '📋 Kurzer Fragebogen für deinen Termin – {{project_title}}',
     body: `Hallo {{client_name}},
 
-um dein Shooting perfekt vorzubereiten, würde ich mich freuen, wenn du dir kurz Zeit nimmst, den folgenden Fragebogen auszufüllen.
+zur Vorbereitung auf deinen Termin würde ich dich bitten, kurz den folgenden Fragebogen auszufüllen.
 
-Es dauert nur wenige Minuten und hilft mir, deine Wünsche und Ideen besser zu verstehen:
+Es dauert nur wenige Minuten und hilft mir, deinen Termin optimal vorzubereiten:
 {{portal_url}}
 
-Vielen Dank im Voraus!
+Vielen Dank!
 
-Herzliche Grüße,
 {{studio_name}}`,
   },
   {

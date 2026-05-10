@@ -82,7 +82,7 @@ export function portalCreatedEmail(data: EmailData) {
       Dein persönliches Portal für <strong style="color:#111110;">${projectTitle}</strong> ist jetzt bereit.
     </p>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hier findest du alles rund um dein Shooting — Vertrag, Timeline, Galerie und mehr. Alles an einem Ort.
+      Hier findest du alles rund um deinen Termin — Vertrag, Timeline, Galerie und mehr. Alles an einem Ort.
     </p>
     <div style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;padding:16px 20px;margin:20px 0;">
       <p style="margin:0;font-size:13px;color:#7A7670;">📋 Vertrag ansehen & unterschreiben</p>
@@ -197,31 +197,29 @@ export function reminder7dEmail(data: EmailData) {
   const isDE = locale === 'de'
 
   const subject = isDE
-    ? `Dein Shooting ist in 7 Tagen! 📸`
-    : `Your shoot is in 7 days! 📸`
+    ? `Termin-Erinnerung: ${projectTitle} in 7 Tagen`
+    : `Reminder: ${projectTitle} in 7 days`
 
   const body = isDE ? `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Noch 7 Tage! 🎉</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">In einer Woche ist es soweit.</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hallo ${clientName}, dein Shooting für <strong style="color:#111110;">${projectTitle}</strong> ist in einer Woche${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
+      Hallo ${clientName}, der Termin für <strong style="color:#111110;">${projectTitle}</strong> ist in einer Woche${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
-    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#111110;">Tipps zur Vorbereitung:</p>
+    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#111110;">Zur Vorbereitung:</p>
     <div style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;padding:16px 20px;margin:0 0 20px;">
-      <p style="margin:0;font-size:13px;color:#7A7670;">👗 Kleidung vorbereiten — Farben, die sich ergänzen</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">😴 Gut schlafen — du wirst strahlend aussehen</p>
+      <p style="margin:0;font-size:13px;color:#7A7670;">👗 Outfit vorbereiten — ruhige, harmonische Farben</p>
       <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">📍 Treffpunkt im Portal prüfen</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">❓ Fragen? Antworte einfach auf diese E-Mail</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">❓ Fragen? Einfach auf diese E-Mail antworten</p>
     </div>
     ${ctaButton(portalUrl, 'Portal öffnen')}
   ` : `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">7 days to go! 🎉</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">One week to go.</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hello ${clientName}, your shoot for <strong style="color:#111110;">${projectTitle}</strong> is in one week${shootDate ? ` on <strong style="color:#111110;">${shootDate}</strong>` : ''}.
+      Hello ${clientName}, the session for <strong style="color:#111110;">${projectTitle}</strong> is in one week${shootDate ? ` on <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
-    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#111110;">Tips to prepare:</p>
+    <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#111110;">To prepare:</p>
     <div style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;padding:16px 20px;margin:0 0 20px;">
-      <p style="margin:0;font-size:13px;color:#7A7670;">👗 Prepare your outfits — choose complementary colors</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">😴 Get good sleep — you'll look radiant</p>
+      <p style="margin:0;font-size:13px;color:#7A7670;">👗 Prepare your outfit — neutral, harmonious tones work well</p>
       <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">📍 Check the meeting point in your portal</p>
       <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">❓ Questions? Just reply to this email</p>
     </div>
@@ -237,35 +235,35 @@ export function reminder1dEmail(data: EmailData) {
   const isDE = locale === 'de'
 
   const subject = isDE
-    ? `Morgen ist dein Shooting! 📸`
-    : `Your shoot is tomorrow! 📸`
+    ? `Termin-Erinnerung: ${projectTitle} — morgen`
+    : `Reminder: ${projectTitle} — tomorrow`
 
   const body = isDE ? `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Morgen ist es soweit! 📸</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Morgen ist dein Termin.</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hallo ${clientName}, morgen${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''} ist dein Shooting für <strong style="color:#111110;">${projectTitle}</strong>!
+      Hallo ${clientName}, der Termin für <strong style="color:#111110;">${projectTitle}</strong> ist morgen${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Ich freue mich sehr auf unser Shooting! Hier noch einmal alle wichtigen Infos:
+      Hier noch einmal alle wichtigen Details:
     </p>
     <div style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;padding:16px 20px;margin:0 0 20px;">
       <p style="margin:0;font-size:13px;color:#7A7670;">📍 Treffpunkt im Portal ansehen</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">⏰ Pünktlich sein — wir nutzen das beste Licht</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">😊 Entspannt bleiben — ich kümmere mich um alles</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">⏰ Pünktlich erscheinen</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">❓ Fragen? Einfach auf diese E-Mail antworten</p>
     </div>
     ${ctaButton(portalUrl, 'Portal öffnen')}
   ` : `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Tomorrow is the day! 📸</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Your appointment is tomorrow.</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hello ${clientName}, your shoot for <strong style="color:#111110;">${projectTitle}</strong> is tomorrow${shootDate ? ` on <strong style="color:#111110;">${shootDate}</strong>` : ''}!
+      Hello ${clientName}, the session for <strong style="color:#111110;">${projectTitle}</strong> is tomorrow${shootDate ? ` on <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      I'm so excited for our shoot! Here are all the important details one more time:
+      Here are all the important details one more time:
     </p>
     <div style="background:#F8F7F4;border-radius:12px;border:1px solid #E8E4DC;padding:16px 20px;margin:0 0 20px;">
       <p style="margin:0;font-size:13px;color:#7A7670;">📍 Check the meeting point in your portal</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">⏰ Be on time — we'll use the best light</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">😊 Stay relaxed — I'll take care of everything</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">⏰ Please be on time</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#7A7670;">❓ Questions? Just reply to this email</p>
     </div>
     ${ctaButton(portalUrl, 'Open portal')}
   `

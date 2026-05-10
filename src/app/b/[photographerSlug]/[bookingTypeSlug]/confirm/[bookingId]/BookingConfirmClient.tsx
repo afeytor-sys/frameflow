@@ -206,7 +206,7 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
               <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span>{bookingType.title} · {bookingType.duration_minutes} Min.</span>
             </div>
-            {booking.google_meet_link && (
+            {booking.google_meet_link && bookingType.location_type === 'online' && (
               <div className="flex items-center gap-2 text-[13px]">
                 <Video className="w-4 h-4 text-blue-500 flex-shrink-0" />
                 <a
@@ -331,7 +331,7 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
         )}
 
         {/* Confirmed details */}
-        {isConfirmed && booking.google_meet_link && (
+        {isConfirmed && booking.google_meet_link && bookingType.location_type === 'online' && (
           <div className="bg-green-50 rounded-2xl border border-green-100 p-5">
             <p className="font-semibold text-green-800 mb-2">Online-Termin</p>
             <a
