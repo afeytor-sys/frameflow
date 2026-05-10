@@ -92,7 +92,7 @@ export async function sendDownloadReadyEmail(
     heading:       'Your photos<br>are ready.',
     subheading:    'Beautifully edited and carefully selected — just for you.',
     body:          'We hope every image brings you as much joy as it brought us to create it.',
-    cta:           'Open Gallery',
+    cta:           'Download photos',
     galleryLabel:  'Gallery',
     validLabel:    'Link valid until',
     partsNote:     partCount > 1 ? `Your photos are split into <strong style="color:#1C1C1A;">${partCount} parts</strong> — download all of them on the gallery page.` : '',
@@ -104,7 +104,7 @@ export async function sendDownloadReadyEmail(
     heading:       'Deine Fotos<br>sind fertig.',
     subheading:    'Mit viel Liebe bearbeitet und sorgfältig ausgewählt — nur für dich.',
     body:          'Wir wünschen dir ganz viel Freude beim Anschauen deiner Galerie.',
-    cta:           'Galerie öffnen',
+    cta:           'Fotos herunterladen',
     galleryLabel:  'Galerie',
     validLabel:    'Link gültig bis',
     partsNote:     partCount > 1 ? `Deine Fotos wurden in <strong style="color:#1C1C1A;">${partCount} Teile</strong> aufgeteilt — du kannst alle auf der Download-Seite herunterladen.` : '',
@@ -112,7 +112,7 @@ export async function sendDownloadReadyEmail(
     fallbackText:  'Falls der Button nicht funktioniert, kopiere diesen Link:',
   }
 
-  // Cover image block — full-width cinematic image, or warm gradient fallback
+  // Cover image block — full-width cinematic image (with subtle bottom vignette), or luxury gradient fallback
   const heroBlock = coverImageUrl
     ? `<tr>
         <td style="padding:0;line-height:0;font-size:0;">
@@ -120,20 +120,31 @@ export async function sendDownloadReadyEmail(
           <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:620px;height:360px;">
             <v:fill type="frame" src="${coverImageUrl}" color="#E8E4DC"/>
             <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0"><![endif]-->
+          <!--[if !mso]><!-->
+          <div style="position:relative;line-height:0;font-size:0;overflow:hidden;max-height:360px;">
+            <img src="${coverImageUrl}" width="620" alt="${galleryTitle}"
+                 style="display:block;width:100%;max-width:620px;height:360px;min-height:280px;object-fit:cover;border:0;line-height:0;" />
+            <div style="position:absolute;bottom:0;left:0;right:0;height:120px;
+                        background:linear-gradient(to top,rgba(0,0,0,0.22) 0%,transparent 100%);
+                        pointer-events:none;"></div>
+          </div>
+          <!--<![endif]-->
+          <!--[if mso]-->
           <img src="${coverImageUrl}" width="620" alt="${galleryTitle}"
-               style="display:block;width:100%;max-width:620px;height:auto;min-height:280px;object-fit:cover;border:0;line-height:0;" />
+               style="display:block;width:100%;max-width:620px;height:360px;object-fit:cover;border:0;" />
           <!--[if mso]></v:textbox></v:rect><![endif]-->
         </td>
       </tr>`
     : `<tr>
-        <td style="padding:0;height:260px;background:linear-gradient(135deg,#EDE9E0 0%,#D8CFBF 55%,#C4B49A 100%);line-height:0;font-size:0;">
-          <table width="100%" height="260" cellpadding="0" cellspacing="0" role="presentation">
-            <tr>
-              <td align="center" valign="middle">
-                <p style="margin:0;font-size:40px;opacity:0.45;line-height:1;">✦</p>
-              </td>
-            </tr>
+        <td style="padding:0;height:300px;line-height:0;font-size:0;background:radial-gradient(ellipse at 38% 42%,#EDEAE2 0%,#DDD5C5 38%,#CFBFAD 68%,#C4B49A 100%);">
+          <!--[if mso]>
+          <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:620px;height:300px;">
+            <v:fill type="gradient" color="#EDEAE2" color2="#C4B49A" angle="135"/>
+            <v:textbox inset="0,0,0,0"><![endif]-->
+          <table width="100%" height="300" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td style="padding:0;height:300px;"></td></tr>
           </table>
+          <!--[if mso]></v:textbox></v:rect><![endif]-->
         </td>
       </tr>`
 
