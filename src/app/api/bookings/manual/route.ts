@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         scheduled_at: reminderAt.toISOString(),
         to_email: clientEmailClean,
         to_name: client_name?.trim() || '',
-        subject: `Dein Shooting: ${title.trim()} am ${shootDate}`,
+        subject: `Dein Termin: ${title.trim()} am ${shootDate}`,
         html_body: html,
         type: 'booking_reminder',
         reference_id: booking.id,

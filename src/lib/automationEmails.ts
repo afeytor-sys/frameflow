@@ -235,8 +235,8 @@ export function reminder1dEmail(data: EmailData) {
   const isDE = locale === 'de'
 
   const subject = isDE
-    ? `Dein Shooting: ${projectTitle}${shootDate ? ` am ${shootDate}` : ''}`
-    : `Your shoot: ${projectTitle}${shootDate ? ` on ${shootDate}` : ''}`
+    ? `Dein Termin: ${projectTitle}${shootDate ? ` am ${shootDate}` : ''}`
+    : `Your appointment: ${projectTitle}${shootDate ? ` on ${shootDate}` : ''}`
 
   const body = isDE ? `
     <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Morgen ist dein Termin.</h1>

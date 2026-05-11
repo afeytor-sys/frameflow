@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
         scheduled_at: reminderAt.toISOString(),
         to_email: client_email.trim().toLowerCase(),
         to_name: client_name,
-        subject: `Dein Shooting: ${bt.title} am ${shootDate}`,
+        subject: `Dein Termin: ${bt.title} am ${shootDate}`,
         html_body: buildClientReminderEmail({
           clientName: client_name,
           studioName,
