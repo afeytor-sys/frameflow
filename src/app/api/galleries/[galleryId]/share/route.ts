@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -24,6 +26,22 @@ export async function POST(
   if (!clientEmail || !galleryUrl) {
     return NextResponse.json({ error: 'Missing clientEmail or galleryUrl' }, { status: 400 })
   }
+
+  // Get photographer's notification email for BCC
+  let photographerNotifEmail: string | undefined
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const service = createServiceClient()
+      const { data: ph } = await service
+        .from('photographers')
+        .select('notification_email, email')
+        .eq('id', user.id)
+        .single()
+      photographerNotifEmail = ph?.notification_email || ph?.email || undefined
+    }
+  } catch { /* non-critical */ }
 
   const name = clientName || 'Kunde'
   const title = galleryTitle || 'Deine Galerie'
@@ -125,6 +143,8 @@ export async function POST(
     await resend.emails.send({
       from: `${studio} <noreply@fotonizer.com>`,
       to: clientEmail,
+      bcc: photographerNotifEmail,
+      replyTo: photographerNotifEmail,
       subject: `📸 ${title} — deine Fotos sind bereit!`,
       html,
     })

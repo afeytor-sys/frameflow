@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     // Fetch project for portal URL
     const { data: project } = await supabase
       .from('projects')
-      .select('client_url, custom_slug, client_token, photographer:photographers(studio_name, full_name)')
+      .select('client_url, custom_slug, client_token, photographer:photographers(studio_name, full_name, email, notification_email)')
       .eq('id', projectId)
       .single()
 
@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
       : null
 
     const photographer = Array.isArray(project?.photographer) ? project.photographer[0] : project?.photographer
-    const studioName = (photographer as { studio_name?: string; full_name?: string } | null)?.studio_name
-      || (photographer as { studio_name?: string; full_name?: string } | null)?.full_name
-      || 'Your photographer'
+    const ph = photographer as { studio_name?: string; full_name?: string; email?: string; notification_email?: string } | null
+    const studioName = ph?.studio_name || ph?.full_name || 'Your photographer'
+    const notifEmail = ph?.notification_email || ph?.email || undefined
 
     // Convert plain text message to HTML paragraphs
     const messageHtml = customMessage
@@ -128,6 +128,8 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'noreply@fotonizer.com',
       to: clientEmail,
+      bcc: notifEmail,
+      replyTo: notifEmail,
       subject: emailSubject,
       html,
     })

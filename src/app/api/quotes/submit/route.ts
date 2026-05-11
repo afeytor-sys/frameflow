@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
         from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
         to: client_email,
         replyTo: photographer?.email || undefined,
+        bcc: notifEmail || undefined,
         subject: `Angebotsbestätigung: ${quote.title}`,
         html: `<!DOCTYPE html>
 <html lang="de">

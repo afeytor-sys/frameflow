@@ -241,6 +241,8 @@ export async function POST(req: NextRequest) {
     resend.emails.send({
       from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
       to: client_email.trim().toLowerCase(),
+      bcc: toEmail || undefined,
+      replyTo: toEmail || undefined,
       subject: `Deine Buchung: ${bt.title} am ${shootDate}`,
       html: buildClientConfirmationEmail({
         clientName: client_name,

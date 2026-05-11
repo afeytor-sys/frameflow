@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
         from: `${fromName} via Fotonizer <noreply@fotonizer.com>`,
         replyTo,
         to: email.to_email,
+        bcc: replyTo,
         subject: email.subject,
         html: htmlWithTracking,
         text: email.plain_body || undefined,
