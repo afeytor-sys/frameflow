@@ -239,9 +239,9 @@ export function reminder1dEmail(data: EmailData) {
     : `Your appointment: ${projectTitle}${shootDate ? ` on ${shootDate}` : ''}`
 
   const body = isDE ? `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Übermorgen ist dein Termin.</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Bald ist das Shooting! 🎉</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hallo ${clientName}, der Termin für <strong style="color:#111110;">${projectTitle}</strong> ist in 2 Tagen${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
+      Hallo ${clientName}, dein Shooting für <strong style="color:#111110;">${projectTitle}</strong> findet in 2 Tagen statt${shootDate ? ` — am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
       Hier noch einmal alle wichtigen Details:
