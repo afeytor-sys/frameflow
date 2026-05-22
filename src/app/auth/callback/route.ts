@@ -10,11 +10,34 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type')
   const next = searchParams.get('next') ?? '/dashboard'
 
-  // token_hash flow (email OTP) — forward to update-password to handle client-side
+  // token_hash flow — recovery goes to update-password; signup confirms inline
   if (tokenHash && type === 'recovery') {
     return NextResponse.redirect(
       `${origin}/update-password?token_hash=${tokenHash}&type=recovery`
     )
+  }
+
+  if (tokenHash && type === 'signup') {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' })
+    if (!error) {
+      return NextResponse.redirect(`${origin}/select-plan`)
+    }
+    return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
   }
 
   if (code) {

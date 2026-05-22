@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { Gift } from 'lucide-react'
 
 export default function SignupPage() {
@@ -14,29 +12,27 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error: signupError, data } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    })
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      })
+      const data = await res.json()
 
-    if (signupError) {
-      setError(signupError.message)
-      setLoading(false)
-      return
-    }
-
-    // Supabase returns success even for existing emails, but identities will be empty
-    if (data?.user && data.user.identities && data.user.identities.length === 0) {
-      setError('This email address is already registered. Please sign in or reset your password.')
+      if (!res.ok) {
+        setError(data.error || 'Fehler beim Erstellen des Kontos.')
+        setLoading(false)
+        return
+      }
+    } catch {
+      setError('Verbindungsfehler. Bitte versuche es erneut.')
       setLoading(false)
       return
     }
@@ -54,6 +50,7 @@ export default function SignupPage() {
     }
 
     setSuccess(true)
+    setLoading(false)
   }
 
   const inputClass = "w-full px-3.5 py-2.5 rounded-md border border-[#E4E1DC] bg-white text-[14px] text-[#111110] placeholder:text-[#B0ACA6] focus:outline-none focus:border-[#111110] transition-colors"
