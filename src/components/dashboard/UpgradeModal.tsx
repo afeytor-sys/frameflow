@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Check, Zap, Sparkles, Gift, ArrowRight } from 'lucide-react'
-import { PLAN_DISPLAY, PLAN_UNLOCK_COPY, type PlanKey } from '@/lib/stripe'
+import { X, Check, Zap, Sparkles, Gift, ArrowRight, HardDrive } from 'lucide-react'
+import { PLAN_DISPLAY, PLAN_STORAGE_LABEL, TRIAL_DAYS, type PlanKey } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -98,11 +98,11 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           </div>
 
           <h2 className="font-display text-xl font-semibold text-[#1A1A1A] mb-1">
-            Schalte mehr frei
+            Mehr Galerie-Speicher
           </h2>
-          {reason && (
-            <p className="text-sm text-[#6B6B6B]">{reason}</p>
-          )}
+          <p className="text-sm text-[#6B6B6B]">
+            {reason || 'Alle Pläne enthalten denselben vollen Funktionsumfang — nur der Speicher unterscheidet sich.'}
+          </p>
 
           {/* Billing toggle */}
           <div className="flex items-center gap-3 mt-4">
@@ -138,7 +138,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           style={{ background: '#10B98112', border: '1px solid #10B98130' }}>
           <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#10B981' }} />
           <p className="text-xs font-semibold" style={{ color: '#1A1A1A' }}>
-            🎁 <span style={{ color: '#10B981' }}>2 Monate kostenlos testen</span> — kein Risiko, jederzeit kündbar
+            🎁 <span style={{ color: '#10B981' }}>{TRIAL_DAYS} Tage kostenlos testen</span> — kein Risiko, jederzeit kündbar
           </p>
         </div>
 
@@ -188,71 +188,95 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
         <div className="p-6 grid sm:grid-cols-3 gap-4">
           {UPGRADE_TARGETS.map((plan) => {
             const display = PLAN_DISPLAY[plan]
-            const features = PLAN_UNLOCK_COPY[plan]
+            const storage = PLAN_STORAGE_LABEL[plan]
             const isCurrentOrLower = plan === currentPlan
             const isPro = plan === 'pro'
+            const isStudio = plan === 'studio'
             const isComingSoon = COMING_SOON.includes(plan)
-            const monthlyPrice = display.price
             const annualPrice = getAnnualTotal(plan)
-            const displayPrice = billing === 'annual' ? Math.round(annualPrice / 12) : monthlyPrice
+            const displayPrice = billing === 'annual' ? Math.round(annualPrice / 12) : display.price
 
             return (
               <div
                 key={plan}
                 className={cn(
-                  'rounded-xl border-2 p-4 flex flex-col relative',
-                  isPro ? 'border-[#1A1A1A]' : 'border-[#E8E8E4]',
+                  'rounded-xl border-2 p-4 flex flex-col relative overflow-hidden',
+                  isPro ? 'border-[#1A1A1A] bg-[#111110]' : 'border-[#E8E8E4] bg-white',
                   isComingSoon && 'opacity-60'
                 )}
               >
-                {isComingSoon && (
-                  <div className="absolute top-2 right-2">
-                    <span className="inline-block bg-[#6B6B6B]/10 text-[#6B6B6B] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
-                      Coming Soon
-                    </span>
-                  </div>
-                )}
                 {isPro && (
-                  <div className="text-center mb-3">
-                    <span className="inline-block bg-[#1A1A1A] text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  <div className="h-[2px] absolute top-0 left-0 right-0" style={{ background: 'linear-gradient(90deg,#C4A47C,#E8C99A,#C4A47C)' }} />
+                )}
+
+                {isPro && (
+                  <div className="text-center mb-3 mt-1">
+                    <span className="inline-block bg-[#C8A882] text-[#1A1A1A] text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
                       Beliebteste Wahl
                     </span>
                   </div>
                 )}
 
-                <div className="mb-3">
-                  <p className="font-semibold text-[#1A1A1A] text-sm">{display.name}</p>
-                  <div className="mt-1 mb-1.5">
-                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#10B98115', color: '#10B981' }}>
-                      2 Monate kostenlos
-                    </span>
+                {/* Plan name + price */}
+                <p className={cn('font-bold text-sm mb-0.5', isPro ? 'text-white' : 'text-[#1A1A1A]')}>
+                  {display.name}
+                </p>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className={cn('font-black text-2xl', isPro ? 'text-white' : 'text-[#1A1A1A]')}
+                    style={{ letterSpacing: '-0.04em' }}>
+                    €{Number.isInteger(displayPrice) ? displayPrice : displayPrice.toFixed(2)}
+                  </span>
+                  <span className={cn('text-xs', isPro ? 'text-white/50' : 'text-[#9CA3AF]')}>/Mo</span>
+                </div>
+                {billing === 'annual' && (
+                  <p className={cn('text-[9.5px] mb-3', isPro ? 'text-white/35' : 'text-[#ABABAB]')}>
+                    €{annualPrice}/Jahr · –20%
+                  </p>
+                )}
+                {billing === 'monthly' && <div className="mb-3" />}
+
+                {/* Storage hero */}
+                <div
+                  className="rounded-lg px-3 py-3 mb-3 flex items-center gap-2.5"
+                  style={isPro
+                    ? { background: 'rgba(196,164,124,0.12)', border: '1px solid rgba(196,164,124,0.25)' }
+                    : { background: '#F5F4F2', border: '1px solid #ECEAE5' }
+                  }
+                >
+                  <HardDrive className="w-4 h-4 flex-shrink-0" style={{ color: isPro ? '#C8A882' : '#6B6B6B' }} />
+                  <div>
+                    <p
+                      className="font-black leading-none"
+                      style={{ fontSize: '1.4rem', letterSpacing: '-0.03em', color: isPro ? '#C8A882' : '#111110' }}
+                    >
+                      {storage}
+                    </p>
+                    <p className={cn('text-[9.5px] mt-0.5', isPro ? 'text-white/40' : 'text-[#9CA3AF]')}>
+                      Galerie-Speicher
+                    </p>
                   </div>
-                  <div className="flex items-baseline gap-1 mt-1 flex-wrap">
-                    <span className="font-display text-2xl font-bold text-[#1A1A1A]">
-                      €{displayPrice}
-                    </span>
-                    <span className="text-xs text-[#6B6B6B]">/Monat</span>
-                  </div>
-                  <p className="text-[10px] text-[#9CA3AF] mt-0.5">Danach €{displayPrice}/Monat zzgl. MwSt.</p>
-                  {billing === 'annual' && (
-                    <p className="text-xs text-[#6B6B6B] mt-0.5">€{annualPrice}/Jahr (gesamt)</p>
-                  )}
                 </div>
 
-                <ul className="space-y-1.5 flex-1 mb-4">
-                  {features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <Check className="w-3.5 h-3.5 text-[#3DBA6F] flex-shrink-0 mt-0.5" />
-                      <span className="text-xs text-[#6B6B6B]">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                {/* "Alle Funktionen inklusive" */}
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Check className="w-3 h-3 flex-shrink-0" style={{ color: isPro ? '#C8A882' : '#10B981' }} />
+                  <span className={cn('text-[11.5px] font-semibold', isPro ? 'text-white/80' : 'text-[#1A1A1A]')}>
+                    Alle Funktionen inklusive
+                  </span>
+                </div>
+
+                {/* Studio extra */}
+                {isStudio && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-[10px] font-bold text-[#C8A882]">+</span>
+                    <span className="text-[11px] text-[#6B6B6B]">3 Fotografen-Accounts</span>
+                  </div>
+                )}
+
+                <div className="flex-1" />
 
                 {isComingSoon ? (
-                  <button
-                    disabled
-                    className="w-full py-2 rounded-lg text-sm font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]"
-                  >
+                  <button disabled className="mt-3 w-full py-2 rounded-lg text-xs font-medium border border-[#E8E8E4] text-[#9CA3AF] cursor-not-allowed bg-[#F0F0EC]">
                     Coming soon
                   </button>
                 ) : (
@@ -260,19 +284,21 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
                     onClick={() => handleUpgrade(plan)}
                     disabled={isCurrentOrLower || loading === plan}
                     className={cn(
-                      'w-full py-2 rounded-lg text-sm font-medium transition-all',
+                      'mt-3 w-full py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5',
                       isCurrentOrLower
                         ? 'bg-[#F0F0EC] text-[#6B6B6B] cursor-default'
                         : isPro
-                        ? 'bg-[#1A1A1A] text-white hover:bg-[#2A2A2A]'
-                        : 'border border-[#E8E8E4] text-[#1A1A1A] hover:bg-[#F0F0EC]'
+                        ? 'bg-[#C8A882] text-[#1A1A1A] hover:bg-[#D4B896]'
+                        : 'bg-[#1A1A1A] text-white hover:bg-[#2A2A2A]'
                     )}
                   >
-                    {loading === plan
-                      ? 'Weiterleitung...'
-                      : isCurrentOrLower
-                      ? 'Aktueller Plan'
-                      : 'Kostenlos starten'}
+                    {loading === plan ? (
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                    ) : isCurrentOrLower ? (
+                      'Aktueller Plan'
+                    ) : (
+                      <>{TRIAL_DAYS} Tage testen <ArrowRight className="w-3 h-3" /></>
+                    )}
                   </button>
                 )}
               </div>
@@ -286,7 +312,7 @@ export default function UpgradeModal({ isOpen, onClose, currentPlan, reason }: P
           </p>
         )}
         <p className="text-center text-xs text-[#6B6B6B] pb-5">
-          Cancel anytime · Secure payment via Stripe
+          Jederzeit kündbar · Sichere Zahlung via Stripe · Keine Zahlung während der Testphase
         </p>
       </div>
     </div>

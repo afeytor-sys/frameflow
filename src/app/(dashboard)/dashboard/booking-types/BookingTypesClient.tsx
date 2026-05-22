@@ -323,7 +323,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
       if (entry) return prev.map(e => e.date === newSlotDate ? { ...e, times: [...e.times, time].sort() } : e)
       return [...prev, { date: newSlotDate, times: [time] }]
     })
-    setNewSlotTime('')
+    // keep time so user can change just the date and add another slot
   }
 
   const removeSpecificSlot = (date: string, time: string) => {

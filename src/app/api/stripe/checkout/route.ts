@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe, STRIPE_PRICES, type PlanKey } from '@/lib/stripe'
+import { stripe, STRIPE_PRICES, TRIAL_DAYS, type PlanKey } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    const { plan, billing } = await request.json() as { plan: PlanKey; billing: 'monthly' | 'annual' }
+    const { plan, billing, successUrl: customSuccessUrl } = await request.json() as {
+      plan: PlanKey
+      billing: 'monthly' | 'annual'
+      successUrl?: string
+    }
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -50,16 +54,22 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    // Give 60-day trial only to users with no prior subscription
+    // Give 14-day trial only to users with no prior subscription
     const isNewSubscriber = !photographer.stripe_sub_id
+
+    const successUrl = customSuccessUrl
+      ? `${baseUrl}${customSuccessUrl}`
+      : isNewSubscriber
+        ? `${baseUrl}/dashboard?welcome=1`
+        : `${baseUrl}/dashboard/billing?success=1`
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/dashboard/billing?success=1`,
-      cancel_url: `${baseUrl}/dashboard/billing?canceled=1`,
+      success_url: successUrl,
+      cancel_url: `${baseUrl}/select-plan?canceled=1`,
       metadata: {
         photographer_id: user.id,
         plan,
@@ -70,8 +80,8 @@ export async function POST(request: NextRequest) {
           photographer_id: user.id,
           plan,
         },
-        // 60-day free trial for first-time subscribers
-        ...(isNewSubscriber ? { trial_period_days: 60 } : {}),
+        // 14-day free trial for first-time subscribers
+        ...(isNewSubscriber ? { trial_period_days: TRIAL_DAYS } : {}),
       },
       billing_address_collection: 'auto',
     })

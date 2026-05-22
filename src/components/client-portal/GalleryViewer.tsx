@@ -810,6 +810,65 @@ export default function GalleryViewer({
         </div>
       )}
 
+      {/* ── Download banner — prominent CTA, visible before photos ── */}
+      {downloadEnabled && photos.length > 0 && (dlState === 'idle' || dlState === 'asking-email' || dlState === 'submitting' || dlState === 'error' || dlState === 'sent') && (
+        <div
+          className="mb-5 rounded-2xl flex items-center justify-between gap-4 px-5 py-4"
+          style={{
+            background: theme ? `${theme.surface}` : '#F5F4F1',
+            border: `1px solid ${theme?.border ?? '#E8E4DC'}`,
+          }}
+        >
+          {dlState === 'sent' ? (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(42,122,90,0.12)' }}>
+                  <Check className="w-4 h-4" style={{ color: '#2A7A5A' }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold leading-snug" style={{ color: theme?.text ?? '#111110' }}>
+                    Anfrage erhalten!
+                  </p>
+                  <p className="text-[12px] leading-snug mt-0.5" style={{ color: theme?.textMuted ?? '#7A7670' }}>
+                    Download-Link wird an <strong>{dlEmail}</strong> geschickt
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#C4A47C20' }}
+                >
+                  <Download className="w-4 h-4" style={{ color: '#C4A47C' }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold leading-snug" style={{ color: theme?.text ?? '#111110' }}>
+                    Alle {photos.length} Fotos herunterladen
+                  </p>
+                  <p className="text-[12px] leading-snug mt-0.5 hidden sm:block" style={{ color: theme?.textMuted ?? '#7A7670' }}>
+                    Du erhältst einen Download-Link per E-Mail
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={downloadAll}
+                disabled={dlState === 'submitting'}
+                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
+                style={{ background: '#C4A47C', boxShadow: '0 2px 12px rgba(196,164,124,0.35)' }}
+              >
+                {dlState === 'submitting'
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Moment…</span></>
+                  : <><Download className="w-4 h-4" /><span>Herunterladen</span></>
+                }
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── Sets navigation bar ── */}
       {sections.length > 0 && (
         <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar">
@@ -1151,14 +1210,17 @@ export default function GalleryViewer({
             <button
               onClick={downloadAll}
               disabled={dlState === 'submitting'}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all"
-              style={{ background: dlState === 'sent' ? '#2A7A5A' : '#111110', boxShadow: '0 1px 8px rgba(0,0,0,0.18)' }}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
+              style={{
+                background: dlState === 'sent' ? '#2A7A5A' : '#C4A47C',
+                boxShadow: dlState === 'sent' ? '0 1px 8px rgba(42,122,90,0.25)' : '0 1px 8px rgba(196,164,124,0.3)',
+              }}
             >
               {dlState === 'submitting'
-                ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Wird gesendet…</span></>
+                ? <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">Moment…</span></>
                 : dlState === 'sent'
                   ? <><Check className="w-4 h-4" /><span>E-Mail unterwegs</span></>
-                  : <><Download className="w-4 h-4" /><span>Alle ({photos.length})</span></>
+                  : <><Download className="w-4 h-4" /><span className="hidden sm:inline">Alle herunterladen</span><span className="sm:hidden">↓ Alle</span></>
               }
             </button>
           )}

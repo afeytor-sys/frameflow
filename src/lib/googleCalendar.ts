@@ -45,6 +45,14 @@ async function getValidAccessToken(
     const data = await res.json()
     if (!data.access_token) {
       console.error('[googleCalendar] Token refresh failed:', data.error, data.error_description)
+      // Token was revoked — clear it so dashboard shows disconnected state
+      if (data.error === 'invalid_grant') {
+        await supabase
+          .from('photographers')
+          .update({ google_calendar_access_token: null, google_calendar_refresh_token: null, google_calendar_token_expiry: null })
+          .eq('id', photographer.id)
+        console.error('[googleCalendar] Cleared revoked tokens for photographer', photographer.id)
+      }
       return null
     }
 
@@ -183,9 +191,12 @@ export async function createBookingEvent(
   if (!accessToken) return { eventId: null, meetLink: null }
 
   const startISO = `${eventData.date}T${eventData.startTime}:00`
-  const endDate = new Date(`${startISO}`)
-  endDate.setMinutes(endDate.getMinutes() + eventData.durationMinutes)
-  const endISO = endDate.toISOString().slice(0, 19) // "YYYY-MM-DDTHH:MM:SS"
+  // Calculate end time arithmetically (avoids UTC/timezone parsing issues on Vercel)
+  const [startH, startM] = eventData.startTime.split(':').map(Number)
+  const totalMins = startH * 60 + startM + eventData.durationMinutes
+  const endH = Math.floor(totalMins / 60) % 24
+  const endM = totalMins % 60
+  const endISO = `${eventData.date}T${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`
 
   const event: Record<string, unknown> = {
     summary: eventData.title,
@@ -222,7 +233,15 @@ export async function createBookingEvent(
 
     const data = await res.json()
     if (!res.ok) {
-      console.error('[googleCalendar] createBookingEvent API error:', data.error)
+      console.error('[googleCalendar] createBookingEvent API error:', data.error, 'status:', res.status)
+      // Token rejected — clear access token so dashboard shows disconnected state
+      if (res.status === 401 || res.status === 403) {
+        await supabase
+          .from('photographers')
+          .update({ google_calendar_access_token: null, google_calendar_token_expiry: null })
+          .eq('id', photographer.id)
+        console.error('[googleCalendar] Cleared invalid access token for photographer', photographer.id)
+      }
       return { eventId: null, meetLink: null }
     }
     const eventId = data.id || null

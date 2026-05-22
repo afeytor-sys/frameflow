@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
       if (type === 'recovery') {
         return NextResponse.redirect(`${origin}/update-password`)
       }
-      // Email confirmation (signup) → show welcome page
+      // Email confirmation (signup) → plan selection with trial checkout
       if (type === 'signup' || next === '/dashboard') {
-        return NextResponse.redirect(`${origin}/confirmed`)
+        return NextResponse.redirect(`${origin}/select-plan`)
       }
       return NextResponse.redirect(`${origin}${next}`)
     }

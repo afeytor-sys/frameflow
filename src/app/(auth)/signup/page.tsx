@@ -73,9 +73,9 @@ export default function SignupPage() {
 
         <div className="space-y-8">
           {[
-            { num: '01', text: 'Create account — free, no credit card required' },
-            { num: '02', text: 'Add your first client and start a project' },
-            { num: '03', text: 'Send the link — client gets their portal instantly' },
+            { num: '01', text: 'Konto erstellen — in unter einer Minute' },
+            { num: '02', text: 'Plan wählen & 14 Tage kostenlos testen' },
+            { num: '03', text: 'Kein Risiko — jederzeit kündbar, erste Zahlung nach 14 Tagen' },
           ].map(({ num, text }) => (
             <div key={num} className="flex items-start gap-4">
               <span
@@ -89,9 +89,17 @@ export default function SignupPage() {
           ))}
         </div>
 
-        <p className="text-[#7A7670] text-[12px]">
-          Over 200 photographers across Europe trust Fotonizer.
-        </p>
+        <div>
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3"
+            style={{ background: 'rgba(196,168,130,0.15)', border: '1px solid rgba(196,168,130,0.25)' }}
+          >
+            <span className="text-[11px] font-bold text-[#C8A882] uppercase tracking-wide">14 Tage kostenlos</span>
+          </div>
+          <p className="text-[#7A7670] text-[12px]">
+            Über 200 Fotografen in Europa vertrauen Fotonizer.
+          </p>
+        </div>
       </div>
 
       {/* Right — form */}
@@ -138,9 +146,9 @@ export default function SignupPage() {
                   className="text-[#111110] font-semibold mb-2"
                   style={{ fontFamily: 'Clash Display, system-ui, sans-serif', fontSize: '28px', letterSpacing: '-0.03em' }}
                 >
-                  Create account
+                  Konto erstellen
                 </h1>
-                <p className="text-[#7A7670] text-[14px]">Start for free — no credit card required.</p>
+                <p className="text-[#7A7670] text-[14px]">14 Tage kostenlos testen · Kreditkarte erforderlich · Jederzeit kündbar</p>
               </div>
 
               <form onSubmit={handleSignup} className="space-y-4">
@@ -217,14 +225,14 @@ export default function SignupPage() {
                   className="w-full py-2.5 bg-[#111110] text-[#F8F7F4] text-[13px] font-semibold rounded-md hover:bg-[#1E1E1C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                   style={{ letterSpacing: '0.01em' }}
                 >
-                  {loading ? 'Creating account...' : 'Sign up for free'}
+                  {loading ? 'Konto wird erstellt...' : '14 Tage kostenlos starten →'}
                 </button>
               </form>
 
               <p className="text-[14px] text-[#7A7670] text-center mt-8">
-                Already have an account?{' '}
+                Bereits registriert?{' '}
                 <Link href="/login" className="text-[#111110] font-semibold hover:underline">
-                  Sign in
+                  Anmelden
                 </Link>
               </p>
             </>

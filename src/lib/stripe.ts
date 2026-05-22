@@ -35,6 +35,9 @@ export const STRIPE_PRICES = {
 
 export type PlanKey = 'free' | 'starter' | 'pro' | 'studio'
 
+// Trial duration for new subscribers
+export const TRIAL_DAYS = 14
+
 // Storage constants (in bytes)
 export const GB = 1_073_741_824        // 1 GB  = 1024^3 bytes
 export const TB = 1_099_511_627_776    // 1 TB  = 1024^4 bytes
@@ -83,24 +86,24 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     onlineBookings: false,
   },
   starter: {
-    maxClients: 10,
-    maxContractsPerClient: 10,
-    maxGalleries: 10,
-    maxQuestionnaires: 0,
-    maxInvoices: null,                 // unlimited invoices
-    maxStorageBytes: 150 * GB,         // 150 GB
+    maxClients: null,                  // unlimited — storage is the only differentiator
+    maxContractsPerClient: null,
+    maxGalleries: null,
+    maxQuestionnaires: null,
+    maxInvoices: null,
+    maxStorageBytes: 20 * GB,          // 20 GB — the key differentiator
     showFotonizerBadge: false,
     customBranding: true,
     teamSeats: 1,
-    analytics: false,
+    analytics: true,
     prioritySupport: false,
     clientPortal: true,
     invoices: true,
     contractTemplates: true,
-    questionnaires: false,
-    pipeline: false,
-    emailAutomations: false,
-    onlineBookings: false,
+    questionnaires: true,
+    pipeline: true,
+    emailAutomations: true,
+    onlineBookings: true,
   },
   pro: {
     maxClients: null,
@@ -128,7 +131,7 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
     maxGalleries: null,
     maxQuestionnaires: null,
     maxInvoices: null,
-    maxStorageBytes: 3 * TB,           // 3 TB
+    maxStorageBytes: 2 * TB,           // 2 TB
     showFotonizerBadge: false,
     customBranding: true,
     teamSeats: 3,
@@ -145,57 +148,55 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
 }
 
 // ── Display prices (monthly, in €) ───────────────────────────────────────────
-// Starter: €14/month · €134/year (~20% off)
-// Pro:     €22/month · €211/year (~20% off)
+// Starter: €17/month · €163/year (~20% off)
+// Pro:     €29.99/month · €288/year (~20% off)
 // Studio:  €69/month · €690/year
 export const PLAN_DISPLAY = {
-  free:    { name: 'Free',    price: 0,  annualPrice: 0,   color: '#6B6B6B' },
-  starter: { name: 'Starter', price: 14, annualPrice: 134, color: '#C8A882' },
-  pro:     { name: 'Pro',     price: 22, annualPrice: 211, color: '#1A1A1A' },
-  studio:  { name: 'Studio',  price: 69, annualPrice: 690, color: '#0F0F0F' },
+  free:    { name: 'Free',    price: 0,     annualPrice: 0,   color: '#6B6B6B' },
+  starter: { name: 'Starter', price: 17,    annualPrice: 163, color: '#C8A882' },
+  pro:     { name: 'Pro',     price: 29.99, annualPrice: 288, color: '#1A1A1A' },
+  studio:  { name: 'Studio',  price: 69,    annualPrice: 690, color: '#0F0F0F' },
 }
 
-// What each plan unlocks (for upgrade modal copy)
+// Storage labels per plan (used in pricing UI)
+export const PLAN_STORAGE_LABEL: Record<PlanKey, string> = {
+  free:    '5 GB',
+  starter: '20 GB',
+  pro:     '1 TB',
+  studio:  '2 TB',
+}
+
+// What each plan includes — all paid plans get the full platform, only storage differs
 export const PLAN_UNLOCK_COPY: Record<PlanKey, string[]> = {
   free: [
-    'Bis zu 2 aktive Kunden',
-    'Bis zu 2 Projekte & Galerien',
-    '5 GB Speicherplatz',
+    '5 GB Galerie-Speicher',
+    'Bis zu 2 Kunden & Projekte',
+    'Basis-Funktionen',
   ],
   starter: [
-    'Bis zu 10 aktive Kunden',
-    'Bis zu 10 Verträge',
-    'Bis zu 10 Projekte & Galerien',
-    '150 GB Speicherplatz',
-    'Vertrags-Vorlagen mit E-Signatur',
-    'Kunden-Portal',
-    'Rechnungen',
-    '"Fotonizer" Badge ausblenden',
+    '20 GB Galerie-Speicher',
+    'Alle Funktionen inklusive',
+    'CRM & Pipeline',
+    'Buchungen & Galerien',
+    'Verträge, Rechnungen & Angebote',
+    'E-Mail Automationen',
+    'Analytics-Dashboard',
   ],
   pro: [
-    'Unbegrenzte Kunden',
-    'Unbegrenzte Projekte & Galerien',
-    'Unbegrenzte Verträge',
-    '1 TB Speicherplatz',
-    'Vertrags-Vorlagen mit E-Signatur',
-    'Kunden-Portal',
-    'Rechnungen',
-    'Fragebögen',
-    'Pipeline (CRM)',
+    '1 TB Galerie-Speicher',
+    'Alle Funktionen inklusive',
+    'CRM & Pipeline',
+    'Buchungen & Galerien',
+    'Verträge, Rechnungen & Angebote',
     'E-Mail Automationen',
-    '"Fotonizer" Logo ausblenden',
     'Analytics-Dashboard',
     'Priority support',
   ],
   studio: [
-    'Alles in Pro',
+    '2 TB Galerie-Speicher',
+    'Alle Funktionen inklusive',
     'Bis zu 3 Fotografen-Accounts',
-    '3 TB Speicherplatz',
-    '"Fotonizer" Logo ausblenden',
-    'Analytics-Dashboard',
-    'E-Mail Automationen',
-    'Fragebögen',
-    'Pipeline (CRM)',
+    'Team-Verwaltung',
     'Priority support',
   ],
 }

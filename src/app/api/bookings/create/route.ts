@@ -209,7 +209,13 @@ export async function POST(req: NextRequest) {
   if (phResult.data) {
     const ph = phResult.data
     const notifPrefs = notifResult.data
-    const toEmail = ph.notification_email || ph.email
+
+    // Fallback to auth email if photographer hasn't set notification_email or email column
+    let toEmail: string | null = ph.notification_email || ph.email || null
+    if (!toEmail) {
+      const { data: authUser } = await serviceSupabase.auth.admin.getUserById(photographer.id)
+      toEmail = authUser?.user?.email ?? null
+    }
     const studioName = ph.studio_name || ph.full_name || 'Fotonizer'
     const shootDate = fmtDate(booked_date)
     const confirmUrl = `${process.env.NEXT_PUBLIC_APP_URL}/b/${photographerSlug}/${bookingTypeSlug}/confirm/${booking.id}`

@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/scheduled-emails",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/download-emails",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
