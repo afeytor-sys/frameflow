@@ -252,9 +252,9 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
 
         {/* ── Step: Calendar ── */}
         {step === 'calendar' && (
-          <div className="flex flex-col sm:flex-row gap-4 items-start">
+          <div className="flex flex-col sm:flex-row-reverse gap-4 items-start">
 
-            {/* Left — Calendar */}
+            {/* Right — Calendar */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex-shrink-0 w-full sm:w-auto" style={{ minWidth: '300px' }}>
               {/* Month nav */}
               <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #F3F4F6' }}>
@@ -304,7 +304,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
               </div>
             </div>
 
-            {/* Right — Info panel / Time slots */}
+            {/* Left — Info panel / Time slots */}
             <div className="flex-1 min-w-0 w-full">
               {/* No date selected — service info */}
               {!selectedDate && (
