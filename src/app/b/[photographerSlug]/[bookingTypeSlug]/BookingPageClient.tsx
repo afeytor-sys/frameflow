@@ -350,7 +350,18 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                   {bt.description && (
                     <>
                       <div style={{ height: 1, background: '#F3F4F6' }} />
-                      <p className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>{bt.description}</p>
+                      <div className="space-y-3">
+                        {bt.description.split(/\n\n+/).map((para, i) => (
+                          <p key={i} className="text-[13px] leading-relaxed" style={{ color: '#4B5563' }}>
+                            {para.split('\n').map((line, j, arr) => (
+                              <span key={j}>
+                                {line}
+                                {j < arr.length - 1 && <br />}
+                              </span>
+                            ))}
+                          </p>
+                        ))}
+                      </div>
                     </>
                   )}
 
