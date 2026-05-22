@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
   const in7days = new Date(today)
   in7days.setDate(in7days.getDate() + 7)
 
-  const in1day = new Date(today)
-  in1day.setDate(in1day.getDate() + 1)
+  const in2days = new Date(today)
+  in2days.setDate(in2days.getDate() + 2)
 
   const fmt = (d: Date) => d.toISOString().split('T')[0]
 
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     .eq('reminders_disabled', false)
     .not('client_url', 'is', null)
 
-  // Fetch projects with shoot_date in 1 day
+  // Fetch projects with shoot_date in 2 days
   const { data: projects1d } = await supabase
     .from('projects')
     .select(`
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       client:clients(full_name, email),
       photographer:photographers(id, studio_name, full_name, email, locale)
     `)
-    .eq('shoot_date', fmt(in1day))
+    .eq('shoot_date', fmt(in2days))
     .eq('reminder_1d_sent', false)
     .eq('reminders_disabled', false)
     .not('client_url', 'is', null)
@@ -178,8 +178,8 @@ export async function GET(request: NextRequest) {
         type: 'reminder_sent',
         title_de: `Erinnerung gesendet: ${client.full_name}`,
         title_en: `Reminder sent: ${client.full_name}`,
-        body_de: `1-Tage-Erinnerung für ${project.title} wurde gesendet.`,
-        body_en: `1-day reminder for ${project.title} was sent.`,
+        body_de: `2-Tage-Erinnerung für ${project.title} wurde gesendet.`,
+        body_en: `2-day reminder for ${project.title} was sent.`,
         project_id: project.id,
         client_name: client.full_name,
       })
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
         await resend.emails.send({
           from: `Fotonizer <noreply@fotonizer.com>`,
           to: photographer.email,
-          subject: `📅 Morgen: Shooting mit ${client.full_name}`,
+          subject: `📅 In 2 Tagen: Shooting mit ${client.full_name}`,
           html: `
 <!DOCTYPE html>
 <html>

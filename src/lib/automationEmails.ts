@@ -229,7 +229,7 @@ export function reminder7dEmail(data: EmailData) {
   return { subject, html: emailWrapper(body, studioName, locale) }
 }
 
-// ── 5. Shooting Reminder 1 day ───────────────────────────────────────────────
+// ── 5. Shooting Reminder 2 days ───────────────────────────────────────────────
 export function reminder1dEmail(data: EmailData) {
   const { studioName, clientName, projectTitle, portalUrl, shootDate, locale } = data
   const isDE = locale === 'de'
@@ -239,9 +239,9 @@ export function reminder1dEmail(data: EmailData) {
     : `Your appointment: ${projectTitle}${shootDate ? ` on ${shootDate}` : ''}`
 
   const body = isDE ? `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Morgen ist dein Termin.</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Übermorgen ist dein Termin.</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hallo ${clientName}, der Termin für <strong style="color:#111110;">${projectTitle}</strong> ist morgen${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
+      Hallo ${clientName}, der Termin für <strong style="color:#111110;">${projectTitle}</strong> ist in 2 Tagen${shootDate ? ` am <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
       Hier noch einmal alle wichtigen Details:
@@ -253,9 +253,9 @@ export function reminder1dEmail(data: EmailData) {
     </div>
     ${ctaButton(portalUrl, 'Portal öffnen')}
   ` : `
-    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Your appointment is tomorrow.</h1>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Your appointment is in 2 days.</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
-      Hello ${clientName}, the session for <strong style="color:#111110;">${projectTitle}</strong> is tomorrow${shootDate ? ` on <strong style="color:#111110;">${shootDate}</strong>` : ''}.
+      Hello ${clientName}, the session for <strong style="color:#111110;">${projectTitle}</strong> is in 2 days${shootDate ? ` on <strong style="color:#111110;">${shootDate}</strong>` : ''}.
     </p>
     <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
       Here are all the important details one more time:
