@@ -5,6 +5,7 @@ import { getLocale } from 'next-intl/server'
 import { Toaster } from 'react-hot-toast'
 import CookieBanner from '@/components/CookieBanner'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import MetaPixel from '@/components/MetaPixel'
 import ThemeProvider from '@/components/ThemeProvider'
 import './globals.css'
 
@@ -93,6 +94,7 @@ export default async function RootLayout({
             {children}
             <CookieBanner />
             <GoogleAnalytics />
+            <MetaPixel />
             <Toaster
               position="top-right"
               toastOptions={{
