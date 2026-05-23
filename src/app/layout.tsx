@@ -70,6 +70,9 @@ export const metadata: Metadata = {
     images: [`${process.env.NEXT_PUBLIC_APP_URL}/og-image.png`],
   },
   robots: { index: true, follow: true },
+  other: {
+    'facebook-domain-verification': 'g6zbn83lry5yot67hexyna1rz296mg',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
