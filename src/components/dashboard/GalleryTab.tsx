@@ -124,6 +124,7 @@ function SortablePhoto({
   photo,
   selected,
   isCover,
+  sectionLabel,
   onSelect,
   onDelete,
   onTogglePrivate,
@@ -134,6 +135,7 @@ function SortablePhoto({
   photo: Photo
   selected: boolean
   isCover: boolean
+  sectionLabel?: string
   onSelect: (id: string, shiftKey?: boolean) => void
   onDelete: (id: string) => void
   onTogglePrivate: (id: string) => void
@@ -212,6 +214,12 @@ function SortablePhoto({
         {photo.is_private && <EyeOff className="w-3.5 h-3.5 text-white drop-shadow" />}
         {isCover && <Star className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B] drop-shadow" />}
       </div>
+      {/* Set label badge — shown in "Alle" view */}
+      {sectionLabel && (
+        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-none max-w-[80%] truncate pointer-events-none" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}>
+          {sectionLabel}
+        </div>
+      )}
       {/* Bottom-right actions */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
         {/* Set as cover */}
@@ -779,7 +787,11 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   }
 
   const unsectionedPhotos = photos.filter(p => !p.section_id)
-  const activePhotos = activeSection === 'all' ? photos : photos.filter(p => p.section_id === activeSection)
+  const activePhotos = activeSection === 'all'
+    ? photos
+    : activeSection === 'unsectioned'
+      ? unsectionedPhotos
+      : photos.filter(p => p.section_id === activeSection)
   const currentTheme = getTheme(selectedTheme)
   const currentTypo = getTypographyPreset(typographyPreset)
 
@@ -1929,6 +1941,17 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               </button>
             )
           })}
+          {sections.length > 0 && unsectionedPhotos.length > 0 && (
+            <button
+              onClick={() => { setActiveSection('unsectioned'); setVisibleCount(DASH_LIMIT); setShowMoveToSet(false) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex-shrink-0"
+              style={activeSection === 'unsectioned'
+                ? { background: 'var(--cta-bg)', color: '#fff' }
+                : { background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+            >
+              Ohne Set <span className="font-bold tabular-nums">{unsectionedPhotos.length}</span>
+            </button>
+          )}
           <button
             onClick={() => addSection()}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all flex-shrink-0"
@@ -2014,7 +2037,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <SortableContext items={activePhotos.map(p => p.id)} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
               {activePhotos.slice(0, visibleCount).map(photo => (
-                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
+                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
               ))}
             </div>
           </SortableContext>

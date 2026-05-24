@@ -900,7 +900,7 @@ export default function GalleryViewer({
           <button
             onClick={() => setActiveSection(null)}
             className={cn(
-              'flex-shrink-0 px-4 py-1.5 rounded-full text-[12.5px] font-semibold transition-all',
+              'flex-shrink-0 px-4 py-2 sm:py-1.5 rounded-full text-[14px] sm:text-[12.5px] font-semibold transition-all',
               activeSection === null
                 ? 'text-white'
                 : 'hover:opacity-80'
@@ -936,7 +936,7 @@ export default function GalleryViewer({
                   <button
                     onClick={() => setActiveSection(isActive ? null : sec.id)}
                     className={cn(
-                      'px-4 py-1.5 rounded-full text-[12.5px] font-semibold transition-all',
+                      'px-4 py-2 sm:py-1.5 rounded-full text-[14px] sm:text-[12.5px] font-semibold transition-all',
                       isActive ? 'text-white' : 'hover:opacity-80'
                     )}
                     style={isActive
@@ -945,7 +945,7 @@ export default function GalleryViewer({
                     }
                   >
                     {sec.title}
-                    <span className="ml-1.5 text-[10px] opacity-50">
+                    <span className="ml-1.5 text-[12px] sm:text-[10px] opacity-50">
                       {photos.filter(p => p.section_id === sec.id).length}
                     </span>
                   </button>
@@ -1040,7 +1040,7 @@ export default function GalleryViewer({
           {!isPublic && (
             <button
               onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-[13.5px] sm:text-[12px] font-semibold transition-all"
               style={{
                 background: filterTag === 'favorite' ? '#EF444415' : 'transparent',
                 color: filterTag === 'favorite' ? '#EF4444' : tbText,
@@ -1057,7 +1057,7 @@ export default function GalleryViewer({
             <div className="relative">
               <button
                 onClick={() => setShowTagFilters(!showTagFilters)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-[13.5px] sm:text-[12px] font-semibold transition-all"
                 style={{
                   background: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C15' : 'transparent',
                   color: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C' : tbText,
@@ -1128,14 +1128,14 @@ export default function GalleryViewer({
                 key={key}
                 onClick={() => setLayoutPersist(key)}
                 title={label}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all"
                 style={{
                   background: layout === key ? '#FFFFFF' : 'transparent',
                   color: layout === key ? '#111110' : tbText,
                   boxShadow: layout === key ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                 }}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-5 h-5 sm:w-4 sm:h-4" />
               </button>
             ))}
           </div>
@@ -1151,7 +1151,7 @@ export default function GalleryViewer({
                 key={key}
                 onClick={() => setSortOrder(key)}
                 title={key === 'manual' ? 'Manuelle Reihenfolge' : key === 'name-asc' ? 'Name A→Z' : 'Name Z→A'}
-                className="px-2 h-8 rounded-lg flex items-center justify-center text-[11px] font-semibold transition-all"
+                className="px-3 sm:px-2 h-10 sm:h-8 rounded-lg flex items-center justify-center text-[13px] sm:text-[11px] font-semibold transition-all"
                 style={{
                   background: sortOrder === key ? '#FFFFFF' : 'transparent',
                   color: sortOrder === key ? '#111110' : tbText,
@@ -1167,14 +1167,14 @@ export default function GalleryViewer({
           <div className="relative">
             <button
               onClick={() => setShowControls(!showControls)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-[13.5px] sm:text-[12px] font-semibold transition-all"
               style={{
                 background: showControls ? '#C4A47C15' : 'transparent',
                 color: showControls ? '#C4A47C' : tbText,
                 border: `1px solid ${showControls ? '#C4A47C30' : tbBorder}`,
               }}
             >
-              <SlidersHorizontal className="w-4 h-4" />
+              <SlidersHorizontal className="w-5 h-5 sm:w-4 sm:h-4" />
             </button>
             {showControls && (
               <>
@@ -1220,12 +1220,12 @@ export default function GalleryViewer({
           {/* Presentation */}
           <button
             onClick={startPresent}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+            className="flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-xl text-[13.5px] sm:text-[12px] font-semibold transition-all"
             style={{ background: 'transparent', color: tbText, border: `1px solid ${tbBorder}` }}
             onMouseEnter={e => { e.currentTarget.style.color = tbTextHover; e.currentTarget.style.borderColor = '#C4A47C50' }}
             onMouseLeave={e => { e.currentTarget.style.color = tbText; e.currentTarget.style.borderColor = tbBorder }}
           >
-            <Maximize2 className="w-4 h-4" />
+            <Maximize2 className="w-5 h-5 sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">Slideshow</span>
           </button>
 
