@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   DndContext,
@@ -303,6 +303,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [focalYMobile, setFocalYMobile] = useState(gallery?.cover_focal_y_mobile ?? 50)
   const [heroStyle, setHeroStyle] = useState(gallery?.hero_style || 'cinematic')
   const [spacingDensity, setSpacingDensity] = useState(gallery?.spacing_density || 'balanced')
+  const [previewMobile, setPreviewMobile] = useState(false)
   // Tags enabled: default all enabled if not set
   const defaultTags = gallery?.tags_enabled ?? ['green', 'yellow', 'red']
   const [enabledTags, setEnabledTags] = useState<string[]>(defaultTags)
@@ -1090,9 +1091,127 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             </div>
           )}
 
-          {/* Design tab — 10 themes */}
+          {/* Design tab */}
           {activeSettingsTab === 'design' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+
+              {/* ── LIVE PREVIEW ── */}
+              {(() => {
+                const previewCover = photos.find(p => p.id === gallery?.cover_photo_id)
+                const coverSrc = previewCover ? getPhotoUrl(previewCover.storage_url, 600, 75, 'cover') : null
+                const galleryLabel = gallery?.title || 'Galerie-Titel'
+                const showImg = !!coverSrc && heroStyle !== 'minimal'
+
+                const HeroOverlay = () => heroStyle === 'cinematic' ? (
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.14) 0%, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
+                ) : null
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Live-Vorschau</p>
+                      <div className="flex items-center gap-0.5 p-0.5 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
+                        {(['Desktop', 'Mobile'] as const).map(v => {
+                          const active = (v === 'Mobile') === previewMobile
+                          return (
+                            <button key={v} onClick={() => setPreviewMobile(v === 'Mobile')}
+                              className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
+                              style={{ background: active ? 'var(--bg-surface)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}
+                            >{v}</button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {!previewMobile ? (
+                      /* Desktop — 16:9 */
+                      <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/9', background: currentTheme.bg }}>
+                        {showImg && heroStyle === 'editorial' ? (
+                          <div className="absolute inset-0 grid grid-cols-2">
+                            <img src={coverSrc!} alt="" className="w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />
+                            <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 14px' }}>
+                              <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.65rem', letterSpacing: '0.04em', lineHeight: 1.3 }}>{galleryLabel}</p>
+                            </div>
+                          </div>
+                        ) : showImg ? (
+                          <>
+                            <img src={coverSrc!} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />
+                            <HeroOverlay />
+                            {heroStyle === 'cinematic' && (
+                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px' }}>
+                                <p style={{ color: 'rgba(255,255,255,0.9)', fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.65rem', letterSpacing: '0.05em', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>{galleryLabel}</p>
+                              </div>
+                            )}
+                            {heroStyle === 'classic' && (
+                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: currentTheme.bg, padding: '6px 10px', textAlign: 'center', borderTop: `1px solid ${currentTheme.border}` }}>
+                                <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.58rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                            <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.8rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
+                          </div>
+                        )}
+                        {/* Mini grid preview strip */}
+                        {photos.length > 0 && (
+                          <div style={{ position: 'absolute', bottom: heroStyle === 'classic' ? 28 : 0, right: 0, pointerEvents: 'none', opacity: 0 }} />
+                        )}
+                        {/* Theme badge */}
+                        <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', borderRadius: 6, padding: '2px 7px' }}>
+                          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.58rem', fontWeight: 500, letterSpacing: '0.08em' }}>{currentTheme.moodName}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Mobile — phone frame */
+                      <div className="flex justify-center py-1">
+                        <div style={{ width: 118 }}>
+                          <div style={{ width: '100%', aspectRatio: '9/19.5', border: '2.5px solid var(--border-color)', borderRadius: 20, overflow: 'hidden', background: currentTheme.bg, boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>
+                            {/* Status bar */}
+                            <div style={{ height: 9, background: showImg && heroStyle !== 'classic' ? (heroStyle === 'minimal' ? currentTheme.bg : '#0C0C0B') : currentTheme.bg }} />
+                            {/* Hero area */}
+                            {showImg ? (
+                              <div style={{ height: '48%', position: 'relative' }}>
+                                <img src={coverSrc!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalXMobile}% ${focalYMobile}%` }} />
+                                <HeroOverlay />
+                                {heroStyle === 'cinematic' && (
+                                  <div style={{ position: 'absolute', bottom: 5, left: 7, right: 7 }}>
+                                    <p style={{ color: 'rgba(255,255,255,0.88)', fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.35rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ height: '24%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}>
+                                <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.35rem', letterSpacing: '0.04em', textAlign: 'center' }}>{galleryLabel}</p>
+                              </div>
+                            )}
+                            {heroStyle === 'classic' && showImg && (
+                              <div style={{ padding: '3px 6px', textAlign: 'center', borderBottom: `0.5px solid ${currentTheme.border}`, background: currentTheme.bg }}>
+                                <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.3rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
+                              </div>
+                            )}
+                            {/* Photo grid */}
+                            <div style={{ padding: '4px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacingDensity === 'compact' ? 1 : spacingDensity === 'airy' ? 3 : 1.5, flex: 1 }}>
+                              {photos.length > 0
+                                ? photos.slice(0, 9).map((p, i) => (
+                                    <div key={i} style={{ aspectRatio: '1', borderRadius: 2, overflow: 'hidden', background: currentTheme.surface }}>
+                                      <img src={getPhotoUrl(p.storage_url, 80, 70, 'cover')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                    </div>
+                                  ))
+                                : Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: currentTheme.surface }} />
+                                  ))
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
               {/* Cover photo */}
               {(() => {
@@ -1284,51 +1403,113 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              {/* Hero style picker */}
+              {/* Hero style picker — visual layout diagrams */}
               <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Hero-Stil</p>
               <div className="grid grid-cols-2 gap-2">
-                {HERO_STYLES.map(style => (
-                  <button
-                    key={style.key}
-                    onClick={() => setHeroStyle(style.key)}
-                    className="relative p-3 rounded-xl text-left transition-all"
-                    style={{
-                      border: heroStyle === style.key ? '2px solid var(--accent)' : '2px solid var(--border-color)',
-                      background: heroStyle === style.key ? 'rgba(196,164,124,0.06)' : 'transparent',
-                      boxShadow: heroStyle === style.key ? '0 0 0 3px rgba(196,164,124,0.12)' : 'none',
-                    }}
-                  >
-                    <p className="text-[11px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{style.label}</p>
-                    <p className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--text-muted)' }}>{style.description}</p>
-                    {heroStyle === style.key && (
-                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-                        <Check className="w-2.5 h-2.5 text-white" />
+                {([
+                  {
+                    key: 'cinematic', label: 'Cinematic',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#1B1814', position: 'relative' }}>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.72) 100%)' }} />
+                        <div style={{ position: 'absolute', top: 6, left: 7, width: 20, height: 3, background: 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', bottom: 7, left: 7, width: '52%', height: 2.5, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', bottom: 4, left: 7, width: '30%', height: 1.5, background: 'rgba(255,255,255,0.25)', borderRadius: 2 }} />
                       </div>
-                    )}
-                  </button>
-                ))}
+                    ),
+                  },
+                  {
+                    key: 'classic', label: 'Classic',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden' }}>
+                        <div style={{ height: '62%', background: '#1B1814' }} />
+                        <div style={{ height: '38%', background: currentTheme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: `1px solid ${currentTheme.border}` }}>
+                          <div style={{ width: '50%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'minimal', label: 'Minimal',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', border: `1px solid ${currentTheme.border}`, opacity: 0.5 }} />
+                        <div style={{ width: '48%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.3 }} />
+                        <div style={{ width: '28%', height: 1.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'editorial', label: 'Editorial',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                        <div style={{ background: '#1B1814' }} />
+                        <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '5px 6px', borderTop: `1px solid ${currentTheme.border}` }}>
+                          <div style={{ width: '70%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35, marginBottom: 2 }} />
+                          <div style={{ width: '45%', height: 1.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
+                        </div>
+                      </div>
+                    ),
+                  },
+                ] as Array<{ key: string; label: string; preview: React.ReactNode }>).map(style => {
+                  const active = heroStyle === style.key
+                  return (
+                    <button
+                      key={style.key}
+                      onClick={() => setHeroStyle(style.key)}
+                      className="relative rounded-xl overflow-hidden transition-all text-left"
+                      style={{
+                        border: active ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                        boxShadow: active ? '0 0 0 3px rgba(196,164,124,0.18)' : 'none',
+                      }}
+                    >
+                      <div className="p-2" style={{ background: active ? 'rgba(196,164,124,0.04)' : 'var(--bg-surface)' }}>
+                        {style.preview}
+                        <p className="text-[11px] font-semibold mt-2" style={{ color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{style.label}</p>
+                      </div>
+                      {active && (
+                        <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              {/* Spacing density */}
+              {/* Spacing density — visual grid previews */}
               <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Abstände</p>
               <div className="grid grid-cols-3 gap-2">
-                {SPACING_DENSITIES.map(d => (
-                  <button
-                    key={d.key}
-                    onClick={() => setSpacingDensity(d.key)}
-                    className="p-2.5 rounded-xl text-center transition-all"
-                    style={{
-                      border: spacingDensity === d.key ? '2px solid var(--accent)' : '2px solid var(--border-color)',
-                      background: spacingDensity === d.key ? 'rgba(196,164,124,0.06)' : 'transparent',
-                      boxShadow: spacingDensity === d.key ? '0 0 0 3px rgba(196,164,124,0.12)' : 'none',
-                    }}
-                  >
-                    <p className="text-[11px] font-bold" style={{ color: 'var(--text-primary)' }}>{d.label}</p>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{d.hint}</p>
-                  </button>
-                ))}
+                {([
+                  { key: 'compact',  label: 'Compact',  cols: 4, rows: 3, gap: 1   },
+                  { key: 'balanced', label: 'Balanced', cols: 3, rows: 3, gap: 3   },
+                  { key: 'airy',     label: 'Airy',     cols: 2, rows: 2, gap: 7   },
+                ] as Array<{ key: string; label: string; cols: number; rows: number; gap: number }>).map(d => {
+                  const active = spacingDensity === d.key
+                  return (
+                    <button
+                      key={d.key}
+                      onClick={() => setSpacingDensity(d.key)}
+                      className="rounded-xl overflow-hidden transition-all text-left"
+                      style={{
+                        border: active ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                        boxShadow: active ? '0 0 0 3px rgba(196,164,124,0.18)' : 'none',
+                      }}
+                    >
+                      <div className="p-2.5" style={{ background: active ? 'rgba(196,164,124,0.04)' : 'var(--bg-surface)' }}>
+                        {/* Mini grid diagram */}
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${d.cols}, 1fr)`, gap: d.gap, marginBottom: 8 }}>
+                          {Array.from({ length: d.cols * d.rows }).map((_, i) => (
+                            <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: active ? 'rgba(196,164,124,0.35)' : 'var(--border-strong)', transition: 'background 0.2s' }} />
+                          ))}
+                        </div>
+                        <p className="text-[11px] font-semibold" style={{ color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{d.label}</p>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
