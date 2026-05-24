@@ -1,8 +1,10 @@
+import React from 'react'
 import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import { Images } from 'lucide-react'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
-import { getTheme } from '@/lib/galleryThemes'
+import { getTheme, getSpacingGap } from '@/lib/galleryThemes'
+import type { SpacingDensity } from '@/lib/galleryThemes'
 import GalleryPasswordGate from './GalleryPasswordGate'
 import { getPhotoUrl } from '@/lib/utils'
 import type { Metadata } from 'next'
@@ -116,7 +118,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y, cover_focal_x_mobile, cover_focal_y_mobile')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y, cover_focal_x_mobile, cover_focal_y_mobile, hero_style, spacing_density')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -186,6 +188,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   const focalY = (gallery as { cover_focal_y?: number | null }).cover_focal_y ?? 50
   const focalXMobile = (gallery as { cover_focal_x_mobile?: number | null }).cover_focal_x_mobile ?? focalX
   const focalYMobile = (gallery as { cover_focal_y_mobile?: number | null }).cover_focal_y_mobile ?? focalY
+  const heroStyle = (gallery as { hero_style?: string | null }).hero_style ?? 'cinematic'
+  const spacingDensity = ((gallery as { spacing_density?: string | null }).spacing_density ?? 'balanced') as SpacingDensity
 
   const theme = getTheme(gallery.design_theme || 'classic-white')
 
@@ -213,57 +217,143 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     const coverPhoto = coverPhotoId ? allPhotos.find(p => p.id === coverPhotoId) : null
     const heroUrl = (coverPhoto ?? sortedPhotos[0])?.storage_url ?? null
 
-    return (
-      <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
-        {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
+    // Focal-point + Ken Burns CSS shared between hero variants
+    const focalCss = `
+      .gh{object-position:${focalX}% ${focalY}%}
+      @media(max-width:768px){.gh{object-position:${focalXMobile}% ${focalYMobile}%}}
+    `
 
-        {/* ── HERO HEADER ── */}
-        <div style={{ position: 'relative' }}>
-          {/* Studio branding */}
+    // ── Photographer branding pill (reused across hero styles) ──
+    const brandingPill = photographer ? (
+      <div className="hero-brand-in" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {photographer.logo_url ? (
+          <img src={photographer.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.3)' }} />
+        ) : (
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+            {(photographer.studio_name || photographer.full_name)[0]}
+          </div>
+        )}
+        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8125rem', fontWeight: 500, background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.15)' }}>
+          {photographer.studio_name || photographer.full_name}
+        </span>
+      </div>
+    ) : null
+
+    // ── Hero: choose style ───────────────────────────────────────────
+    const effectiveStyle = (heroStyle === 'cinematic' && !heroUrl) ? 'minimal' : heroStyle
+
+    let heroBlock: React.ReactNode
+
+    if (effectiveStyle === 'cinematic') {
+      heroBlock = (
+        <div style={{ position: 'relative', height: '100svh', minHeight: 560, overflow: 'hidden', background: '#0F0F0E' }}>
+          <style dangerouslySetInnerHTML={{ __html: focalCss }} />
+          <img
+            src={getPhotoUrl(heroUrl!, 1920, 80, 'cover')}
+            alt=""
+            fetchPriority="high"
+            decoding="async"
+            className="gh gallery-hero-kb"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {/* Gradient: dark top + dark bottom for readability */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.62) 78%, rgba(0,0,0,0.88) 100%)' }} />
+          {/* Branding — top left */}
+          <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10 }}>
+            {brandingPill}
+          </div>
+          {/* Title + date — bottom */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 clamp(20px, 5vw, 64px) clamp(36px, 6vh, 60px)', zIndex: 10 }}>
+            <h1 className="hero-title-in" style={{ color: 'white', fontFamily: theme.fontFamily, fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 300, letterSpacing: '-0.025em', lineHeight: 1.1, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}>
+              {heroTitle}
+            </h1>
+            {formattedDate && (
+              <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.1em', marginTop: 10, textTransform: 'uppercase' }}>
+                {formattedDate}
+              </p>
+            )}
+            <div style={{ marginTop: 28, width: 1, height: 28, background: 'rgba(255,255,255,0.2)' }} />
+          </div>
+        </div>
+      )
+    } else if (effectiveStyle === 'editorial' && heroUrl) {
+      heroBlock = (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 'clamp(420px, 60vh, 700px)' }}>
+          <style dangerouslySetInnerHTML={{ __html: focalCss }} />
+          <div style={{ position: 'relative', overflow: 'hidden' }}>
+            <img src={getPhotoUrl(heroUrl, 1600, 82, 'cover')} alt="" fetchPriority="high" decoding="async" className="gh" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+          <div style={{ background: theme.bg, padding: '48px clamp(24px, 5vw, 56px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderBottom: `1px solid ${theme.border}` }}>
+            {photographer && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
+                {photographer.logo_url
+                  ? <img src={photographer.logo_url} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                  : <div style={{ width: 24, height: 24, borderRadius: '50%', background: theme.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: theme.textMuted, border: `1px solid ${theme.border}` }}>{(photographer.studio_name || photographer.full_name)[0]}</div>
+                }
+                <span style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 500 }}>{photographer.studio_name || photographer.full_name}</span>
+              </div>
+            )}
+            <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.8rem, 3.5vw, 3rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 400, letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
+              {heroTitle}
+            </h1>
+            {formattedDate && (
+              <p style={{ color: theme.textMuted, fontSize: '0.75rem', letterSpacing: '0.06em', marginTop: 10, textTransform: 'uppercase' }}>{formattedDate}</p>
+            )}
+          </div>
+        </div>
+      )
+    } else if (effectiveStyle === 'minimal') {
+      heroBlock = (
+        <div style={{ background: theme.bg, padding: '80px clamp(20px, 5vw, 64px) 52px', textAlign: 'center', borderBottom: `1px solid ${theme.border}` }}>
           {photographer && (
-            <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {photographer.logo_url ? (
-                <img src={photographer.logo_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.3)' }} />
-              ) : (
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', border: '1.5px solid rgba(255,255,255,0.2)' }}>
-                  {(photographer.studio_name || photographer.full_name)[0]}
-                </div>
-              )}
-              <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8125rem', fontWeight: 500, background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                {photographer.studio_name || photographer.full_name}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+              {photographer.logo_url
+                ? <img src={photographer.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                : <div style={{ width: 40, height: 40, borderRadius: '50%', background: theme.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: theme.textMuted, border: `1px solid ${theme.border}` }}>{(photographer.studio_name || photographer.full_name)[0]}</div>
+              }
+              <span style={{ color: theme.textMuted, fontSize: '0.8125rem', fontWeight: 500 }}>{photographer.studio_name || photographer.full_name}</span>
             </div>
           )}
-
-          {/* Hero photo */}
+          <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 400, letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
+            {heroTitle}
+          </h1>
+          {formattedDate && (
+            <p style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.08em', marginTop: 10, textTransform: 'uppercase' }}>{formattedDate}</p>
+          )}
+        </div>
+      )
+    } else {
+      // Classic: image + title block below (original look)
+      heroBlock = (
+        <div style={{ position: 'relative' }}>
+          {photographer && (
+            <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10 }}>
+              {brandingPill}
+            </div>
+          )}
           {heroUrl && (
             <div style={{ width: '100%', height: 'clamp(600px, 78vh, 960px)', overflow: 'hidden', background: '#1A1A18' }}>
-              <style dangerouslySetInnerHTML={{ __html:
-                `.gh{object-position:${focalX}% ${focalY}%}@media(max-width:768px){.gh{object-position:${focalXMobile}% ${focalYMobile}%}}`
-              }} />
-              <img
-                src={getPhotoUrl(heroUrl, 1920, 80, 'cover')}
-                alt=""
-                fetchPriority="high"
-                decoding="async"
-                className="gh"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
+              <style dangerouslySetInnerHTML={{ __html: focalCss }} />
+              <img src={getPhotoUrl(heroUrl, 1920, 80, 'cover')} alt="" fetchPriority="high" decoding="async" className="gh" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           )}
-
-          {/* Title block */}
           <div style={{ background: theme.bg, padding: '28px clamp(20px, 5vw, 64px) 20px', textAlign: 'center', borderBottom: `1px solid ${theme.border}` }}>
             <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 400, letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.06em', marginTop: 6, textTransform: 'uppercase' }}>
-                {formattedDate}
-              </p>
+              <p style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.06em', marginTop: 6, textTransform: 'uppercase' }}>{formattedDate}</p>
             )}
           </div>
         </div>
+      )
+    }
+
+    return (
+      <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
+        {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
+
+        {heroBlock}
 
         {/* ── GALLERY CONTENT ── */}
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 16px 64px' }}>
@@ -290,6 +380,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               isPublic={true}
               canMarkPrivate={fullAccess}
               tagsEnabled={tagsEnabled}
+              spacingDensity={spacingDensity}
             />
           )}
         </div>

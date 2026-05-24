@@ -3,6 +3,7 @@ export type GridLayout = '2col' | '3col' | '4col' | 'masonry'
 export interface GalleryTheme {
   key: string
   name: string
+  moodName: string
   bg: string
   surface: string
   text: string
@@ -20,6 +21,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'classic-white',
     name: 'Classic White',
+    moodName: 'Pure',
     bg: '#FFFFFF',
     surface: '#F9F9F7',
     text: '#111111',
@@ -34,6 +36,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'midnight-black',
     name: 'Midnight Black',
+    moodName: 'Midnight',
     bg: '#0A0A0A',
     surface: '#141414',
     text: '#F5F5F3',
@@ -49,6 +52,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'warm-ivory',
     name: 'Warm Ivory',
+    moodName: 'Romantic',
     bg: '#FAF7F2',
     surface: '#F3EDE3',
     text: '#2C2416',
@@ -64,6 +68,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'editorial',
     name: 'Editorial',
+    moodName: 'Editorial',
     bg: '#F2F2F0',
     surface: '#FFFFFF',
     text: '#1A1A1A',
@@ -79,6 +84,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'minimal-dark',
     name: 'Minimal Dark',
+    moodName: 'Cinematic',
     bg: '#1C1C1E',
     surface: '#2C2C2E',
     text: '#EBEBF0',
@@ -93,6 +99,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'golden-hour',
     name: 'Golden Hour',
+    moodName: 'Golden Hour',
     bg: '#FDF8F0',
     surface: '#FFF8EC',
     text: '#3D2B1F',
@@ -108,6 +115,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'forest',
     name: 'Forest',
+    moodName: 'Forest',
     bg: '#1A2318',
     surface: '#243020',
     text: '#E8F0E4',
@@ -123,6 +131,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'blush',
     name: 'Blush',
+    moodName: 'Blush',
     bg: '#FDF5F5',
     surface: '#FFF0F0',
     text: '#3D1F1F',
@@ -138,6 +147,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'monochrome',
     name: 'Monochrome',
+    moodName: 'Monochrome',
     bg: '#FAFAFA',
     surface: '#FFFFFF',
     text: '#000000',
@@ -153,6 +163,7 @@ export const GALLERY_THEMES: GalleryTheme[] = [
   {
     key: 'luxury',
     name: 'Luxury',
+    moodName: 'Luxury',
     bg: '#0D0D0D',
     surface: '#1A1A1A',
     text: '#F0E6D0',
@@ -169,4 +180,23 @@ export const GALLERY_THEMES: GalleryTheme[] = [
 
 export function getTheme(key: string): GalleryTheme {
   return GALLERY_THEMES.find(t => t.key === key) ?? GALLERY_THEMES[0]
+}
+
+export const HERO_STYLES = [
+  { key: 'cinematic', label: 'Cinematic', description: 'Fullscreen hero, Titel auf dem Bild' },
+  { key: 'classic',   label: 'Classic',   description: 'Bild + Titelblock darunter' },
+  { key: 'minimal',   label: 'Minimal',   description: 'Nur Titel, kein Bild-Header' },
+  { key: 'editorial', label: 'Editorial', description: 'Bild links, Text rechts (Split)' },
+] as const
+export type HeroStyle = typeof HERO_STYLES[number]['key']
+
+export const SPACING_DENSITIES = [
+  { key: 'compact',  label: 'Compact',  hint: 'Engere Abstände', gap: 3 },
+  { key: 'balanced', label: 'Balanced', hint: 'Standard',         gap: 6 },
+  { key: 'airy',     label: 'Airy',     hint: 'Mehr Luft',        gap: 16 },
+] as const
+export type SpacingDensity = typeof SPACING_DENSITIES[number]['key']
+
+export function getSpacingGap(density: SpacingDensity | string | null | undefined): number {
+  return SPACING_DENSITIES.find(d => d.key === density)?.gap ?? 6
 }

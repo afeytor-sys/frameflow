@@ -11,7 +11,8 @@ import {
 import { cn, getPhotoUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import PhotoComments from './PhotoComments'
-import type { GalleryTheme } from '@/lib/galleryThemes'
+import type { GalleryTheme, SpacingDensity } from '@/lib/galleryThemes'
+import { getSpacingGap } from '@/lib/galleryThemes'
 
 type PhotoTag = 'green' | 'yellow' | 'red' | null
 type GalleryLayout = 'masonry' | 'grid' | 'columns'
@@ -55,6 +56,8 @@ interface Props {
   canMarkPrivate?: boolean
   /** Whether color tags are enabled for this gallery (controlled by photographer) */
   tagsEnabled?: boolean
+  /** Grid gap density */
+  spacingDensity?: SpacingDensity
 }
 
 // ── Notify photographer helper ───────────────────────────────────────────────
@@ -146,7 +149,9 @@ export default function GalleryViewer({
   isPublic = false,
   canMarkPrivate = false,
   tagsEnabled = true,
+  spacingDensity,
 }: Props) {
+  const gap = getSpacingGap(spacingDensity)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
 
   // ── Sets / sections state ────────────────────────────────────────
@@ -576,7 +581,8 @@ export default function GalleryViewer({
   // ── Photo card (shared between layouts) ─────────────────────────
   const PhotoCard = ({ photo, index, className }: { photo: Photo; index: number; className?: string }) => (
     <div
-      className={cn('relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover', className)}
+      className={cn('relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover photo-appear', className)}
+      style={{ animationDelay: `${Math.min(index % 24, 12) * 30}ms` }}
       onClick={() => openLightbox(index)}
     >
       {photo.media_type === 'video' ? (
@@ -1223,25 +1229,6 @@ export default function GalleryViewer({
             <span className="hidden sm:inline">Slideshow</span>
           </button>
 
-          {/* Download all */}
-          {downloadEnabled && photos.length > 0 && (
-            <button
-              onClick={downloadAll}
-              disabled={dlState === 'submitting'}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-[12px] font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
-              style={{
-                background: dlState === 'sent' ? '#2A7A5A' : '#C4A47C',
-                boxShadow: dlState === 'sent' ? '0 1px 8px rgba(42,122,90,0.25)' : '0 1px 8px rgba(196,164,124,0.3)',
-              }}
-            >
-              {dlState === 'submitting'
-                ? <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">Moment…</span></>
-                : dlState === 'sent'
-                  ? <><Check className="w-4 h-4" /><span>E-Mail unterwegs</span></>
-                  : <><Download className="w-4 h-4" /><span className="hidden sm:inline">Alle herunterladen</span><span className="sm:hidden">↓ Alle</span></>
-              }
-            </button>
-          )}
         </div>
       </div>
 
@@ -1255,7 +1242,7 @@ export default function GalleryViewer({
         /* MASONRY — CSS Grid row-spanning: natural aspect ratios, left-to-right row order */
         <div
           className={cn('grid', masonryGridCols)}
-          style={{ gridAutoRows: '4px', rowGap: '6px', columnGap: '6px' }}
+          style={{ gridAutoRows: '4px', rowGap: `${gap}px`, columnGap: `${gap}px` }}
         >
           {visiblePhotos.map((photo, index) => (
             <div
@@ -1346,14 +1333,14 @@ export default function GalleryViewer({
         </div>
       ) : layout === 'grid' ? (
         /* GRID — uniform squares */
-        <div className={cn('grid gap-1.5', gridCols)}>
+        <div className={cn('grid', gridCols)} style={{ gap: `${gap}px` }}>
           {visiblePhotos.map((photo, index) => (
             <PhotoCard key={photo.id} photo={photo} index={index} className="aspect-square" />
           ))}
         </div>
       ) : (
         /* COLUMNS — 2 columns, landscape-ish */
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: `${gap}px` }}>
           {visiblePhotos.map((photo, index) => (
             <PhotoCard key={photo.id} photo={photo} index={index} className={cn('w-full', columnHeight)} />
           ))}

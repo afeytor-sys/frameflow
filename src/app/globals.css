@@ -817,6 +817,38 @@ img:not(.photo-img-hover) {
   transform: scale(1.04);
 }
 
+/* ── Gallery hero animations ── */
+@keyframes kenBurns {
+  0%   { transform: scale(1.0); }
+  100% { transform: scale(1.08); }
+}
+.gallery-hero-kb {
+  animation: kenBurns 22s ease-in-out alternate infinite;
+  will-change: transform;
+}
+
+/* ── Photo card staggered fade-in ── */
+@keyframes photoAppear {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.photo-appear {
+  animation: photoAppear 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Hero title animations ── */
+@keyframes heroTitleIn {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes heroBrandIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-brand-in { animation: heroBrandIn 0.7s 0.1s ease both; }
+.hero-title-in  { animation: heroTitleIn 0.8s 0.25s ease both; }
+.hero-date-in   { animation: heroTitleIn 0.7s 0.45s ease both; }
+
 /* ── Print ── */
 @media print {
   .no-print { display: none !important; }

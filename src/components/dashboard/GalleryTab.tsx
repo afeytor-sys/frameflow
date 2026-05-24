@@ -24,7 +24,7 @@ import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Pale
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
-import { GALLERY_THEMES, getTheme } from '@/lib/galleryThemes'
+import { GALLERY_THEMES, HERO_STYLES, SPACING_DENSITIES, getTheme } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 
 // Creative set name suggestions
@@ -74,6 +74,8 @@ interface Gallery {
   cover_focal_y?: number | null
   cover_focal_x_mobile?: number | null
   cover_focal_y_mobile?: number | null
+  hero_style?: string | null
+  spacing_density?: string | null
 }
 
 interface Props {
@@ -299,6 +301,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [focalY, setFocalY] = useState(gallery?.cover_focal_y ?? 50)
   const [focalXMobile, setFocalXMobile] = useState(gallery?.cover_focal_x_mobile ?? 50)
   const [focalYMobile, setFocalYMobile] = useState(gallery?.cover_focal_y_mobile ?? 50)
+  const [heroStyle, setHeroStyle] = useState(gallery?.hero_style || 'cinematic')
+  const [spacingDensity, setSpacingDensity] = useState(gallery?.spacing_density || 'balanced')
   // Tags enabled: default all enabled if not set
   const defaultTags = gallery?.tags_enabled ?? ['green', 'yellow', 'red']
   const [enabledTags, setEnabledTags] = useState<string[]>(defaultTags)
@@ -570,6 +574,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       cover_focal_y: focalY,
       cover_focal_x_mobile: focalXMobile,
       cover_focal_y_mobile: focalYMobile,
+      hero_style: heroStyle,
+      spacing_density: spacingDensity,
     }
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
@@ -717,7 +723,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                         <div className="h-1 rounded-full w-1/2" style={{ background: theme.accent, opacity: 0.7 }} />
                       </div>
                       <div className="px-2 py-1.5" style={{ background: theme.bg, borderTop: `1px solid ${theme.border}` }}>
-                        <p className="text-[11px] font-semibold truncate" style={{ color: theme.text }}>{theme.name}</p>
+                        <p className="text-[11px] font-semibold truncate" style={{ color: theme.text }}>{theme.moodName}</p>
                       </div>
                       {createTheme === theme.key && (
                         <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
@@ -1214,7 +1220,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Layout auswählen</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Stimmung auswählen</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {GALLERY_THEMES.map(theme => (
                   <button
@@ -1236,7 +1242,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       <div className="h-1.5 rounded-full w-2/3" style={{ background: theme.accent, opacity: 0.6 }} />
                     </div>
                     <div className="px-2 py-1.5" style={{ background: theme.bg, borderTop: `1px solid ${theme.border}` }}>
-                      <p className="text-[11px] font-semibold truncate" style={{ color: theme.text, fontFamily: theme.fontFamily }}>{theme.name}</p>
+                      <p className="text-[11px] font-semibold truncate" style={{ color: theme.text, fontFamily: theme.fontFamily }}>{theme.moodName}</p>
                       <p className="text-[10px]" style={{ color: theme.textMuted }}>{theme.grid === '2col' ? '2 Spalten' : theme.grid === '3col' ? '3 Spalten' : theme.grid === '4col' ? '4 Spalten' : 'Masonry'}</p>
                     </div>
                     {selectedTheme === theme.key && (
@@ -1248,7 +1254,56 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                 ))}
               </div>
               <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-                Aktuell: <strong style={{ color: 'var(--text-primary)' }}>{currentTheme.name}</strong> · {currentTheme.grid === '2col' ? '2 Spalten' : currentTheme.grid === '3col' ? '3 Spalten' : currentTheme.grid === '4col' ? '4 Spalten' : 'Masonry'} · {currentTheme.fontFamily.split(',')[0].replace(/"/g, '')}
+                Aktuell: <strong style={{ color: 'var(--text-primary)' }}>{currentTheme.moodName}</strong> · {currentTheme.grid === '2col' ? '2 Spalten' : currentTheme.grid === '3col' ? '3 Spalten' : currentTheme.grid === '4col' ? '4 Spalten' : 'Masonry'} · {currentTheme.fontFamily.split(',')[0].replace(/"/g, '')}
+              </div>
+
+              <div className="h-px" style={{ background: 'var(--border-color)' }} />
+
+              {/* Hero style picker */}
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Hero-Stil</p>
+              <div className="grid grid-cols-2 gap-2">
+                {HERO_STYLES.map(style => (
+                  <button
+                    key={style.key}
+                    onClick={() => setHeroStyle(style.key)}
+                    className="relative p-3 rounded-xl text-left transition-all"
+                    style={{
+                      border: heroStyle === style.key ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                      background: heroStyle === style.key ? 'rgba(196,164,124,0.06)' : 'transparent',
+                      boxShadow: heroStyle === style.key ? '0 0 0 3px rgba(196,164,124,0.12)' : 'none',
+                    }}
+                  >
+                    <p className="text-[11px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{style.label}</p>
+                    <p className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--text-muted)' }}>{style.description}</p>
+                    {heroStyle === style.key && (
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                        <Check className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-px" style={{ background: 'var(--border-color)' }} />
+
+              {/* Spacing density */}
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Abstände</p>
+              <div className="grid grid-cols-3 gap-2">
+                {SPACING_DENSITIES.map(d => (
+                  <button
+                    key={d.key}
+                    onClick={() => setSpacingDensity(d.key)}
+                    className="p-2.5 rounded-xl text-center transition-all"
+                    style={{
+                      border: spacingDensity === d.key ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                      background: spacingDensity === d.key ? 'rgba(196,164,124,0.06)' : 'transparent',
+                      boxShadow: spacingDensity === d.key ? '0 0 0 3px rgba(196,164,124,0.12)' : 'none',
+                    }}
+                  >
+                    <p className="text-[11px] font-bold" style={{ color: 'var(--text-primary)' }}>{d.label}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{d.hint}</p>
+                  </button>
+                ))}
               </div>
             </div>
           )}
