@@ -280,6 +280,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [showDetails, setShowDetails] = useState(false)
   const [showMoveToSet, setShowMoveToSet] = useState(false)
   const [showCoverPicker, setShowCoverPicker] = useState(false)
+  const [showFocalModal, setShowFocalModal] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const coverUploadRef = useRef<HTMLInputElement>(null)
   const globalDragCounter = useRef(0)
@@ -1231,7 +1232,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                         </div>
                       </div>
                       {/* Mobile phone frame */}
-                      <div style={{ flexShrink: 0, width: 98 }}>
+                      <div style={{ flexShrink: 0, width: 132 }}>
                         <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Mobile</p>
                         <div style={{ width: '100%', aspectRatio: '9/19.5', border: '2.5px solid var(--border-color)', borderRadius: 18, overflow: 'hidden', background: currentTheme.bg, boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
                           {/* Status bar */}
@@ -1283,34 +1284,30 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
                     {coverPhoto ? (
                       <div className="space-y-2">
-                        {/* Single focal point picker */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Fokuspunkt</span>
-                            <span className="text-[10px] font-mono ml-auto tabular-nums" style={{ color: 'var(--accent)' }}>{focalX}% / {focalY}%</span>
+                        {/* Compact focal point card */}
+                        <div
+                          className="relative rounded-lg overflow-hidden cursor-pointer group"
+                          style={{ height: 72, background: '#111' }}
+                          onClick={() => setShowFocalModal(true)}
+                        >
+                          <img
+                            src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 600, 80, 'cover')}
+                            alt="" className="w-full h-full object-cover"
+                            style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                          />
+                          {/* Crosshair dot */}
+                          <div className="absolute pointer-events-none" style={{ left: `${focalX}%`, top: `${focalY}%`, transform: 'translate(-50%, -50%)' }}>
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white shadow" style={{ background: 'rgba(255,255,255,0.25)', boxShadow: '0 0 0 1px rgba(0,0,0,0.4)' }} />
                           </div>
-                          <div
-                            className="relative rounded-lg overflow-hidden cursor-crosshair select-none w-full"
-                            style={{ aspectRatio: '16/9', background: '#111' }}
-                            title="Klicken um Fokuspunkt zu setzen"
-                            onClick={e => {
-                              const rect = e.currentTarget.getBoundingClientRect()
-                              setFocalX(Math.round(((e.clientX - rect.left) / rect.width) * 100))
-                              setFocalY(Math.round(((e.clientY - rect.top) / rect.height) * 100))
-                            }}
-                          >
-                            <img
-                              src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 600, 80, 'cover')}
-                              alt="" className="w-full h-full object-cover pointer-events-none"
-                              style={{ objectPosition: `${focalX}% ${focalY}%` }}
-                            />
-                            <FocalCrosshair x={focalX} y={focalY} />
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
+                            <span className="text-white text-[11px] font-medium px-2.5 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>Fokuspunkt ändern</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-[11px] truncate flex-1 mr-2" style={{ color: 'var(--text-muted)' }}>
                             <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{coverPhoto.filename}</span>
-                            {' '}· Gilt für alle Bildschirme
+                            {' '}· <span className="font-mono" style={{ color: 'var(--accent)' }}>{focalX}% / {focalY}%</span>
                           </p>
                           <button
                             onClick={() => setCoverPhoto(gallery!.cover_photo_id!)}
@@ -1320,6 +1317,46 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                             <X className="w-3 h-3" />Entfernen
                           </button>
                         </div>
+                        {/* Focal point modal */}
+                        {showFocalModal && (
+                          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)' }}>
+                            <div className="w-full rounded-2xl overflow-hidden flex flex-col" style={{ maxWidth: 720, background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                              <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <div>
+                                  <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Fokuspunkt setzen</p>
+                                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Klick auf das Bild um den Fokuspunkt zu setzen</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] font-mono tabular-nums" style={{ color: 'var(--accent)' }}>{focalX}% / {focalY}%</span>
+                                  <button onClick={() => setShowFocalModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--text-muted)' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div
+                                className="relative cursor-crosshair select-none"
+                                style={{ aspectRatio: '16/9', background: '#111' }}
+                                onClick={e => {
+                                  const rect = e.currentTarget.getBoundingClientRect()
+                                  setFocalX(Math.round(((e.clientX - rect.left) / rect.width) * 100))
+                                  setFocalY(Math.round(((e.clientY - rect.top) / rect.height) * 100))
+                                }}
+                              >
+                                <img
+                                  src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 1200, 85, 'cover')}
+                                  alt="" className="w-full h-full object-cover pointer-events-none"
+                                  style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                                />
+                                <FocalCrosshair x={focalX} y={focalY} />
+                              </div>
+                              <div className="flex items-center justify-end gap-2 px-4 py-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                                <button onClick={() => setShowFocalModal(false)} className="px-4 py-1.5 rounded-lg text-[12px] font-medium text-white" style={{ background: 'var(--accent)' }}>
+                                  Übernehmen
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2 rounded-xl" style={{ height: 64, border: '2px dashed var(--border-color)', background: 'var(--bg-hover)' }}>
