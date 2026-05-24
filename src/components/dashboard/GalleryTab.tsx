@@ -282,6 +282,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   // Gallery UX
   const [activeSection, setActiveSection] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [dashSortOrder, setDashSortOrder] = useState<'name-asc' | 'name-desc' | 'manual'>('name-asc')
   const [favoritesExpanded, setFavoritesExpanded] = useState(false)
   const [sectionDragOver, setSectionDragOver] = useState<string | null>(null)
   const [globalDragOver, setGlobalDragOver] = useState(false)
@@ -787,11 +788,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   }
 
   const unsectionedPhotos = photos.filter(p => !p.section_id)
-  const activePhotos = activeSection === 'all'
-    ? photos
-    : activeSection === 'unsectioned'
-      ? unsectionedPhotos
-      : photos.filter(p => p.section_id === activeSection)
+  const sortPhotos = (arr: Photo[]) => {
+    if (dashSortOrder === 'manual') return arr
+    return [...arr].sort((a, b) => {
+      const na = a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: 'base' })
+      return dashSortOrder === 'name-asc' ? na : -na
+    })
+  }
+  const activePhotos = sortPhotos(
+    activeSection === 'all'
+      ? photos
+      : activeSection === 'unsectioned'
+        ? unsectionedPhotos
+        : photos.filter(p => p.section_id === activeSection)
+  )
   const currentTheme = getTheme(selectedTheme)
   const currentTypo = getTypographyPreset(typographyPreset)
 
@@ -1961,8 +1971,30 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           >
             <Plus className="w-3 h-3" />Set
           </button>
-          {/* View toggle */}
+          {/* Sort order */}
           <div className="ml-auto flex items-center gap-0.5 p-0.5 rounded-lg flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
+            {([
+              { key: 'name-asc' as const, label: 'A→Z', title: 'Name aufsteigend' },
+              { key: 'name-desc' as const, label: 'Z→A', title: 'Name absteigend' },
+              { key: 'manual' as const, label: 'Manuell', title: 'Manuelle Reihenfolge' },
+            ]).map(({ key, label, title }) => (
+              <button
+                key={key}
+                onClick={() => setDashSortOrder(key)}
+                title={title}
+                className="px-2 h-6 rounded-md text-[11px] font-semibold transition-all flex-shrink-0"
+                style={{
+                  background: dashSortOrder === key ? 'var(--bg-surface)' : 'transparent',
+                  color: dashSortOrder === key ? 'var(--text-primary)' : 'var(--text-muted)',
+                  boxShadow: dashSortOrder === key ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* View toggle */}
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
             {([
               { mode: 'grid' as const, Icon: LayoutGrid, title: 'Rasteransicht' },
               { mode: 'list' as const, Icon: List, title: 'Listenansicht' },
