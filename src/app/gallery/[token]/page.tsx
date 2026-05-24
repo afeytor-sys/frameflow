@@ -263,33 +263,57 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
     if (effectiveStyle === 'cinematic') {
       heroBlock = (
-        <div style={{ position: 'relative', height: '100svh', minHeight: 560, overflow: 'hidden', background: '#0F0F0E' }}>
+        <div style={{ position: 'relative', height: '100svh', minHeight: 560, overflow: 'hidden', background: '#0C0C0B' }}>
           <style dangerouslySetInnerHTML={{ __html: focalCss }} />
           <img
-            src={getPhotoUrl(heroUrl!, 1920, 80, 'cover')}
+            src={getPhotoUrl(heroUrl!, 1920, 82, 'cover')}
             alt=""
             fetchPriority="high"
             decoding="async"
             className="gh gallery-hero-kb"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
-          {/* Gradient: dark top + dark bottom for readability */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.62) 78%, rgba(0,0,0,0.88) 100%)' }} />
-          {/* Branding — top left */}
-          <div style={{ position: 'absolute', top: 20, left: 24, zIndex: 10 }}>
-            {brandingPill}
-          </div>
-          {/* Title + date — bottom */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 clamp(20px, 5vw, 64px) clamp(36px, 6vh, 60px)', zIndex: 10 }}>
-            <h1 className="hero-title-in" style={{ color: 'white', fontFamily: theme.fontFamily, fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 300, letterSpacing: '-0.025em', lineHeight: 1.1, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}>
+          {/* Very soft gradient — image stays the hero */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 48%, rgba(0,0,0,0.32) 72%, rgba(0,0,0,0.58) 100%)' }} />
+
+          {/* Studio signature — top left, subtle watermark style */}
+          {photographer && (
+            <div className="hero-brand-in" style={{ position: 'absolute', top: 22, left: 26, zIndex: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {photographer.logo_url && (
+                <img src={photographer.logo_url} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }} />
+              )}
+              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', fontWeight: 400, letterSpacing: '0.14em', textTransform: 'uppercase', textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
+                {photographer.studio_name || photographer.full_name}
+              </span>
+            </div>
+          )}
+
+          {/* Title block — bottom, refined spacing */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 clamp(28px, 5vw, 72px) clamp(48px, 7vh, 72px)', zIndex: 10 }}>
+            <h1
+              className="hero-title-in"
+              style={{
+                color: 'rgba(255,255,255,0.92)',
+                fontFamily: theme.fontFamily,
+                fontSize: 'clamp(1.5rem, 2.8vw, 2.6rem)',
+                fontWeight: 300,
+                letterSpacing: '0.05em',
+                lineHeight: 1.2,
+                margin: 0,
+                textShadow: '0 1px 20px rgba(0,0,0,0.28)',
+              }}
+            >
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.1em', marginTop: 10, textTransform: 'uppercase' }}>
+              <p
+                className="hero-date-in"
+                style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', fontWeight: 400, letterSpacing: '0.2em', marginTop: 14, textTransform: 'uppercase', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}
+              >
                 {formattedDate}
               </p>
             )}
-            <div style={{ marginTop: 28, width: 1, height: 28, background: 'rgba(255,255,255,0.2)' }} />
+            <div style={{ marginTop: 32, width: 1, height: 22, background: 'rgba(255,255,255,0.15)' }} />
           </div>
         </div>
       )
@@ -331,11 +355,11 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               <span style={{ color: theme.textMuted, fontSize: '0.8125rem', fontWeight: 500 }}>{photographer.studio_name || photographer.full_name}</span>
             </div>
           )}
-          <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 400, letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
+          <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.5rem, 3vw, 2.4rem)', fontWeight: 300, letterSpacing: '0.04em', lineHeight: 1.2, margin: 0 }}>
             {heroTitle}
           </h1>
           {formattedDate && (
-            <p style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.08em', marginTop: 10, textTransform: 'uppercase' }}>{formattedDate}</p>
+            <p style={{ color: theme.textMuted, fontSize: '0.68rem', fontWeight: 400, letterSpacing: '0.18em', marginTop: 12, textTransform: 'uppercase' }}>{formattedDate}</p>
           )}
         </div>
       )
@@ -354,12 +378,12 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               <img src={getPhotoUrl(heroUrl, 1920, 80, 'cover')} alt="" fetchPriority="high" decoding="async" className="gh" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           )}
-          <div style={{ background: theme.bg, padding: '28px clamp(20px, 5vw, 64px) 20px', textAlign: 'center', borderBottom: `1px solid ${theme.border}` }}>
-            <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)', fontWeight: theme.headerStyle === 'bold' ? 700 : 400, letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
+          <div style={{ background: theme.bg, padding: '32px clamp(20px, 5vw, 64px) 24px', textAlign: 'center', borderBottom: `1px solid ${theme.border}` }}>
+            <h1 style={{ color: theme.text, fontFamily: theme.fontFamily, fontSize: 'clamp(1.4rem, 2.8vw, 2.2rem)', fontWeight: 300, letterSpacing: '0.04em', lineHeight: 1.2, margin: 0 }}>
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p style={{ color: theme.textMuted, fontSize: '0.75rem', fontWeight: 400, letterSpacing: '0.06em', marginTop: 6, textTransform: 'uppercase' }}>{formattedDate}</p>
+              <p style={{ color: theme.textMuted, fontSize: '0.68rem', fontWeight: 400, letterSpacing: '0.18em', marginTop: 10, textTransform: 'uppercase' }}>{formattedDate}</p>
             )}
           </div>
         </div>
