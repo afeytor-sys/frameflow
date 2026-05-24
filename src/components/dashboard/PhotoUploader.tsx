@@ -121,11 +121,13 @@ export default function PhotoUploader({
 
     for (const dupFile of duplicates) {
       const existing = existingMap.get(dupFile.name)!
-      const decision = await new Promise<'keep' | 'replace' | 'cancel'>((resolve) => {
+      const decision = await new Promise<'keep' | 'replace' | 'cancel' | 'skip-all' | 'abort'>((resolve) => {
         setCurrentDuplicate({ file: dupFile, existingId: existing.id, existingUrl: existing.storage_url })
         ;(window as unknown as Record<string, unknown>).__duplicateResolve = resolve
       })
       setCurrentDuplicate(null)
+      if (decision === 'abort') return
+      if (decision === 'skip-all') break
       if (decision === 'cancel') continue
       filesToUpload.push(dupFile)
       if (decision === 'replace') {
@@ -200,8 +202,8 @@ export default function PhotoUploader({
     })
   }, [uploadFiles])
 
-  const resolveDuplicate = (decision: 'keep' | 'replace' | 'cancel') => {
-    const resolve = (window as unknown as Record<string, unknown>).__duplicateResolve as ((d: 'keep' | 'replace' | 'cancel') => void) | undefined
+  const resolveDuplicate = (decision: 'keep' | 'replace' | 'cancel' | 'skip-all' | 'abort') => {
+    const resolve = (window as unknown as Record<string, unknown>).__duplicateResolve as ((d: typeof decision) => void) | undefined
     if (resolve) resolve(decision)
     delete (window as unknown as Record<string, unknown>).__duplicateResolve
   }
@@ -247,6 +249,10 @@ export default function PhotoUploader({
               <button onClick={() => resolveDuplicate('keep')} className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white" style={{ background: '#111110' }}>Beide behalten</button>
               <button onClick={() => resolveDuplicate('replace')} className="w-full py-2.5 rounded-xl text-[13px] font-semibold" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>Ersetzen (alte löschen)</button>
               <button onClick={() => resolveDuplicate('cancel')} className="w-full py-2.5 rounded-xl text-[13px] font-medium" style={{ background: '#F5F4F1', color: '#7A7670' }}>Überspringen</button>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => resolveDuplicate('skip-all')} className="flex-1 py-2 rounded-xl text-[12px] font-medium" style={{ background: '#F5F4F1', color: '#7A7670', border: '1px solid #E8E4DC' }}>Alle überspringen</button>
+                <button onClick={() => resolveDuplicate('abort')} className="flex-1 py-2 rounded-xl text-[12px] font-medium" style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }}>Abbrechen</button>
+              </div>
             </div>
           </div>
         </div>
