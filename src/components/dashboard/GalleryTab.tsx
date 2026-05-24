@@ -579,15 +579,11 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     }
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
-    let { error } = await supabase.from('galleries').update(updates).eq('id', gallery.id)
-    // If update fails (likely because migration 095 hasn't been applied yet),
-    // retry without the new columns so existing settings still save correctly.
-    if (error && (error.message?.includes('hero_style') || error.message?.includes('spacing_density') || error.code === 'PGRST204' || error.code === '42703')) {
-      const { hero_style: _hs, spacing_density: _sd, ...fallbackUpdates } = updates
-      const fallback = await supabase.from('galleries').update(fallbackUpdates).eq('id', gallery.id)
-      error = fallback.error
-    }
-    if (error) { toast.error('Error saving') } else {
+    const { error } = await supabase.from('galleries').update(updates).eq('id', gallery.id)
+    if (error) {
+      console.error('[saveSettings] error:', JSON.stringify(error))
+      toast.error(`Error saving: ${error.message ?? error.code ?? 'unknown'}`)
+    } else {
       setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
       setShowSettings(false)
       toast.success('Einstellungen gespeichert')
