@@ -24,7 +24,7 @@ import { Images, Settings, Share2, Trash2, Heart, GripVertical, Lock, Plus, Pale
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryShareModal from './GalleryShareModal'
 import { cn } from '@/lib/utils'
-import { GALLERY_THEMES, HERO_STYLES, SPACING_DENSITIES, getTheme } from '@/lib/galleryThemes'
+import { GALLERY_THEMES, TYPOGRAPHY_PRESETS, SPACING_DENSITIES, getTheme, getTypographyPreset } from '@/lib/galleryThemes'
 import toast from 'react-hot-toast'
 
 // Creative set name suggestions
@@ -76,6 +76,7 @@ interface Gallery {
   cover_focal_y_mobile?: number | null
   hero_style?: string | null
   spacing_density?: string | null
+  typography_preset?: string | null
 }
 
 interface Props {
@@ -299,11 +300,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [selectedTheme, setSelectedTheme] = useState(gallery?.design_theme || 'classic-white')
   const [focalX, setFocalX] = useState(gallery?.cover_focal_x ?? 50)
   const [focalY, setFocalY] = useState(gallery?.cover_focal_y ?? 50)
-  const [focalXMobile, setFocalXMobile] = useState(gallery?.cover_focal_x_mobile ?? 50)
-  const [focalYMobile, setFocalYMobile] = useState(gallery?.cover_focal_y_mobile ?? 50)
   const [heroStyle, setHeroStyle] = useState(gallery?.hero_style || 'cinematic')
   const [spacingDensity, setSpacingDensity] = useState(gallery?.spacing_density || 'balanced')
-  const [previewMobile, setPreviewMobile] = useState(false)
+  const [typographyPreset, setTypographyPreset] = useState(gallery?.typography_preset || 'editorial-serif')
   // Tags enabled: default all enabled if not set
   const defaultTags = gallery?.tags_enabled ?? ['green', 'yellow', 'red']
   const [enabledTags, setEnabledTags] = useState<string[]>(defaultTags)
@@ -573,10 +572,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       tags_enabled: enabledTags,
       cover_focal_x: focalX,
       cover_focal_y: focalY,
-      cover_focal_x_mobile: focalXMobile,
-      cover_focal_y_mobile: focalYMobile,
       hero_style: heroStyle,
       spacing_density: spacingDensity,
+      typography_preset: typographyPreset,
     }
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
@@ -598,10 +596,11 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
     // Save newer columns individually — silently skip any that aren't in the schema yet.
     const newCols: Record<string, unknown> = {
-      cover_focal_x_mobile: updates.cover_focal_x_mobile,
-      cover_focal_y_mobile: updates.cover_focal_y_mobile,
+      cover_focal_x_mobile: focalX,
+      cover_focal_y_mobile: focalY,
       hero_style:           updates.hero_style,
       spacing_density:      updates.spacing_density,
+      typography_preset:    updates.typography_preset,
     }
     for (const [col, val] of Object.entries(newCols)) {
       const { error: colError } = await supabase.from('galleries').update({ [col]: val }).eq('id', gallery.id)
@@ -781,6 +780,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const unsectionedPhotos = photos.filter(p => !p.section_id)
   const activePhotos = activeSection === 'all' ? photos : photos.filter(p => p.section_id === activeSection)
   const currentTheme = getTheme(selectedTheme)
+  const currentTypo = getTypographyPreset(typographyPreset)
 
   return (
     <div
@@ -1095,125 +1095,171 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           {activeSettingsTab === 'design' && (
             <div className="space-y-5">
 
-              {/* ── LIVE PREVIEW ── */}
+              {/* ── LIVE PREVIEW — side-by-side desktop + mobile ── */}
               {(() => {
                 const previewCover = photos.find(p => p.id === gallery?.cover_photo_id)
                 const coverSrc = previewCover ? getPhotoUrl(previewCover.storage_url, 600, 75, 'cover') : null
                 const galleryLabel = gallery?.title || 'Galerie-Titel'
                 const showImg = !!coverSrc && heroStyle !== 'minimal'
+                const isFullscreen = ['cinematic', 'frame', 'luxury'].includes(heroStyle)
+                const isSplit = heroStyle === 'editorial'
+                const isJournal = heroStyle === 'journal'
+                const isClassic = heroStyle === 'classic'
+                const isMinimal = heroStyle === 'minimal'
 
-                const HeroOverlay = () => heroStyle === 'cinematic' ? (
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.14) 0%, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
-                ) : null
+                // Desktop hero content
+                const DesktopHero = () => {
+                  if (isSplit && showImg) return (
+                    <div className="absolute inset-0 grid grid-cols-2">
+                      <img src={coverSrc!} alt="" className="w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />
+                      <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '10% 8% 12%' }}>
+                        <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.58rem', letterSpacing: currentTypo.titleTracking, lineHeight: 1.2 }}>{galleryLabel}</p>
+                      </div>
+                    </div>
+                  )
+                  if (isJournal) return (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: currentTheme.bg, padding: '8% 10%', gap: 6 }}>
+                      {showImg && <div style={{ width: '52%', aspectRatio: '3/2', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}><img src={coverSrc!} alt="" className="w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} /></div>}
+                      <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.62rem', letterSpacing: currentTypo.titleTracking, textAlign: 'center', marginTop: showImg ? 4 : 0 }}>{galleryLabel}</p>
+                      <div style={{ width: 20, height: 1, background: currentTheme.accent, opacity: 0.4 }} />
+                    </div>
+                  )
+                  if (isClassic) return (
+                    <>
+                      {showImg && <img src={coverSrc!} alt="" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '64%', width: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%` }} />}
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '36%', background: currentTheme.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderTop: `1px solid ${currentTheme.border}` }}>
+                        <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.52rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                      </div>
+                    </>
+                  )
+                  if (isMinimal) return (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5" style={{ background: currentTheme.bg }}>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', border: `1px solid ${currentTheme.border}`, opacity: 0.5 }} />
+                      <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.6rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                    </div>
+                  )
+                  // cinematic / frame / luxury — fullscreen image
+                  return (
+                    <>
+                      {showImg && <img src={coverSrc!} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />}
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 28%, rgba(0,0,0,0.55) 100%)' }} />
+                      {heroStyle === 'frame' && <div style={{ position: 'absolute', inset: '5%', border: '1px solid rgba(255,255,255,0.18)', pointerEvents: 'none' }} />}
+                      {heroStyle === 'luxury' ? (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '0 10% 12%', textAlign: 'center', gap: 3 }}>
+                          <p style={{ color: 'rgba(255,255,255,0.9)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.56rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                          <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginTop: 2 }}>
+                            <div style={{ width: 8, height: 0.5, background: 'rgba(255,255,255,0.22)' }} />
+                            <div style={{ width: 2, height: 2, borderRadius: '50%', background: 'rgba(255,255,255,0.22)' }} />
+                            <div style={{ width: 8, height: 0.5, background: 'rgba(255,255,255,0.22)' }} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px' }}>
+                          <p style={{ color: 'rgba(255,255,255,0.9)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.56rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                        </div>
+                      )}
+                      <div style={{ position: 'absolute', top: 7, right: 7, background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(4px)', borderRadius: 5, padding: '1.5px 6px' }}>
+                        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.52rem', fontWeight: 500, letterSpacing: '0.08em' }}>{currentTheme.moodName}</p>
+                      </div>
+                    </>
+                  )
+                }
+
+                // Mobile hero content
+                const MobileHero = () => {
+                  if (isMinimal) return (
+                    <div style={{ height: '28%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px', background: currentTheme.bg }}>
+                      <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.32rem', letterSpacing: currentTypo.titleTracking, textAlign: 'center' }}>{galleryLabel}</p>
+                    </div>
+                  )
+                  if (isClassic) return (
+                    <>
+                      {showImg && <div style={{ height: '38%', overflow: 'hidden' }}><img src={coverSrc!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%` }} /></div>}
+                      <div style={{ padding: '3px 6px', textAlign: 'center', borderBottom: `0.5px solid ${currentTheme.border}`, background: currentTheme.bg }}>
+                        <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.3rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                      </div>
+                    </>
+                  )
+                  if (isSplit) return (
+                    <div style={{ height: '42%', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                      {showImg && <img src={coverSrc!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%` }} />}
+                      <div style={{ background: currentTheme.bg, display: 'flex', alignItems: 'flex-end', padding: '4px 5px' }}>
+                        <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.28rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                      </div>
+                    </div>
+                  )
+                  if (isJournal) return (
+                    <div style={{ height: '44%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: currentTheme.bg, gap: 3, padding: '4px' }}>
+                      {showImg && <div style={{ width: '55%', aspectRatio: '3/2', overflow: 'hidden' }}><img src={coverSrc!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%` }} /></div>}
+                      <p style={{ color: currentTheme.text, fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.28rem', letterSpacing: currentTypo.titleTracking, textAlign: 'center' }}>{galleryLabel}</p>
+                    </div>
+                  )
+                  // cinematic / frame / luxury
+                  return (
+                    <div style={{ height: '46%', position: 'relative' }}>
+                      {showImg && <img src={coverSrc!} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%` }} />}
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
+                      {heroStyle === 'frame' && <div style={{ position: 'absolute', inset: 3, border: '0.5px solid rgba(255,255,255,0.2)' }} />}
+                      {heroStyle === 'luxury' ? (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6, gap: 2 }}>
+                          <p style={{ color: 'rgba(255,255,255,0.88)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.32rem', letterSpacing: currentTypo.titleTracking, textAlign: 'center' }}>{galleryLabel}</p>
+                          <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            <div style={{ width: 5, height: 0.5, background: 'rgba(255,255,255,0.2)' }} /><div style={{ width: 1.5, height: 1.5, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} /><div style={{ width: 5, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ position: 'absolute', bottom: 5, left: 6, right: 6 }}>
+                          <p style={{ color: 'rgba(255,255,255,0.88)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.32rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                // Gap from spacing density
+                const previewGap = spacingDensity === 'compact' ? 1 : spacingDensity === 'airy' ? 3 : 1.5
 
                 return (
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Live-Vorschau</p>
-                      <div className="flex items-center gap-0.5 p-0.5 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
-                        {(['Desktop', 'Mobile'] as const).map(v => {
-                          const active = (v === 'Mobile') === previewMobile
-                          return (
-                            <button key={v} onClick={() => setPreviewMobile(v === 'Mobile')}
-                              className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
-                              style={{ background: active ? 'var(--bg-surface)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}
-                            >{v}</button>
-                          )
-                        })}
+                    <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Live-Vorschau</p>
+                    <div className="flex items-start gap-2.5">
+                      {/* Desktop */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Desktop</p>
+                        <div className="relative rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', background: isFullscreen ? '#0C0C0B' : currentTheme.bg }}>
+                          <DesktopHero />
+                        </div>
+                      </div>
+                      {/* Mobile phone frame */}
+                      <div style={{ flexShrink: 0, width: 98 }}>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Mobile</p>
+                        <div style={{ width: '100%', aspectRatio: '9/19.5', border: '2.5px solid var(--border-color)', borderRadius: 18, overflow: 'hidden', background: currentTheme.bg, boxShadow: '0 6px 20px rgba(0,0,0,0.15)' }}>
+                          {/* Status bar */}
+                          <div style={{ height: 8, background: isFullscreen ? '#0C0C0B' : currentTheme.bg }} />
+                          <MobileHero />
+                          {/* Photo grid */}
+                          <div style={{ padding: '3px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: previewGap, flex: 1 }}>
+                            {photos.length > 0
+                              ? photos.slice(0, 9).map((p, i) => (
+                                  <div key={i} style={{ aspectRatio: '1', borderRadius: 1.5, overflow: 'hidden', background: currentTheme.surface }}>
+                                    <img src={getPhotoUrl(p.storage_url, 80, 70, 'cover')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                  </div>
+                                ))
+                              : Array.from({ length: 6 }).map((_, i) => (
+                                  <div key={i} style={{ aspectRatio: '1', borderRadius: 1.5, background: currentTheme.surface }} />
+                                ))
+                            }
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    {!previewMobile ? (
-                      /* Desktop — 16:9 */
-                      <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/9', background: currentTheme.bg }}>
-                        {showImg && heroStyle === 'editorial' ? (
-                          <div className="absolute inset-0 grid grid-cols-2">
-                            <img src={coverSrc!} alt="" className="w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />
-                            <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '12px 14px' }}>
-                              <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.65rem', letterSpacing: '0.04em', lineHeight: 1.3 }}>{galleryLabel}</p>
-                            </div>
-                          </div>
-                        ) : showImg ? (
-                          <>
-                            <img src={coverSrc!} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />
-                            <HeroOverlay />
-                            {heroStyle === 'cinematic' && (
-                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px' }}>
-                                <p style={{ color: 'rgba(255,255,255,0.9)', fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.65rem', letterSpacing: '0.05em', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>{galleryLabel}</p>
-                              </div>
-                            )}
-                            {heroStyle === 'classic' && (
-                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: currentTheme.bg, padding: '6px 10px', textAlign: 'center', borderTop: `1px solid ${currentTheme.border}` }}>
-                                <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.58rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                            <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.8rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
-                          </div>
-                        )}
-                        {/* Mini grid preview strip */}
-                        {photos.length > 0 && (
-                          <div style={{ position: 'absolute', bottom: heroStyle === 'classic' ? 28 : 0, right: 0, pointerEvents: 'none', opacity: 0 }} />
-                        )}
-                        {/* Theme badge */}
-                        <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', borderRadius: 6, padding: '2px 7px' }}>
-                          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.58rem', fontWeight: 500, letterSpacing: '0.08em' }}>{currentTheme.moodName}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Mobile — phone frame */
-                      <div className="flex justify-center py-1">
-                        <div style={{ width: 118 }}>
-                          <div style={{ width: '100%', aspectRatio: '9/19.5', border: '2.5px solid var(--border-color)', borderRadius: 20, overflow: 'hidden', background: currentTheme.bg, boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>
-                            {/* Status bar */}
-                            <div style={{ height: 9, background: showImg && heroStyle !== 'classic' ? (heroStyle === 'minimal' ? currentTheme.bg : '#0C0C0B') : currentTheme.bg }} />
-                            {/* Hero area */}
-                            {showImg ? (
-                              <div style={{ height: '48%', position: 'relative' }}>
-                                <img src={coverSrc!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalXMobile}% ${focalYMobile}%` }} />
-                                <HeroOverlay />
-                                {heroStyle === 'cinematic' && (
-                                  <div style={{ position: 'absolute', bottom: 5, left: 7, right: 7 }}>
-                                    <p style={{ color: 'rgba(255,255,255,0.88)', fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.35rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div style={{ height: '24%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}>
-                                <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.35rem', letterSpacing: '0.04em', textAlign: 'center' }}>{galleryLabel}</p>
-                              </div>
-                            )}
-                            {heroStyle === 'classic' && showImg && (
-                              <div style={{ padding: '3px 6px', textAlign: 'center', borderBottom: `0.5px solid ${currentTheme.border}`, background: currentTheme.bg }}>
-                                <p style={{ color: currentTheme.text, fontFamily: currentTheme.fontFamily, fontWeight: 300, fontSize: '0.3rem', letterSpacing: '0.04em' }}>{galleryLabel}</p>
-                              </div>
-                            )}
-                            {/* Photo grid */}
-                            <div style={{ padding: '4px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: spacingDensity === 'compact' ? 1 : spacingDensity === 'airy' ? 3 : 1.5, flex: 1 }}>
-                              {photos.length > 0
-                                ? photos.slice(0, 9).map((p, i) => (
-                                    <div key={i} style={{ aspectRatio: '1', borderRadius: 2, overflow: 'hidden', background: currentTheme.surface }}>
-                                      <img src={getPhotoUrl(p.storage_url, 80, 70, 'cover')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                                    </div>
-                                  ))
-                                : Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: currentTheme.surface }} />
-                                  ))
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )
               })()}
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              {/* Cover photo */}
+              {/* ── Cover photo ── */}
               {(() => {
                 const coverPhoto = photos.find(p => p.id === gallery?.cover_photo_id)
                 return (
@@ -1236,68 +1282,35 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     </div>
 
                     {coverPhoto ? (
-                      <div className="space-y-3">
-                        {/* Side-by-side: Desktop (16:9) + Mobile (9:16) focal pickers */}
-                        <div className="flex gap-3 items-end">
-
-                          {/* Desktop preview — 16:9 */}
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                              <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Desktop</span>
-                              <span className="text-[10px] font-mono ml-auto tabular-nums" style={{ color: 'var(--accent)' }}>{focalX}% / {focalY}%</span>
-                            </div>
-                            <div
-                              className="relative rounded-lg overflow-hidden cursor-crosshair select-none w-full"
-                              style={{ aspectRatio: '16/9', background: '#111' }}
-                              title="Klicken um Desktop-Fokuspunkt zu setzen"
-                              onClick={e => {
-                                const rect = e.currentTarget.getBoundingClientRect()
-                                setFocalX(Math.round(((e.clientX - rect.left) / rect.width) * 100))
-                                setFocalY(Math.round(((e.clientY - rect.top) / rect.height) * 100))
-                              }}
-                            >
-                              <img
-                                src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 600, 80, 'cover')}
-                                alt="" className="w-full h-full object-cover pointer-events-none"
-                                style={{ objectPosition: `${focalX}% ${focalY}%` }}
-                              />
-                              <FocalCrosshair x={focalX} y={focalY} />
-                            </div>
+                      <div className="space-y-2">
+                        {/* Single focal point picker */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Fokuspunkt</span>
+                            <span className="text-[10px] font-mono ml-auto tabular-nums" style={{ color: 'var(--accent)' }}>{focalX}% / {focalY}%</span>
                           </div>
-
-                          {/* Mobile preview — 9:16 */}
-                          <div className="space-y-1.5" style={{ width: 88 }}>
-                            <div className="flex items-center gap-1">
-                              <svg className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
-                              <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Mobile</span>
-                            </div>
-                            <div
-                              className="relative rounded-lg overflow-hidden cursor-crosshair select-none w-full"
-                              style={{ aspectRatio: '9/16', background: '#111' }}
-                              title="Klicken um Mobile-Fokuspunkt zu setzen"
-                              onClick={e => {
-                                const rect = e.currentTarget.getBoundingClientRect()
-                                setFocalXMobile(Math.round(((e.clientX - rect.left) / rect.width) * 100))
-                                setFocalYMobile(Math.round(((e.clientY - rect.top) / rect.height) * 100))
-                              }}
-                            >
-                              <img
-                                src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 300, 80, 'cover')}
-                                alt="" className="w-full h-full object-cover pointer-events-none"
-                                style={{ objectPosition: `${focalXMobile}% ${focalYMobile}%` }}
-                              />
-                              <FocalCrosshair x={focalXMobile} y={focalYMobile} />
-                            </div>
-                            <p className="text-[9px] font-mono text-center tabular-nums" style={{ color: 'var(--accent)' }}>{focalXMobile}% / {focalYMobile}%</p>
+                          <div
+                            className="relative rounded-lg overflow-hidden cursor-crosshair select-none w-full"
+                            style={{ aspectRatio: '16/9', background: '#111' }}
+                            title="Klicken um Fokuspunkt zu setzen"
+                            onClick={e => {
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              setFocalX(Math.round(((e.clientX - rect.left) / rect.width) * 100))
+                              setFocalY(Math.round(((e.clientY - rect.top) / rect.height) * 100))
+                            }}
+                          >
+                            <img
+                              src={getPhotoUrl(coverPhoto.thumbnail_url || coverPhoto.storage_url, 600, 80, 'cover')}
+                              alt="" className="w-full h-full object-cover pointer-events-none"
+                              style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                            />
+                            <FocalCrosshair x={focalX} y={focalY} />
                           </div>
                         </div>
-
-                        {/* Filename + hint + remove */}
                         <div className="flex items-center justify-between">
                           <p className="text-[11px] truncate flex-1 mr-2" style={{ color: 'var(--text-muted)' }}>
                             <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{coverPhoto.filename}</span>
-                            {' '}· Klicke auf Vorschau um Fokuspunkt zu setzen
+                            {' '}· Gilt für alle Bildschirme
                           </p>
                           <button
                             onClick={() => setCoverPhoto(gallery!.cover_photo_id!)}
@@ -1319,7 +1332,6 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     {showCoverPicker && (
                       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}>
                         <div className="w-full max-w-5xl rounded-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', maxHeight: '90vh' }}>
-                          {/* Header */}
                           <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
                             <div>
                               <p className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>Titelbild wählen</p>
@@ -1329,7 +1341,6 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                               <X className="w-4 h-4" />
                             </button>
                           </div>
-                          {/* Grid */}
                           {photos.length === 0 ? (
                             <div className="flex items-center justify-center py-16">
                               <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>Noch keine Fotos in dieser Galerie</p>
@@ -1364,7 +1375,51 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Stimmung auswählen</p>
+              {/* ── Typografie ── */}
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Typografie</p>
+              <div className="grid grid-cols-2 gap-2">
+                {TYPOGRAPHY_PRESETS.map(preset => {
+                  if (preset.fontImport) {
+                    const existingLink = typeof document !== 'undefined' && document.querySelector(`link[href="${preset.fontImport}"]`)
+                    if (!existingLink && typeof document !== 'undefined') {
+                      const link = document.createElement('link')
+                      link.rel = 'stylesheet'
+                      link.href = preset.fontImport
+                      document.head.appendChild(link)
+                    }
+                  }
+                  const active = typographyPreset === preset.key
+                  return (
+                    <button
+                      key={preset.key}
+                      onClick={() => setTypographyPreset(preset.key)}
+                      className="relative rounded-xl text-left transition-all overflow-hidden"
+                      style={{
+                        border: active ? '2px solid var(--accent)' : '2px solid var(--border-color)',
+                        boxShadow: active ? '0 0 0 3px rgba(196,164,124,0.18)' : 'none',
+                      }}
+                    >
+                      <div className="px-3 pt-3 pb-2.5" style={{ background: active ? 'rgba(196,164,124,0.04)' : 'var(--bg-surface)' }}>
+                        <p style={{ fontFamily: preset.fontFamily, fontWeight: preset.titleWeight, letterSpacing: preset.titleTracking, fontSize: '1.05rem', lineHeight: 1.1, color: 'var(--text-primary)', marginBottom: 6 }}>
+                          Galerie
+                        </p>
+                        <p className="text-[10px] font-semibold" style={{ color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{preset.name}</p>
+                        <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{preset.description}</p>
+                      </div>
+                      {active && (
+                        <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="h-px" style={{ background: 'var(--border-color)' }} />
+
+              {/* ── Farbpalette ── */}
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Farbpalette</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {GALLERY_THEMES.map(theme => (
                   <button
@@ -1376,18 +1431,16 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       boxShadow: selectedTheme === theme.key ? '0 0 0 3px rgba(196,164,124,0.2)' : 'none',
                     }}
                   >
-                    {/* Theme preview */}
-                    <div className="h-16 flex flex-col justify-between p-2" style={{ background: theme.bg }}>
+                    <div className="h-14 flex flex-col justify-between p-2" style={{ background: theme.bg }}>
                       <div className="flex gap-1">
                         {[1,2,3].map(i => (
-                          <div key={i} className="flex-1 rounded" style={{ height: '20px', background: theme.surface, border: `1px solid ${theme.border}` }} />
+                          <div key={i} className="flex-1 rounded" style={{ height: '18px', background: theme.surface, border: `1px solid ${theme.border}` }} />
                         ))}
                       </div>
-                      <div className="h-1.5 rounded-full w-2/3" style={{ background: theme.accent, opacity: 0.6 }} />
+                      <div className="h-1.5 rounded-full w-2/3" style={{ background: theme.accent, opacity: 0.65 }} />
                     </div>
                     <div className="px-2 py-1.5" style={{ background: theme.bg, borderTop: `1px solid ${theme.border}` }}>
-                      <p className="text-[11px] font-semibold truncate" style={{ color: theme.text, fontFamily: theme.fontFamily }}>{theme.moodName}</p>
-                      <p className="text-[10px]" style={{ color: theme.textMuted }}>{theme.grid === '2col' ? '2 Spalten' : theme.grid === '3col' ? '3 Spalten' : theme.grid === '4col' ? '4 Spalten' : 'Masonry'}</p>
+                      <p className="text-[11px] font-semibold truncate" style={{ color: theme.text }}>{theme.moodName}</p>
                     </div>
                     {selectedTheme === theme.key && (
                       <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: 'var(--accent)' }}>
@@ -1397,13 +1450,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   </button>
                 ))}
               </div>
-              <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-                Aktuell: <strong style={{ color: 'var(--text-primary)' }}>{currentTheme.moodName}</strong> · {currentTheme.grid === '2col' ? '2 Spalten' : currentTheme.grid === '3col' ? '3 Spalten' : currentTheme.grid === '4col' ? '4 Spalten' : 'Masonry'} · {currentTheme.fontFamily.split(',')[0].replace(/"/g, '')}
-              </div>
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              {/* Hero style picker — visual layout diagrams */}
+              {/* ── Hero-Stil — 7 visual cards ── */}
               <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Hero-Stil</p>
               <div className="grid grid-cols-2 gap-2">
                 {([
@@ -1412,9 +1462,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     preview: (
                       <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#1B1814', position: 'relative' }}>
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.72) 100%)' }} />
-                        <div style={{ position: 'absolute', top: 6, left: 7, width: 20, height: 3, background: 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', top: 6, left: 7, width: 20, height: 2.5, background: 'rgba(255,255,255,0.18)', borderRadius: 2 }} />
                         <div style={{ position: 'absolute', bottom: 7, left: 7, width: '52%', height: 2.5, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
-                        <div style={{ position: 'absolute', bottom: 4, left: 7, width: '30%', height: 1.5, background: 'rgba(255,255,255,0.25)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', bottom: 4, left: 7, width: '30%', height: 1.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
                       </div>
                     ),
                   },
@@ -1440,13 +1490,53 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     ),
                   },
                   {
-                    key: 'editorial', label: 'Editorial',
+                    key: 'editorial', label: 'Split',
                     preview: (
                       <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                         <div style={{ background: '#1B1814' }} />
                         <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '5px 6px', borderTop: `1px solid ${currentTheme.border}` }}>
                           <div style={{ width: '70%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35, marginBottom: 2 }} />
                           <div style={{ width: '45%', height: 1.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'frame', label: 'Frame',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#0E0C0A', position: 'relative', padding: 4 }}>
+                        <div style={{ width: '100%', height: '100%', background: '#2A2420', position: 'relative', overflow: 'hidden', borderRadius: 2 }}>
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.7) 100%)' }} />
+                          <div style={{ position: 'absolute', bottom: 5, left: 6, width: '50%', height: 2.5, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
+                          <div style={{ position: 'absolute', bottom: 3, left: 6, width: '30%', height: 1.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
+                          <div style={{ position: 'absolute', inset: 0, border: '0.5px solid rgba(255,255,255,0.2)' }} />
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'journal', label: 'Journal',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '5px 8px' }}>
+                        <div style={{ width: '55%', aspectRatio: '3/2', background: '#2A2520', borderRadius: 2 }} />
+                        <div style={{ width: '58%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
+                        <div style={{ width: '36%', height: 1.5, background: currentTheme.accent, borderRadius: 2, opacity: 0.4 }} />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'luxury', label: 'Luxury',
+                    preview: (
+                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#080604', position: 'relative' }}>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
+                        <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 8, height: 8, borderRadius: '50%', border: '0.5px solid rgba(255,255,255,0.28)' }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 5, gap: 2 }}>
+                          <div style={{ width: '45%', height: 2, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
+                          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                            <div style={{ width: 7, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
+                            <div style={{ width: 2, height: 2, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+                            <div style={{ width: 7, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
+                          </div>
                         </div>
                       </div>
                     ),
@@ -1479,7 +1569,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
-              {/* Spacing density — visual grid previews */}
+              {/* ── Abstände ── */}
               <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Abstände</p>
               <div className="grid grid-cols-3 gap-2">
                 {([
@@ -1499,7 +1589,6 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       }}
                     >
                       <div className="p-2.5" style={{ background: active ? 'rgba(196,164,124,0.04)' : 'var(--bg-surface)' }}>
-                        {/* Mini grid diagram */}
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${d.cols}, 1fr)`, gap: d.gap, marginBottom: 8 }}>
                           {Array.from({ length: d.cols * d.rows }).map((_, i) => (
                             <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: active ? 'rgba(196,164,124,0.35)' : 'var(--border-strong)', transition: 'background 0.2s' }} />

@@ -176,19 +176,211 @@ export const GALLERY_THEMES: GalleryTheme[] = [
     titleSize: '2.8rem',
     headerStyle: 'centered',
   },
+  {
+    key: 'olive',
+    name: 'Olive',
+    moodName: 'Botanik',
+    bg: '#FAFAF6',
+    surface: '#F2F2EA',
+    text: '#22221A',
+    textMuted: '#7A7A5E',
+    accent: '#7C8C42',
+    border: '#E0E0D0',
+    fontFamily: '"EB Garamond", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap',
+    grid: '3col',
+    titleSize: '2.4rem',
+    headerStyle: 'minimal',
+  },
+  {
+    key: 'sand',
+    name: 'Sand',
+    moodName: 'Sand',
+    bg: '#FAF6EE',
+    surface: '#F2EADB',
+    text: '#2A1E10',
+    textMuted: '#9A8A6A',
+    accent: '#C4A060',
+    border: '#E8DCCA',
+    fontFamily: '"Josefin Sans", system-ui, sans-serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600&display=swap',
+    grid: '3col',
+    titleSize: '2.2rem',
+    headerStyle: 'minimal',
+  },
+  {
+    key: 'terracotta',
+    name: 'Terracotta',
+    moodName: 'Terracotta',
+    bg: '#FBF3EE',
+    surface: '#F4E4D8',
+    text: '#2C1A10',
+    textMuted: '#A0705A',
+    accent: '#C4583A',
+    border: '#E8D0C0',
+    fontFamily: '"Lora", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&display=swap',
+    grid: 'masonry',
+    titleSize: '2.4rem',
+    headerStyle: 'bold',
+  },
+  {
+    key: 'champagne',
+    name: 'Champagne',
+    moodName: 'Champagne',
+    bg: '#FDF8F0',
+    surface: '#F8F0E0',
+    text: '#2A2216',
+    textMuted: '#9A8A60',
+    accent: '#D4B868',
+    border: '#EEE2C8',
+    fontFamily: '"Cormorant Garamond", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&display=swap',
+    grid: '2col',
+    titleSize: '2.8rem',
+    headerStyle: 'centered',
+  },
+  {
+    key: 'nordic',
+    name: 'Nordic',
+    moodName: 'Nordic',
+    bg: '#F4F6F8',
+    surface: '#EBEEF2',
+    text: '#1A1E2A',
+    textMuted: '#7A8494',
+    accent: '#4A6480',
+    border: '#D4D8E0',
+    fontFamily: '"Space Grotesk", system-ui, sans-serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap',
+    grid: '4col',
+    titleSize: '1.8rem',
+    headerStyle: 'minimal',
+  },
 ]
 
 export function getTheme(key: string): GalleryTheme {
   return GALLERY_THEMES.find(t => t.key === key) ?? GALLERY_THEMES[0]
 }
 
+// ── Typography Presets ────────────────────────────────────────────────────────
+
+export interface TypographyPreset {
+  key: string
+  name: string
+  description: string
+  fontFamily: string
+  fontImport?: string
+  titleWeight: number
+  titleTracking: string
+  titleLineHeight: number
+  subtitleTracking: string
+  subtitleUppercase: boolean
+}
+
+export const TYPOGRAPHY_PRESETS: TypographyPreset[] = [
+  {
+    key: 'editorial-serif',
+    name: 'Editorial Serif',
+    description: 'Zeitlos, elegant',
+    fontFamily: '"Cormorant Garamond", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&display=swap',
+    titleWeight: 300,
+    titleTracking: '0.04em',
+    titleLineHeight: 1.1,
+    subtitleTracking: '0.18em',
+    subtitleUppercase: true,
+  },
+  {
+    key: 'modern-minimal',
+    name: 'Modern Minimal',
+    description: 'Clean, zeitgemäß',
+    fontFamily: '"Inter", system-ui, sans-serif',
+    titleWeight: 300,
+    titleTracking: '-0.02em',
+    titleLineHeight: 1.15,
+    subtitleTracking: '0.12em',
+    subtitleUppercase: false,
+  },
+  {
+    key: 'timeless-luxury',
+    name: 'Timeless Luxury',
+    description: 'Premium, verfeinert',
+    fontFamily: '"Playfair Display", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap',
+    titleWeight: 400,
+    titleTracking: '0.06em',
+    titleLineHeight: 1.1,
+    subtitleTracking: '0.22em',
+    subtitleUppercase: true,
+  },
+  {
+    key: 'fashion-magazine',
+    name: 'Fashion Magazine',
+    description: 'Bold, direkt',
+    fontFamily: '"Libre Baskerville", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap',
+    titleWeight: 700,
+    titleTracking: '0.08em',
+    titleLineHeight: 1.0,
+    subtitleTracking: '0.24em',
+    subtitleUppercase: true,
+  },
+  {
+    key: 'documentary',
+    name: 'Documentary',
+    description: 'Authentisch, direkt',
+    fontFamily: '"Space Grotesk", system-ui, sans-serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap',
+    titleWeight: 500,
+    titleTracking: '0em',
+    titleLineHeight: 1.15,
+    subtitleTracking: '0.06em',
+    subtitleUppercase: false,
+  },
+  {
+    key: 'soft-romantic',
+    name: 'Soft Romantic',
+    description: 'Zart, romantisch',
+    fontFamily: '"Lora", Georgia, serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap',
+    titleWeight: 300,
+    titleTracking: '0.06em',
+    titleLineHeight: 1.2,
+    subtitleTracking: '0.16em',
+    subtitleUppercase: true,
+  },
+  {
+    key: 'bold-contemporary',
+    name: 'Bold Contemporary',
+    description: 'Kraftvoll, modern',
+    fontFamily: '"Raleway", system-ui, sans-serif',
+    fontImport: 'https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;800&display=swap',
+    titleWeight: 800,
+    titleTracking: '-0.01em',
+    titleLineHeight: 1.0,
+    subtitleTracking: '0.04em',
+    subtitleUppercase: false,
+  },
+]
+
+export function getTypographyPreset(key: string | null | undefined): TypographyPreset {
+  return TYPOGRAPHY_PRESETS.find(t => t.key === key) ?? TYPOGRAPHY_PRESETS[0]
+}
+
+// ── Hero Styles ───────────────────────────────────────────────────────────────
+
 export const HERO_STYLES = [
-  { key: 'cinematic', label: 'Cinematic', description: 'Fullscreen hero, Titel auf dem Bild' },
-  { key: 'classic',   label: 'Classic',   description: 'Bild + Titelblock darunter' },
-  { key: 'minimal',   label: 'Minimal',   description: 'Nur Titel, kein Bild-Header' },
-  { key: 'editorial', label: 'Editorial', description: 'Bild links, Text rechts (Split)' },
+  { key: 'cinematic', label: 'Cinematic',  description: 'Fullscreen, Titel unten links' },
+  { key: 'classic',   label: 'Classic',    description: 'Bild + Titelblock darunter' },
+  { key: 'minimal',   label: 'Minimal',    description: 'Nur Titel, kein Bild-Header' },
+  { key: 'editorial', label: 'Split',      description: 'Bild links, Titel rechts' },
+  { key: 'frame',     label: 'Frame',      description: 'Eingerahmtes Bild mit Titel' },
+  { key: 'journal',   label: 'Journal',    description: 'Kleines Bild, große Typografie' },
+  { key: 'luxury',    label: 'Luxury',     description: 'Cinematic ultra-refined' },
 ] as const
 export type HeroStyle = typeof HERO_STYLES[number]['key']
+
+// ── Spacing Densities ─────────────────────────────────────────────────────────
 
 export const SPACING_DENSITIES = [
   { key: 'compact',  label: 'Compact',  hint: 'Engere Abstände', gap: 3 },
