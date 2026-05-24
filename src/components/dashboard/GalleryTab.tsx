@@ -44,6 +44,7 @@ interface Photo {
   is_favorite: boolean
   is_private?: boolean
   section_id?: string | null
+  media_type?: 'image' | 'video'
 }
 
 interface Section {
@@ -135,13 +136,30 @@ function SortablePhoto({
         selected ? 'border-[#C8A882]' : isCover ? 'border-[#F59E0B]' : 'border-transparent'
       )}
     >
-      <img
-        src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 200, 75, 'cover')}
-        alt={photo.filename}
-        className={cn('w-full aspect-square object-cover', photo.is_private && 'opacity-60')}
-        loading="lazy"
-        decoding="async"
-      />
+      {photo.media_type === 'video' ? (
+        <>
+          <video
+            src={photo.storage_url}
+            className={cn('w-full aspect-square object-cover', photo.is_private && 'opacity-60')}
+            preload="metadata"
+            muted
+            playsInline
+          />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+        </>
+      ) : (
+        <img
+          src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 200, 75, 'cover')}
+          alt={photo.filename}
+          className={cn('w-full aspect-square object-cover', photo.is_private && 'opacity-60')}
+          loading="lazy"
+          decoding="async"
+        />
+      )}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
       <button
         onClick={(e) => onSelect(photo.id, e.shiftKey)}

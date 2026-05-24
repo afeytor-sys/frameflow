@@ -192,8 +192,8 @@ export default function PhotoUploader({
   }, [galleryId, galleryTitle, sectionId, enqueueFiles, onUploadComplete, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, photographerId])
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/'))
-    if (imageFiles.length === 0) { toast.error('Nur Bilddateien erlaubt (JPG, PNG, WEBP)'); return }
+    const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
+    if (imageFiles.length === 0) { toast.error('Nur Bild- oder Videodateien erlaubt (JPG, PNG, WEBP, MP4, MOV)'); return }
     uploadFiles(imageFiles).catch(err => {
       console.error('[PhotoUploader] uploadFiles error:', err)
       toast.error('Upload fehlgeschlagen. Bitte erneut versuchen.')
@@ -280,11 +280,11 @@ export default function PhotoUploader({
             : 'border-[#E8E8E4] dark:border-[#333] hover:border-[#C8A882]/50 cursor-pointer'
         )}
       >
-        <input ref={inputRef} type="file" multiple accept="image/*" className="hidden" disabled={storageFull}
+        <input ref={inputRef} type="file" multiple accept="image/*,video/*" className="hidden" disabled={storageFull}
           onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }} />
         <Upload className={cn('w-8 h-8 mx-auto mb-3', isDragging ? 'text-[#C8A882]' : storageFull ? 'text-[#E84C1A]' : 'text-[#6B6B6B]')} />
         <p className="text-sm font-medium text-[#1A1A1A] mb-1">
-          {storageFull ? 'Speicherlimit erreicht' : isDragging ? 'Fotos hier ablegen' : 'Fotos hierher ziehen oder klicken'}
+          {storageFull ? 'Speicherlimit erreicht' : isDragging ? 'Dateien hier ablegen' : 'Fotos & Videos hierher ziehen oder klicken'}
         </p>
         <p className="text-xs text-[#6B6B6B]">
           {storageFull ? 'Upgrade erforderlich, um weitere Fotos hochzuladen' : 'JPG, PNG, WEBP · Originalqualität · Upload startet automatisch'}

@@ -32,6 +32,7 @@ interface Photo {
   display_order: number
   tag?: PhotoTag
   section_id?: string | null
+  media_type?: 'image' | 'video'
 }
 
 interface Props {
@@ -578,19 +579,36 @@ export default function GalleryViewer({
       className={cn('relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover', className)}
       onClick={() => openLightbox(index)}
     >
-      <LazyImage
-        src={getThumbnailUrl(photo, thumbWidth)}
-        fallbackSrc={photo.thumbnail_url || photo.storage_url}
-        alt={photo.filename}
-        className="w-full h-full photo-img-hover"
-        priority={index < 8}
-      />
+      {photo.media_type === 'video' ? (
+        <>
+          <video
+            src={photo.storage_url}
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
+            playsInline
+          />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+              <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+        </>
+      ) : (
+        <LazyImage
+          src={getThumbnailUrl(photo, thumbWidth)}
+          fallbackSrc={photo.thumbnail_url || photo.storage_url}
+          alt={photo.filename}
+          className="w-full h-full photo-img-hover"
+          priority={index < 8}
+        />
+      )}
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
       {/* Zoom icon */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
         <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
-          <ZoomIn className="w-6 h-6 text-white" />
+          {photo.media_type === 'video' ? <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> : <ZoomIn className="w-6 h-6 text-white" />}
         </div>
       </div>
       {/* Top-right actions */}
@@ -1402,18 +1420,31 @@ export default function GalleryViewer({
               <ChevronLeft className="w-5 h-5" />
             </button>
           )}
-          {/* Image — fills full viewport, no padding */}
+          {/* Media — fills full viewport */}
           <div className="absolute inset-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             {!lightboxLoaded && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>}
-            <img
-              key={currentPhoto.id}
-              src={getLightboxUrl(currentPhoto)}
-              alt={currentPhoto.filename}
-              className={cn('object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
-              style={{ maxWidth: '100vw', maxHeight: '100vh', width: 'auto', height: 'auto' }}
-              onLoad={() => setLightboxLoaded(true)}
-              loading="eager"
-            />
+            {currentPhoto.media_type === 'video' ? (
+              <video
+                key={currentPhoto.id}
+                src={currentPhoto.storage_url}
+                controls
+                autoPlay
+                playsInline
+                className={cn('object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
+                style={{ maxWidth: '100vw', maxHeight: '100vh', width: 'auto', height: 'auto' }}
+                onLoadedMetadata={() => setLightboxLoaded(true)}
+              />
+            ) : (
+              <img
+                key={currentPhoto.id}
+                src={getLightboxUrl(currentPhoto)}
+                alt={currentPhoto.filename}
+                className={cn('object-contain transition-opacity duration-300', lightboxLoaded ? 'opacity-100' : 'opacity-0')}
+                style={{ maxWidth: '100vw', maxHeight: '100vh', width: 'auto', height: 'auto' }}
+                onLoad={() => setLightboxLoaded(true)}
+                loading="eager"
+              />
+            )}
           </div>
           {/* Right arrow — desktop only, auto-hides */}
           {!isMobile && (

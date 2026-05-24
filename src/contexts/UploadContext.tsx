@@ -154,6 +154,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               thumbnail_url: storageUrl,
               file_size: file.size,
               display_order: getOrder(),
+              media_type: file.type.startsWith('video/') ? 'video' : 'image',
               ...(sectionId ? { section_id: sectionId } : {}),
             })
             .select()
