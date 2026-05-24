@@ -579,10 +579,29 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     }
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
-    const { error } = await supabase.from('galleries').update(updates).eq('id', gallery.id)
-    if (error) {
-      console.error('[saveSettings] error:', JSON.stringify(error))
-      toast.error(`Error saving: ${error.message ?? error.code ?? 'unknown'}`)
+
+    // Columns added in recent migrations — drop them one by one if the
+    // PostgREST schema cache hasn't refreshed yet after the migration.
+    const newColumns = ['hero_style', 'spacing_density', 'cover_focal_x_mobile', 'cover_focal_y_mobile']
+    let payload = { ...updates }
+    let finalError = null
+
+    for (let attempt = 0; attempt <= newColumns.length; attempt++) {
+      const { error } = await supabase.from('galleries').update(payload).eq('id', gallery.id)
+      if (!error) { finalError = null; break }
+      finalError = error
+      const missing = newColumns.find(col => error.message?.includes(col))
+      if (missing) {
+        const { [missing]: _dropped, ...rest } = payload
+        payload = rest
+      } else {
+        break
+      }
+    }
+
+    if (finalError) {
+      console.error('[saveSettings]', JSON.stringify(finalError))
+      toast.error(`Error saving: ${finalError.message ?? finalError.code ?? 'unknown'}`)
     } else {
       setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
       setShowSettings(false)
