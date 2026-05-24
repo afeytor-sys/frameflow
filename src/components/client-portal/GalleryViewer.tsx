@@ -610,7 +610,7 @@ export default function GalleryViewer({
         />
       )}
       {/* Hover overlay */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
+      <div className="absolute inset-0" />
       {/* Zoom icon */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
         <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
@@ -1264,7 +1264,7 @@ export default function GalleryViewer({
                   setRowSpans(prev => ({ ...prev, [photo.id]: Math.ceil((h + 6) / 10) }))
                 }}
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-350" />
+              <div className="absolute inset-0" />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                 <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
                   <ZoomIn className="w-6 h-6 text-white" />
