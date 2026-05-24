@@ -118,7 +118,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y, cover_focal_x_mobile, cover_focal_y_mobile, hero_style, spacing_density')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -137,6 +137,23 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
       if ((count ?? 0) > 0) { gallery = g; break }
     }
     if (!gallery) gallery = allGalleries[0]
+  }
+
+  // Fetch columns from newer migrations separately so missing columns never crash the page.
+  // These default to safe values if the migration hasn't been applied yet.
+  let galleryExtra: {
+    cover_focal_x_mobile?: number | null
+    cover_focal_y_mobile?: number | null
+    hero_style?: string | null
+    spacing_density?: string | null
+  } = {}
+  if (gallery) {
+    const { data: extra, error: extraError } = await supabase
+      .from('galleries')
+      .select('cover_focal_x_mobile, cover_focal_y_mobile, hero_style, spacing_density')
+      .eq('id', gallery.id)
+      .single()
+    if (!extraError && extra) galleryExtra = extra
   }
 
   const emptyTheme = getTheme('classic-white')
@@ -186,10 +203,10 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   const coverPhotoId = gallery.cover_photo_id ?? null
   const focalX = (gallery as { cover_focal_x?: number | null }).cover_focal_x ?? 50
   const focalY = (gallery as { cover_focal_y?: number | null }).cover_focal_y ?? 50
-  const focalXMobile = (gallery as { cover_focal_x_mobile?: number | null }).cover_focal_x_mobile ?? focalX
-  const focalYMobile = (gallery as { cover_focal_y_mobile?: number | null }).cover_focal_y_mobile ?? focalY
-  const heroStyle = (gallery as { hero_style?: string | null }).hero_style ?? 'cinematic'
-  const spacingDensity = ((gallery as { spacing_density?: string | null }).spacing_density ?? 'balanced') as SpacingDensity
+  const focalXMobile = galleryExtra.cover_focal_x_mobile ?? focalX
+  const focalYMobile = galleryExtra.cover_focal_y_mobile ?? focalY
+  const heroStyle = galleryExtra.hero_style ?? 'cinematic'
+  const spacingDensity = (galleryExtra.spacing_density ?? 'balanced') as SpacingDensity
 
   const theme = getTheme(gallery.design_theme || 'classic-white')
 

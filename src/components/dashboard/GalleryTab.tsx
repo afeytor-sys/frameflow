@@ -580,33 +580,36 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
 
-    // Columns added in recent migrations — drop them one by one if the
-    // PostgREST schema cache hasn't refreshed yet after the migration.
-    const newColumns = ['hero_style', 'spacing_density', 'cover_focal_x_mobile', 'cover_focal_y_mobile']
-    let payload = { ...updates }
-    let finalError = null
+    // Save core fields first (always safe — these columns have existed since launch).
+    const coreFields = ['title', 'description', 'download_enabled', 'comments_enabled',
+      'expires_at', 'design_theme', 'tags_enabled', 'password', 'guest_password',
+      'cover_photo_id', 'cover_focal_x', 'cover_focal_y']
+    const coreUpdate: Record<string, unknown> = {}
+    for (const k of coreFields) if (k in updates) coreUpdate[k] = updates[k]
 
-    for (let attempt = 0; attempt <= newColumns.length; attempt++) {
-      const { error } = await supabase.from('galleries').update(payload).eq('id', gallery.id)
-      if (!error) { finalError = null; break }
-      finalError = error
-      const missing = newColumns.find(col => error.message?.includes(col))
-      if (missing) {
-        const { [missing]: _dropped, ...rest } = payload
-        payload = rest
-      } else {
-        break
-      }
+    const { error: coreError } = await supabase.from('galleries').update(coreUpdate).eq('id', gallery.id)
+    if (coreError) {
+      console.error('[saveSettings core]', JSON.stringify(coreError))
+      toast.error(`Error saving: ${coreError.message ?? coreError.code}`)
+      setSavingSettings(false)
+      return
     }
 
-    if (finalError) {
-      console.error('[saveSettings]', JSON.stringify(finalError))
-      toast.error(`Error saving: ${finalError.message ?? finalError.code ?? 'unknown'}`)
-    } else {
-      setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
-      setShowSettings(false)
-      toast.success('Einstellungen gespeichert')
+    // Save newer columns individually — silently skip any that aren't in the schema yet.
+    const newCols: Record<string, unknown> = {
+      cover_focal_x_mobile: updates.cover_focal_x_mobile,
+      cover_focal_y_mobile: updates.cover_focal_y_mobile,
+      hero_style:           updates.hero_style,
+      spacing_density:      updates.spacing_density,
     }
+    for (const [col, val] of Object.entries(newCols)) {
+      const { error: colError } = await supabase.from('galleries').update({ [col]: val }).eq('id', gallery.id)
+      if (colError) console.warn(`[saveSettings] column ${col} not saved:`, colError.message)
+    }
+
+    setGallery((prev) => prev ? { ...prev, ...updates as Partial<Gallery> } : prev)
+    setShowSettings(false)
+    toast.success('Einstellungen gespeichert')
     setSavingSettings(false)
   }
 
