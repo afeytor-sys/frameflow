@@ -116,7 +116,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   // Fetch active gallery with photos
   const { data: allGalleries } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y, cover_focal_x_mobile, cover_focal_y_mobile')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -184,6 +184,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   const coverPhotoId = gallery.cover_photo_id ?? null
   const focalX = (gallery as { cover_focal_x?: number | null }).cover_focal_x ?? 50
   const focalY = (gallery as { cover_focal_y?: number | null }).cover_focal_y ?? 50
+  const focalXMobile = (gallery as { cover_focal_x_mobile?: number | null }).cover_focal_x_mobile ?? focalX
+  const focalYMobile = (gallery as { cover_focal_y_mobile?: number | null }).cover_focal_y_mobile ?? focalY
 
   const theme = getTheme(gallery.design_theme || 'classic-white')
 
@@ -236,12 +238,16 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           {/* Hero photo */}
           {heroUrl && (
             <div style={{ width: '100%', height: 'clamp(600px, 78vh, 960px)', overflow: 'hidden', background: '#1A1A18' }}>
+              <style dangerouslySetInnerHTML={{ __html:
+                `.gh{object-position:${focalX}% ${focalY}%}@media(max-width:768px){.gh{object-position:${focalXMobile}% ${focalYMobile}%}}`
+              }} />
               <img
                 src={getPhotoUrl(heroUrl, 1920, 80, 'cover')}
                 alt=""
                 fetchPriority="high"
                 decoding="async"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%`, display: 'block' }}
+                className="gh"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             </div>
           )}
