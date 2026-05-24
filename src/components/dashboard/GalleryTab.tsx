@@ -1519,21 +1519,22 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   {
                     key: 'cinematic', label: 'Cinematic',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#1B1814', position: 'relative' }}>
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#1B1814', position: 'relative' }}>
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.72) 100%)' }} />
-                        <div style={{ position: 'absolute', top: 6, left: 7, width: 20, height: 2.5, background: 'rgba(255,255,255,0.18)', borderRadius: 2 }} />
-                        <div style={{ position: 'absolute', bottom: 7, left: 7, width: '52%', height: 2.5, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
-                        <div style={{ position: 'absolute', bottom: 4, left: 7, width: '30%', height: 1.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', top: '16%', left: '12%', width: '28%', height: 4, background: 'rgba(255,255,255,0.18)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', bottom: '18%', left: '12%', width: '52%', height: 4, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', bottom: '9%', left: '12%', width: '32%', height: 2.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
                       </div>
                     ),
                   },
                   {
                     key: 'classic', label: 'Classic',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden' }}>
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden' }}>
                         <div style={{ height: '62%', background: '#1B1814' }} />
-                        <div style={{ height: '38%', background: currentTheme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: `1px solid ${currentTheme.border}` }}>
-                          <div style={{ width: '50%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
+                        <div style={{ height: '38%', background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: '0 12%', gap: 4, borderTop: `1px solid ${currentTheme.border}` }}>
+                          <div style={{ width: '52%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
+                          <div style={{ width: '32%', height: 2.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
                         </div>
                       </div>
                     ),
@@ -1541,21 +1542,21 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   {
                     key: 'minimal', label: 'Minimal',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <div style={{ width: 18, height: 18, borderRadius: '50%', border: `1px solid ${currentTheme.border}`, opacity: 0.5 }} />
-                        <div style={{ width: '48%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.3 }} />
-                        <div style={{ width: '28%', height: 1.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${currentTheme.border}`, opacity: 0.6 }} />
+                        <div style={{ width: '44%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.3 }} />
+                        <div style={{ width: '26%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.15 }} />
                       </div>
                     ),
                   },
                   {
                     key: 'editorial', label: 'Split',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                         <div style={{ background: '#1B1814' }} />
-                        <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '5px 6px', borderTop: `1px solid ${currentTheme.border}` }}>
-                          <div style={{ width: '70%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35, marginBottom: 2 }} />
-                          <div style={{ width: '45%', height: 1.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
+                        <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 10% 12%', gap: 4, borderTop: `1px solid ${currentTheme.border}` }}>
+                          <div style={{ width: '70%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.4 }} />
+                          <div style={{ width: '46%', height: 2.5, background: currentTheme.text, borderRadius: 2, opacity: 0.2 }} />
                         </div>
                       </div>
                     ),
@@ -1563,12 +1564,12 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   {
                     key: 'frame', label: 'Frame',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#0E0C0A', position: 'relative', padding: 4 }}>
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#0E0C0A', position: 'relative', padding: 6 }}>
                         <div style={{ width: '100%', height: '100%', background: '#2A2420', position: 'relative', overflow: 'hidden', borderRadius: 2 }}>
                           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.7) 100%)' }} />
-                          <div style={{ position: 'absolute', bottom: 5, left: 6, width: '50%', height: 2.5, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
-                          <div style={{ position: 'absolute', bottom: 3, left: 6, width: '30%', height: 1.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
-                          <div style={{ position: 'absolute', inset: 0, border: '0.5px solid rgba(255,255,255,0.2)' }} />
+                          <div style={{ position: 'absolute', bottom: '18%', left: '12%', width: '50%', height: 3.5, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
+                          <div style={{ position: 'absolute', bottom: '8%', left: '12%', width: '30%', height: 2.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
+                          <div style={{ position: 'absolute', inset: 0, border: '1px solid rgba(255,255,255,0.2)' }} />
                         </div>
                       </div>
                     ),
@@ -1576,25 +1577,25 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   {
                     key: 'journal', label: 'Journal',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '5px 8px' }}>
-                        <div style={{ width: '55%', aspectRatio: '3/2', background: '#2A2520', borderRadius: 2 }} />
-                        <div style={{ width: '58%', height: 2, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
-                        <div style={{ width: '36%', height: 1.5, background: currentTheme.accent, borderRadius: 2, opacity: 0.4 }} />
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px 12px' }}>
+                        <div style={{ width: '45%', aspectRatio: '4/3', background: '#2A2520', borderRadius: 3 }} />
+                        <div style={{ width: '54%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
+                        <div style={{ width: '32%', height: 2.5, background: currentTheme.accent, borderRadius: 2, opacity: 0.45 }} />
                       </div>
                     ),
                   },
                   {
                     key: 'luxury', label: 'Luxury',
                     preview: (
-                      <div style={{ height: 46, borderRadius: 6, overflow: 'hidden', background: '#080604', position: 'relative' }}>
+                      <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#080604', position: 'relative' }}>
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
-                        <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 8, height: 8, borderRadius: '50%', border: '0.5px solid rgba(255,255,255,0.28)' }} />
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 5, gap: 2 }}>
-                          <div style={{ width: '45%', height: 2, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
-                          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                            <div style={{ width: 7, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
-                            <div style={{ width: 2, height: 2, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-                            <div style={{ width: 7, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
+                        <div style={{ position: 'absolute', top: '16%', left: '50%', transform: 'translateX(-50%)', width: 12, height: 12, borderRadius: '50%', border: '0.5px solid rgba(255,255,255,0.28)' }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '12%', gap: 4 }}>
+                          <div style={{ width: '42%', height: 3.5, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
+                          <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                            <div style={{ width: 10, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
+                            <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+                            <div style={{ width: 10, height: 0.5, background: 'rgba(255,255,255,0.2)' }} />
                           </div>
                         </div>
                       </div>
