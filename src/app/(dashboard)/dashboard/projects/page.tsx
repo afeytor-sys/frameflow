@@ -115,6 +115,9 @@ export default function ProjectsPage() {
   const [bookingEditNotes, setBookingEditNotes] = useState('')
   const [bookingEditLink, setBookingEditLink] = useState('')
   const [bookingEditSaving, setBookingEditSaving] = useState(false)
+  const [bookingFullEdit, setBookingFullEdit] = useState(false)
+  const [bookingFullEditForm, setBookingFullEditForm] = useState({ manual_title: '', client_name: '', client_email: '', booked_date: '', booked_time: '', notes: '' })
+  const [bookingFullEditSaving, setBookingFullEditSaving] = useState(false)
   const [bookingLoading, setBookingLoading] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -525,6 +528,51 @@ export default function ProjectsPage() {
       toast.success('Gespeichert')
     } else toast.error('Fehler beim Speichern')
     setBookingEditSaving(false)
+  }
+  const openBookingFullEdit = () => {
+    if (!bookingModal) return
+    setBookingFullEditForm({
+      manual_title: bookingModal.manual_title ?? bookingModal.booking_types?.title ?? '',
+      client_name: bookingModal.client_name,
+      client_email: bookingModal.client_email,
+      booked_date: bookingModal.booked_date,
+      booked_time: String(bookingModal.booked_time).slice(0, 5),
+      notes: bookingModal.notes ?? '',
+    })
+    setBookingFullEdit(true)
+  }
+
+  const handleBookingFullEditSave = async () => {
+    if (!bookingModal) return
+    setBookingFullEditSaving(true)
+    const res = await fetch(`/api/bookings/${bookingModal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        manual_title: bookingFullEditForm.manual_title.trim() || null,
+        client_name: bookingFullEditForm.client_name,
+        client_email: bookingFullEditForm.client_email,
+        booked_date: bookingFullEditForm.booked_date,
+        booked_time: bookingFullEditForm.booked_time,
+        notes: bookingFullEditForm.notes.trim() || null,
+      }),
+    })
+    if (res.ok) {
+      const updated = {
+        ...bookingModal,
+        manual_title: bookingFullEditForm.manual_title.trim() || null,
+        client_name: bookingFullEditForm.client_name,
+        client_email: bookingFullEditForm.client_email,
+        booked_date: bookingFullEditForm.booked_date,
+        booked_time: bookingFullEditForm.booked_time,
+        notes: bookingFullEditForm.notes.trim() || null,
+      }
+      setBookingModal(updated)
+      setOnlineBookings(bs => bs.map(b => b.id === bookingModal.id ? updated : b))
+      setBookingFullEdit(false)
+      toast.success(de ? 'Buchung gespeichert' : 'Booking saved')
+    } else toast.error(de ? 'Fehler beim Speichern' : 'Error saving')
+    setBookingFullEditSaving(false)
   }
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -1388,7 +1436,7 @@ export default function ProjectsPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-          onClick={() => { setBookingModal(null); setBookingEditMode(false) }}
+          onClick={() => { setBookingModal(null); setBookingEditMode(false); setBookingFullEdit(false) }}
         >
           <div
             className="w-full max-w-md rounded-2xl flex flex-col"
@@ -1407,13 +1455,113 @@ export default function ProjectsPage() {
                   </div>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold" style={{ background: bkSt.color + '18', color: bkSt.color }}>{bkSt.label}</span>
                 </div>
-                <button onClick={() => { setBookingModal(null); setBookingEditMode(false) }} className="p-1.5 rounded-lg transition-colors flex-shrink-0" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
-                  <XCircle className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!bookingFullEdit && (
+                    <button onClick={openBookingFullEdit} className="p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
+                      <Pencil className="w-3.5 h-3.5" />
+                      {de ? 'Bearbeiten' : 'Edit'}
+                    </button>
+                  )}
+                  <button onClick={() => { setBookingModal(null); setBookingEditMode(false); setBookingFullEdit(false) }} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
+              {/* Full edit form */}
+              {bookingFullEdit && (
+                <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--accent)' }}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
+                    {de ? 'Buchung bearbeiten' : 'Edit booking'}
+                  </p>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Titel' : 'Title'}</label>
+                    <input
+                      type="text"
+                      value={bookingFullEditForm.manual_title}
+                      onChange={e => setBookingFullEditForm(f => ({ ...f, manual_title: e.target.value }))}
+                      placeholder={bm.booking_types?.title ?? ''}
+                      className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-all"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Datum' : 'Date'}</label>
+                      <input
+                        type="date"
+                        value={bookingFullEditForm.booked_date}
+                        onChange={e => setBookingFullEditForm(f => ({ ...f, booked_date: e.target.value }))}
+                        className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-all"
+                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Uhrzeit' : 'Time'}</label>
+                      <input
+                        type="time"
+                        value={bookingFullEditForm.booked_time}
+                        onChange={e => setBookingFullEditForm(f => ({ ...f, booked_time: e.target.value }))}
+                        className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-all"
+                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Name' : 'Name'}</label>
+                      <input
+                        type="text"
+                        value={bookingFullEditForm.client_name}
+                        onChange={e => setBookingFullEditForm(f => ({ ...f, client_name: e.target.value }))}
+                        className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-all"
+                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>E-Mail</label>
+                      <input
+                        type="email"
+                        value={bookingFullEditForm.client_email}
+                        onChange={e => setBookingFullEditForm(f => ({ ...f, client_email: e.target.value }))}
+                        className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-all"
+                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Treffpunkt / Notizen' : 'Meeting point / Notes'}</label>
+                    <textarea
+                      value={bookingFullEditForm.notes}
+                      onChange={e => setBookingFullEditForm(f => ({ ...f, notes: e.target.value }))}
+                      rows={2}
+                      placeholder={de ? 'z.B. Treffpunkt Eingang Nord...' : 'e.g. Meeting at north entrance...'}
+                      className="w-full rounded-xl px-3 py-2.5 text-[13px] resize-none outline-none transition-all"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={handleBookingFullEditSave}
+                      disabled={bookingFullEditSaving || !bookingFullEditForm.client_name.trim() || !bookingFullEditForm.booked_date}
+                      className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: 'var(--accent)', color: '#1A1A18' }}
+                    >
+                      {bookingFullEditSaving ? '...' : (de ? 'Speichern' : 'Save')}
+                    </button>
+                    <button
+                      onClick={() => setBookingFullEdit(false)}
+                      className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                      style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                    >
+                      {de ? 'Abbrechen' : 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Details card */}
-              <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
+              {!bookingFullEdit && <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-2 text-[13px]">
                   <User className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                   <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{bm.client_name}</span>
@@ -1467,10 +1615,10 @@ export default function ProjectsPage() {
                     {de ? 'Rechnung öffnen' : 'Open invoice'}
                   </Link>
                 )}
-              </div>
+              </div>}
 
               {/* Client answers */}
-              {answeredQs.length > 0 && (
+              {!bookingFullEdit && answeredQs.length > 0 && (
                 <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
                   <div className="px-4 py-2.5" style={{ background: 'var(--bg-hover)', borderBottom: '1px solid var(--border-color)' }}>
                     <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -1498,7 +1646,7 @@ export default function ProjectsPage() {
               )}
 
               {/* Edit section */}
-              {bookingEditMode ? (
+              {!bookingFullEdit && bookingEditMode ? (
                 <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-page)', border: '1px solid var(--accent)', borderColor: 'var(--accent)' }}>
                   <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: 'var(--accent)' }}>
                     {de ? 'Buchung bearbeiten' : 'Edit booking'}
@@ -1547,7 +1695,7 @@ export default function ProjectsPage() {
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : !bookingFullEdit ? (
                 <button
                   onClick={() => { setBookingEditNotes(bm.notes ?? ''); setBookingEditLink(bm.google_meet_link ?? ''); setBookingEditMode(true) }}
                   className="w-full py-2.5 rounded-xl text-[13px] font-medium transition-all hover:opacity-80 flex items-center justify-center gap-2"
@@ -1556,12 +1704,12 @@ export default function ProjectsPage() {
                   <Pencil className="w-3.5 h-3.5" />
                   {de ? 'Treffpunkt / Link hinzufügen' : 'Add meeting point / link'}
                 </button>
-              )}
+              ) : null}
 
             </div>
 
             {/* Sticky action buttons */}
-            <div className="p-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+            {!bookingFullEdit && <div className="p-4 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-color)' }}>
               {(bm.status === 'pending' || bm.status === 'deposit_received') && (
                 <button
                   className="w-full py-2.5 rounded-xl text-[14px] font-bold text-white transition-all hover:opacity-90 active:scale-[0.99] flex items-center justify-center gap-2"
@@ -1617,7 +1765,7 @@ export default function ProjectsPage() {
                   {bookingLoading === bm.id + '_cancel' ? '...' : (de ? 'Stornieren' : 'Cancel')}
                 </button>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       )
