@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 // GET — fetch moodboard items for a project (via token, public)
@@ -12,10 +11,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const service = createServiceClient()
 
-  // Validate token
-  const { data: project } = await supabase
+  const { data: project } = await service
     .from('projects')
     .select('id')
     .eq('id', projectId)
@@ -24,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   if (!project) return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
 
-  const { data, error } = await supabase
+  const { data, error } = await service
     .from('moodboard_items')
     .select('*')
     .eq('project_id', projectId)
@@ -43,9 +41,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Token validation uses the regular client (just a SELECT with no RLS restrictions)
-  const authClient = await createClient()
-  const { data: project } = await authClient
+  // Use service client for all operations — the public portal has no auth session
+  // so the regular client's RLS blocks both SELECT on projects and INSERT on moodboard_items
+  const service = createServiceClient()
+
+  const { data: project } = await service
     .from('projects')
     .select('id')
     .eq('id', project_id)
@@ -53,10 +53,6 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!project) return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
-
-  // Use service client for the write — the public portal has no auth session
-  // so the regular client's RLS blocks INSERT on moodboard_items for anon users
-  const service = createServiceClient()
 
   const { data: existing } = await service
     .from('moodboard_items')
