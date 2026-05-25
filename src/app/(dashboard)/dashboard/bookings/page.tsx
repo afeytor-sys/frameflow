@@ -28,6 +28,28 @@ interface Project {
   title: string
 }
 
+const SHOOTING_TYPES_EN = [
+  { value: 'Wedding',   label: '💍 Wedding',   color: '#E879A0' },
+  { value: 'Portrait',  label: '🧑 Portrait',  color: '#8B5CF6' },
+  { value: 'Babybauch', label: '🤰 Babybauch', color: '#F97316' },
+  { value: 'Newborn',   label: '👶 Newborn',   color: '#FB923C' },
+  { value: 'Family',    label: '👨‍👩‍👧 Family',   color: '#06B6D4' },
+  { value: 'Event',     label: '🎉 Event',     color: '#F59E0B' },
+  { value: 'Commercial',label: '💼 Commercial',color: '#3B82F6' },
+  { value: 'Other',     label: '✏️ Other',     color: '#94A3B8' },
+]
+
+const SHOOTING_TYPES_DE = [
+  { value: 'Wedding',   label: '💍 Hochzeit',  color: '#E879A0' },
+  { value: 'Portrait',  label: '🧑 Portrait',  color: '#8B5CF6' },
+  { value: 'Babybauch', label: '🤰 Babybauch', color: '#F97316' },
+  { value: 'Newborn',   label: '👶 Newborn',   color: '#FB923C' },
+  { value: 'Family',    label: '👨‍👩‍👧 Familie',  color: '#06B6D4' },
+  { value: 'Event',     label: '🎉 Event',     color: '#F59E0B' },
+  { value: 'Commercial',label: '💼 Commercial',color: '#3B82F6' },
+  { value: 'Other',     label: '✏️ Anderer',   color: '#94A3B8' },
+]
+
 const STATUS_COLORS_EN: Record<string, { bg: string; color: string; label: string }> = {
   draft:     { bg: 'rgba(100,116,139,0.10)', color: '#64748B', label: 'Draft' },
   booked:    { bg: 'rgba(61,186,111,0.12)',  color: '#3DBA6F', label: 'Booked' },
@@ -90,6 +112,10 @@ const UI = {
     noProjectsYet: 'No projects yet',
     notesLabel: 'Notes (optional)',
     notesPlaceholder: 'Special requests, notes...',
+    shootTypeLabel: 'Shooting type',
+    customTypePlaceholder: 'Custom type...',
+    priceLabel: 'Value (optional)',
+    pricePlaceholder: 'e.g. 1200',
     cancel: 'Cancel',
     createBtn: 'Create booking',
     // Status options
@@ -143,6 +169,10 @@ const UI = {
     noProjectsYet: 'Noch keine Projekte',
     notesLabel: 'Notizen (optional)',
     notesPlaceholder: 'Besondere Wünsche, Notizen...',
+    shootTypeLabel: 'Shooting-Typ',
+    customTypePlaceholder: 'Eigener Typ...',
+    priceLabel: 'Wert (optional)',
+    pricePlaceholder: 'z.B. 1200',
     cancel: 'Abbrechen',
     createBtn: 'Booking erstellen',
     // Status options
@@ -198,7 +228,10 @@ export default function BookingsPage() {
     project_id: '',
     status: 'booked',
     notes: '',
+    shoot_type: '',
+    price: '',
   })
+  const [customShootType, setCustomShootType] = useState('')
 
   const [showNewClient, setShowNewClient] = useState(false)
   const [newClientName, setNewClientName] = useState('')
@@ -207,6 +240,8 @@ export default function BookingsPage() {
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectTitle, setNewProjectTitle] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
+
+  const SHOOTING_TYPES = locale === 'de' ? SHOOTING_TYPES_DE : SHOOTING_TYPES_EN
 
   const router = useRouter()
   const supabase = createClient()
@@ -234,7 +269,8 @@ export default function BookingsPage() {
   }, [])
 
   const openModal = async () => {
-    setForm({ title: '', shoot_date: '', location: '', client_id: '', project_id: '', status: 'booked', notes: '' })
+    setForm({ title: '', shoot_date: '', location: '', client_id: '', project_id: '', status: 'booked', notes: '', shoot_type: '', price: '' })
+    setCustomShootType('')
     setShowNewClient(false)
     setNewClientName('')
     setShowNewProject(false)
@@ -315,6 +351,8 @@ export default function BookingsPage() {
 
     let projectId = form.project_id
 
+    const resolvedShootType = form.shoot_type === 'Other' ? (customShootType.trim() || null) : (form.shoot_type || null)
+
     if (projectId) {
       await supabase
         .from('projects')
@@ -323,6 +361,8 @@ export default function BookingsPage() {
           location: form.location.trim() || null,
           status: form.status,
           notes: form.notes.trim() || null,
+          shooting_type: resolvedShootType,
+          price: form.price.trim() || null,
           ...(form.client_id ? { client_id: form.client_id } : {}),
         })
         .eq('id', projectId)
@@ -356,6 +396,8 @@ export default function BookingsPage() {
         client_id: form.client_id || null,
         status: form.status,
         notes: form.notes.trim() || null,
+        shooting_type: resolvedShootType,
+        price: form.price.trim() || null,
         client_token: generateToken(32),
       })
       .select('id, title, shoot_date, location, status, client:clients(full_name)')
@@ -664,7 +706,43 @@ export default function BookingsPage() {
                   placeholder={t.titlePlaceholder} className="input-base w-full" autoFocus required />
               </div>
 
-              {/* Date + Status */}
+              {/* Shooting type pills */}
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted)' }}>{t.shootTypeLabel}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SHOOTING_TYPES.map(({ value, label, color }) => {
+                    const selected = form.shoot_type === value
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, shoot_type: selected ? '' : value }))}
+                        className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                        style={{
+                          background: selected ? color + '22' : 'var(--bg-hover)',
+                          color: selected ? color : 'var(--text-secondary)',
+                          border: selected ? `1.5px solid ${color}55` : '1.5px solid transparent',
+                          outline: 'none',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {form.shoot_type === 'Other' && (
+                  <input
+                    type="text"
+                    value={customShootType}
+                    onChange={e => setCustomShootType(e.target.value)}
+                    placeholder={t.customTypePlaceholder}
+                    className="input-base w-full mt-2 text-[13px]"
+                    autoFocus
+                  />
+                )}
+              </div>
+
+              {/* Date + Status + Price */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.dateLabel}</label>
@@ -686,11 +764,21 @@ export default function BookingsPage() {
                 </div>
               </div>
 
-              {/* Location */}
-              <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.locationLabel}</label>
-                <input type="text" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  placeholder={t.locationPlaceholder} className="input-base w-full" />
+              {/* Location + Price */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.locationLabel}</label>
+                  <input type="text" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                    placeholder={t.locationPlaceholder} className="input-base w-full" />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted)' }}>{t.priceLabel}</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold" style={{ color: 'var(--text-muted)' }}>€</span>
+                    <input type="text" inputMode="numeric" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                      placeholder={t.pricePlaceholder} className="input-base w-full pl-7" />
+                  </div>
+                </div>
               </div>
 
               {/* ── CLIENT ── */}
