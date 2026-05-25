@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 // GET — fetch moodboard items for a project (via token, public)
 export async function GET(req: NextRequest) {
@@ -42,10 +43,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  const supabase = await createClient()
-
-  // Validate token
-  const { data: project } = await supabase
+  // Token validation uses the regular client (just a SELECT with no RLS restrictions)
+  const authClient = await createClient()
+  const { data: project } = await authClient
     .from('projects')
     .select('id')
     .eq('id', project_id)
@@ -54,8 +54,11 @@ export async function POST(req: NextRequest) {
 
   if (!project) return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
 
-  // Get current max order
-  const { data: existing } = await supabase
+  // Use service client for the write — the public portal has no auth session
+  // so the regular client's RLS blocks INSERT on moodboard_items for anon users
+  const service = createServiceClient()
+
+  const { data: existing } = await service
     .from('moodboard_items')
     .select('display_order')
     .eq('project_id', project_id)
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
 
   const nextOrder = (existing?.[0]?.display_order ?? -1) + 1
 
-  const { data, error } = await supabase
+  const { data, error } = await service
     .from('moodboard_items')
     .insert({
       project_id,

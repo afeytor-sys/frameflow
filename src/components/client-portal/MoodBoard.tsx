@@ -28,6 +28,8 @@ export default function MoodBoard({ projectId, token }: Props) {
   const [inputUrl, setInputUrl] = useState('')
   const [inputCaption, setInputCaption] = useState('')
   const [submittingLink, setSubmittingLink] = useState(false)
+  const [linkError, setLinkError] = useState('')
+  const [uploadError, setUploadError] = useState('')
 
   // Photo tab state
   const [dragOver, setDragOver] = useState(false)
@@ -64,24 +66,31 @@ export default function MoodBoard({ projectId, token }: Props) {
   const submitLink = async () => {
     if (!inputUrl.trim() || submittingLink) return
     setSubmittingLink(true)
-    const type = isImageUrl(inputUrl) ? 'image' : 'link'
-    const res = await fetch('/api/moodboard', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project_id: projectId,
-        token,
-        type,
-        url: inputUrl.trim(),
-        caption: inputCaption.trim() || null,
-      }),
-    })
-    if (res.ok) {
-      const newItem = await res.json()
-      setItems(prev => [...prev, newItem])
-      setInputUrl('')
-      setInputCaption('')
-      setShowAdd(false)
+    try {
+      const type = isImageUrl(inputUrl) ? 'image' : 'link'
+      const res = await fetch('/api/moodboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          token,
+          type,
+          url: inputUrl.trim(),
+          caption: inputCaption.trim() || null,
+        }),
+      })
+      if (res.ok) {
+        const newItem = await res.json()
+        setItems(prev => [...prev, newItem])
+        setInputUrl('')
+        setInputCaption('')
+        setShowAdd(false)
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setLinkError(err.error || 'Fehler beim Speichern')
+      }
+    } catch {
+      setLinkError('Netzwerkfehler. Bitte erneut versuchen.')
     }
     setSubmittingLink(false)
   }
@@ -142,9 +151,16 @@ export default function MoodBoard({ projectId, token }: Props) {
       setUploadProgress({ done: i + 1, total: previews.length })
     }
 
+    if (uploaded.length === 0 && previews.length > 0) {
+      setUploadError('Upload fehlgeschlagen. Bitte erneut versuchen.')
+      setUploadProgress(null)
+      setUploading(false)
+      return
+    }
     setItems(prev => [...prev, ...uploaded])
     setPreviews([])
     setUploadProgress(null)
+    setUploadError('')
     setShowAdd(false)
     setUploading(false)
   }
@@ -153,6 +169,8 @@ export default function MoodBoard({ projectId, token }: Props) {
     setShowAdd(false)
     setInputUrl('')
     setInputCaption('')
+    setLinkError('')
+    setUploadError('')
     previews.forEach(p => URL.revokeObjectURL(p.objectUrl))
     setPreviews([])
   }
@@ -257,6 +275,9 @@ export default function MoodBoard({ projectId, token }: Props) {
                   </div>
                 )}
 
+                {uploadError && (
+                  <p className="text-[12px] text-red-500 px-1">{uploadError}</p>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={uploadPhotos}
@@ -292,9 +313,12 @@ export default function MoodBoard({ projectId, token }: Props) {
                     maxLength={200}
                   />
                 </div>
+                {linkError && (
+                  <p className="text-[12px] text-red-500 px-1">{linkError}</p>
+                )}
                 <div className="flex gap-2">
                   <button
-                    onClick={submitLink}
+                    onClick={() => { setLinkError(''); submitLink() }}
                     disabled={!inputUrl.trim() || submittingLink}
                     className="flex items-center gap-1.5 px-4 py-2 bg-[#111827] text-white rounded-xl text-[12.5px] font-semibold hover:opacity-85 disabled:opacity-40 transition-all"
                   >
