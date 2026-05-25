@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
 // DELETE — photographer deletes a moodboard item (authenticated)
 export async function DELETE(req: NextRequest) {
   const { itemId } = await req.json()
-  const supabase = await createClient()
+  const service = createServiceClient()
 
-  const { error } = await supabase
+  const { error } = await service
     .from('moodboard_items')
     .delete()
     .eq('id', itemId)
