@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name } = body
+    const { name, fields } = body
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Form name is required' }, { status: 400 })
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       .insert({
         photographer_id: user.id,
         name: name.trim(),
-        fields: [],
+        fields: Array.isArray(fields) ? fields : [],
       })
       .select('id, photographer_id, name, fields, created_at')
       .single()

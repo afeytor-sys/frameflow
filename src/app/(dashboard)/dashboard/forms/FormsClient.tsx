@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Copy, ExternalLink, FileText, Check, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Copy, ExternalLink, FileText, Check, Pencil, Trash2, X, CopyPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { FormField } from '@/lib/forms'
 import { DEFAULT_FIELDS } from '@/lib/forms'
@@ -54,8 +54,11 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
 
-  // Copy state
+  // Copy link state
   const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  // Duplicate state
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
 
   // Edit fields state
   const [editingForm, setEditingForm] = useState<Form | null>(null)
@@ -102,6 +105,28 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
       setTimeout(() => setCopiedId(null), 2000)
     } catch {
       toast.error('Could not copy link')
+    }
+  }
+
+  // ── Duplicate form ─────────────────────────────────────────────────────────
+  async function handleDuplicate(form: Form) {
+    setDuplicatingId(form.id)
+    try {
+      const fields = form.fields && form.fields.length > 0 ? form.fields : DEFAULT_FIELDS
+      const fieldsWithNewIds = fields.map(f => ({ ...f, id: crypto.randomUUID(), core: undefined }))
+      const res = await fetch('/api/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `Kopie von ${form.name}`, fields: fieldsWithNewIds }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? 'Failed to duplicate'); return }
+      setForms(prev => [data, ...prev])
+      toast.success('Formular dupliziert!')
+    } catch {
+      toast.error('Network error. Please try again.')
+    } finally {
+      setDuplicatingId(null)
     }
   }
 
@@ -505,6 +530,16 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
               >
                 <Pencil className="w-3.5 h-3.5" />
                 Edit Fields
+              </button>
+
+              <button
+                onClick={() => handleDuplicate(form)}
+                disabled={duplicatingId === form.id}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--card-border)' }}
+              >
+                <CopyPlus className="w-3.5 h-3.5" />
+                {duplicatingId === form.id ? '…' : 'Duplicate'}
               </button>
 
               <button
