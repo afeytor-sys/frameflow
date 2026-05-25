@@ -243,6 +243,8 @@ export default function BookingsPage() {
 
   const [completeModal, setCompleteModal] = useState<{ id: string; title: string } | null>(null)
   const [completing, setCompleting] = useState(false)
+  const [hoveredPastId, setHoveredPastId] = useState<string | null>(null)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   const SHOOTING_TYPES = locale === 'de' ? SHOOTING_TYPES_DE : SHOOTING_TYPES_EN
 
@@ -589,66 +591,103 @@ export default function BookingsPage() {
                 </div>
               )}
 
-              {past.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] mb-3" style={{ color: 'var(--text-muted)' }}>{t.past}</p>
-                  <div className="space-y-2">
-                    {[...past].reverse().map((b, i) => {
-                      const st = STATUS_COLORS[b.status] || STATUS_COLORS.booked
-                      const isCloseable = b.status !== 'completed' && b.status !== 'cancelled'
-                      return (
-                        <div key={b.id}
-                          className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 cursor-pointer group/past"
-                          style={{ opacity: 0, animation: 'bookingFadeUp 0.4s ease forwards', animationDelay: `${(upcoming.length + i) * 70}ms` }}
-                          onClick={() => router.push(`/dashboard/projects/${b.id}`)}
-                          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.opacity = '1' }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.opacity = '0.55' }}
+              {past.length > 0 && (() => {
+                const completedPast = past.filter(b => b.status === 'completed' || b.status === 'cancelled')
+                const activePast = past.filter(b => b.status !== 'completed' && b.status !== 'cancelled')
+                const visiblePast = showCompleted ? [...past].reverse() : [...activePast].reverse()
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--text-muted)' }}>{t.past}</p>
+                      {completedPast.length > 0 && (
+                        <button
+                          onClick={() => setShowCompleted(v => !v)}
+                          className="text-[11.5px] font-medium transition-colors"
+                          style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                         >
-                          <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
-                          <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
-                            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderLeft: 'none', borderRadius: '0 16px 16px 0' }}>
-                            <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
-                              <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>
-                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { month: 'short' })}
-                              </span>
-                              <span className="text-[22px] font-black leading-none" style={{ color: 'var(--text-secondary)' }}>
-                                {new Date(b.shoot_date + 'T00:00:00').getDate()}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
-                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+                          {showCompleted
+                            ? (locale === 'de' ? 'Abgeschlossene ausblenden' : 'Hide completed')
+                            : (locale === 'de' ? `${completedPast.length} abgeschlossene anzeigen` : `Show ${completedPast.length} completed`)}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {visiblePast.map((b, i) => {
+                        const st = STATUS_COLORS[b.status] || STATUS_COLORS.booked
+                        const isCloseable = b.status !== 'completed' && b.status !== 'cancelled'
+                        const isHovered = hoveredPastId === b.id
+                        return (
+                          <div key={b.id}
+                            className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+                            style={{
+                              opacity: 0,
+                              animation: 'bookingFadeUp 0.4s ease forwards',
+                              animationDelay: `${(upcoming.length + i) * 70}ms`,
+                            }}
+                            onClick={() => router.push(`/dashboard/projects/${b.id}`)}
+                            onMouseEnter={() => setHoveredPastId(b.id)}
+                            onMouseLeave={() => setHoveredPastId(null)}
+                          >
+                            <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
+                            <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
+                              style={{
+                                background: 'var(--bg-surface)',
+                                border: '1px solid var(--border-color)',
+                                borderLeft: 'none',
+                                borderRadius: '0 16px 16px 0',
+                                opacity: isHovered ? 1 : 0.6,
+                                transition: 'opacity 0.2s',
+                              }}>
+                              <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-hover)' }}>
+                                <span className="text-[11px] font-bold uppercase" style={{ color: 'var(--text-muted)' }}>
+                                  {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { month: 'short' })}
+                                </span>
+                                <span className="text-[22px] font-black leading-none" style={{ color: 'var(--text-secondary)' }}>
+                                  {new Date(b.shoot_date + 'T00:00:00').getDate()}
+                                </span>
                               </div>
-                              <div className="flex items-center gap-3 flex-wrap">
-                                {b.client && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><User className="w-3 h-3" />{b.client.full_name}</span>}
-                                {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <p className="font-semibold text-[14px] truncate" style={{ color: 'var(--text-primary)' }}>{b.title}</p>
+                                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+                                </div>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  {b.client && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><User className="w-3 h-3" />{b.client.full_name}</span>}
+                                  {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              {isCloseable && (
-                                <button
-                                  onClick={e => { e.stopPropagation(); setCompleteModal({ id: b.id, title: b.title }) }}
-                                  className="opacity-0 group-hover/past:opacity-100 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all"
-                                  style={{ background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.22)' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)' }}
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  {locale === 'de' ? 'Abschließen' : 'Complete'}
-                                </button>
-                              )}
-                              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                              </span>
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                {isCloseable && isHovered && (
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setCompleteModal({ id: b.id, title: b.title }) }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all"
+                                    style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981', border: '1px solid rgba(16,185,129,0.30)' }}
+                                    onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.background = 'rgba(16,185,129,0.25)' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.15)' }}
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    {locale === 'de' ? 'Abschließen' : 'Complete'}
+                                  </button>
+                                )}
+                                <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                  {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                      {!showCompleted && activePast.length === 0 && completedPast.length > 0 && (
+                        <p className="text-center text-[13px] py-4" style={{ color: 'var(--text-muted)' }}>
+                          {locale === 'de' ? `Alle ${completedPast.length} vergangenen Shootings sind abgeschlossen.` : `All ${completedPast.length} past shoots are completed.`}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
             </>
           )}
         </div>
