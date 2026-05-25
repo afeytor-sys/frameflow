@@ -143,8 +143,9 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     if (!gallery) gallery = allGalleries[0]
   }
 
-  // Fetch columns from newer migrations separately so missing columns never crash the page.
-  // These default to safe values if the migration hasn't been applied yet.
+  // Fetch each batch of newer columns in its own query so one missing column
+  // never silently kills the others (a single SELECT with a missing column
+  // returns an error for the whole row).
   let galleryExtra: {
     cover_focal_x_mobile?: number | null
     cover_focal_y_mobile?: number | null
@@ -153,12 +154,20 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     typography_preset?: string | null
   } = {}
   if (gallery) {
-    const { data: extra, error: extraError } = await supabase
-      .from('galleries')
-      .select('cover_focal_x_mobile, cover_focal_y_mobile, hero_style, spacing_density, typography_preset')
-      .eq('id', gallery.id)
-      .single()
-    if (!extraError && extra) galleryExtra = extra
+    // migration 082 — focal point mobile
+    const { data: e1 } = await supabase
+      .from('galleries').select('cover_focal_x_mobile, cover_focal_y_mobile').eq('id', gallery.id).single()
+    if (e1) galleryExtra = { ...galleryExtra, ...e1 }
+
+    // migration 095 — hero style + spacing
+    const { data: e2 } = await supabase
+      .from('galleries').select('hero_style, spacing_density').eq('id', gallery.id).single()
+    if (e2) galleryExtra = { ...galleryExtra, ...e2 }
+
+    // migration 096 — typography preset
+    const { data: e3 } = await supabase
+      .from('galleries').select('typography_preset').eq('id', gallery.id).single()
+    if (e3) galleryExtra = { ...galleryExtra, ...e3 }
   }
 
   const emptyTheme = getTheme('classic-white')
