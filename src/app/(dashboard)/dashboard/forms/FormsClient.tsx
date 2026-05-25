@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Copy, ExternalLink, FileText, Check, Pencil, Trash2, X, CopyPlus } from 'lucide-react'
+import { Plus, Copy, ExternalLink, FileText, Check, Pencil, Trash2, X, CopyPlus, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { FormField } from '@/lib/forms'
 import { DEFAULT_FIELDS } from '@/lib/forms'
@@ -59,6 +59,14 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
 
   // Duplicate state
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+
+  // Rename state
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameSaving, setRenameSaving] = useState(false)
+
+  // Delete state
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Edit fields state
   const [editingForm, setEditingForm] = useState<Form | null>(null)
@@ -127,6 +135,50 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
       toast.error('Network error. Please try again.')
     } finally {
       setDuplicatingId(null)
+    }
+  }
+
+  // ── Rename form ────────────────────────────────────────────────────────────
+  function startRename(form: Form) {
+    setRenamingId(form.id)
+    setRenameValue(form.name)
+  }
+
+  async function commitRename(formId: string) {
+    if (!renameValue.trim()) { setRenamingId(null); return }
+    const current = forms.find(f => f.id === formId)
+    if (current && renameValue.trim() === current.name) { setRenamingId(null); return }
+    setRenameSaving(true)
+    try {
+      const res = await fetch(`/api/forms/${formId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: renameValue.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? 'Failed to rename'); return }
+      setForms(prev => prev.map(f => f.id === formId ? { ...f, name: data.name } : f))
+      toast.success('Umbenannt!')
+    } catch {
+      toast.error('Network error.')
+    } finally {
+      setRenameSaving(false)
+      setRenamingId(null)
+    }
+  }
+
+  // ── Delete form ────────────────────────────────────────────────────────────
+  async function handleDelete(formId: string) {
+    setDeletingId(formId)
+    try {
+      const res = await fetch(`/api/forms/${formId}`, { method: 'DELETE' })
+      if (!res.ok) { toast.error('Failed to delete'); return }
+      setForms(prev => prev.filter(f => f.id !== formId))
+      toast.success('Formular gelöscht')
+    } catch {
+      toast.error('Network error.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -508,10 +560,34 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                 style={{ background: 'rgba(6,182,212,0.10)' }}>
                 <FileText className="w-4 h-4" style={{ color: '#06B6D4' }} />
               </div>
-              <div className="min-w-0">
-                <p className="font-bold text-[15px] truncate" style={{ color: 'var(--text-primary)' }}>
-                  {form.name}
-                </p>
+              <div className="min-w-0 flex-1">
+                {renamingId === form.id ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') commitRename(form.id); if (e.key === 'Escape') setRenamingId(null) }}
+                      onBlur={() => commitRename(form.id)}
+                      className="font-bold text-[15px] rounded-lg px-2 py-0.5 min-w-0 flex-1"
+                      style={{ background: 'var(--bg-hover)', border: '1.5px solid var(--cta-bg)', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                    {renameSaving && <span className="w-3.5 h-3.5 border-2 rounded-full animate-spin flex-shrink-0" style={{ borderColor: 'var(--text-muted)', borderTopColor: 'transparent' }} />}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 group">
+                    <p className="font-bold text-[15px] truncate" style={{ color: 'var(--text-primary)' }}>{form.name}</p>
+                    <button
+                      onClick={() => startRename(form)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded"
+                      style={{ color: 'var(--text-muted)' }}
+                      title="Umbenennen"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   Created {formatDate(form.created_at)} · {(form.fields?.length || 0) > 0 ? form.fields.length : DEFAULT_FIELDS.length} fields
                 </p>
@@ -567,6 +643,16 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                 <ExternalLink className="w-3.5 h-3.5" />
                 Test Form
               </a>
+
+              <button
+                onClick={() => { if (confirm(`"${form.name}" löschen?`)) handleDelete(form.id) }}
+                disabled={deletingId === form.id}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 ml-auto"
+                style={{ background: 'rgba(196,59,44,0.07)', color: '#C43B2C', border: '1px solid rgba(196,59,44,0.15)' }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deletingId === form.id ? '…' : 'Löschen'}
+              </button>
             </div>
           </div>
         ))}
