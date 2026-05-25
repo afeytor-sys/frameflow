@@ -304,7 +304,9 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
             <img className="gh gallery-hero-kb" src={getPhotoUrl(heroUrl!, 1920, 82, 'cover')} alt="" fetchPriority="high" decoding="async"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.44) 78%, rgba(0,0,0,0.70) 100%)' }} />
+            {/* Soft vignette so centered text is readable on any photo */}
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.52) 100%)' }} />
+            {/* Photographer brand — top-left */}
             {photographer && (
               <div className="hero-brand-in" style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {photographer.logo_url && <img src={photographer.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover', opacity: 0.75 }} />}
@@ -313,12 +315,13 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
                 </span>
               </div>
             )}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 28px 32px', zIndex: 10 }}>
-              <h1 className="hero-title-in" style={{ color: 'rgba(255,255,255,0.9)', fontFamily: typo.fontFamily, fontSize: 'clamp(1.4rem, 2.6vw, 2.4rem)', fontWeight: typo.titleWeight, letterSpacing: typo.titleTracking, lineHeight: typo.titleLineHeight, margin: 0, textShadow: '0 1px 16px rgba(0,0,0,0.25)' }}>
+            {/* Title + date — dead center */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 clamp(32px, 6vw, 96px)', zIndex: 10 }}>
+              <h1 className="hero-title-in" style={{ color: 'rgba(255,255,255,0.93)', fontFamily: typo.fontFamily, fontSize: 'clamp(1.6rem, 3vw, 2.8rem)', fontWeight: typo.titleWeight, letterSpacing: typo.titleTracking, lineHeight: typo.titleLineHeight, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,0.35)' }}>
                 {heroTitle}
               </h1>
               {formattedDate && (
-                <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: typo.fontFamily, fontSize: '0.62rem', letterSpacing: typo.subtitleTracking, marginTop: 10, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>
+                <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: typo.fontFamily, fontSize: '0.64rem', letterSpacing: typo.subtitleTracking, marginTop: 14, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>
                   {formattedDate}
                 </p>
               )}

@@ -1166,9 +1166,16 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   return (
                     <>
                       {showImg && <img src={coverSrc!} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: `${focalX}% ${focalY}%` }} />}
-                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 28%, rgba(0,0,0,0.55) 100%)' }} />
+                      {heroStyle === 'frame'
+                        ? <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.52) 100%)' }} />
+                        : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 28%, rgba(0,0,0,0.55) 100%)' }} />
+                      }
                       {heroStyle === 'frame' && <div style={{ position: 'absolute', inset: '5%', border: '1px solid rgba(255,255,255,0.18)', pointerEvents: 'none' }} />}
-                      {heroStyle === 'luxury' ? (
+                      {heroStyle === 'frame' ? (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 10%', gap: 2 }}>
+                          <p style={{ color: 'rgba(255,255,255,0.93)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.56rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                        </div>
+                      ) : heroStyle === 'luxury' ? (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '0 10% 12%', textAlign: 'center', gap: 3 }}>
                           <p style={{ color: 'rgba(255,255,255,0.9)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.56rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
                           <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginTop: 2 }}>
@@ -1222,9 +1229,16 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   return (
                     <div style={{ height: '46%', position: 'relative' }}>
                       {showImg && <img src={coverSrc!} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focalX}% ${focalY}%` }} />}
-                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
+                      {heroStyle === 'frame'
+                        ? <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.52) 100%)' }} />
+                        : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
+                      }
                       {heroStyle === 'frame' && <div style={{ position: 'absolute', inset: 3, border: '0.5px solid rgba(255,255,255,0.2)' }} />}
-                      {heroStyle === 'luxury' ? (
+                      {heroStyle === 'frame' ? (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 8%' }}>
+                          <p style={{ color: 'rgba(255,255,255,0.93)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.32rem', letterSpacing: currentTypo.titleTracking }}>{galleryLabel}</p>
+                        </div>
+                      ) : heroStyle === 'luxury' ? (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6, gap: 2 }}>
                           <p style={{ color: 'rgba(255,255,255,0.88)', fontFamily: currentTypo.fontFamily, fontWeight: currentTypo.titleWeight, fontSize: '0.32rem', letterSpacing: currentTypo.titleTracking, textAlign: 'center' }}>{galleryLabel}</p>
                           <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -1526,10 +1540,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     key: 'frame', label: 'Frame',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#0E0C0A', position: 'relative', padding: 6 }}>
-                        <div style={{ width: '100%', height: '100%', background: '#2A2420', position: 'relative', overflow: 'hidden', borderRadius: 2 }}>
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.7) 100%)' }} />
-                          <div style={{ position: 'absolute', bottom: '18%', left: '12%', width: '50%', height: 3.5, background: 'rgba(255,255,255,0.5)', borderRadius: 2 }} />
-                          <div style={{ position: 'absolute', bottom: '8%', left: '12%', width: '30%', height: 2.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
+                        <div style={{ width: '100%', height: '100%', background: '#2A2420', position: 'relative', overflow: 'hidden', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)' }} />
+                          <div style={{ position: 'relative', width: '46%', height: 3.5, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
+                          <div style={{ position: 'relative', width: '28%', height: 2.5, background: 'rgba(255,255,255,0.25)', borderRadius: 2 }} />
                           <div style={{ position: 'absolute', inset: 0, border: '1px solid rgba(255,255,255,0.2)' }} />
                         </div>
                       </div>
