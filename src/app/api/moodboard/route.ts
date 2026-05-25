@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     .from('projects')
     .select('id')
     .eq('id', projectId)
-    .eq('client_token', token)
+    .or(`client_token.eq.${token},custom_slug.eq.${token}`)
     .single()
 
   if (!project) return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     .from('projects')
     .select('id')
     .eq('id', project_id)
-    .eq('client_token', token)
+    .or(`client_token.eq.${token},custom_slug.eq.${token}`)
     .single()
 
   if (!project) return NextResponse.json({ error: 'Invalid token' }, { status: 403 })

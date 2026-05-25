@@ -220,6 +220,8 @@ export default function ProjectsPage() {
   const [newBkNotes, setNewBkNotes] = useState('')
   const [newBkType, setNewBkType] = useState('')
   const [newBkCustomType, setNewBkCustomType] = useState('')
+  const [newBkPrice, setNewBkPrice] = useState('')
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null)
   const [newBkSaving, setNewBkSaving] = useState(false)
   const [clientList, setClientList] = useState<{ id: string; full_name: string; email: string | null }[]>([])
   const [clientDropOpen, setClientDropOpen] = useState(false)
@@ -235,7 +237,8 @@ export default function ProjectsPage() {
     setNewBookingStep('choose')
     setNewBkTitle(''); setNewBkDate(''); setNewBkTime('10:00')
     setNewBkClient(''); setNewBkEmail(''); setNewBkNotes('')
-    setNewBkType(''); setNewBkCustomType('')
+    setNewBkType(''); setNewBkCustomType(''); setNewBkPrice('')
+    setEditingBookingId(null)
     setClientDropOpen(false)
     setShowNewBookingModal(true)
     const { data: { user: u } } = await supabase.auth.getUser()
@@ -248,24 +251,58 @@ export default function ProjectsPage() {
   const handleCreateManualBooking = async () => {
     if (!newBkTitle.trim() || !newBkDate || !newBkTime) return
     setNewBkSaving(true)
+    const resolvedType = newBkType === 'Other' ? (newBkCustomType.trim() || undefined) : (newBkType || undefined)
     try {
-      const res = await fetch('/api/bookings/manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newBkTitle, booked_date: newBkDate, booked_time: newBkTime, client_name: newBkClient || undefined, client_email: newBkEmail || undefined, notes: newBkNotes || undefined, shooting_type: newBkType === 'Other' ? (newBkCustomType.trim() || undefined) : (newBkType || undefined) }),
-      })
-      if (!res.ok) { toast.error('Fehler beim Erstellen'); return }
-      const { id } = await res.json()
-      const newEntry: OnlineBooking = {
-        id, client_name: newBkClient || 'Manuell', client_email: newBkEmail,
-        booked_date: newBkDate, booked_time: newBkTime, status: 'confirmed',
-        payment_reference: null, deposit_amount: null, google_meet_link: null,
-        invoice_id: null, notes: newBkNotes || null, answers: null,
-        manual_title: newBkTitle.trim(), booking_types: null,
+      if (editingBookingId) {
+        // Edit mode — PATCH existing booking
+        const res = await fetch(`/api/bookings/${editingBookingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            manual_title: newBkTitle.trim() || null,
+            client_name: newBkClient || undefined,
+            client_email: newBkEmail || undefined,
+            booked_date: newBkDate,
+            booked_time: newBkTime,
+            notes: newBkNotes.trim() || null,
+            shooting_type: resolvedType ?? null,
+            price: newBkPrice.trim() || null,
+          }),
+        })
+        if (!res.ok) { toast.error(de ? 'Fehler beim Speichern' : 'Error saving'); return }
+        const updated = {
+          ...bookingModal!,
+          manual_title: newBkTitle.trim() || null,
+          client_name: newBkClient || bookingModal!.client_name,
+          client_email: newBkEmail || bookingModal!.client_email,
+          booked_date: newBkDate,
+          booked_time: newBkTime,
+          notes: newBkNotes.trim() || null,
+        }
+        setBookingModal(updated)
+        setOnlineBookings(bs => bs.map(b => b.id === editingBookingId ? updated : b))
+        setShowNewBookingModal(false)
+        toast.success(de ? 'Buchung gespeichert' : 'Booking saved')
+      } else {
+        // Create mode — POST new booking
+        const res = await fetch('/api/bookings/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newBkTitle, booked_date: newBkDate, booked_time: newBkTime, client_name: newBkClient || undefined, client_email: newBkEmail || undefined, notes: newBkNotes || undefined, shooting_type: resolvedType, price: newBkPrice.trim() || undefined }),
+        })
+        if (!res.ok) { toast.error('Fehler beim Erstellen'); return }
+        const { id } = await res.json()
+        const newEntry: OnlineBooking = {
+          id, client_name: newBkClient || 'Manuell', client_email: newBkEmail,
+          booked_date: newBkDate, booked_time: newBkTime, status: 'confirmed',
+          payment_reference: null, deposit_amount: null, google_meet_link: null,
+          invoice_id: null, notes: newBkNotes || null, answers: null,
+          manual_title: newBkTitle.trim(), booking_types: null,
+        }
+        setOnlineBookings(prev => [...prev, newEntry].sort((a, b) => a.booked_date.localeCompare(b.booked_date)))
+        setShowNewBookingModal(false)
+        toast.success('Booking erstellt')
       }
-      setOnlineBookings(prev => [...prev, newEntry].sort((a, b) => a.booked_date.localeCompare(b.booked_date)))
-      setShowNewBookingModal(false)
-      toast.success('Booking erstellt')
     } finally {
       setNewBkSaving(false)
     }
@@ -553,17 +590,26 @@ export default function ProjectsPage() {
     } else toast.error('Fehler beim Speichern')
     setBookingEditSaving(false)
   }
-  const openBookingFullEdit = () => {
+  const openBookingFullEdit = async () => {
     if (!bookingModal) return
-    setBookingFullEditForm({
-      manual_title: bookingModal.manual_title ?? bookingModal.booking_types?.title ?? '',
-      client_name: bookingModal.client_name,
-      client_email: bookingModal.client_email,
-      booked_date: bookingModal.booked_date,
-      booked_time: String(bookingModal.booked_time).slice(0, 5),
-      notes: bookingModal.notes ?? '',
-    })
-    setBookingFullEdit(true)
+    setNewBkTitle(bookingModal.manual_title ?? bookingModal.booking_types?.title ?? '')
+    setNewBkDate(bookingModal.booked_date)
+    setNewBkTime(String(bookingModal.booked_time).slice(0, 5))
+    setNewBkClient(bookingModal.client_name)
+    setNewBkEmail(bookingModal.client_email ?? '')
+    setNewBkNotes(bookingModal.notes ?? '')
+    setNewBkType('')
+    setNewBkCustomType('')
+    setNewBkPrice('')
+    setEditingBookingId(bookingModal.id)
+    setNewBookingStep('form')
+    setClientDropOpen(false)
+    setShowNewBookingModal(true)
+    const { data: { user: u } } = await supabase.auth.getUser()
+    if (u && clientList.length === 0) {
+      const { data } = await supabase.from('clients').select('id, full_name, email').eq('photographer_id', u.id).eq('status', 'active').order('full_name')
+      if (data) setClientList(data)
+    }
   }
 
   const handleBookingFullEditSave = async () => {
@@ -2052,14 +2098,32 @@ export default function ProjectsPage() {
                     onChange={e => setNewBkNotes(e.target.value)}
                   />
                 </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--text-muted)' }}>{de ? 'Wert (optional)' : 'Value (optional)'}</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold select-none" style={{ color: 'var(--text-muted)' }}>€</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={de ? 'z.B. 1200' : 'e.g. 1200'}
+                      className="w-full pl-7 pr-3 py-2.5 rounded-xl text-[14px]"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                      value={newBkPrice}
+                      onChange={e => setNewBkPrice(e.target.value)}
+                    />
+                  </div>
+                </div>
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setNewBookingStep('choose')}
+                    onClick={() => {
+                      if (editingBookingId) { setShowNewBookingModal(false); setEditingBookingId(null) }
+                      else setNewBookingStep('choose')
+                    }}
                     className="px-4 py-2.5 rounded-xl text-[13px] transition-all"
                     style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
                   >
-                    ← {de ? 'Zurück' : 'Back'}
+                    {editingBookingId ? (de ? 'Abbrechen' : 'Cancel') : `← ${de ? 'Zurück' : 'Back'}`}
                   </button>
                   <button
                     type="button"
@@ -2068,7 +2132,7 @@ export default function ProjectsPage() {
                     className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-40"
                     style={{ background: '#6366F1' }}
                   >
-                    {newBkSaving ? '...' : (de ? 'Booking erstellen' : 'Create booking')}
+                    {newBkSaving ? '...' : editingBookingId ? (de ? 'Speichern' : 'Save') : (de ? 'Booking erstellen' : 'Create booking')}
                   </button>
                 </div>
               </div>

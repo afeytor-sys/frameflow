@@ -18,6 +18,8 @@ export async function PATCH(
     client_email?: string
     booked_date?: string
     booked_time?: string
+    shooting_type?: string | null
+    price?: string | null
   }
 
   const updates: Record<string, string | null> = {}
@@ -28,6 +30,8 @@ export async function PATCH(
   if ('client_email' in body && body.client_email?.trim()) updates.client_email = body.client_email.trim()
   if ('booked_date' in body && body.booked_date) updates.booked_date = body.booked_date
   if ('booked_time' in body && body.booked_time) updates.booked_time = body.booked_time
+  if ('shooting_type' in body) updates.shooting_type = body.shooting_type?.trim() || null
+  if ('price' in body) updates.price = body.price?.trim() || null
 
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: 'No fields to update' }, { status: 400 })

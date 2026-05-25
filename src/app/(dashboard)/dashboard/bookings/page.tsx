@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, List, MapPin, User, ChevronLeft, ChevronRight, Plus, X, Check, FolderOpen } from 'lucide-react'
+import { CalendarDays, List, MapPin, User, ChevronLeft, ChevronRight, Plus, X, Check, FolderOpen, CheckCircle2, FileText, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import { generateToken } from '@/lib/utils'
@@ -241,6 +241,9 @@ export default function BookingsPage() {
   const [newProjectTitle, setNewProjectTitle] = useState('')
   const [creatingProject, setCreatingProject] = useState(false)
 
+  const [completeModal, setCompleteModal] = useState<{ id: string; title: string } | null>(null)
+  const [completing, setCompleting] = useState(false)
+
   const SHOOTING_TYPES = locale === 'de' ? SHOOTING_TYPES_DE : SHOOTING_TYPES_EN
 
   const router = useRouter()
@@ -420,6 +423,22 @@ export default function BookingsPage() {
     router.push(`/dashboard/projects/${data.id}`)
   }
 
+  const handleComplete = async (goToInvoice: boolean) => {
+    if (!completeModal) return
+    setCompleting(true)
+    const { error } = await supabase
+      .from('projects')
+      .update({ status: 'completed' })
+      .eq('id', completeModal.id)
+    if (error) { toast.error('Fehler beim Speichern'); setCompleting(false); return }
+    setBookings(prev => prev.map(b => b.id === completeModal.id ? { ...b, status: 'completed' } : b))
+    toast.success(locale === 'de' ? 'Shooting abgeschlossen!' : 'Shooting completed!')
+    setCompleting(false)
+    const id = completeModal.id
+    setCompleteModal(null)
+    if (goToInvoice) router.push(`/dashboard/projects/${id}?action=invoice`)
+  }
+
   const today = new Date(); today.setHours(0,0,0,0)
   const upcoming = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') >= today)
   const past = bookings.filter(b => new Date(b.shoot_date + 'T00:00:00') < today)
@@ -576,12 +595,14 @@ export default function BookingsPage() {
                   <div className="space-y-2">
                     {[...past].reverse().map((b, i) => {
                       const st = STATUS_COLORS[b.status] || STATUS_COLORS.booked
+                      const isCloseable = b.status !== 'completed' && b.status !== 'cancelled'
                       return (
-                        <Link key={b.id} href={`/dashboard/projects/${b.id}`}
-                          className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+                        <div key={b.id}
+                          className="flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 cursor-pointer group/past"
                           style={{ opacity: 0, animation: 'bookingFadeUp 0.4s ease forwards', animationDelay: `${(upcoming.length + i) * 70}ms` }}
-                          onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-                          onMouseLeave={e => { e.currentTarget.style.opacity = '0.55' }}
+                          onClick={() => router.push(`/dashboard/projects/${b.id}`)}
+                          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.opacity = '1' }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.opacity = '0.55' }}
                         >
                           <div className="w-1 self-stretch flex-shrink-0" style={{ background: st.color, opacity: 0.3 }} />
                           <div className="flex items-center gap-4 p-4 flex-1 min-w-0"
@@ -604,11 +625,25 @@ export default function BookingsPage() {
                                 {b.location && <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}><MapPin className="w-3 h-3" />{b.location}</span>}
                               </div>
                             </div>
-                            <span className="text-[12px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                              {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                            </span>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              {isCloseable && (
+                                <button
+                                  onClick={e => { e.stopPropagation(); setCompleteModal({ id: b.id, title: b.title }) }}
+                                  className="opacity-0 group-hover/past:opacity-100 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all"
+                                  style={{ background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.22)' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.12)' }}
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  {locale === 'de' ? 'Abschließen' : 'Complete'}
+                                </button>
+                              )}
+                              <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(b.shoot_date + 'T00:00:00').toLocaleDateString(locale === 'en' ? 'en-US' : 'de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                            </div>
                           </div>
-                        </Link>
+                        </div>
                       )
                     })}
                   </div>
@@ -901,6 +936,65 @@ export default function BookingsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── COMPLETE MODAL ── */}
+      {completeModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+          onClick={() => !completing && setCompleteModal(null)}
+        >
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                <CheckCircle2 className="w-5 h-5" style={{ color: '#10B981' }} />
+              </div>
+              <h3 className="font-black text-[17px] leading-tight" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+                {locale === 'de' ? 'Shooting abschließen?' : 'Complete shoot?'}
+              </h3>
+              <p className="text-[13px] mt-1.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{completeModal.title}</span>
+                {locale === 'de'
+                  ? ' wird als abgeschlossen markiert. Du kannst danach direkt eine Rechnung erstellen.'
+                  : ' will be marked as completed. You can create an invoice right after.'}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-5 pb-5 flex flex-col gap-2.5">
+              <button
+                onClick={() => handleComplete(true)}
+                disabled={completing}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 2px 12px rgba(16,185,129,0.30)' }}
+              >
+                {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                {locale === 'de' ? 'Abschließen + Rechnung erstellen' : 'Complete + create invoice'}
+              </button>
+              <button
+                onClick={() => handleComplete(false)}
+                disabled={completing}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+              >
+                {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {locale === 'de' ? 'Nur abschließen' : 'Just complete'}
+              </button>
+              <button
+                onClick={() => setCompleteModal(null)}
+                disabled={completing}
+                className="w-full py-2 text-[12.5px] transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {locale === 'de' ? 'Abbrechen' : 'Cancel'}
+              </button>
+            </div>
           </div>
         </div>
       )}
