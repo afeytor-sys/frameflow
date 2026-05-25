@@ -590,10 +590,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     if (settingsPassword) updates.password = settingsPassword
     if (settingsGuestPassword !== '') updates.guest_password = settingsGuestPassword || null
 
-    // Save core fields first (always safe — these columns have existed since launch).
+    // Save all fields in a single update.
+    // hero_style / spacing_density / typography_preset are included directly —
+    // they've been in the schema since migrations 095–096 and must save reliably.
     const coreFields = ['title', 'description', 'download_enabled', 'comments_enabled',
       'expires_at', 'design_theme', 'tags_enabled', 'password', 'guest_password',
-      'cover_photo_id', 'cover_focal_x', 'cover_focal_y']
+      'cover_photo_id', 'cover_focal_x', 'cover_focal_y',
+      'hero_style', 'spacing_density', 'typography_preset']
     const coreUpdate: Record<string, unknown> = {}
     for (const k of coreFields) if (k in updates) coreUpdate[k] = updates[k]
 
@@ -605,13 +608,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       return
     }
 
-    // Save newer columns individually — silently skip any that aren't in the schema yet.
+    // Save optional newer columns — silently skip if not yet in schema.
     const newCols: Record<string, unknown> = {
       cover_focal_x_mobile: focalX,
       cover_focal_y_mobile: focalY,
-      hero_style:           updates.hero_style,
-      spacing_density:      updates.spacing_density,
-      typography_preset:    updates.typography_preset,
     }
     for (const [col, val] of Object.entries(newCols)) {
       const { error: colError } = await supabase.from('galleries').update({ [col]: val }).eq('id', gallery.id)

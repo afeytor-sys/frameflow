@@ -9,6 +9,10 @@ import GalleryPasswordGate from './GalleryPasswordGate'
 import { getPhotoUrl } from '@/lib/utils'
 import type { Metadata } from 'next'
 
+// Gallery pages must never be served from cache — settings like hero style,
+// typography, and theme change in the dashboard and must reflect immediately.
+export const dynamic = 'force-dynamic'
+
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params
   const supabase = createServiceClient()
