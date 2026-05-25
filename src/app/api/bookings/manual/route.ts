@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { title, booked_date, booked_time, client_name, client_email, notes, duration_minutes, location_type, google_meet_link } = body
+  const { title, booked_date, booked_time, client_name, client_email, notes, duration_minutes, location_type, google_meet_link, shooting_type } = body
 
   if (!title?.trim() || !booked_date || !booked_time) {
     return NextResponse.json({ error: 'title, booked_date, booked_time are required' }, { status: 400 })
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       status: 'confirmed',
       notes: notes?.trim() || null,
       google_meet_link: google_meet_link?.trim() || null,
+      shooting_type: shooting_type?.trim() || null,
     })
     .select('id')
     .single()

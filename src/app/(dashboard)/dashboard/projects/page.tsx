@@ -10,6 +10,27 @@ import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import PipelineClient from '../pipeline/PipelineClient'
 
+const SHOOTING_TYPES_DE_P = [
+  { value: 'Wedding',   label: '💍 Hochzeit',  color: '#E879A0' },
+  { value: 'Portrait',  label: '🧑 Portrait',  color: '#8B5CF6' },
+  { value: 'Babybauch', label: '🤰 Babybauch', color: '#F97316' },
+  { value: 'Newborn',   label: '👶 Newborn',   color: '#FB923C' },
+  { value: 'Family',    label: '👨‍👩‍👧 Familie',  color: '#06B6D4' },
+  { value: 'Event',     label: '🎉 Event',     color: '#F59E0B' },
+  { value: 'Commercial',label: '💼 Commercial',color: '#3B82F6' },
+  { value: 'Other',     label: '✏️ Anderer',   color: '#94A3B8' },
+]
+const SHOOTING_TYPES_EN_P = [
+  { value: 'Wedding',   label: '💍 Wedding',   color: '#E879A0' },
+  { value: 'Portrait',  label: '🧑 Portrait',  color: '#8B5CF6' },
+  { value: 'Babybauch', label: '🤰 Babybauch', color: '#F97316' },
+  { value: 'Newborn',   label: '👶 Newborn',   color: '#FB923C' },
+  { value: 'Family',    label: '👨‍👩‍👧 Family',   color: '#06B6D4' },
+  { value: 'Event',     label: '🎉 Event',     color: '#F59E0B' },
+  { value: 'Commercial',label: '💼 Commercial',color: '#3B82F6' },
+  { value: 'Other',     label: '✏️ Other',     color: '#94A3B8' },
+]
+
 const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
 const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS_DE = ['Mo','Di','Mi','Do','Fr','Sa','So']
@@ -197,6 +218,8 @@ export default function ProjectsPage() {
   const [newBkClient, setNewBkClient] = useState('')
   const [newBkEmail, setNewBkEmail] = useState('')
   const [newBkNotes, setNewBkNotes] = useState('')
+  const [newBkType, setNewBkType] = useState('')
+  const [newBkCustomType, setNewBkCustomType] = useState('')
   const [newBkSaving, setNewBkSaving] = useState(false)
   const [clientList, setClientList] = useState<{ id: string; full_name: string; email: string | null }[]>([])
   const [clientDropOpen, setClientDropOpen] = useState(false)
@@ -212,6 +235,7 @@ export default function ProjectsPage() {
     setNewBookingStep('choose')
     setNewBkTitle(''); setNewBkDate(''); setNewBkTime('10:00')
     setNewBkClient(''); setNewBkEmail(''); setNewBkNotes('')
+    setNewBkType(''); setNewBkCustomType('')
     setClientDropOpen(false)
     setShowNewBookingModal(true)
     const { data: { user: u } } = await supabase.auth.getUser()
@@ -228,7 +252,7 @@ export default function ProjectsPage() {
       const res = await fetch('/api/bookings/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newBkTitle, booked_date: newBkDate, booked_time: newBkTime, client_name: newBkClient || undefined, client_email: newBkEmail || undefined, notes: newBkNotes || undefined }),
+        body: JSON.stringify({ title: newBkTitle, booked_date: newBkDate, booked_time: newBkTime, client_name: newBkClient || undefined, client_email: newBkEmail || undefined, notes: newBkNotes || undefined, shooting_type: newBkType === 'Other' ? (newBkCustomType.trim() || undefined) : (newBkType || undefined) }),
       })
       if (!res.ok) { toast.error('Fehler beim Erstellen'); return }
       const { id } = await res.json()
@@ -1914,6 +1938,41 @@ export default function ProjectsPage() {
                     value={newBkTitle}
                     onChange={e => setNewBkTitle(e.target.value)}
                   />
+                </div>
+
+                {/* Shooting type pills */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wide block mb-1.5" style={{ color: 'var(--text-muted)' }}>{de ? 'Shooting-Typ' : 'Shooting type'}</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(de ? SHOOTING_TYPES_DE_P : SHOOTING_TYPES_EN_P).map(({ value, label, color }) => {
+                      const selected = newBkType === value
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setNewBkType(selected ? '' : value)}
+                          className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                          style={{
+                            background: selected ? color + '22' : 'var(--bg-hover)',
+                            color: selected ? color : 'var(--text-secondary)',
+                            border: selected ? `1.5px solid ${color}55` : '1.5px solid transparent',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {newBkType === 'Other' && (
+                    <input
+                      type="text"
+                      value={newBkCustomType}
+                      onChange={e => setNewBkCustomType(e.target.value)}
+                      placeholder={de ? 'Eigener Typ...' : 'Custom type...'}
+                      className="w-full px-3 py-2.5 rounded-xl text-[13px] mt-2"
+                      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    />
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
