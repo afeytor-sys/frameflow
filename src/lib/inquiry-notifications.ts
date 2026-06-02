@@ -71,7 +71,7 @@ export async function triggerInquiryNotifications(
     try {
       const { data: photographer } = await supabase
         .from('photographers')
-        .select('email')
+        .select('email, full_name, studio_name')
         .eq('id', photographerId)
         .single()
 
@@ -82,6 +82,7 @@ export async function triggerInquiryNotifications(
           name,
           email,
           message,
+          senderName: photographer.studio_name || photographer.full_name || 'Fotonizer',
         })
       }
     } catch (err) {
@@ -96,6 +97,7 @@ interface InquiryEmailPayload {
   name: string
   email: string
   message: string
+  senderName: string
 }
 
 function parseFormFields(message: string): Array<{ label: string; value: string }> | null {
@@ -188,7 +190,7 @@ async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.fotonizer.com'
   const resend = new Resend(resendKey)
-  const { to, replyTo, name, email, message } = payload
+  const { to, replyTo, name, email, message, senderName } = payload
   const fieldsHtml = buildFieldsHtml(name, email, message)
 
   const html = `<!DOCTYPE html>
@@ -290,7 +292,7 @@ async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
   const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 
   const { error } = await resend.emails.send({
-    from: 'Fotonizer <info@fotonizer.com>',
+    from: `${senderName} <info@fotonizer.com>`,
     to: payload.to,
     replyTo: payload.replyTo,
     subject: `Neue Anfrage von ${name} · ${dateStr} ${timeStr}`,
