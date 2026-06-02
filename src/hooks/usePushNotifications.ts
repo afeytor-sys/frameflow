@@ -19,14 +19,18 @@ export function usePushNotifications() {
         if (Notification.permission !== 'granted') return
 
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        const existing = await reg.pushManager.getSubscription()
-        if (existing) return // already subscribed on this device
 
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey),
-        })
+        // Get existing or create new subscription
+        let sub = await reg.pushManager.getSubscription()
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey),
+          })
+        }
 
+        // Always upsert to server — ensures the subscription stays valid
+        // even after server-side expiry, Supabase resets, or device restarts
         await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
