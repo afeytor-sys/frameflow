@@ -5,8 +5,12 @@ import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Upload, X, AlertCircle } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const CONCURRENCY = 5  // parallel uploads at once
-const MAX_RETRIES = 3  // per-file retries with backoff
+
+// 2 concurrent uploads — prevents browser from holding 5 × 40 MB in memory
+const CONCURRENCY  = 2
+const MAX_RETRIES  = 3                   // per-file (or per-chunk) retry attempts
+const CHUNK_SIZE   = 10 * 1024 * 1024   // 10 MB — multipart chunk size
+const LARGE_FILE   = 5  * 1024 * 1024   // files ≥ 5 MB use multipart
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
@@ -64,7 +68,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const isProcessing = useRef(false)
   const queue = useRef<Array<{ files: File[]; config: EnqueueConfig }>>([])
 
-  // ── Internal job state ───────────────────────────────────────────────────
+  // ── Job state ────────────────────────────────────────────────────────────
 
   const addJob = (galleryId: string, label: string, total: number): string => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -81,27 +85,112 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const tickDone = useCallback((jobId: string) => {
     setJobs(prev => prev.map(j => {
       if (j.id !== jobId) return j
-      const updated = { ...j, done: j.done + 1 }
-      if (updated.done + updated.failed >= updated.total) {
-        const delay = updated.failed > 0 ? 8000 : 3000
-        timers.current[jobId] = setTimeout(() => removeJob(jobId), delay)
+      const u = { ...j, done: j.done + 1 }
+      if (u.done + u.failed >= u.total) {
+        timers.current[jobId] = setTimeout(() => removeJob(jobId), u.failed > 0 ? 8000 : 3000)
       }
-      return updated
+      return u
     }))
   }, [removeJob])
 
   const tickFailed = useCallback((jobId: string) => {
     setJobs(prev => prev.map(j => {
       if (j.id !== jobId) return j
-      const updated = { ...j, failed: j.failed + 1 }
-      if (updated.done + updated.failed >= updated.total) {
+      const u = { ...j, failed: j.failed + 1 }
+      if (u.done + u.failed >= u.total) {
         timers.current[jobId] = setTimeout(() => removeJob(jobId), 8000)
       }
-      return updated
+      return u
     }))
   }, [removeJob])
 
-  // ── Upload loop ──────────────────────────────────────────────────────────
+  // ── Upload helpers ───────────────────────────────────────────────────────
+
+  /** Small files (< 5 MB): single presigned PUT */
+  const uploadSmall = async (file: File, galleryId: string): Promise<{ publicUrl: string }> => {
+    const presignRes = await fetch('/api/photos/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        galleryId,
+        filename: file.name,
+        contentType: file.type || 'image/jpeg',
+        fileSize: file.size,
+      }),
+    })
+    if (!presignRes.ok) {
+      const e = await presignRes.json().catch(() => ({}))
+      throw new Error(e.error || `Presign failed (${presignRes.status})`)
+    }
+    const { presignedUrl, publicUrl } = await presignRes.json()
+
+    const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
+    if (!putRes.ok) throw new Error(`R2 PUT failed (${putRes.status})`)
+
+    return { publicUrl }
+  }
+
+  /**
+   * Large files (≥ 5 MB): S3 multipart upload.
+   * File is sliced into 10 MB chunks and each is uploaded independently —
+   * only one 10 MB slice is held in memory at a time.
+   */
+  const uploadLarge = async (file: File, galleryId: string): Promise<{ publicUrl: string }> => {
+    // 1. Init: get uploadId + presigned URL per part
+    const initRes = await fetch('/api/photos/multipart-init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        galleryId,
+        filename: file.name,
+        contentType: file.type || 'image/jpeg',
+        fileSize: file.size,
+      }),
+    })
+    if (!initRes.ok) {
+      const e = await initRes.json().catch(() => ({}))
+      throw new Error(e.error || `Multipart init failed (${initRes.status})`)
+    }
+    const { uploadId, key, publicUrl, partUrls } = await initRes.json()
+
+    // 2. Upload each 10 MB chunk sequentially (one slice in memory at a time)
+    const parts: { partNumber: number; etag: string }[] = []
+    for (let i = 0; i < partUrls.length; i++) {
+      const start = i * CHUNK_SIZE
+      const chunk = file.slice(start, start + CHUNK_SIZE)
+
+      let lastErr: unknown
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1))
+        try {
+          const res = await fetch(partUrls[i], { method: 'PUT', body: chunk })
+          if (!res.ok) throw new Error(`Part ${i + 1} upload failed (${res.status})`)
+          const etag = res.headers.get('ETag') ?? res.headers.get('etag') ?? ''
+          parts.push({ partNumber: i + 1, etag })
+          lastErr = undefined
+          break
+        } catch (err) {
+          lastErr = err
+        }
+      }
+      if (lastErr) throw lastErr
+    }
+
+    // 3. Complete: tell R2 to assemble the parts
+    const completeRes = await fetch('/api/photos/multipart-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, uploadId, parts }),
+    })
+    if (!completeRes.ok) {
+      const e = await completeRes.json().catch(() => ({}))
+      throw new Error(e.error || `Multipart complete failed (${completeRes.status})`)
+    }
+
+    return { publicUrl }
+  }
+
+  // ── Main loop ────────────────────────────────────────────────────────────
 
   const processQueue = useCallback(async () => {
     if (isProcessing.current) return
@@ -109,61 +198,37 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
     while (queue.current.length > 0) {
       const { files, config } = queue.current.shift()!
-      const {
-        galleryId, sectionId, galleryTitle,
-        initialOrder, replaceMap,
-        onFileDone, onFileError, onAllDone,
-      } = config
+      const { galleryId, sectionId, galleryTitle, initialOrder, replaceMap, onFileDone, onFileError, onAllDone } = config
 
       const jobId = addJob(galleryId, galleryTitle, files.length)
       const supabase = createClient()
       const uploadedPhotos: UploadedPhoto[] = []
 
-      // Atomic order counter — safe in single-threaded JS even with concurrency
       let orderOffset = initialOrder
-      const getOrder = () => orderOffset++
+      const getOrder = () => orderOffset++ // safe: JS is single-threaded
 
-      // Each worker handles one file at a time: presign → PUT → DB insert
-      // Starting immediately with no pre-phase — first photos appear in seconds
       const uploadOne = async (file: File) => {
         let lastErr: unknown
-
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1)) // 1s, 2s, 4s
+          if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1))
           try {
-            // 1. Get presigned URL
-            const presignRes = await fetch('/api/photos/presign', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                galleryId,
-                filename: file.name,
-                contentType: file.type || 'image/jpeg',
-                fileSize: file.size,
-              }),
-            })
-            if (!presignRes.ok) {
-              const errData = await presignRes.json().catch(() => ({}))
-              throw new Error(errData.error || `Presign failed (${presignRes.status})`)
-            }
-            const { presignedUrl, publicUrl } = await presignRes.json()
+            // Choose strategy based on file size
+            const { publicUrl } = file.size >= LARGE_FILE
+              ? await uploadLarge(file, galleryId)
+              : await uploadSmall(file, galleryId)
 
-            // 2. Upload directly to R2
-            const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
-            if (!putRes.ok) throw new Error(`R2 upload failed (${putRes.status})`)
-
-            // 3. Replace old photo if needed
-            const oldPhoto = replaceMap?.get(file.name)
-            if (oldPhoto) {
-              await fetch(`/api/photos/${oldPhoto.id}/delete`, {
+            // Delete old photo if replacing
+            const old = replaceMap?.get(file.name)
+            if (old) {
+              await fetch(`/api/photos/${old.id}/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ storageUrl: oldPhoto.storage_url }),
+                body: JSON.stringify({ storageUrl: old.storage_url }),
               }).catch(() => {})
             }
 
-            // 4. Register in DB
-            const { data: photo, error: dbError } = await supabase
+            // Register in DB
+            const { data: photo, error: dbErr } = await supabase
               .from('photos')
               .insert({
                 gallery_id: galleryId,
@@ -178,7 +243,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               .select()
               .single()
 
-            if (dbError) throw dbError
+            if (dbErr) throw dbErr
 
             const uploaded = photo as UploadedPhoto
             uploadedPhotos.push(uploaded)
@@ -190,14 +255,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // All retries exhausted
         const msg = lastErr instanceof Error ? lastErr.message : 'Upload failed'
         console.error('[upload] failed after retries:', file.name, lastErr)
         tickFailed(jobId)
         try { onFileError?.(file.name, msg) } catch {}
       }
 
-      // CONCURRENCY workers each pulling from the shared file list
       const remaining = [...files]
       await Promise.all(
         Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => {
@@ -233,29 +296,22 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             const processed = job.done + job.failed
             const finished = processed >= job.total
             const pct = job.total > 0 ? Math.round((processed / job.total) * 100) : 0
-            const hasFailures = job.failed > 0
+            const hasFail = job.failed > 0
 
             return (
-              <div
-                key={job.id}
+              <div key={job.id}
                 className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl min-w-[280px] max-w-[340px]"
                 style={{
                   background: 'var(--bg-surface)',
-                  border: `1px solid ${hasFailures && finished ? 'rgba(239,68,68,0.30)' : 'var(--border-color)'}`,
+                  border: `1px solid ${hasFail && finished ? 'rgba(239,68,68,0.30)' : 'var(--border-color)'}`,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
                   animation: 'fadeSlideIn 0.3s ease forwards',
                 }}
               >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: finished
-                      ? hasFailures ? 'rgba(239,68,68,0.10)' : 'rgba(42,155,104,0.12)'
-                      : 'rgba(196,164,124,0.12)',
-                  }}
-                >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: finished ? (hasFail ? 'rgba(239,68,68,0.10)' : 'rgba(42,155,104,0.12)') : 'rgba(196,164,124,0.12)' }}>
                   {finished
-                    ? hasFailures
+                    ? hasFail
                       ? <AlertCircle className="w-4.5 h-4.5" style={{ color: '#EF4444' }} />
                       : <CheckCircle className="w-4.5 h-4.5" style={{ color: '#2A9B68' }} />
                     : <Upload className="w-4 h-4 animate-bounce" style={{ color: 'var(--accent)' }} />
@@ -265,33 +321,28 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                     {finished
-                      ? hasFailures
+                      ? hasFail
                         ? `${job.done} hochgeladen · ${job.failed} fehlgeschlagen`
                         : `✓ ${job.done} Fotos hochgeladen`
                       : `${job.done} / ${job.total} Fotos…`
                     }
                   </p>
                   <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
-                    {job.label}
-                    {!finished && job.failed > 0 && ` · ${job.failed} Fehler`}
+                    {job.label}{!finished && hasFail ? ` · ${job.failed} Fehler` : ''}
                   </p>
                   {!finished && (
                     <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${pct}%`, background: 'var(--accent)' }}
-                      />
+                      <div className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${pct}%`, background: 'var(--accent)' }} />
                     </div>
                   )}
                 </div>
 
-                <button
-                  onClick={() => removeJob(job.id)}
+                <button onClick={() => removeJob(job.id)}
                   className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                   style={{ color: 'var(--text-muted)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
