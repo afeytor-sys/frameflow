@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Upload, X, AlertCircle } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const CONCURRENCY   = 5   // parallel uploads at once
-const PRESIGN_BATCH = 20  // presigned URLs per Vercel call (450 files = 23 calls)
-const MAX_RETRIES   = 3   // retry attempts per file (backoff: 1s, 2s, 4s)
+const CONCURRENCY = 5  // parallel uploads at once
+const MAX_RETRIES = 3  // per-file retries with backoff
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
@@ -84,7 +83,6 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       if (j.id !== jobId) return j
       const updated = { ...j, done: j.done + 1 }
       if (updated.done + updated.failed >= updated.total) {
-        // Keep longer if there were failures so the user notices
         const delay = updated.failed > 0 ? 8000 : 3000
         timers.current[jobId] = setTimeout(() => removeJob(jobId), delay)
       }
@@ -125,55 +123,36 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       let orderOffset = initialOrder
       const getOrder = () => orderOffset++
 
-      // ── Phase 1: Batch-presign all files (20 per Vercel call) ────────────
-      interface PresignEntry { presignedUrl: string; publicUrl: string }
-      const presignMap = new Map<File, PresignEntry>()
-
-      for (let i = 0; i < files.length; i += PRESIGN_BATCH) {
-        const batch = files.slice(i, i + PRESIGN_BATCH)
-        try {
-          const res = await fetch('/api/photos/presign-batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              galleryId,
-              files: batch.map(f => ({
-                filename: f.name,
-                contentType: f.type || 'image/jpeg',
-                fileSize: f.size,
-              })),
-            }),
-          })
-          if (res.ok) {
-            const data = await res.json()
-            batch.forEach((f, idx) => {
-              if (data.urls[idx]) presignMap.set(f, data.urls[idx])
-            })
-          } else {
-            console.error('[upload] presign-batch failed for batch', i, res.status)
-          }
-        } catch (err) {
-          console.error('[upload] presign-batch error:', err)
-        }
-      }
-
-      // ── Phase 2: Upload with CONCURRENCY=5 + retry ───────────────────────
+      // Each worker handles one file at a time: presign → PUT → DB insert
+      // Starting immediately with no pre-phase — first photos appear in seconds
       const uploadOne = async (file: File) => {
-        const presigned = presignMap.get(file)
-        if (!presigned) {
-          tickFailed(jobId)
-          try { onFileError?.(file.name, 'Presign failed') } catch {}
-          return
-        }
-
         let lastErr: unknown
+
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
           if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1)) // 1s, 2s, 4s
           try {
-            const putRes = await fetch(presigned.presignedUrl, { method: 'PUT', body: file })
+            // 1. Get presigned URL
+            const presignRes = await fetch('/api/photos/presign', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                galleryId,
+                filename: file.name,
+                contentType: file.type || 'image/jpeg',
+                fileSize: file.size,
+              }),
+            })
+            if (!presignRes.ok) {
+              const errData = await presignRes.json().catch(() => ({}))
+              throw new Error(errData.error || `Presign failed (${presignRes.status})`)
+            }
+            const { presignedUrl, publicUrl } = await presignRes.json()
+
+            // 2. Upload directly to R2
+            const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
             if (!putRes.ok) throw new Error(`R2 upload failed (${putRes.status})`)
 
-            // Replace old photo if needed
+            // 3. Replace old photo if needed
             const oldPhoto = replaceMap?.get(file.name)
             if (oldPhoto) {
               await fetch(`/api/photos/${oldPhoto.id}/delete`, {
@@ -183,14 +162,14 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               }).catch(() => {})
             }
 
-            // Register in DB
+            // 4. Register in DB
             const { data: photo, error: dbError } = await supabase
               .from('photos')
               .insert({
                 gallery_id: galleryId,
                 filename: file.name,
-                storage_url: presigned.publicUrl,
-                thumbnail_url: presigned.publicUrl,
+                storage_url: publicUrl,
+                thumbnail_url: publicUrl,
                 file_size: file.size,
                 display_order: getOrder(),
                 media_type: file.type.startsWith('video/') ? 'video' : 'image',
@@ -205,7 +184,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             uploadedPhotos.push(uploaded)
             tickDone(jobId)
             try { onFileDone?.(file.name, uploaded) } catch {}
-            return // success — exit retry loop
+            return // success
           } catch (err) {
             lastErr = err
           }
@@ -218,7 +197,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         try { onFileError?.(file.name, msg) } catch {}
       }
 
-      // Run CONCURRENCY workers pulling from a shared queue
+      // CONCURRENCY workers each pulling from the shared file list
       const remaining = [...files]
       await Promise.all(
         Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => {
