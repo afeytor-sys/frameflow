@@ -2,7 +2,14 @@
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Upload, X } from 'lucide-react'
+import { CheckCircle, Upload, X, AlertCircle } from 'lucide-react'
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const CONCURRENCY   = 5   // parallel uploads at once
+const PRESIGN_BATCH = 20  // presigned URLs per Vercel call (450 files = 23 calls)
+const MAX_RETRIES   = 3   // retry attempts per file (backoff: 1s, 2s, 4s)
+
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +84,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       if (j.id !== jobId) return j
       const updated = { ...j, done: j.done + 1 }
       if (updated.done + updated.failed >= updated.total) {
-        timers.current[jobId] = setTimeout(() => removeJob(jobId), 3000)
+        // Keep longer if there were failures so the user notices
+        const delay = updated.failed > 0 ? 8000 : 3000
+        timers.current[jobId] = setTimeout(() => removeJob(jobId), delay)
       }
       return updated
     }))
@@ -88,13 +97,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       if (j.id !== jobId) return j
       const updated = { ...j, failed: j.failed + 1 }
       if (updated.done + updated.failed >= updated.total) {
-        timers.current[jobId] = setTimeout(() => removeJob(jobId), 4000)
+        timers.current[jobId] = setTimeout(() => removeJob(jobId), 8000)
       }
       return updated
     }))
   }, [removeJob])
 
-  // ── Upload loop (runs in context — persists across navigation) ───────────
+  // ── Upload loop ──────────────────────────────────────────────────────────
 
   const processQueue = useCallback(async () => {
     if (isProcessing.current) return
@@ -111,71 +120,105 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       const jobId = addJob(galleryId, galleryTitle, files.length)
       const supabase = createClient()
       const uploadedPhotos: UploadedPhoto[] = []
-      // Atomic counter for display_order — each worker claims its own index
+
+      // Atomic order counter — safe in single-threaded JS even with concurrency
       let orderOffset = initialOrder
       const getOrder = () => orderOffset++
 
-      const uploadOne = async (file: File) => {
+      // ── Phase 1: Batch-presign all files (20 per Vercel call) ────────────
+      interface PresignEntry { presignedUrl: string; publicUrl: string }
+      const presignMap = new Map<File, PresignEntry>()
+
+      for (let i = 0; i < files.length; i += PRESIGN_BATCH) {
+        const batch = files.slice(i, i + PRESIGN_BATCH)
         try {
-          const presignRes = await fetch('/api/photos/presign', {
+          const res = await fetch('/api/photos/presign-batch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               galleryId,
-              filename: file.name,
-              contentType: file.type || 'image/jpeg',
-              fileSize: file.size,
+              files: batch.map(f => ({
+                filename: f.name,
+                contentType: f.type || 'image/jpeg',
+                fileSize: f.size,
+              })),
             }),
           })
-          if (!presignRes.ok) {
-            const errData = await presignRes.json().catch(() => ({}))
-            throw new Error(errData.error || `Presign failed (${presignRes.status})`)
-          }
-          const { presignedUrl, publicUrl: storageUrl } = await presignRes.json()
-
-          const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
-          if (!putRes.ok) throw new Error(`R2 upload failed (${putRes.status})`)
-
-          const oldPhoto = replaceMap?.get(file.name)
-          if (oldPhoto) {
-            await fetch(`/api/photos/${oldPhoto.id}/delete`, {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storageUrl: oldPhoto.storage_url }),
-            }).catch(() => {})
-          }
-
-          const { data: photo, error: dbError } = await supabase
-            .from('photos')
-            .insert({
-              gallery_id: galleryId,
-              filename: file.name,
-              storage_url: storageUrl,
-              thumbnail_url: storageUrl,
-              file_size: file.size,
-              display_order: getOrder(),
-              media_type: file.type.startsWith('video/') ? 'video' : 'image',
-              ...(sectionId ? { section_id: sectionId } : {}),
+          if (res.ok) {
+            const data = await res.json()
+            batch.forEach((f, idx) => {
+              if (data.urls[idx]) presignMap.set(f, data.urls[idx])
             })
-            .select()
-            .single()
-
-          if (dbError) throw dbError
-
-          const uploaded = photo as UploadedPhoto
-          uploadedPhotos.push(uploaded)
-          tickDone(jobId)
-          try { onFileDone?.(file.name, uploaded) } catch {}
+          } else {
+            console.error('[upload] presign-batch failed for batch', i, res.status)
+          }
         } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Upload failed'
-          console.error('[upload] failed:', file.name, err)
-          tickFailed(jobId)
-          try { onFileError?.(file.name, msg) } catch {}
+          console.error('[upload] presign-batch error:', err)
         }
       }
 
-      // 1 at a time — avoids saturating upload bandwidth on large batches
-      const CONCURRENCY = 1
+      // ── Phase 2: Upload with CONCURRENCY=5 + retry ───────────────────────
+      const uploadOne = async (file: File) => {
+        const presigned = presignMap.get(file)
+        if (!presigned) {
+          tickFailed(jobId)
+          try { onFileError?.(file.name, 'Presign failed') } catch {}
+          return
+        }
+
+        let lastErr: unknown
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1)) // 1s, 2s, 4s
+          try {
+            const putRes = await fetch(presigned.presignedUrl, { method: 'PUT', body: file })
+            if (!putRes.ok) throw new Error(`R2 upload failed (${putRes.status})`)
+
+            // Replace old photo if needed
+            const oldPhoto = replaceMap?.get(file.name)
+            if (oldPhoto) {
+              await fetch(`/api/photos/${oldPhoto.id}/delete`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ storageUrl: oldPhoto.storage_url }),
+              }).catch(() => {})
+            }
+
+            // Register in DB
+            const { data: photo, error: dbError } = await supabase
+              .from('photos')
+              .insert({
+                gallery_id: galleryId,
+                filename: file.name,
+                storage_url: presigned.publicUrl,
+                thumbnail_url: presigned.publicUrl,
+                file_size: file.size,
+                display_order: getOrder(),
+                media_type: file.type.startsWith('video/') ? 'video' : 'image',
+                ...(sectionId ? { section_id: sectionId } : {}),
+              })
+              .select()
+              .single()
+
+            if (dbError) throw dbError
+
+            const uploaded = photo as UploadedPhoto
+            uploadedPhotos.push(uploaded)
+            tickDone(jobId)
+            try { onFileDone?.(file.name, uploaded) } catch {}
+            return // success — exit retry loop
+          } catch (err) {
+            lastErr = err
+          }
+        }
+
+        // All retries exhausted
+        const msg = lastErr instanceof Error ? lastErr.message : 'Upload failed'
+        console.error('[upload] failed after retries:', file.name, lastErr)
+        tickFailed(jobId)
+        try { onFileError?.(file.name, msg) } catch {}
+      }
+
+      // Run CONCURRENCY workers pulling from a shared queue
       const remaining = [...files]
       await Promise.all(
         Array.from({ length: Math.min(CONCURRENCY, files.length) }, async () => {
@@ -208,26 +251,34 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       {jobs.length > 0 && (
         <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
           {jobs.map(job => {
-            const finished = job.done + job.failed >= job.total
-            const pct = job.total > 0 ? Math.round(((job.done + job.failed) / job.total) * 100) : 0
+            const processed = job.done + job.failed
+            const finished = processed >= job.total
+            const pct = job.total > 0 ? Math.round((processed / job.total) * 100) : 0
+            const hasFailures = job.failed > 0
 
             return (
               <div
                 key={job.id}
-                className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl min-w-[260px] max-w-[320px]"
+                className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl min-w-[280px] max-w-[340px]"
                 style={{
                   background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-color)',
+                  border: `1px solid ${hasFailures && finished ? 'rgba(239,68,68,0.30)' : 'var(--border-color)'}`,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
                   animation: 'fadeSlideIn 0.3s ease forwards',
                 }}
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: finished ? 'rgba(42,155,104,0.12)' : 'rgba(196,164,124,0.12)' }}
+                  style={{
+                    background: finished
+                      ? hasFailures ? 'rgba(239,68,68,0.10)' : 'rgba(42,155,104,0.12)'
+                      : 'rgba(196,164,124,0.12)',
+                  }}
                 >
                   {finished
-                    ? <CheckCircle className="w-4.5 h-4.5" style={{ color: '#2A9B68' }} />
+                    ? hasFailures
+                      ? <AlertCircle className="w-4.5 h-4.5" style={{ color: '#EF4444' }} />
+                      : <CheckCircle className="w-4.5 h-4.5" style={{ color: '#2A9B68' }} />
                     : <Upload className="w-4 h-4 animate-bounce" style={{ color: 'var(--accent)' }} />
                   }
                 </div>
@@ -235,12 +286,15 @@ export function UploadProvider({ children }: { children: ReactNode }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                     {finished
-                      ? `✓ Upload complete`
-                      : `Uploading ${job.done}/${job.total} photos...`
+                      ? hasFailures
+                        ? `${job.done} hochgeladen · ${job.failed} fehlgeschlagen`
+                        : `✓ ${job.done} Fotos hochgeladen`
+                      : `${job.done} / ${job.total} Fotos…`
                     }
                   </p>
                   <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                     {job.label}
+                    {!finished && job.failed > 0 && ` · ${job.failed} Fehler`}
                   </p>
                   {!finished && (
                     <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
