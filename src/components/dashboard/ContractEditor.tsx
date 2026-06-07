@@ -59,12 +59,13 @@ const ContractVariable = Mark.create({
 
 // ── Predefined variables the photographer can insert ──────────────────────
 const PRESET_VARIABLES = [
-  { key: 'endereço',        label: 'Adresse (Kunde)' },
-  { key: 'CPF',             label: 'CPF / Ausweis-Nr.' },
-  { key: 'data_nascimento', label: 'Geburtsdatum' },
-  { key: 'telefone',        label: 'Telefon (Kunde)' },
-  { key: 'cidade',          label: 'Stadt (Kunde)' },
-  { key: 'campo_livre',     label: 'Freies Feld' },
+  { key: 'Name',        label: 'Name (vollständig)' },
+  { key: 'Adresse',     label: 'Adresse' },
+  { key: 'E-Mail',      label: 'E-Mail' },
+  { key: 'Datum',       label: 'Datum' },
+  { key: 'Ort',         label: 'Ort' },
+  { key: 'Telefon',     label: 'Telefon' },
+  { key: 'FreiesFeld',  label: 'Freies Feld' },
 ]
 
 // ── Variable insert dropdown button ───────────────────────────────────────

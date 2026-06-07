@@ -60,8 +60,11 @@ const VARIABLE_LABELS: Record<string, string> = {
   'Kirche':          'Kirche',
   'Location':        'Location',
   'Uhrzeit':         'Uhrzeit',
+  'E-Mail':          'E-Mail',
+  'FreiesFeld':      'Freies Feld',
+  // Legacy Portuguese keys — kept for existing contracts
   'endereço':        'Adresse',
-  'CPF':             'CPF / Ausweis-Nr.',
+  'CPF':             'Ausweis-Nr.',
   'data_nascimento': 'Geburtsdatum',
   'telefone':        'Telefon',
   'cidade':          'Stadt',
