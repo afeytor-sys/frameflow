@@ -22,7 +22,7 @@ export default async function DashboardPage() {
 
   const [
     { count: activeClients },
-    { count: pendingContracts },
+    { data: pendingContractRows },
     { count: activeGalleries },
     { count: upcomingBookings },
     { data: upcomingProjects },
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
     { data: conversations },
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }).eq('photographer_id', user!.id).eq('status', 'active'),
-    supabase.from('contracts').select('*, projects!inner(photographer_id)', { count: 'exact', head: true }).eq('projects.photographer_id', user!.id).in('status', ['sent', 'viewed']),
+    supabase.from('contracts').select('id, title, status, project:projects!inner(photographer_id, title, client:clients(full_name))').eq('projects.photographer_id', user!.id).in('status', ['sent', 'viewed']).limit(10),
     supabase.from('galleries').select('*, projects!inner(photographer_id)', { count: 'exact', head: true }).eq('projects.photographer_id', user!.id).eq('status', 'active'),
     supabase.from('projects').select('*', { count: 'exact', head: true }).eq('photographer_id', user!.id).gte('shoot_date', todayStr),
     supabase.from('projects').select('*, client:clients(*)').eq('photographer_id', user!.id).gte('shoot_date', todayStr).lte('shoot_date', next30).order('shoot_date', { ascending: true }).limit(5),
@@ -66,14 +66,69 @@ export default async function DashboardPage() {
   })
   const previewConvs = allConvs.slice(0, 4)
 
-  // ── Action items ─────────────────────────────────────────────────────────────
+  // ── Action items (categorised) ───────────────────────────────────────────────
+  const pendingContracts = pendingContractRows ?? []
   const todayShoots = (upcomingProjects ?? []).filter(p => p.shoot_date === todayStr)
-  const actionItems = [
-    ...(unreadConvs.length > 0 ? [{ label: isDE ? `${unreadConvs.length} unbeantwortete Anfrage${unreadConvs.length > 1 ? 'n' : ''}` : `${unreadConvs.length} unanswered lead${unreadConvs.length > 1 ? 's' : ''}`, href: '/dashboard/inbox', color: '#3B82F6', icon: 'msg' }] : []),
-    ...((pendingContracts ?? 0) > 0 ? [{ label: isDE ? `${pendingContracts} Vertrag${(pendingContracts ?? 0) > 1 ? 'e' : ''} warten auf Unterschrift` : `${pendingContracts} contract${(pendingContracts ?? 0) > 1 ? 's' : ''} awaiting signature`, href: '/dashboard/contracts', color: '#F59E0B', icon: 'doc' }] : []),
-    ...(overdueCount > 0 ? [{ label: isDE ? `${overdueCount} überfällige Rechnung${overdueCount > 1 ? 'en' : ''}` : `${overdueCount} overdue invoice${overdueCount > 1 ? 's' : ''}`, href: '/dashboard/invoices', color: '#EF4444', icon: 'invoice' }] : []),
-    ...(todayShoots.length > 0 ? [{ label: isDE ? `Heute: ${todayShoots.map(p => (p.client as { full_name?: string })?.full_name || p.title).join(', ')}` : `Today: ${todayShoots.map(p => (p.client as { full_name?: string })?.full_name || p.title).join(', ')}`, href: '/dashboard/projects', color: '#10B981', icon: 'cal' }] : []),
+  const overdueInvoices = allInvoices.filter(i => i.status === 'overdue')
+
+  type ActionCategory = {
+    key: string
+    label: string
+    color: string
+    bg: string
+    href: string
+    items: string[]
+  }
+  const actionCategories: ActionCategory[] = [
+    ...(unreadConvs.length > 0 ? [{
+      key: 'inbox',
+      label: isDE ? 'Unbeantwortete Nachrichten' : 'Unanswered messages',
+      color: '#3B82F6',
+      bg: 'rgba(59,130,246,0.08)',
+      href: '/dashboard/inbox',
+      items: unreadConvs.slice(0, 5).map(c => c.lead_name || c.lead_email || '—'),
+    }] : []),
+    ...(pendingContracts.length > 0 ? [{
+      key: 'contracts',
+      label: isDE ? 'Verträge warten auf Unterschrift' : 'Contracts awaiting signature',
+      color: '#F59E0B',
+      bg: 'rgba(245,158,11,0.08)',
+      href: '/dashboard/contracts',
+      items: pendingContracts.slice(0, 5).map(c => {
+        const projRaw = c.project
+        const proj = Array.isArray(projRaw) ? projRaw[0] : projRaw
+        const p = proj as { title?: string; client?: { full_name?: string } | { full_name?: string }[] | null } | null
+        const client = Array.isArray(p?.client) ? p?.client[0] : p?.client
+        return client?.full_name || p?.title || c.title || '—'
+      }),
+    }] : []),
+    ...(overdueInvoices.length > 0 ? [{
+      key: 'invoices',
+      label: isDE ? 'Überfällige Rechnungen' : 'Overdue invoices',
+      color: '#EF4444',
+      bg: 'rgba(239,68,68,0.08)',
+      href: '/dashboard/invoices',
+      items: overdueInvoices.slice(0, 5).map(inv => {
+        const projRaw = inv.project
+        const proj = Array.isArray(projRaw) ? projRaw[0] : projRaw
+        const p = proj as { title?: string; client?: { full_name?: string } | { full_name?: string }[] | null } | null
+        const client = Array.isArray(p?.client) ? p?.client[0] : p?.client
+        const name = client?.full_name || p?.title || '—'
+        const amt = inv.amount ? `€${(inv.amount / 100).toLocaleString('de-DE')}` : ''
+        return amt ? `${name} · ${amt}` : name
+      }),
+    }] : []),
+    ...(todayShoots.length > 0 ? [{
+      key: 'today',
+      label: isDE ? 'Shooting heute' : 'Shoot today',
+      color: '#10B981',
+      bg: 'rgba(16,185,129,0.08)',
+      href: '/dashboard/projects',
+      items: todayShoots.map(p => (p.client as { full_name?: string })?.full_name || p.title),
+    }] : []),
   ]
+  // legacy — keep for AnimatedStatsLight
+  const pendingContractsCount = pendingContracts.length
 
   const quickActions = [
     { label: isDE ? 'Neue Anfrage' : 'New Inquiry',  sub: isDE ? 'Lead aufnehmen' : 'Add a lead',          href: '/dashboard/inbox',         icon: Inbox,     color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
@@ -117,35 +172,42 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Action required ── */}
-        {actionItems.length > 0 && (
-          <div className="anim-1 rounded-2xl overflow-hidden" style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', boxShadow: 'var(--card-shadow)' }}>
-            <div className="flex items-center gap-3 px-5 py-3.5" style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.10)' }}>
-                <AlertCircle className="w-3.5 h-3.5" style={{ color: '#EF4444' }} />
-              </div>
-              <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                {isDE ? 'Handlungsbedarf' : 'Action Required'}
-              </span>
-              <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.10)', color: '#EF4444' }}>
-                {actionItems.length}
-              </span>
-            </div>
-            <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
-              {actionItems.map((item, i) => (
-                <Link key={i} href={item.href} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[var(--bg-hover)] group">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                  <span className="text-[13px] font-medium flex-1" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--text-muted)' }} />
+        {/* ── Action required (categorised) ── */}
+        {actionCategories.length > 0 && (
+          <div className="anim-1 space-y-2.5">
+            {actionCategories.map(cat => (
+              <div key={cat.key} className="rounded-2xl overflow-hidden" style={{ background: 'var(--card-bg)', border: `1px solid var(--card-border)`, boxShadow: 'var(--card-shadow)' }}>
+                {/* Category header */}
+                <Link href={cat.href} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--bg-hover)] group" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: cat.bg }}>
+                    <AlertCircle className="w-3.5 h-3.5" style={{ color: cat.color }} />
+                  </div>
+                  <span className="text-[13px] font-bold flex-1" style={{ color: 'var(--text-primary)' }}>{cat.label}</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: cat.bg, color: cat.color }}>
+                    {cat.items.length}
+                  </span>
+                  <ArrowUpRight className="w-3.5 h-3.5 flex-shrink-0 opacity-40 group-hover:opacity-80 transition-opacity" style={{ color: cat.color }} />
                 </Link>
-              ))}
-            </div>
+                {/* Individual items */}
+                <div>
+                  {cat.items.map((item, i) => (
+                    <Link key={i} href={cat.href}
+                      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--bg-hover)] group"
+                      style={{ borderBottom: i < cat.items.length - 1 ? '1px solid var(--border-color)' : undefined }}>
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-1" style={{ background: cat.color, opacity: 0.6 }} />
+                      <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-secondary)' }}>{item}</span>
+                      <ArrowUpRight className="w-3 h-3 flex-shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: 'var(--text-muted)' }} />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
         {/* ── Stats ── */}
         <div className="anim-2">
-          <AnimatedStatsLight activeClients={activeClients ?? 0} pendingContracts={pendingContracts ?? 0} activeGalleries={activeGalleries ?? 0} upcomingBookings={upcomingBookings ?? 0} />
+          <AnimatedStatsLight activeClients={activeClients ?? 0} pendingContracts={pendingContractsCount} activeGalleries={activeGalleries ?? 0} upcomingBookings={upcomingBookings ?? 0} />
         </div>
 
         {/* ── Revenue strip ── */}
