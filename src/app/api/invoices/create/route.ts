@@ -11,7 +11,7 @@ interface LineItemInput {
 }
 
 interface CreateInvoiceBody {
-  project_id: string
+  project_id: string | null
   description: string | null
   notes: string | null
   /**
@@ -46,10 +46,6 @@ export async function POST(req: NextRequest) {
   const body: CreateInvoiceBody = await req.json()
   const { project_id, description, notes, verwendungszweck, due_date, items } = body
 
-  if (!project_id) {
-    return NextResponse.json({ error: 'project_id required' }, { status: 400 })
-  }
-
   const validItems = items.filter(it => it.description.trim())
   if (validItems.length === 0) {
     return NextResponse.json({ error: 'At least one line item required' }, { status: 400 })
@@ -69,20 +65,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Photographer not found' }, { status: 404 })
   }
 
-  // ── Verify the project belongs to this photographer ───────────────────────
-  const { data: projectRow, error: projErr } = await service
-    .from('projects')
-    .select('id, photographer_id, client_id, title')
-    .eq('id', project_id)
-    .eq('photographer_id', user.id)
-    .maybeSingle()
-
-  if (projErr || !projectRow) {
-    console.error('[create-invoice] project lookup:', projErr)
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-  }
-
-  // ── Fetch client for snapshot (separate query to avoid join issues) ────────
+  // ── Verify project (optional) ─────────────────────────────────────────────
   interface ClientRow {
     full_name: string | null
     company_name: string | null
@@ -93,13 +76,28 @@ export async function POST(req: NextRequest) {
     address_country: string | null
   }
   let clientRow: ClientRow | null = null
-  if (projectRow.client_id) {
-    const { data } = await service
-      .from('clients')
-      .select('full_name, company_name, email, address_street, address_zip, address_city, address_country')
-      .eq('id', projectRow.client_id)
+
+  if (project_id) {
+    const { data: projectRow, error: projErr } = await service
+      .from('projects')
+      .select('id, photographer_id, client_id, title')
+      .eq('id', project_id)
+      .eq('photographer_id', user.id)
       .maybeSingle()
-    clientRow = data as ClientRow | null
+
+    if (projErr || !projectRow) {
+      console.error('[create-invoice] project lookup:', projErr)
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    if (projectRow.client_id) {
+      const { data } = await service
+        .from('clients')
+        .select('full_name, company_name, email, address_street, address_zip, address_city, address_country')
+        .eq('id', projectRow.client_id)
+        .maybeSingle()
+      clientRow = data as ClientRow | null
+    }
   }
 
   // ── Compute amounts ───────────────────────────────────────────────────────
@@ -176,7 +174,7 @@ export async function POST(req: NextRequest) {
   const { data: invoice, error: insertError } = await service
     .from('invoices')
     .insert({
-      project_id,
+      project_id: project_id || null,
       photographer_id: user.id,
       amount: amountCents,
       subtotal: subtotalCents,

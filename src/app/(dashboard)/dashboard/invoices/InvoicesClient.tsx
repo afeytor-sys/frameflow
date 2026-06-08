@@ -636,7 +636,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.project_id) { toast.error(ti.selectProjectError); return }
+    // project_id is optional — invoice can exist without a project
     const validItems = items.filter(it => it.description.trim())
     if (validItems.length === 0) { toast.error('Bitte mindestens eine Position ausfüllen'); return }
     setSaving(true)
@@ -1106,7 +1106,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[11.5px] font-bold uppercase tracking-[0.08em]"
                     style={{ color: 'var(--text-primary)' }}>
-                    Projekt *
+                    Projekt <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
                   </label>
                   <button
                     type="button"
@@ -1180,7 +1180,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   className="input-base"
                   style={{ color: form.project_id ? 'var(--text-primary)' : 'var(--text-muted)' }}
                 >
-                        <option value="">{ti.selectProject}</option>
+                        <option value="">Ohne Projekt</option>
                   {projectList.map(p => {
                     const c = p.client
                     const clientName = Array.isArray(c) ? c[0]?.full_name : c?.full_name
