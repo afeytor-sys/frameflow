@@ -34,7 +34,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   // Fetch all galleries for this project, prefer active ones with photos
   const { data: allGalleries, error: galleryError } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, tags_enabled')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, tags_enabled, cover_photo_id')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -94,8 +94,11 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   const sortedPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
   const gallerySections = sections || []
 
-  // Hero image: first photo of the gallery
-  const heroPhoto = sortedPhotos[0] ?? null
+  // Hero image: use cover_photo_id if set, otherwise first photo
+  const coverPhotoId = (gallery as { cover_photo_id?: string | null }).cover_photo_id ?? null
+  const heroPhoto = coverPhotoId
+    ? (sortedPhotos.find(p => p.id === coverPhotoId) ?? sortedPhotos[0] ?? null)
+    : (sortedPhotos[0] ?? null)
   const heroUrl = heroPhoto?.storage_url ?? null
 
   const theme = getTheme((gallery as { design_theme?: string | null }).design_theme || 'classic-white')
