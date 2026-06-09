@@ -360,8 +360,9 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
   const [shareModal, setShareModal] = useState<{ galleryId: string; url: string; password: string | null; guestPassword: string | null; title: string } | null>(null)
 
   const openShareModal = (g: GalleryItem) => {
-    const token = (project.client_token as string | null) ?? project.client_url.split('/client/')[1]
-    const url = `${window.location.origin}/gallery/${token}`
+    // Always use the portal URL as the canonical share link
+    const slug = (project.custom_slug as string | null) || (project.client_token as string | null) || project.client_url.split('/client/')[1]
+    const url = `${window.location.origin}/client/${slug}`
     setShareModal({ galleryId: g.id, url, password: g.password || null, guestPassword: g.guest_password ?? null, title: g.title })
   }
 

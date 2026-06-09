@@ -259,7 +259,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const meetingPoint: string | null = meetingLocations.length > 0 ? meetingLocations[0].url : null
   const portalPassword: string | null = (project as { portal_password?: string | null }).portal_password ?? null
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frameflow.app'
-  const publicGalleryUrl = `${baseUrl}/gallery/${token}`
+  const publicGalleryUrl = `${baseUrl}/client/${token}`
   const portalLinks = ((project as { portal_links?: { label: string; url: string }[] | null }).portal_links ?? []).filter(l => l.url?.trim())
 
   // Portal visibility settings
