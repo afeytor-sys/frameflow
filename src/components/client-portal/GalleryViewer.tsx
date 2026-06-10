@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Heart, Download, X, ChevronLeft, ChevronRight,
@@ -102,6 +102,141 @@ function getThumbnailUrl(photo: Photo, width = 800): string {
 function getLightboxUrl(photo: Photo): string {
   return getPhotoUrl(photo.storage_url, 2400, 90, 'contain', 1)
 }
+
+// ── PhotoCard props (defined outside GalleryViewer so React never
+//    treats it as a new component type across re-renders) ────────
+interface PhotoCardProps {
+  photo: Photo
+  index: number
+  className?: string
+  thumbWidth: number
+  showTagMenu: string | null
+  tagsEnabled: boolean
+  downloadEnabled: boolean
+  canMarkPrivate: boolean
+  onLightbox: (index: number) => void
+  onToggleFavorite: (photoId: string) => void
+  onSetTag: (photoId: string, tag: PhotoTag) => void
+  onDownload: (photo: Photo) => void
+  onTogglePrivate: (photoId: string) => void
+  onToggleTagMenu: (id: string | null) => void
+}
+
+const PhotoCard = memo(function PhotoCard({
+  photo, index, className,
+  thumbWidth, showTagMenu,
+  tagsEnabled, downloadEnabled, canMarkPrivate,
+  onLightbox, onToggleFavorite, onSetTag, onDownload, onTogglePrivate, onToggleTagMenu,
+}: PhotoCardProps) {
+  return (
+    <div
+      className={cn('relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover photo-appear', className)}
+      style={{ animationDelay: `${Math.min(index % 24, 12) * 30}ms` }}
+      onClick={() => onLightbox(index)}
+    >
+      {photo.media_type === 'video' ? (
+        <>
+          <video
+            src={photo.storage_url}
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
+            playsInline
+          />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+              <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+        </>
+      ) : (
+        <LazyImage
+          src={getThumbnailUrl(photo, thumbWidth)}
+          alt={photo.filename}
+          className="w-full h-full photo-img-hover"
+          priority={index < 8}
+        />
+      )}
+      <div className="absolute inset-0" />
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
+          {photo.media_type === 'video'
+            ? <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            : <ZoomIn className="w-6 h-6 text-white" />}
+        </div>
+      </div>
+      <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => onToggleFavorite(photo.id)}
+          className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
+        >
+          <Heart className={cn('w-5 h-5', photo.is_favorite && 'fill-white')} style={{ width: 20, height: 20 }} />
+        </button>
+        {tagsEnabled && (
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleTagMenu(showTagMenu === photo.id ? null : photo.id) }}
+              className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
+              style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
+            >
+              <span className="text-[13px] font-bold text-white">●</span>
+            </button>
+            {showTagMenu === photo.id && (
+              <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
+                {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
+                  <button key={tag} onClick={() => onSetTag(photo.id, tag)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors', photo.tag === tag ? 'text-white bg-white/8' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
+                    {cfg.label}
+                    {photo.tag === tag && <span className="ml-auto text-white/40">✓</span>}
+                  </button>
+                ))}
+                {photo.tag && (
+                  <button onClick={() => onSetTag(photo.id, photo.tag ?? null)} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5">
+                    Tag entfernen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {downloadEnabled && (
+          <button onClick={() => onDownload(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-lg">
+            <Download style={{ width: 20, height: 20 }} />
+          </button>
+        )}
+        {canMarkPrivate && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onTogglePrivate(photo.id) }}
+            title={photo.is_private ? 'Privat (nur Kunden-PW) — klicken zum Aufheben' : 'Als privat markieren (für Gäste verbergen)'}
+            className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_private ? 'bg-violet-600 text-white' : 'bg-black/50 backdrop-blur-sm text-white/60 hover:text-violet-300')}
+          >
+            <EyeOff style={{ width: 18, height: 18 }} />
+          </button>
+        )}
+      </div>
+      <div className="absolute top-2 left-2 flex items-center gap-1">
+        {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />}
+        {tagsEnabled && photo.tag && <span className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg" style={{ background: TAG_CONFIG[photo.tag].bg }} />}
+        {photo.is_private && canMarkPrivate && (
+          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-violet-600/80 drop-shadow-lg">
+            <EyeOff className="w-2.5 h-2.5 text-white" />
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}, (prev, next) =>
+  prev.photo.id === next.photo.id &&
+  prev.photo.is_favorite === next.photo.is_favorite &&
+  prev.photo.tag === next.photo.tag &&
+  prev.photo.is_private === next.photo.is_private &&
+  prev.index === next.index &&
+  prev.thumbWidth === next.thumbWidth &&
+  prev.showTagMenu === next.showTagMenu &&
+  prev.tagsEnabled === next.tagsEnabled &&
+  prev.downloadEnabled === next.downloadEnabled &&
+  prev.canMarkPrivate === next.canMarkPrivate
+)
 
 // ── Lazy image component with skeleton ──────────────────────────────
 // Uses native <img> to avoid Next.js Image fill/height constraints in masonry
@@ -215,6 +350,24 @@ export default function GalleryViewer({
   const [isMobile, setIsMobile]           = useState(false)
   const [hideControls, setHideControls]   = useState(false)
 
+  // ── Batch rowSpans: accumulate in a ref, flush once per animation frame ──
+  const pendingSpans   = useRef<Record<string, number>>({})
+  const spansRafRef    = useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
+  const flushRowSpans  = useCallback(() => {
+    const batch = pendingSpans.current
+    pendingSpans.current = {}
+    spansRafRef.current  = null
+    if (Object.keys(batch).length > 0) {
+      setRowSpans(prev => ({ ...prev, ...batch }))
+    }
+  }, [])
+  const scheduleSpan = useCallback((photoId: string, span: number) => {
+    pendingSpans.current[photoId] = span
+    if (spansRafRef.current === null) {
+      spansRafRef.current = requestAnimationFrame(flushRowSpans)
+    }
+  }, [flushRowSpans])
+
   const supabase = createClient()
 
   // ── Track gallery view on mount ──────────────────────────────────
@@ -247,33 +400,50 @@ export default function GalleryViewer({
       })
   }, [galleryId])
 
-  const favoriteCount = photos.filter((p) => p.is_favorite).length
-  const tagCounts = {
+  // ── All O(n) computations wrapped in useMemo ─────────────────────
+  // Without memo these run on EVERY state change (hover, lightbox open, etc.)
+  const favoriteCount = useMemo(
+    () => photos.filter((p) => p.is_favorite).length,
+    [photos]
+  )
+
+  const tagCounts = useMemo(() => ({
     green:  photos.filter((p) => p.tag === 'green').length,
     yellow: photos.filter((p) => p.tag === 'yellow').length,
     red:    photos.filter((p) => p.tag === 'red').length,
-  }
+  }), [photos])
 
-  // Section filter applied first, then tag/favorite filter on top
-  const sectionBase = activeSection
-    ? photos.filter(p => p.section_id === activeSection)
-    : photos
+  const filteredPhotos = useMemo(() => {
+    const base = activeSection
+      ? photos.filter(p => p.section_id === activeSection)
+      : photos
+    const filtered = filterTag === 'favorite'
+      ? base.filter((p) => p.is_favorite)
+      : filterTag
+      ? base.filter((p) => p.tag === filterTag)
+      : base
+    return sortOrder === 'manual'
+      ? filtered
+      : [...filtered].sort((a, b) => {
+          const cmp = a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: 'base' })
+          return sortOrder === 'name-asc' ? cmp : -cmp
+        })
+  }, [photos, activeSection, filterTag, sortOrder])
 
-  const filteredBase = filterTag === 'favorite'
-    ? sectionBase.filter((p) => p.is_favorite)
-    : filterTag
-    ? sectionBase.filter((p) => p.tag === filterTag)
-    : sectionBase
+  // ── Progressive loading: slice is also memoized ──────────────────
+  const visiblePhotos = useMemo(
+    () => filteredPhotos.slice(0, visibleCount),
+    [filteredPhotos, visibleCount]
+  )
 
-  const filteredPhotos = sortOrder === 'manual'
-    ? filteredBase
-    : [...filteredBase].sort((a, b) => {
-        const cmp = a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: 'base' })
-        return sortOrder === 'name-asc' ? cmp : -cmp
-      })
-
-  // ── Progressive loading: slice to visible count ──────────────────
-  const visiblePhotos = filteredPhotos.slice(0, visibleCount)
+  // ── Section photo counts (replaces per-render photos.filter in section pills) ─
+  const sectionCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of photos) {
+      if (p.section_id) counts[p.section_id] = (counts[p.section_id] ?? 0) + 1
+    }
+    return counts
+  }, [photos])
 
   const currentPhoto = lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null
 
@@ -578,113 +748,13 @@ export default function GalleryViewer({
     setLightboxIndex((i) => (i !== null ? (i + 1) % filteredPhotos.length : null))
   }, [filteredPhotos.length])
 
-  // ── Photo card (shared between layouts) ─────────────────────────
-  const PhotoCard = ({ photo, index, className }: { photo: Photo; index: number; className?: string }) => (
-    <div
-      className={cn('relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover photo-appear', className)}
-      style={{ animationDelay: `${Math.min(index % 24, 12) * 30}ms` }}
-      onClick={() => openLightbox(index)}
-    >
-      {photo.media_type === 'video' ? (
-        <>
-          <video
-            src={photo.storage_url}
-            className="w-full h-full object-cover"
-            preload="metadata"
-            muted
-            playsInline
-          />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-          </div>
-        </>
-      ) : (
-        <LazyImage
-          src={getThumbnailUrl(photo, thumbWidth)}
-          fallbackSrc={photo.thumbnail_url || photo.storage_url}
-          alt={photo.filename}
-          className="w-full h-full photo-img-hover"
-          priority={index < 8}
-        />
-      )}
-      {/* Hover overlay */}
-      <div className="absolute inset-0" />
-      {/* Zoom icon */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
-          {photo.media_type === 'video' ? <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> : <ZoomIn className="w-6 h-6 text-white" />}
-        </div>
-      </div>
-      {/* Top-right actions */}
-      <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={() => toggleFavorite(photo.id)}
-          className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
-        >
-          <Heart className={cn('w-5 h-5', photo.is_favorite && 'fill-white')} style={{ width: 20, height: 20 }} />
-        </button>
-        {tagsEnabled && (
-          <div className="relative">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowTagMenu(showTagMenu === photo.id ? null : photo.id) }}
-              className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
-              style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
-            >
-              <span className="text-[13px] font-bold text-white">●</span>
-            </button>
-            {showTagMenu === photo.id && (
-              <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
-                {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
-                  <button key={tag} onClick={() => setTag(photo.id, tag)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors', photo.tag === tag ? 'text-white bg-white/8' : 'text-white/60 hover:text-white hover:bg-white/5')}>
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
-                    {cfg.label}
-                    {photo.tag === tag && <span className="ml-auto text-white/40">✓</span>}
-                  </button>
-                ))}
-                {photo.tag && (
-                  <button onClick={() => setTag(photo.id, photo.tag ?? null)} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5">
-                    Tag entfernen
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-        {downloadEnabled && (
-          <button onClick={() => downloadPhoto(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-lg">
-            <Download style={{ width: 20, height: 20 }} />
-          </button>
-        )}
-        {/* Mark as private — only for Kunden-PW access */}
-        {canMarkPrivate && (
-          <button
-            onClick={(e) => { e.stopPropagation(); togglePrivate(photo.id) }}
-            title={photo.is_private ? 'Privat (nur Kunden-PW) — klicken zum Aufheben' : 'Als privat markieren (für Gäste verbergen)'}
-            className={cn(
-              'w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg',
-              photo.is_private
-                ? 'bg-violet-600 text-white'
-                : 'bg-black/50 backdrop-blur-sm text-white/60 hover:text-violet-300'
-            )}
-          >
-            <EyeOff style={{ width: 18, height: 18 }} />
-          </button>
-        )}
-      </div>
-      {/* Indicators */}
-      <div className="absolute top-2 left-2 flex items-center gap-1">
-        {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />}
-        {tagsEnabled && photo.tag && <span className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg" style={{ background: TAG_CONFIG[photo.tag].bg }} />}
-        {photo.is_private && canMarkPrivate && (
-          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-violet-600/80 drop-shadow-lg">
-            <EyeOff className="w-2.5 h-2.5 text-white" />
-          </span>
-        )}
-      </div>
-    </div>
-  )
+  // ── Stable callbacks for PhotoCard (useCallback prevents memo invalidation) ──
+  const handleLightbox   = useCallback((index: number) => { setLightboxLoaded(false); setLightboxIndex(index) }, [])
+  const handleToggleFav  = useCallback((photoId: string) => { toggleFavorite(photoId) }, [photos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSetTag     = useCallback((photoId: string, tag: PhotoTag) => { setTag(photoId, tag) }, [photos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleDownload   = useCallback((photo: Photo) => { downloadPhoto(photo) }, [galleryId, clientName]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleTogglePriv = useCallback((photoId: string) => { togglePrivate(photoId) }, [photos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleTagMenu    = useCallback((id: string | null) => { setShowTagMenu(id) }, [])
 
   // Theme-aware colors for toolbar
   const tbBg = theme ? `${theme.surface}E0` : 'rgba(248,247,244,0.9)'
@@ -946,7 +1016,7 @@ export default function GalleryViewer({
                   >
                     {sec.title}
                     <span className="ml-1.5 text-[12px] sm:text-[10px] opacity-50">
-                      {photos.filter(p => p.section_id === sec.id).length}
+                      {sectionCounts[sec.id] ?? 0}
                     </span>
                   </button>
                 )}
@@ -1261,7 +1331,7 @@ export default function GalleryViewer({
                 onLoad={e => {
                   const img = e.currentTarget
                   const h = img.offsetWidth * (img.naturalHeight / img.naturalWidth)
-                  setRowSpans(prev => ({ ...prev, [photo.id]: Math.ceil((h + 6) / 10) }))
+                  scheduleSpan(photo.id, Math.ceil((h + 6) / 10))
                 }}
               />
               <div className="absolute inset-0" />
@@ -1335,14 +1405,46 @@ export default function GalleryViewer({
         /* GRID — uniform squares */
         <div className={cn('grid', gridCols)} style={{ gap: `${gap}px` }}>
           {visiblePhotos.map((photo, index) => (
-            <PhotoCard key={photo.id} photo={photo} index={index} className="aspect-square" />
+            <PhotoCard
+              key={photo.id}
+              photo={photo}
+              index={index}
+              className="aspect-square"
+              thumbWidth={thumbWidth}
+              showTagMenu={showTagMenu}
+              tagsEnabled={tagsEnabled}
+              downloadEnabled={downloadEnabled}
+              canMarkPrivate={canMarkPrivate}
+              onLightbox={handleLightbox}
+              onToggleFavorite={handleToggleFav}
+              onSetTag={handleSetTag}
+              onDownload={handleDownload}
+              onTogglePrivate={handleTogglePriv}
+              onToggleTagMenu={handleTagMenu}
+            />
           ))}
         </div>
       ) : (
         /* COLUMNS — 2 columns, landscape-ish */
         <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: `${gap}px` }}>
           {visiblePhotos.map((photo, index) => (
-            <PhotoCard key={photo.id} photo={photo} index={index} className={cn('w-full', columnHeight)} />
+            <PhotoCard
+              key={photo.id}
+              photo={photo}
+              index={index}
+              className={cn('w-full', columnHeight)}
+              thumbWidth={thumbWidth}
+              showTagMenu={showTagMenu}
+              tagsEnabled={tagsEnabled}
+              downloadEnabled={downloadEnabled}
+              canMarkPrivate={canMarkPrivate}
+              onLightbox={handleLightbox}
+              onToggleFavorite={handleToggleFav}
+              onSetTag={handleSetTag}
+              onDownload={handleDownload}
+              onTogglePrivate={handleTogglePriv}
+              onToggleTagMenu={handleTagMenu}
+            />
           ))}
         </div>
       )}
