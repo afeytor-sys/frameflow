@@ -70,8 +70,8 @@ const T = {
     galleryNamePlaceholder: 'e.g. Wedding Anna & Max',
     password: 'Password (optional)',
     passwordPlaceholder: 'No password',
-    project: 'Project *',
-    projectPlaceholder: 'Select project...',
+    project: 'Project (optional)',
+    projectPlaceholder: 'No project',
     noProject: 'No project found.',
     noProjectLink: 'Create project →',
     sets: 'Sets (optional)',
@@ -113,8 +113,8 @@ const T = {
     galleryNamePlaceholder: 'z.B. Hochzeit Anna & Max',
     password: 'Passwort (optional)',
     passwordPlaceholder: 'Kein Passwort',
-    project: 'Projekt *',
-    projectPlaceholder: 'Projekt auswählen...',
+    project: 'Projekt (optional)',
+    projectPlaceholder: 'Ohne Projekt',
     noProject: 'Kein Projekt vorhanden.',
     noProjectLink: 'Projekt erstellen →',
     sets: 'Sets (optional)',
@@ -192,14 +192,12 @@ export default function GalleriesPage() {
         .order('created_at', { ascending: false })
       setProjects((projs || []) as Project[])
 
-      const projectIds = (projs || []).map(p => p.id)
-      if (projectIds.length === 0) { setLoading(false); return }
-
+      // Fetch all galleries for this photographer (with or without a project)
       const { data } = await supabase
         .from('galleries')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .select('id, title, status, view_count, download_count, password, guest_password, cover_photo_id, project_id, project:projects(id, title, client_token, custom_slug, client:clients(full_name))' as any)
-        .in('project_id', projectIds)
+        .eq('photographer_id', user.id)
         .order('created_at', { ascending: false })
 
       if (!data) { setLoading(false); return }
@@ -249,7 +247,7 @@ export default function GalleriesPage() {
   }, [])
 
   const openModal = () => {
-    setForm({ title: '', password: '', theme: 'classic-white', project_id: projects[0]?.id || '', download_enabled: true, comments_enabled: true, tags_enabled: true })
+    setForm({ title: '', password: '', theme: 'classic-white', project_id: '', download_enabled: true, comments_enabled: true, tags_enabled: true })
     setSets([])
     setNewSetName('')
     setShowModal(true)
@@ -305,7 +303,7 @@ export default function GalleriesPage() {
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast.error(t.errorTitle); return }
-    if (!form.project_id) { toast.error(t.errorProject); return }
+    // project_id is optional
     setCreating(true)
 
     try {
@@ -769,7 +767,7 @@ export default function GalleriesPage() {
               <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">{t.cancel}</button>
               <button
                 onClick={handleCreate}
-                disabled={creating || !form.title.trim() || !form.project_id}
+                disabled={creating || !form.title.trim()}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
                 style={{ background: '#10B981', boxShadow: '0 1px 8px rgba(16,185,129,0.25)' }}
               >

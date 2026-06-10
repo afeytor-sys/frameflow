@@ -38,20 +38,22 @@ export async function POST(request: NextRequest) {
       sets = [],
     } = body
 
-    if (!project_id || !title) {
-      return NextResponse.json({ error: 'Missing project_id or title' }, { status: 400 })
+    if (!title) {
+      return NextResponse.json({ error: 'Missing title' }, { status: 400 })
     }
 
-    // 2. Verify the project belongs to this photographer
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('id, photographer_id')
-      .eq('id', project_id)
-      .eq('photographer_id', user.id)
-      .single()
+    // 2. Verify the project belongs to this photographer (only if project_id provided)
+    if (project_id) {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('id, photographer_id')
+        .eq('id', project_id)
+        .eq('photographer_id', user.id)
+        .single()
 
-    if (projectError || !project) {
-      return NextResponse.json({ error: 'Project not found or access denied' }, { status: 403 })
+      if (projectError || !project) {
+        return NextResponse.json({ error: 'Project not found or access denied' }, { status: 403 })
+      }
     }
 
     // 3. Insert gallery using service role (bypasses RLS)
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
     const { data: gallery, error: galleryError } = await service
       .from('galleries')
       .insert({
-        project_id,
+        ...(project_id ? { project_id } : {}),
         photographer_id: user.id,
         title: title.trim(),
         status,
