@@ -81,9 +81,9 @@ interface Gallery {
 }
 
 interface Props {
-  projectId: string
+  projectId: string | null
   photographerId: string
-  clientUrl: string
+  clientUrl: string | null
   publicGalleryUrl?: string
   gallery: Gallery | null
   photos: Photo[]
@@ -642,6 +642,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const getGalleryUrl = () => {
     if (publicGalleryUrl) return publicGalleryUrl
     // Extract token from clientUrl: /client/[token]
+    if (!clientUrl) return window.location.origin
     const token = clientUrl.split('/client/')[1]?.split('/')[0]
     return token ? `${window.location.origin}/gallery/${token}` : `${clientUrl}/gallery`
   }

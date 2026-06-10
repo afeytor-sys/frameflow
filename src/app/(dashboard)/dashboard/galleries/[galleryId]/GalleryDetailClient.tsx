@@ -28,10 +28,10 @@ interface Gallery {
 
 interface Props {
   gallery: Gallery
-  projectId: string
-  projectTitle: string
+  projectId: string | null
+  projectTitle: string | null
   photographerId: string
-  clientUrl: string
+  clientUrl: string | null
   clientEmail: string | null
   clientName: string | null
   currentSlug: string | null

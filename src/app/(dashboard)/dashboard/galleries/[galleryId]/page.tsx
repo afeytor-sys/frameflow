@@ -27,8 +27,11 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
     client?: { full_name: string; email?: string | null } | { full_name: string; email?: string | null }[] | null
   } | null
 
-  // Verify this gallery belongs to the authenticated photographer
-  if (!project || project.photographer_id !== user.id) return notFound()
+  // Verify ownership: via project.photographer_id if linked, else via gallery.photographer_id
+  const galleryPhotographerId = (gallery as unknown as { photographer_id?: string }).photographer_id
+  const ownedViaProject = project && project.photographer_id === user.id
+  const ownedDirectly = !project && galleryPhotographerId === user.id
+  if (!ownedViaProject && !ownedDirectly) return notFound()
 
   const { data: photographer } = await supabase
     .from('photographers')
@@ -38,16 +41,17 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
 
   const studioName = photographer?.studio_name || photographer?.full_name || null
 
-  // Build client portal URL (same pattern as project detail page)
+  // Build client portal URL (only if gallery is linked to a project)
   const headersList = await headers()
   const forwardedHost = headersList.get('x-forwarded-host')
   const host = forwardedHost || headersList.get('host') || 'localhost:3000'
   const protocol = host.includes('localhost') ? 'http' : 'https'
-  const clientUrl = project.client_token
-    ? `${protocol}://${host}/client/${project.client_token}`
-    : `${protocol}://${host}/client/unknown`
+  const portalToken = project?.custom_slug || project?.client_token
+  const clientUrl = portalToken
+    ? `${protocol}://${host}/client/${portalToken}`
+    : null
 
-  const client = Array.isArray(project.client) ? project.client[0] : project.client
+  const client = project ? (Array.isArray(project.client) ? project.client[0] : project.client) : null
 
   return (
     <GalleryDetailClient
@@ -69,14 +73,14 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
         design_theme: (gallery.design_theme as string | null) ?? null,
         tags_enabled: Array.isArray(gallery.tags_enabled) ? (gallery.tags_enabled as string[]) : null,
       }}
-      projectId={project.id}
-      projectTitle={project.title}
+      projectId={project?.id ?? null}
+      projectTitle={project?.title ?? null}
       photographerId={user.id}
       clientUrl={clientUrl}
       clientEmail={client?.email ?? null}
       clientName={client?.full_name ?? null}
-      currentSlug={project.custom_slug ?? null}
-      clientToken={project.client_token ?? null}
+      currentSlug={project?.custom_slug ?? null}
+      clientToken={project?.client_token ?? null}
       studioName={studioName}
     />
   )
