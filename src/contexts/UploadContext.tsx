@@ -14,6 +14,15 @@ const LARGE_FILE   = 5  * 1024 * 1024   // files ≥ 5 MB use multipart
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
+// Fetch timeouts — prevents workers from hanging forever on stalled connections
+const TIMEOUT = {
+  presign:         10_000,  // 10s  — signing a URL is fast; anything more = infra issue
+  multipartInit:   15_000,  // 15s  — signs N part URLs in Promise.all
+  chunkPut:       180_000,  // 3min — 10 MB at 550 KB/s minimum viable bandwidth
+  multipartComplete: 20_000, // 20s  — R2 assembly, documented < 10s normally
+  smallPut:       120_000,  // 2min — < 5 MB file
+} as const
+
 // ── Structured upload error ──────────────────────────────────────────────────
 // Carries the endpoint name and HTTP status alongside the message so the log
 // can record exactly which step failed without parsing error strings.
@@ -83,6 +92,10 @@ interface UploadContextValue {
   enqueueFiles: (files: File[], config: EnqueueConfig) => void
   getUploadLogs: () => UploadLogEntry[]
   clearUploadLogs: () => void
+  /** R2 keys that were uploaded successfully but whose DB insert failed.
+   *  Call cleanupOrphans() to delete them from R2. */
+  getOrphanKeys: () => string[]
+  cleanupOrphans: () => Promise<void>
 }
 
 // ── Context ──────────────────────────────────────────────────────────────────
@@ -103,9 +116,28 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const isProcessing = useRef(false)
   const queue = useRef<Array<{ files: File[]; config: EnqueueConfig }>>([])
   const uploadLogs = useRef<UploadLogEntry[]>([])
+  // R2 keys uploaded successfully but whose DB insert failed — potential orphans
+  const orphanQueue = useRef<string[]>([])
 
   const getUploadLogs = useCallback(() => [...uploadLogs.current], [])
   const clearUploadLogs = useCallback(() => { uploadLogs.current = [] }, [])
+  const getOrphanKeys = useCallback(() => [...orphanQueue.current], [])
+  const cleanupOrphans = useCallback(async () => {
+    const keys = orphanQueue.current.splice(0)
+    if (keys.length === 0) return
+    try {
+      await fetch('/api/photos/cleanup-orphans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys }),
+        signal: AbortSignal.timeout(30_000),
+      })
+    } catch (err) {
+      // Non-critical — push keys back so the next cleanup attempt can retry
+      orphanQueue.current.unshift(...keys)
+      console.warn('[upload] orphan cleanup failed, will retry later:', err)
+    }
+  }, [])
 
 
   // ── Job state ────────────────────────────────────────────────────────────
@@ -157,6 +189,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         contentType: file.type || 'image/jpeg',
         fileSize: file.size,
       }),
+      signal: AbortSignal.timeout(TIMEOUT.presign),
     })
     if (!presignRes.ok) {
       const e = await presignRes.json().catch(() => ({}))
@@ -168,7 +201,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     }
     const { presignedUrl, publicUrl } = await presignRes.json()
 
-    const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
+    const putRes = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      signal: AbortSignal.timeout(TIMEOUT.smallPut),
+    })
     if (!putRes.ok) {
       throw new UploadError(`R2 PUT failed (${putRes.status})`, 'R2 presigned PUT', putRes.status)
     }
@@ -192,6 +229,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         contentType: file.type || 'image/jpeg',
         fileSize: file.size,
       }),
+      signal: AbortSignal.timeout(TIMEOUT.multipartInit),
     })
     if (!initRes.ok) {
       const e = await initRes.json().catch(() => ({}))
@@ -213,7 +251,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1))
         try {
-          const res = await fetch(partUrls[i], { method: 'PUT', body: chunk })
+          const res = await fetch(partUrls[i], {
+            method: 'PUT',
+            body: chunk,
+            signal: AbortSignal.timeout(TIMEOUT.chunkPut),
+          })
           if (!res.ok) {
             throw new UploadError(
               `Part ${i + 1} upload failed (${res.status})`,
@@ -244,6 +286,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, uploadId, parts }),
+      signal: AbortSignal.timeout(TIMEOUT.multipartComplete),
     })
     if (!completeRes.ok) {
       const e = await completeRes.json().catch(() => ({}))
@@ -315,7 +358,12 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               .select()
               .single()
 
-            if (dbErr) throw new UploadError(dbErr.message, 'supabase.photos.insert', 0)
+            if (dbErr) {
+              // File is in R2 but has no DB record — track for cleanup
+              const r2Key = publicUrl.replace(/^https?:\/\/[^/]+\//, '')
+              if (r2Key) orphanQueue.current.push(r2Key)
+              throw new UploadError(dbErr.message, 'supabase.photos.insert', 0)
+            }
 
             const finishedAt = Date.now()
             const entry: UploadLogEntry = {
@@ -392,7 +440,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   // ── Banner UI ────────────────────────────────────────────────────────────
 
   return (
-    <UploadContext.Provider value={{ enqueueFiles, getUploadLogs, clearUploadLogs }}>
+    <UploadContext.Provider value={{ enqueueFiles, getUploadLogs, clearUploadLogs, getOrphanKeys, cleanupOrphans }}>
       {children}
 
       {jobs.length > 0 && (

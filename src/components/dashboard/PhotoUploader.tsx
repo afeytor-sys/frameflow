@@ -10,15 +10,24 @@
  *   4. enqueueFiles() → UploadContext runs the actual fetch loop
  *      The context persists across navigation so uploads continue even when
  *      the user leaves this page.
+ *
+ * Retry flow:
+ *   - fileRegistry keeps File objects alive by filename key
+ *   - retryFailed() calls enqueueFiles with only the failed files
+ *   - Already-done files are never re-uploaded
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, X, AlertCircle } from 'lucide-react'
+import { Upload, X, AlertCircle, RefreshCw } from 'lucide-react'
 import { cn, formatFileSize } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { useUpload } from '@/contexts/UploadContext'
 import type { UploadedPhoto } from '@/contexts/UploadContext'
+
+// Accept files with no MIME type if the extension looks like an image/video.
+// This covers HEIC on Windows, HEIF on older Android, and some RAW formats.
+const ACCEPTED_EXTS = /\.(jpe?g|png|webp|gif|heic|heif|tiff?|avif|bmp|mp4|mov|m4v|webm)$/i
 
 interface LocalFile {
   id: string          // local UI id
@@ -55,6 +64,8 @@ export default function PhotoUploader({
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const mountedRef = useRef(true)
+  // Keeps File objects alive for retry — key is filename, last write wins for dupes
+  const fileRegistry = useRef<Map<string, File>>(new Map())
   const { enqueueFiles } = useUpload()
 
   useEffect(() => {
@@ -153,9 +164,12 @@ export default function PhotoUploader({
     }))
     if (mountedRef.current) setLocalFiles(prev => [...prev, ...newLocalFiles])
 
+    // ── 6. Register File objects for retry ──────────────────────────────────
+    filesToUpload.forEach(f => fileRegistry.current.set(f.name, f))
+
     const uploadedPhotos: UploadedPhoto[] = []
 
-    // ── 6. Hand off to context (persists across navigation) ──────────────────
+    // ── 7. Hand off to context (persists across navigation) ──────────────────
     enqueueFiles(filesToUpload, {
       galleryId,
       photographerId,
@@ -194,13 +208,76 @@ export default function PhotoUploader({
   }, [galleryId, galleryTitle, sectionId, enqueueFiles, onUploadComplete, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, photographerId])
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const imageFiles = Array.from(newFiles).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
-    if (imageFiles.length === 0) { toast.error('Nur Bild- oder Videodateien erlaubt (JPG, PNG, WEBP, MP4, MOV)'); return }
+    const imageFiles = Array.from(newFiles).filter(f =>
+      f.type.startsWith('image/') ||
+      f.type.startsWith('video/') ||
+      // Accept files whose browser MIME type is empty (HEIC on Windows, some RAW)
+      // if the file extension matches known image/video formats.
+      (!f.type && ACCEPTED_EXTS.test(f.name))
+    )
+    if (imageFiles.length === 0) {
+      toast.error('Nur Bild- oder Videodateien erlaubt (JPG, PNG, WEBP, HEIC, MP4, MOV)')
+      return
+    }
     uploadFiles(imageFiles).catch(err => {
       console.error('[PhotoUploader] uploadFiles error:', err)
       toast.error('Upload fehlgeschlagen. Bitte erneut versuchen.')
     })
   }, [uploadFiles])
+
+  // ── Retry failed uploads ──────────────────────────────────────────────────
+  // Re-enqueues only the files with status='error'. Files that already
+  // succeeded are not touched. A fresh initialOrder query ensures display_order
+  // doesn't collide with photos inserted during the original run.
+  const retryFailed = useCallback(async () => {
+    const failedNames = localFiles
+      .filter(f => f.status === 'error')
+      .map(f => f.filename)
+    if (failedNames.length === 0) return
+
+    const filesToRetry = failedNames
+      .map(name => fileRegistry.current.get(name))
+      .filter((f): f is File => f !== undefined)
+    if (filesToRetry.length === 0) {
+      toast.error('Originaldateien nicht mehr verfügbar — bitte erneut auswählen.')
+      return
+    }
+
+    // Reset only the failing thumbnails back to pending
+    if (mountedRef.current) {
+      setLocalFiles(prev => prev.map(f =>
+        f.status === 'error' ? { ...f, status: 'pending', error: undefined } : f
+      ))
+    }
+
+    // Get fresh count for display_order continuity
+    const supabase = createClient()
+    const { count } = await supabase
+      .from('photos').select('*', { count: 'exact', head: true }).eq('gallery_id', galleryId)
+
+    enqueueFiles(filesToRetry, {
+      galleryId,
+      photographerId,
+      sectionId,
+      galleryTitle,
+      initialOrder: count ?? 0,
+      onFileDone: (filename, photo) => {
+        if (mountedRef.current) {
+          setLocalFiles(prev => prev.map(f =>
+            f.filename === filename ? { ...f, status: 'done', error: undefined } : f
+          ))
+        }
+        try { onUploadComplete([photo]) } catch {}
+      },
+      onFileError: (filename, error) => {
+        if (mountedRef.current) {
+          setLocalFiles(prev => prev.map(f =>
+            f.filename === filename ? { ...f, status: 'error', error } : f
+          ))
+        }
+      },
+    })
+  }, [localFiles, galleryId, photographerId, sectionId, galleryTitle, enqueueFiles, onUploadComplete])
 
   const resolveDuplicate = (decision: 'keep' | 'replace' | 'cancel' | 'skip-all' | 'abort') => {
     const resolve = (window as unknown as Record<string, unknown>).__duplicateResolve as ((d: typeof decision) => void) | undefined
@@ -228,6 +305,8 @@ export default function PhotoUploader({
 
   const isUploading = localFiles.some(f => f.status === 'pending' || f.status === 'uploading')
   const doneCount = localFiles.filter(f => f.status === 'done').length
+  const failedCount = localFiles.filter(f => f.status === 'error').length
+  const allSettled = !isUploading && localFiles.length > 0
 
   return (
     <div className="space-y-4">
@@ -300,10 +379,14 @@ export default function PhotoUploader({
       {/* Local preview thumbnails */}
       {localFiles.length > 0 && (
         <div className="space-y-3">
+          {/* Progress bar while uploading */}
           {isUploading && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-[#6B6B6B]">
-                <span>Wird hochgeladen... ({doneCount}/{localFiles.length})</span>
+                <span>Wird hochgeladen… ({doneCount}/{localFiles.length})</span>
+                {failedCount > 0 && (
+                  <span className="text-red-500 font-medium">{failedCount} Fehler</span>
+                )}
               </div>
               <div className="h-1.5 bg-[#E8E8E4] rounded-full overflow-hidden">
                 <div
@@ -313,6 +396,25 @@ export default function PhotoUploader({
               </div>
             </div>
           )}
+
+          {/* Retry button — shown when all files settled and at least one failed */}
+          {allSettled && failedCount > 0 && (
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl"
+              style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)' }}>
+              <span className="text-[12px] font-medium" style={{ color: '#DC2626' }}>
+                {failedCount} {failedCount === 1 ? 'Foto fehlgeschlagen' : 'Fotos fehlgeschlagen'}
+              </span>
+              <button
+                onClick={retryFailed}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold text-white transition-all active:scale-95"
+                style={{ background: '#DC2626' }}
+              >
+                <RefreshCw className="w-3 h-3" />
+                Erneut versuchen
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-10 sm:grid-cols-12 md:grid-cols-14 lg:grid-cols-16 gap-1">
             {localFiles.filter(f => f.previewUrl).map(f => (
               <div key={f.id} className="relative aspect-square overflow-hidden rounded group" style={{ borderRadius: 3 }}>
@@ -338,10 +440,22 @@ export default function PhotoUploader({
                   </div>
                 )}
 
-                {/* Error */}
+                {/* Error — red overlay + tooltip with exact reason on hover */}
                 {f.status === 'error' && (
-                  <div className="absolute inset-0 bg-red-500/50 flex items-center justify-center">
-                    <AlertCircle className="w-3 h-3 text-white" />
+                  <div
+                    className="absolute inset-0 bg-red-500/60 flex items-end justify-center pb-1"
+                    title={f.error ?? 'Upload fehlgeschlagen'}
+                  >
+                    <AlertCircle className="w-3 h-3 text-white mb-0.5" />
+                    {/* Tooltip bubble — shown on hover via group */}
+                    {f.error && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 pointer-events-none">
+                        <div className="px-2 py-1 rounded-lg text-[10px] leading-tight text-white max-w-[140px] text-center break-words"
+                          style={{ background: 'rgba(0,0,0,0.85)' }}>
+                          {f.error}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
