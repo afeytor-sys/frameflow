@@ -1503,14 +1503,23 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
               {/* ── Hero-Stil — 7 visual cards ── */}
               <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Hero-Stil</p>
+              {(() => {
+                // Use cover photo if set, otherwise first gallery photo as fallback
+                const heroPreview = photos.find(p => p.id === gallery?.cover_photo_id) ?? photos[0] ?? null
+                const img = heroPreview ? getPhotoUrl(heroPreview.storage_url, 400, 75, 'cover') : null
+                const imgEl = (op = 0.85) => img
+                  ? <img src={img} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: op }} />
+                  : null
+
+                return (
               <div className="grid grid-cols-2 gap-2">
                 {([
                   {
                     key: 'cinematic', label: 'Cinematic',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#1B1814', position: 'relative' }}>
+                        {imgEl(0.85)}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.72) 100%)' }} />
-                        <div style={{ position: 'absolute', top: '16%', left: '12%', width: '28%', height: 4, background: 'rgba(255,255,255,0.18)', borderRadius: 2 }} />
                         <div style={{ position: 'absolute', bottom: '18%', left: '12%', width: '52%', height: 4, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
                         <div style={{ position: 'absolute', bottom: '9%', left: '12%', width: '32%', height: 2.5, background: 'rgba(255,255,255,0.22)', borderRadius: 2 }} />
                       </div>
@@ -1520,7 +1529,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     key: 'classic', label: 'Classic',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden' }}>
-                        <div style={{ height: '62%', background: '#1B1814' }} />
+                        <div style={{ height: '62%', background: '#1B1814', position: 'relative', overflow: 'hidden' }}>
+                          {imgEl(0.9)}
+                        </div>
                         <div style={{ height: '38%', background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: '0 12%', gap: 4, borderTop: `1px solid ${currentTheme.border}` }}>
                           <div style={{ width: '52%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
                           <div style={{ width: '32%', height: 2.5, background: currentTheme.text, borderRadius: 2, opacity: 0.18 }} />
@@ -1542,7 +1553,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     key: 'editorial', label: 'Split',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                        <div style={{ background: '#1B1814' }} />
+                        <div style={{ background: '#1B1814', position: 'relative', overflow: 'hidden' }}>
+                          {imgEl(0.9)}
+                        </div>
                         <div style={{ background: currentTheme.bg, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 10% 12%', gap: 4, borderTop: `1px solid ${currentTheme.border}` }}>
                           <div style={{ width: '70%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.4 }} />
                           <div style={{ width: '46%', height: 2.5, background: currentTheme.text, borderRadius: 2, opacity: 0.2 }} />
@@ -1554,7 +1567,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     key: 'frame', label: 'Frame',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#0E0C0A', position: 'relative', padding: 6 }}>
-                        <div style={{ width: '100%', height: '100%', background: '#2A2420', position: 'relative', overflow: 'hidden', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
+                          {imgEl(0.8)}
                           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)' }} />
                           <div style={{ position: 'relative', width: '46%', height: 3.5, background: 'rgba(255,255,255,0.55)', borderRadius: 2 }} />
                           <div style={{ position: 'relative', width: '28%', height: 2.5, background: 'rgba(255,255,255,0.25)', borderRadius: 2 }} />
@@ -1567,7 +1581,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     key: 'journal', label: 'Journal',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: currentTheme.bg, border: `1px solid ${currentTheme.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px 12px' }}>
-                        <div style={{ width: '45%', aspectRatio: '4/3', background: '#2A2520', borderRadius: 3 }} />
+                        <div style={{ width: '45%', aspectRatio: '4/3', background: '#2A2520', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
+                          {img && <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }} />}
+                        </div>
                         <div style={{ width: '54%', height: 3.5, background: currentTheme.text, borderRadius: 2, opacity: 0.35 }} />
                         <div style={{ width: '32%', height: 2.5, background: currentTheme.accent, borderRadius: 2, opacity: 0.45 }} />
                       </div>
@@ -1577,6 +1593,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     key: 'luxury', label: 'Luxury',
                     preview: (
                       <div style={{ aspectRatio: '16/9', borderRadius: 6, overflow: 'hidden', background: '#080604', position: 'relative' }}>
+                        {imgEl(0.75)}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
                         <div style={{ position: 'absolute', top: '16%', left: '50%', transform: 'translateX(-50%)', width: 12, height: 12, borderRadius: '50%', border: '0.5px solid rgba(255,255,255,0.28)' }} />
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '12%', gap: 4 }}>
@@ -1615,6 +1632,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   )
                 })}
               </div>
+                )
+              })()}
 
               <div className="h-px" style={{ background: 'var(--border-color)' }} />
 
