@@ -1728,6 +1728,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <PhotoUploader
             galleryId={gallery.id}
             photographerId={photographerId}
+            galleryTitle={gallery.title}
             sectionId={uploadSectionId}
             canUploadFile={canUploadFile}
             maxStorageBytes={maxStorageBytes}
