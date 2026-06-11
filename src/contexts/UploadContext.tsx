@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Upload, X, AlertCircle } from 'lucide-react'
+import { CheckCircle, Upload, X, AlertCircle, ChevronDown, ChevronUp, Minimize2, Maximize2 } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,29 @@ const TIMEOUT = {
   multipartComplete: 20_000, // 20s  — R2 assembly, documented < 10s normally
   smallPut:       120_000,  // 2min — < 5 MB file
 } as const
+
+// ── Display helpers ──────────────────────────────────────────────────────────
+
+function fmtSpeed(bps: number): string {
+  if (bps <= 0) return ''
+  if (bps >= 1024 * 1024) return `${(bps / 1024 / 1024).toFixed(1)} MB/s`
+  return `${Math.round(bps / 1024)} KB/s`
+}
+function fmtEta(sec: number): string {
+  if (sec < 60) return `${sec}s`
+  const m = Math.floor(sec / 60), s = sec % 60
+  if (m < 60) return s > 0 ? `${m}:${String(s).padStart(2, '0')} min` : `${m} min`
+  return `${Math.floor(m / 60)}h ${m % 60}min`
+}
+function fmtBytes(b: number): string {
+  if (b >= 1e9) return `${(b / 1e9).toFixed(2)} GB`
+  if (b >= 1e6) return `${Math.round(b / 1e6)} MB`
+  return `${Math.round(b / 1024)} KB`
+}
+function fmtDuration(ms: number): string {
+  const s = Math.round(ms / 1000), m = Math.floor(s / 60)
+  return m === 0 ? `${s}s` : `${m}:${String(s % 60).padStart(2, '0')} min`
+}
 
 // ── Structured upload error ──────────────────────────────────────────────────
 // Carries the endpoint name and HTTP status alongside the message so the log
@@ -58,6 +81,8 @@ export interface UploadLogEntry {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+interface FailedFile { filename: string; error: string }
+
 interface UploadJob {
   id: string
   galleryId: string
@@ -65,6 +90,15 @@ interface UploadJob {
   done: number
   failed: number
   label: string
+  // UX fields added for the banner
+  bytesTotal: number     // sum of all file sizes in this batch
+  bytesDone: number      // bytes of successfully uploaded files
+  speed: number          // rolling bytes/sec over a 20-s window
+  startedAt: number      // Date.now() when addJob was called
+  currentFile: string    // filename currently in-flight (last started)
+  failedFiles: FailedFile[]
+  expanded: boolean      // error panel open
+  minimized: boolean     // banner collapsed to slim bar
 }
 
 export interface UploadedPhoto {
@@ -140,11 +174,31 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   }, [])
 
 
+  // ── Speed tracking (rolling 20 s window, one entry per completed file) ──────
+  const speedSamples = useRef<Record<string, Array<{ ts: number; bytes: number }>>>({})
+
+  const pushSpeedSample = (jobId: string, bytes: number): number => {
+    const now = Date.now()
+    const arr = speedSamples.current[jobId] ?? []
+    arr.push({ ts: now, bytes })
+    const cutoff = now - 20_000
+    const trimmed = arr.filter(s => s.ts > cutoff)
+    speedSamples.current[jobId] = trimmed
+    if (trimmed.length < 2) return 0
+    const totalBytes = trimmed.reduce((s, e) => s + e.bytes, 0)
+    const span = trimmed[trimmed.length - 1].ts - trimmed[0].ts
+    return span > 0 ? totalBytes / (span / 1000) : 0
+  }
+
   // ── Job state ────────────────────────────────────────────────────────────
 
-  const addJob = (galleryId: string, label: string, total: number): string => {
+  const addJob = (galleryId: string, label: string, total: number, bytesTotal: number): string => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    setJobs(prev => [...prev, { id, galleryId, total, done: 0, failed: 0, label }])
+    setJobs(prev => [...prev, {
+      id, galleryId, total, done: 0, failed: 0, label,
+      bytesTotal, bytesDone: 0, speed: 0, startedAt: Date.now(),
+      currentFile: '', failedFiles: [], expanded: false, minimized: false,
+    }])
     return id
   }
 
@@ -152,29 +206,57 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setJobs(prev => prev.filter(j => j.id !== jobId))
     clearTimeout(timers.current[jobId])
     delete timers.current[jobId]
+    delete speedSamples.current[jobId]
   }, [])
 
-  const tickDone = useCallback((jobId: string) => {
+  const tickDone = useCallback((jobId: string, fileSize: number) => {
+    const speed = pushSpeedSample(jobId, fileSize)
     setJobs(prev => prev.map(j => {
       if (j.id !== jobId) return j
-      const u = { ...j, done: j.done + 1 }
+      const u = { ...j, done: j.done + 1, bytesDone: j.bytesDone + fileSize, speed }
       if (u.done + u.failed >= u.total) {
-        timers.current[jobId] = setTimeout(() => removeJob(jobId), u.failed > 0 ? 8000 : 3000)
+        // Smart dismiss: never auto-close if failures; longer for big/slow batches
+        const durationMs = Date.now() - u.startedAt
+        const delay = u.failed > 0 ? 0
+          : (u.total > 50 || durationMs > 120_000) ? 6_000
+          : 3_000
+        if (delay > 0) timers.current[jobId] = setTimeout(() => removeJob(jobId), delay)
       }
       return u
     }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [removeJob])
 
-  const tickFailed = useCallback((jobId: string) => {
+  const tickFailed = useCallback((jobId: string, info: { filename: string; error: string }) => {
     setJobs(prev => prev.map(j => {
       if (j.id !== jobId) return j
-      const u = { ...j, failed: j.failed + 1 }
-      if (u.done + u.failed >= u.total) {
-        timers.current[jobId] = setTimeout(() => removeJob(jobId), 8000)
+      const u = {
+        ...j,
+        failed: j.failed + 1,
+        failedFiles: [...j.failedFiles, info],
       }
+      // On completion with failures: never auto-dismiss
       return u
     }))
-  }, [removeJob])
+  }, [])
+
+  const setCurrentFile = useCallback((jobId: string, filename: string) => {
+    setJobs(prev => prev.map(j =>
+      j.id !== jobId ? j : { ...j, currentFile: filename }
+    ))
+  }, [])
+
+  const toggleExpanded = useCallback((jobId: string) => {
+    setJobs(prev => prev.map(j =>
+      j.id !== jobId ? j : { ...j, expanded: !j.expanded }
+    ))
+  }, [])
+
+  const toggleMinimized = useCallback((jobId: string) => {
+    setJobs(prev => prev.map(j =>
+      j.id !== jobId ? j : { ...j, minimized: !j.minimized }
+    ))
+  }, [])
 
   // ── Upload helpers ───────────────────────────────────────────────────────
 
@@ -310,7 +392,8 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       const { files, config } = queue.current.shift()!
       const { galleryId, sectionId, galleryTitle, initialOrder, replaceMap, onFileDone, onFileError, onAllDone } = config
 
-      const jobId = addJob(galleryId, galleryTitle, files.length)
+      const bytesTotal = files.reduce((s, f) => s + f.size, 0)
+      const jobId = addJob(galleryId, galleryTitle, files.length, bytesTotal)
       const supabase = createClient()
       const uploadedPhotos: UploadedPhoto[] = []
 
@@ -318,6 +401,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       const getOrder = () => orderOffset++ // safe: JS is single-threaded
 
       const uploadOne = async (file: File) => {
+        setCurrentFile(jobId, file.name)
         const startedAt = Date.now()
         const strategy: 'small' | 'large' = file.size >= LARGE_FILE ? 'large' : 'small'
         let lastErr: unknown
@@ -378,7 +462,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
             const uploaded = photo as UploadedPhoto
             uploadedPhotos.push(uploaded)
-            tickDone(jobId)
+            tickDone(jobId, file.size)
             try { onFileDone?.(file.name, uploaded) } catch {}
             return // success
           } catch (err) {
@@ -410,7 +494,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         console.error('raw error :', lastErr)
         console.groupEnd()
 
-        tickFailed(jobId)
+        tickFailed(jobId, { filename: file.name, error: msg })
         try { onFileError?.(file.name, msg) } catch {}
       }
 
@@ -429,7 +513,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
     isProcessing.current = false
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickDone, tickFailed])
+  }, [tickDone, tickFailed, setCurrentFile])
 
   const enqueueFiles = useCallback((files: File[], config: EnqueueConfig) => {
     if (files.length === 0) return
@@ -446,58 +530,237 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       {jobs.length > 0 && (
         <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
           {jobs.map(job => {
-            const processed = job.done + job.failed
-            const finished = processed >= job.total
-            const pct = job.total > 0 ? Math.round((processed / job.total) * 100) : 0
-            const hasFail = job.failed > 0
+            const processed  = job.done + job.failed
+            const finished   = processed >= job.total
+            const pct        = job.total > 0 ? Math.round((processed / job.total) * 100) : 0
+            const hasFail    = job.failed > 0
+            const durationMs = finished ? (Date.now() - job.startedAt) : 0
+            const avgSpeed   = durationMs > 0 ? job.bytesDone / (durationMs / 1000) : 0
+            const eta        = !finished && job.speed > 0
+              ? Math.round((job.bytesTotal - job.bytesDone) / job.speed)
+              : null
+
+            // ── Minimized bar ─────────────────────────────────────────────
+            if (job.minimized) return (
+              <div key={job.id}
+                className="pointer-events-auto flex items-center gap-2.5 px-3 py-2 rounded-xl shadow-2xl"
+                style={{
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                }}
+              >
+                <Upload className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                <span className="text-[12px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                  {job.done}/{job.total}
+                </span>
+                {/* mini progress */}
+                <div className="w-20 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
+                  <div className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%`, background: 'var(--accent)' }} />
+                </div>
+                {job.speed > 0 && (
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {fmtSpeed(job.speed)}
+                  </span>
+                )}
+                <button
+                  onClick={() => toggleMinimized(job.id)}
+                  className="w-5 h-5 rounded flex items-center justify-center"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <Maximize2 className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => removeJob(job.id)}
+                  className="w-5 h-5 rounded flex items-center justify-center"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )
+
+            // ── Full banner ───────────────────────────────────────────────
+            const borderColor = hasFail && finished
+              ? 'rgba(239,68,68,0.28)'
+              : finished
+              ? 'rgba(42,155,104,0.22)'
+              : 'var(--border-color)'
+
+            const iconBg = finished
+              ? hasFail ? 'rgba(239,68,68,0.10)' : 'rgba(42,155,104,0.12)'
+              : 'rgba(196,164,124,0.12)'
+
+            const titleText = finished
+              ? hasFail
+                ? `${job.done} ok · ${job.failed} fehlgeschlagen`
+                : `${job.done} Fotos hochgeladen`
+              : `${job.done} / ${job.total} Fotos`
 
             return (
               <div key={job.id}
-                className="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl min-w-[280px] max-w-[340px]"
+                className="pointer-events-auto rounded-2xl shadow-2xl overflow-hidden"
                 style={{
                   background: 'var(--bg-surface)',
-                  border: `1px solid ${hasFail && finished ? 'rgba(239,68,68,0.30)' : 'var(--border-color)'}`,
+                  border: `1px solid ${borderColor}`,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                  width: 360,
                   animation: 'fadeSlideIn 0.3s ease forwards',
                 }}
               >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: finished ? (hasFail ? 'rgba(239,68,68,0.10)' : 'rgba(42,155,104,0.12)') : 'rgba(196,164,124,0.12)' }}>
-                  {finished
-                    ? hasFail
-                      ? <AlertCircle className="w-4.5 h-4.5" style={{ color: '#EF4444' }} />
-                      : <CheckCircle className="w-4.5 h-4.5" style={{ color: '#2A9B68' }} />
-                    : <Upload className="w-4 h-4 animate-bounce" style={{ color: 'var(--accent)' }} />
-                  }
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                {/* ── Header ── */}
+                <div className="flex items-center gap-2.5 px-4 pt-3 pb-2.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
                     {finished
                       ? hasFail
-                        ? `${job.done} hochgeladen · ${job.failed} fehlgeschlagen`
-                        : `✓ ${job.done} Fotos hochgeladen`
-                      : `${job.done} / ${job.total} Fotos…`
+                        ? <AlertCircle className="w-4 h-4" style={{ color: '#EF4444' }} />
+                        : <CheckCircle className="w-4 h-4" style={{ color: '#2A9B68' }} />
+                      : <Upload className="w-3.5 h-3.5 animate-bounce" style={{ color: 'var(--accent)' }} />
                     }
-                  </p>
-                  <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
-                    {job.label}{!finished && hasFail ? ` · ${job.failed} Fehler` : ''}
-                  </p>
-                  {!finished && (
-                    <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
-                      <div className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${pct}%`, background: 'var(--accent)' }} />
-                    </div>
-                  )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {titleText}
+                    </p>
+                    <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                      {job.label}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Minimize — only while uploading */}
+                    {!finished && (
+                      <button
+                        onClick={() => toggleMinimized(job.id)}
+                        className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="Minimieren"
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <Minimize2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeJob(job.id)}
+                      className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors"
+                      style={{ color: 'var(--text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
-                <button onClick={() => removeJob(job.id)}
-                  className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <X className="w-3.5 h-3.5" />
-                </button>
+                {/* ── Progress section (while uploading) ── */}
+                {!finished && (
+                  <div className="px-4 pb-3 space-y-1.5">
+                    {/* Progress bar */}
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${pct}%`, background: 'var(--accent)' }}
+                      />
+                    </div>
+                    {/* Speed + ETA row */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                        {pct}%
+                        {job.speed > 0 && <> · {fmtSpeed(job.speed)}</>}
+                      </span>
+                      {eta !== null && (
+                        <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          ~{fmtEta(eta)} restantes
+                        </span>
+                      )}
+                    </div>
+                    {/* Current file */}
+                    {job.currentFile && (
+                      <p className="text-[10.5px] truncate" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+                        {job.currentFile}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Summary section (after finishing) ── */}
+                {finished && (
+                  <div className="px-4 pb-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {durationMs > 0 && (
+                        <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          Dauer: {fmtDuration(durationMs)}
+                        </span>
+                      )}
+                      {avgSpeed > 0 && (
+                        <>
+                          <span style={{ color: 'var(--border-color)' }}>·</span>
+                          <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                            ⌀ {fmtSpeed(avgSpeed)}
+                          </span>
+                        </>
+                      )}
+                      {job.bytesDone > 0 && (
+                        <>
+                          <span style={{ color: 'var(--border-color)' }}>·</span>
+                          <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                            {fmtBytes(job.bytesDone)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Error panel (expandable) ── */}
+                {hasFail && (
+                  <div className="border-t" style={{ borderColor: 'rgba(239,68,68,0.15)' }}>
+                    <button
+                      onClick={() => toggleExpanded(job.id)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+                      style={{ color: '#DC2626' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.04)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span className="text-[12px] font-semibold">
+                        {job.failed} {job.failed === 1 ? 'Fehler' : 'Fehler'}
+                      </span>
+                      {job.expanded
+                        ? <ChevronUp className="w-3.5 h-3.5" />
+                        : <ChevronDown className="w-3.5 h-3.5" />
+                      }
+                    </button>
+
+                    {job.expanded && job.failedFiles.length > 0 && (
+                      <div
+                        className="mx-3 mb-3 rounded-xl overflow-hidden overflow-y-auto"
+                        style={{
+                          background: 'rgba(239,68,68,0.04)',
+                          border: '1px solid rgba(239,68,68,0.12)',
+                          maxHeight: 180,
+                        }}
+                      >
+                        {job.failedFiles.map((f, i) => (
+                          <div
+                            key={i}
+                            className="px-3 py-2"
+                            style={{
+                              borderTop: i > 0 ? '1px solid rgba(239,68,68,0.08)' : undefined,
+                            }}
+                          >
+                            <p className="text-[11.5px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                              {f.filename}
+                            </p>
+                            <p className="text-[10.5px] truncate mt-0.5" style={{ color: '#DC2626', opacity: 0.8 }}>
+                              {f.error}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
