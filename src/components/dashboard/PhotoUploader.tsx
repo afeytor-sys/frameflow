@@ -17,7 +17,7 @@
  *   - Already-done files are never re-uploaded
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, startTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Upload, X, AlertCircle, RefreshCw } from 'lucide-react'
 import { cn, formatFileSize } from '@/lib/utils'
@@ -155,7 +155,7 @@ export default function PhotoUploader({
     // ── 5. Add local preview thumbnails ─────────────────────────────────────
     // Only create blob URLs for the first 20 files — decoding hundreds of large
     // JPEGs simultaneously crashes the browser tab.
-    const PREVIEW_LIMIT = 50
+    const PREVIEW_LIMIT = 20
     const newLocalFiles: LocalFile[] = filesToUpload.map((file, i) => ({
       id: `${Date.now()}-${Math.random()}`,
       filename: file.name,
@@ -181,18 +181,24 @@ export default function PhotoUploader({
       onFileDone: (filename, photo) => {
         uploadedPhotos.push(photo)
         if (mountedRef.current) {
-          setLocalFiles(prev => prev.map(f =>
-            f.filename === filename ? { ...f, status: 'done' } : f
-          ))
+          // startTransition marks thumbnail updates as non-urgent so React
+          // can defer them when the main thread is busy with other work.
+          startTransition(() => {
+            setLocalFiles(prev => prev.map(f =>
+              f.filename === filename ? { ...f, status: 'done' } : f
+            ))
+          })
         }
       },
 
       onFileError: (filename, error) => {
         console.error('[upload] error:', filename, error)
         if (mountedRef.current) {
-          setLocalFiles(prev => prev.map(f =>
-            f.filename === filename ? { ...f, status: 'error', error } : f
-          ))
+          startTransition(() => {
+            setLocalFiles(prev => prev.map(f =>
+              f.filename === filename ? { ...f, status: 'error', error } : f
+            ))
+          })
         }
       },
 

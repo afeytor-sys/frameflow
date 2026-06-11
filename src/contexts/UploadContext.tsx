@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useMemo, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Upload, X, AlertCircle, ChevronDown, ChevronUp, Minimize2, Maximize2 } from 'lucide-react'
 
@@ -523,8 +523,15 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   // ── Banner UI ────────────────────────────────────────────────────────────
 
+  // Memoised so that jobs state changes (tickDone/tickFailed/setCurrentFile)
+  // do NOT re-render context consumers (PhotoUploader, etc.).
+  // Without this, every upload tick re-renders the entire consumer tree.
+  const contextValue = useMemo(() => ({
+    enqueueFiles, getUploadLogs, clearUploadLogs, getOrphanKeys, cleanupOrphans,
+  }), [enqueueFiles, getUploadLogs, clearUploadLogs, getOrphanKeys, cleanupOrphans])
+
   return (
-    <UploadContext.Provider value={{ enqueueFiles, getUploadLogs, clearUploadLogs, getOrphanKeys, cleanupOrphans }}>
+    <UploadContext.Provider value={contextValue}>
       {children}
 
       {jobs.length > 0 && (
