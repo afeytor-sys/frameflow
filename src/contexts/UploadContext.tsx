@@ -14,6 +14,39 @@ const LARGE_FILE   = 5  * 1024 * 1024   // files ≥ 5 MB use multipart
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
+// ── Structured upload error ──────────────────────────────────────────────────
+// Carries the endpoint name and HTTP status alongside the message so the log
+// can record exactly which step failed without parsing error strings.
+
+export class UploadError extends Error {
+  constructor(
+    message: string,
+    public readonly endpoint: string,
+    public readonly httpStatus: number,
+  ) {
+    super(message)
+    this.name = 'UploadError'
+  }
+}
+
+// ── Upload log ───────────────────────────────────────────────────────────────
+
+export interface UploadLogEntry {
+  filename: string
+  fileSize: number
+  strategy: 'small' | 'large'
+  galleryId: string
+  startedAt: number        // Date.now() when uploadOne began
+  finishedAt: number       // Date.now() when uploadOne ended (success or final failure)
+  durationMs: number
+  status: 'done' | 'failed'
+  attemptsUsed: number     // 1 = succeeded first try, 4 = exhausted all retries
+  // Set on failure:
+  error?: string
+  failedEndpoint?: string  // e.g. '/api/photos/presign', 'R2 PUT', 'supabase.insert'
+  httpStatus?: number      // HTTP status of the failing response
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface UploadJob {
@@ -48,6 +81,8 @@ export interface EnqueueConfig {
 
 interface UploadContextValue {
   enqueueFiles: (files: File[], config: EnqueueConfig) => void
+  getUploadLogs: () => UploadLogEntry[]
+  clearUploadLogs: () => void
 }
 
 // ── Context ──────────────────────────────────────────────────────────────────
@@ -67,6 +102,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const isProcessing = useRef(false)
   const queue = useRef<Array<{ files: File[]; config: EnqueueConfig }>>([])
+  const uploadLogs = useRef<UploadLogEntry[]>([])
+
+  const getUploadLogs = useCallback(() => [...uploadLogs.current], [])
+  const clearUploadLogs = useCallback(() => { uploadLogs.current = [] }, [])
+
 
   // ── Job state ────────────────────────────────────────────────────────────
 
@@ -120,12 +160,18 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     })
     if (!presignRes.ok) {
       const e = await presignRes.json().catch(() => ({}))
-      throw new Error(e.error || `Presign failed (${presignRes.status})`)
+      throw new UploadError(
+        e.error || `Presign failed (${presignRes.status})`,
+        '/api/photos/presign',
+        presignRes.status,
+      )
     }
     const { presignedUrl, publicUrl } = await presignRes.json()
 
     const putRes = await fetch(presignedUrl, { method: 'PUT', body: file })
-    if (!putRes.ok) throw new Error(`R2 PUT failed (${putRes.status})`)
+    if (!putRes.ok) {
+      throw new UploadError(`R2 PUT failed (${putRes.status})`, 'R2 presigned PUT', putRes.status)
+    }
 
     return { publicUrl }
   }
@@ -149,7 +195,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     })
     if (!initRes.ok) {
       const e = await initRes.json().catch(() => ({}))
-      throw new Error(e.error || `Multipart init failed (${initRes.status})`)
+      throw new UploadError(
+        e.error || `Multipart init failed (${initRes.status})`,
+        '/api/photos/multipart-init',
+        initRes.status,
+      )
     }
     const { uploadId, key, publicUrl, partUrls } = await initRes.json()
 
@@ -164,8 +214,21 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1))
         try {
           const res = await fetch(partUrls[i], { method: 'PUT', body: chunk })
-          if (!res.ok) throw new Error(`Part ${i + 1} upload failed (${res.status})`)
+          if (!res.ok) {
+            throw new UploadError(
+              `Part ${i + 1} upload failed (${res.status})`,
+              `R2 multipart part ${i + 1}`,
+              res.status,
+            )
+          }
           const etag = res.headers.get('ETag') ?? res.headers.get('etag') ?? ''
+          if (!etag) {
+            throw new UploadError(
+              `Part ${i + 1}: R2 returned no ETag`,
+              `R2 multipart part ${i + 1}`,
+              res.status,
+            )
+          }
           parts.push({ partNumber: i + 1, etag })
           lastErr = undefined
           break
@@ -184,7 +247,11 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     })
     if (!completeRes.ok) {
       const e = await completeRes.json().catch(() => ({}))
-      throw new Error(e.error || `Multipart complete failed (${completeRes.status})`)
+      throw new UploadError(
+        e.error || `Multipart complete failed (${completeRes.status})`,
+        '/api/photos/multipart-complete',
+        completeRes.status,
+      )
     }
 
     return { publicUrl }
@@ -208,12 +275,17 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       const getOrder = () => orderOffset++ // safe: JS is single-threaded
 
       const uploadOne = async (file: File) => {
+        const startedAt = Date.now()
+        const strategy: 'small' | 'large' = file.size >= LARGE_FILE ? 'large' : 'small'
         let lastErr: unknown
+        let attemptsUsed = 0
+
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          attemptsUsed = attempt + 1
           if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1))
           try {
             // Choose strategy based on file size
-            const { publicUrl } = file.size >= LARGE_FILE
+            const { publicUrl } = strategy === 'large'
               ? await uploadLarge(file, galleryId)
               : await uploadSmall(file, galleryId)
 
@@ -243,7 +315,18 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               .select()
               .single()
 
-            if (dbErr) throw dbErr
+            if (dbErr) throw new UploadError(dbErr.message, 'supabase.photos.insert', 0)
+
+            const finishedAt = Date.now()
+            const entry: UploadLogEntry = {
+              filename: file.name, fileSize: file.size, strategy, galleryId,
+              startedAt, finishedAt, durationMs: finishedAt - startedAt,
+              status: 'done', attemptsUsed,
+            }
+            uploadLogs.current.push(entry)
+            console.info(
+              `[upload:ok] ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB, ${strategy}, ${entry.durationMs}ms, attempt ${attemptsUsed}/${MAX_RETRIES + 1})`
+            )
 
             const uploaded = photo as UploadedPhoto
             uploadedPhotos.push(uploaded)
@@ -255,8 +338,30 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        const msg = lastErr instanceof Error ? lastErr.message : 'Upload failed'
-        console.error('[upload] failed after retries:', file.name, lastErr)
+        // All retries exhausted
+        const finishedAt = Date.now()
+        const isUploadError = lastErr instanceof UploadError
+        const isError = lastErr instanceof Error
+        const msg = isError ? (lastErr as Error).message : 'Upload failed'
+        const entry: UploadLogEntry = {
+          filename: file.name, fileSize: file.size, strategy, galleryId,
+          startedAt, finishedAt, durationMs: finishedAt - startedAt,
+          status: 'failed', attemptsUsed,
+          error: msg,
+          failedEndpoint: isUploadError ? (lastErr as UploadError).endpoint : undefined,
+          httpStatus: isUploadError ? (lastErr as UploadError).httpStatus : undefined,
+        }
+        uploadLogs.current.push(entry)
+        console.group(`[upload:fail] ${file.name}`)
+        console.error('file      :', file.name, `(${(file.size / 1024 / 1024).toFixed(1)} MB, ${strategy})`)
+        console.error('error     :', msg)
+        console.error('endpoint  :', entry.failedEndpoint ?? 'unknown')
+        console.error('httpStatus:', entry.httpStatus ?? 'n/a (network error)')
+        console.error('attempts  :', `${attemptsUsed} / ${MAX_RETRIES + 1}`)
+        console.error('duration  :', `${entry.durationMs}ms`)
+        console.error('raw error :', lastErr)
+        console.groupEnd()
+
         tickFailed(jobId)
         try { onFileError?.(file.name, msg) } catch {}
       }
@@ -287,7 +392,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   // ── Banner UI ────────────────────────────────────────────────────────────
 
   return (
-    <UploadContext.Provider value={{ enqueueFiles }}>
+    <UploadContext.Provider value={{ enqueueFiles, getUploadLogs, clearUploadLogs }}>
       {children}
 
       {jobs.length > 0 && (
