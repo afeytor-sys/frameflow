@@ -90,6 +90,10 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
   { key: 'columns',  icon: Columns2,      label: 'Spalten' },
 ]
 
+// Thumbnail fetch widths: each step matches the CSS column width × 2 (retina)
+// Size 3 default (4 cols on lg): 320px CSS × 2 = 640px → 650px
+const THUMB_WIDTHS: Record<number, number> = { 1: 300, 2: 500, 3: 650, 4: 900, 5: 1200 }
+
 // ── Image URL helpers ────────────────────────────────────────────────
 // Always use storage_url — thumbnail_url equals storage_url anyway (no
 // separate thumbnail generation). getPhotoUrl applies Cloudflare Image
@@ -232,7 +236,9 @@ const PhotoCard = memo(function PhotoCard({
   prev.photo.is_private === next.photo.is_private &&
   prev.index === next.index &&
   prev.thumbWidth === next.thumbWidth &&
-  prev.showTagMenu === next.showTagMenu &&
+  // Only re-render if THIS card's open/closed state actually changed,
+  // not whenever any other card's tag menu opens.
+  (prev.showTagMenu === prev.photo.id) === (next.showTagMenu === next.photo.id) &&
   prev.tagsEnabled === next.tagsEnabled &&
   prev.downloadEnabled === next.downloadEnabled &&
   prev.canMarkPrivate === next.canMarkPrivate
@@ -268,6 +274,153 @@ function LazyImage({
   )
 }
 
+// ── MasonryCard ─────────────────────────────────────────────────────────────
+// Identical behaviour to PhotoCard but uses a raw <img h-auto> so the browser
+// can report naturalHeight, then stores the computed CSS grid row-span as
+// local state. This means a single image load only re-renders ONE card instead
+// of forcing a GalleryViewer re-render that re-creates all N masonry items.
+
+interface MasonryCardProps {
+  photo: Photo
+  index: number
+  thumbWidth: number
+  showTagMenu: string | null
+  tagsEnabled: boolean
+  downloadEnabled: boolean
+  canMarkPrivate: boolean
+  onLightbox: (index: number) => void
+  onToggleFavorite: (photoId: string) => void
+  onSetTag: (photoId: string, tag: PhotoTag) => void
+  onDownload: (photo: Photo) => void
+  onTogglePrivate: (photoId: string) => void
+  onToggleTagMenu: (id: string | null) => void
+}
+
+const MasonryCard = memo(function MasonryCard({
+  photo, index,
+  thumbWidth, showTagMenu,
+  tagsEnabled, downloadEnabled, canMarkPrivate,
+  onLightbox, onToggleFavorite, onSetTag, onDownload, onTogglePrivate, onToggleTagMenu,
+}: MasonryCardProps) {
+  const [rowSpan, setRowSpan] = useState(40)
+
+  return (
+    <div
+      className="relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover"
+      style={{ gridRow: `span ${rowSpan}` }}
+      onClick={() => onLightbox(index)}
+    >
+      {photo.media_type === 'video' ? (
+        <>
+          <video
+            src={photo.storage_url}
+            className="w-full h-auto block"
+            preload="metadata"
+            muted
+            playsInline
+          />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+              <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={getThumbnailUrl(photo, thumbWidth)}
+          alt={photo.filename}
+          loading={index < 8 ? 'eager' : 'lazy'}
+          decoding="async"
+          className="w-full h-auto block photo-img-hover"
+          onLoad={e => {
+            const img = e.currentTarget
+            const h = img.offsetWidth * (img.naturalHeight / img.naturalWidth)
+            setRowSpan(Math.ceil((h + 6) / 10))
+          }}
+        />
+      )}
+      <div className="absolute inset-0" />
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
+          {photo.media_type === 'video'
+            ? <svg className="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            : <ZoomIn className="w-6 h-6 text-white" />}
+        </div>
+      </div>
+      <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={e => e.stopPropagation()}>
+        <button
+          onClick={() => onToggleFavorite(photo.id)}
+          className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
+        >
+          <Heart className={cn('w-5 h-5', photo.is_favorite && 'fill-white')} style={{ width: 20, height: 20 }} />
+        </button>
+        {tagsEnabled && (
+          <div className="relative">
+            <button
+              onClick={e => { e.stopPropagation(); onToggleTagMenu(showTagMenu === photo.id ? null : photo.id) }}
+              className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
+              style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
+            >
+              <span className="text-[13px] font-bold text-white">●</span>
+            </button>
+            {showTagMenu === photo.id && (
+              <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={e => e.stopPropagation()}>
+                {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
+                  <button key={tag} onClick={() => onSetTag(photo.id, tag)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors', photo.tag === tag ? 'text-white bg-white/8' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
+                    {cfg.label}
+                    {photo.tag === tag && <span className="ml-auto text-white/40">✓</span>}
+                  </button>
+                ))}
+                {photo.tag && (
+                  <button onClick={() => onSetTag(photo.id, photo.tag ?? null)} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5">
+                    Tag entfernen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {downloadEnabled && (
+          <button onClick={() => onDownload(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-lg">
+            <Download style={{ width: 20, height: 20 }} />
+          </button>
+        )}
+        {canMarkPrivate && (
+          <button
+            onClick={e => { e.stopPropagation(); onTogglePrivate(photo.id) }}
+            title={photo.is_private ? 'Privat (nur Kunden-PW) — klicken zum Aufheben' : 'Als privat markieren (für Gäste verbergen)'}
+            className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_private ? 'bg-violet-600 text-white' : 'bg-black/50 backdrop-blur-sm text-white/60 hover:text-violet-300')}
+          >
+            <EyeOff style={{ width: 18, height: 18 }} />
+          </button>
+        )}
+      </div>
+      <div className="absolute top-2 left-2 flex items-center gap-1">
+        {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />}
+        {tagsEnabled && photo.tag && <span className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg" style={{ background: TAG_CONFIG[photo.tag].bg }} />}
+        {photo.is_private && canMarkPrivate && (
+          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-violet-600/80 drop-shadow-lg">
+            <EyeOff className="w-2.5 h-2.5 text-white" />
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}, (prev, next) =>
+  prev.photo.id === next.photo.id &&
+  prev.photo.is_favorite === next.photo.is_favorite &&
+  prev.photo.tag === next.photo.tag &&
+  prev.photo.is_private === next.photo.is_private &&
+  prev.index === next.index &&
+  prev.thumbWidth === next.thumbWidth &&
+  (prev.showTagMenu === prev.photo.id) === (next.showTagMenu === next.photo.id) &&
+  prev.tagsEnabled === next.tagsEnabled &&
+  prev.downloadEnabled === next.downloadEnabled &&
+  prev.canMarkPrivate === next.canMarkPrivate
+)
+
 export default function GalleryViewer({
   galleryId,
   projectId,
@@ -288,6 +441,9 @@ export default function GalleryViewer({
 }: Props) {
   const gap = getSpacingGap(spacingDensity)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
+  // Always-current ref so useCallbacks don't need [photos] as a dep
+  const photosRef = useRef<Photo[]>(photos)
+  photosRef.current = photos
 
   // ── Sets / sections state ────────────────────────────────────────
   const [sections, setSections]             = useState<Section[]>(initialSections)
@@ -322,7 +478,6 @@ export default function GalleryViewer({
   const [layout, setLayout] = useState<GalleryLayout>('masonry')
   const [imageSize, setImageSize] = useState(3)
   const [showControls, setShowControls] = useState(false)
-  const [rowSpans, setRowSpans] = useState<Record<string, number>>({})
   // Sort order
   type SortOrder = 'manual' | 'name-asc' | 'name-desc'
   const [sortOrder, setSortOrder] = useState<SortOrder>('name-asc')
@@ -350,25 +505,8 @@ export default function GalleryViewer({
   const [isMobile, setIsMobile]           = useState(false)
   const [hideControls, setHideControls]   = useState(false)
 
-  // ── Batch rowSpans: accumulate in a ref, flush once per animation frame ──
-  const pendingSpans   = useRef<Record<string, number>>({})
-  const spansRafRef    = useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
-  const flushRowSpans  = useCallback(() => {
-    const batch = pendingSpans.current
-    pendingSpans.current = {}
-    spansRafRef.current  = null
-    if (Object.keys(batch).length > 0) {
-      setRowSpans(prev => ({ ...prev, ...batch }))
-    }
-  }, [])
-  const scheduleSpan = useCallback((photoId: string, span: number) => {
-    pendingSpans.current[photoId] = span
-    if (spansRafRef.current === null) {
-      spansRafRef.current = requestAnimationFrame(flushRowSpans)
-    }
-  }, [flushRowSpans])
-
-  const supabase = createClient()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => createClient(), [])
 
   // ── Track gallery view on mount ──────────────────────────────────
   useEffect(() => {
@@ -485,11 +623,6 @@ export default function GalleryViewer({
     5: 'grid-cols-2',
   }[imageSize] ?? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
 
-  // Map size slider (1–5) → thumbnail fetch width (used by getThumbnailUrl)
-  // Reduced widths: each step now matches the actual CSS column width × 2 (retina)
-  // Size 3 (default, 4 cols): 320px CSS × 2 = 640px needed → 650px covers it
-  // Size 5 (XL, 2 cols): unchanged at 1200px (full-width on mobile, large desktop)
-  const THUMB_WIDTHS: Record<number, number> = { 1: 300, 2: 500, 3: 650, 4: 900, 5: 1200 }
   const thumbWidth = THUMB_WIDTHS[imageSize] ?? 800
 
   const columnHeight = {
@@ -627,14 +760,14 @@ export default function GalleryViewer({
   }
 
   // ── Toggle favorite ──────────────────────────────────────────────
-  const toggleFavorite = async (photoId: string) => {
-    const photo = photos.find((p) => p.id === photoId)
+  // useCallback with stable deps: reads current photos via photosRef, not closure
+  const toggleFavorite = useCallback(async (photoId: string) => {
+    const photo = photosRef.current.find((p) => p.id === photoId)
     if (!photo) return
     const newValue = !photo.is_favorite
     setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: newValue } : p))
 
-    // If this is the first favorite and we haven't asked for a name yet, show modal
-    const currentFavCount = photos.filter((p) => p.is_favorite).length
+    const currentFavCount = photosRef.current.filter((p) => p.is_favorite).length
     if (newValue && currentFavCount === 0 && !hasAskedForNameRef.current) {
       setShowFavoriteNameModal(true)
     }
@@ -644,14 +777,13 @@ export default function GalleryViewer({
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_favorite: !newValue } : p))
       toast.error('Error saving')
     } else if (newValue && !isPublic) {
-      // Notify photographer when a favorite is marked (fire & forget)
       notifyPhotographer(galleryId, 'favorite_marked', clientName)
     }
-  }
+  }, [galleryId, isPublic, clientName, supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Toggle private ───────────────────────────────────────────────
-  const togglePrivate = async (photoId: string) => {
-    const photo = photos.find((p) => p.id === photoId)
+  const togglePrivate = useCallback(async (photoId: string) => {
+    const photo = photosRef.current.find((p) => p.id === photoId)
     if (!photo) return
     const newVal = !photo.is_private
     setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, is_private: newVal } : p))
@@ -662,11 +794,11 @@ export default function GalleryViewer({
     } else {
       toast.success(newVal ? 'Foto privat — nur mit Kunden-PW sichtbar' : 'Foto wieder öffentlich')
     }
-  }
+  }, [supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Set tag ──────────────────────────────────────────────────────
-  const setTag = async (photoId: string, tag: PhotoTag) => {
-    const photo = photos.find((p) => p.id === photoId)
+  const setTag = useCallback(async (photoId: string, tag: PhotoTag) => {
+    const photo = photosRef.current.find((p) => p.id === photoId)
     if (!photo) return
     const newTag = photo.tag === tag ? null : tag
     setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, tag: newTag } : p))
@@ -676,7 +808,7 @@ export default function GalleryViewer({
       setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, tag: photo.tag } : p))
       toast.error('Error saving')
     }
-  }
+  }, [supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Download ─────────────────────────────────────────────────────
   const downloadPhoto = async (photo: Photo) => {
@@ -751,12 +883,14 @@ export default function GalleryViewer({
     setLightboxIndex((i) => (i !== null ? (i + 1) % filteredPhotos.length : null))
   }, [filteredPhotos.length])
 
-  // ── Stable callbacks for PhotoCard (useCallback prevents memo invalidation) ──
+  // ── Stable callbacks for PhotoCard / MasonryCard ────────────────────────────
+  // toggleFavorite / setTag / togglePrivate are already stable useCallbacks —
+  // assign directly rather than wrapping again.
   const handleLightbox   = useCallback((index: number) => { setLightboxLoaded(false); setLightboxIndex(index) }, [])
-  const handleToggleFav  = useCallback((photoId: string) => { toggleFavorite(photoId) }, [photos]) // eslint-disable-line react-hooks/exhaustive-deps
-  const handleSetTag     = useCallback((photoId: string, tag: PhotoTag) => { setTag(photoId, tag) }, [photos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleToggleFav  = toggleFavorite
+  const handleSetTag     = setTag
   const handleDownload   = useCallback((photo: Photo) => { downloadPhoto(photo) }, [galleryId, clientName]) // eslint-disable-line react-hooks/exhaustive-deps
-  const handleTogglePriv = useCallback((photoId: string) => { togglePrivate(photoId) }, [photos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleTogglePriv = togglePrivate
   const handleTagMenu    = useCallback((id: string | null) => { setShowTagMenu(id) }, [])
 
   // Theme-aware colors for toolbar
@@ -1312,96 +1446,28 @@ export default function GalleryViewer({
           <button onClick={() => setFilterTag(null)} className="mt-2 text-[12px] text-white/40 hover:text-white/70 transition-colors">Reset filter</button>
         </div>
       ) : layout === 'masonry' ? (
-        /* MASONRY — CSS Grid row-spanning: natural aspect ratios, left-to-right row order */
+        /* MASONRY — each card is memoised; rowSpan lives in MasonryCard local state */
         <div
           className={cn('grid', masonryGridCols)}
           style={{ gridAutoRows: '4px', rowGap: `${gap}px`, columnGap: `${gap}px` }}
         >
           {visiblePhotos.map((photo, index) => (
-            <div
+            <MasonryCard
               key={photo.id}
-              className="relative group cursor-pointer overflow-hidden rounded-sm photo-card-hover"
-              style={{ gridRow: `span ${rowSpans[photo.id] ?? 40}` }}
-              onClick={() => openLightbox(index)}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getThumbnailUrl(photo, thumbWidth)}
-                alt={photo.filename}
-                loading={index < 8 ? 'eager' : 'lazy'}
-                decoding="async"
-                className="w-full h-auto block photo-img-hover"
-                onLoad={e => {
-                  const img = e.currentTarget
-                  const h = img.offsetWidth * (img.naturalHeight / img.naturalWidth)
-                  scheduleSpan(photo.id, Math.ceil((h + 6) / 10))
-                }}
-              />
-              <div className="absolute inset-0" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <div className="w-14 h-14 rounded-full bg-white/18 backdrop-blur-sm flex items-center justify-center scale-90 group-hover:scale-100 transition-transform duration-300">
-                  <ZoomIn className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={e => e.stopPropagation()}>
-                <button
-                  onClick={() => toggleFavorite(photo.id)}
-                  className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_favorite ? 'bg-rose-500 text-white' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-rose-400')}
-                >
-                  <Heart className={cn('w-5 h-5', photo.is_favorite && 'fill-white')} style={{ width: 20, height: 20 }} />
-                </button>
-                {tagsEnabled && (
-                  <div className="relative">
-                    <button
-                      onClick={e => { e.stopPropagation(); setShowTagMenu(showTagMenu === photo.id ? null : photo.id) }}
-                      className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.tag ? 'opacity-100' : 'bg-black/50 backdrop-blur-sm text-white/80 hover:text-white')}
-                      style={photo.tag ? { background: TAG_CONFIG[photo.tag].bg } : {}}
-                    >
-                      <span className="text-[13px] font-bold text-white">●</span>
-                    </button>
-                    {showTagMenu === photo.id && (
-                      <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30 min-w-[130px]" style={{ background: '#1A1A18', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} onClick={e => e.stopPropagation()}>
-                        {(Object.entries(TAG_CONFIG) as Array<[keyof typeof TAG_CONFIG, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]]>).map(([tag, cfg]) => (
-                          <button key={tag} onClick={() => setTag(photo.id, tag)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors', photo.tag === tag ? 'text-white bg-white/8' : 'text-white/60 hover:text-white hover:bg-white/5')}>
-                            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cfg.bg }} />
-                            {cfg.label}
-                            {photo.tag === tag && <span className="ml-auto text-white/40">✓</span>}
-                          </button>
-                        ))}
-                        {photo.tag && (
-                          <button onClick={() => setTag(photo.id, photo.tag ?? null)} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-white/30 hover:text-white/60 transition-colors border-t border-white/5">
-                            Tag entfernen
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {downloadEnabled && (
-                  <button onClick={() => downloadPhoto(photo)} className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-lg">
-                    <Download style={{ width: 20, height: 20 }} />
-                  </button>
-                )}
-                {canMarkPrivate && (
-                  <button
-                    onClick={e => { e.stopPropagation(); togglePrivate(photo.id) }}
-                    title={photo.is_private ? 'Privat (nur Kunden-PW) — klicken zum Aufheben' : 'Als privat markieren (für Gäste verbergen)'}
-                    className={cn('w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg', photo.is_private ? 'bg-violet-600 text-white' : 'bg-black/50 backdrop-blur-sm text-white/60 hover:text-violet-300')}
-                  >
-                    <EyeOff style={{ width: 18, height: 18 }} />
-                  </button>
-                )}
-              </div>
-              <div className="absolute top-2 left-2 flex items-center gap-1">
-                {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 drop-shadow-lg" />}
-                {tagsEnabled && photo.tag && <span className="w-3 h-3 rounded-full border border-black/20 drop-shadow-lg" style={{ background: TAG_CONFIG[photo.tag].bg }} />}
-                {photo.is_private && canMarkPrivate && (
-                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-violet-600/80 drop-shadow-lg">
-                    <EyeOff className="w-2.5 h-2.5 text-white" />
-                  </span>
-                )}
-              </div>
-            </div>
+              photo={photo}
+              index={index}
+              thumbWidth={thumbWidth}
+              showTagMenu={showTagMenu}
+              tagsEnabled={tagsEnabled}
+              downloadEnabled={downloadEnabled}
+              canMarkPrivate={canMarkPrivate}
+              onLightbox={handleLightbox}
+              onToggleFavorite={handleToggleFav}
+              onSetTag={handleSetTag}
+              onDownload={handleDownload}
+              onTogglePrivate={handleTogglePriv}
+              onToggleTagMenu={handleTagMenu}
+            />
           ))}
         </div>
       ) : layout === 'grid' ? (
