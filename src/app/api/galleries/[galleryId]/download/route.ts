@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Zip, ZipPassThrough } from 'fflate'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 // Allow up to 60 s on Vercel Pro; on Hobby the 10 s limit may apply for very
 // large galleries, but streaming means the browser starts downloading immediately.
@@ -11,6 +12,16 @@ export async function GET(
   { params }: { params: Promise<{ galleryId: string }> }
 ) {
   const { galleryId } = await params
+
+  // 5 downloads per 10 minutes per IP — prevents ZIP-flood abuse
+  const { allowed } = checkRateLimit(`dl:${getClientIp(_req)}`, { limit: 5, windowMs: 10 * 60 * 1000 })
+  if (!allowed) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': '600' },
+    })
+  }
+
   const supabase = await createClient()
 
   const { data: gallery } = await supabase

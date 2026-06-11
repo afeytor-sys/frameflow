@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -10,6 +11,12 @@ export async function POST(
   { params }: { params: Promise<{ galleryId: string }> }
 ) {
   await params
+
+  // 10 share emails per hour per IP — prevents using the endpoint as a spam relay
+  const { allowed } = checkRateLimit(`share:${getClientIp(request)}`, { limit: 10, windowMs: 60 * 60 * 1000 })
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '3600' } })
+  }
 
   const body = await request.json().catch(() => ({}))
   const { clientEmail, clientName, galleryUrl, password, galleryTitle, studioName, coverPhotoUrl, customMessage } = body as {

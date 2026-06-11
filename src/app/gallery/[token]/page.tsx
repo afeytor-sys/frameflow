@@ -9,9 +9,11 @@ import GalleryPasswordGate from './GalleryPasswordGate'
 import { getPhotoUrl } from '@/lib/utils'
 import type { Metadata } from 'next'
 
-// Gallery pages must never be served from cache — settings like hero style,
-// typography, and theme change in the dashboard and must reflect immediately.
-export const dynamic = 'force-dynamic'
+// ISR: serve from CDN cache, revalidate every 60 seconds.
+// The /api/galleries/[galleryId]/revalidate endpoint calls revalidatePath()
+// immediately after any settings save in GalleryTab, so changes are visible
+// within seconds in practice (not 60s).
+export const revalidate = 60
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params

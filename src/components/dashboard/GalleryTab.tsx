@@ -622,6 +622,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     setShowSettings(false)
     toast.success('Einstellungen gespeichert')
     setSavingSettings(false)
+
+    // Purge ISR cache for the public gallery URL so changes are visible immediately
+    fetch('/api/galleries/revalidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientToken, customSlug: currentSlug }),
+    }).catch(() => {}) // fire-and-forget, non-critical
   }
 
   const toggleGalleryStatus = async () => {
@@ -630,6 +637,12 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     await supabase.from('galleries').update({ status: newStatus }).eq('id', gallery.id)
     setGallery((prev) => prev ? { ...prev, status: newStatus } : prev)
     toast.success(newStatus === 'active' ? 'Galerie aktiviert' : 'Galerie deaktiviert')
+    // Purge ISR cache on status change (active↔draft is time-sensitive)
+    fetch('/api/galleries/revalidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientToken, customSlug: currentSlug }),
+    }).catch(() => {})
   }
 
   // ── Progressive loading (dashboard grid) ─────────────────────────────────

@@ -94,8 +94,8 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
 // Always use storage_url — thumbnail_url equals storage_url anyway (no
 // separate thumbnail generation). getPhotoUrl applies Cloudflare Image
 // Resizing for photos.fotonizer.com URLs, delivering WebP at the right size.
-// width is driven by the imageSize slider (400–1200px)
-function getThumbnailUrl(photo: Photo, width = 800): string {
+// width is driven by the imageSize slider; default matches imageSize=3 (650px)
+function getThumbnailUrl(photo: Photo, width = 650): string {
   return getPhotoUrl(photo.storage_url, width, 82, 'cover', 1)
 }
 
@@ -486,7 +486,10 @@ export default function GalleryViewer({
   }[imageSize] ?? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
 
   // Map size slider (1–5) → thumbnail fetch width (used by getThumbnailUrl)
-  const THUMB_WIDTHS: Record<number, number> = { 1: 400, 2: 600, 3: 800, 4: 1000, 5: 1200 }
+  // Reduced widths: each step now matches the actual CSS column width × 2 (retina)
+  // Size 3 (default, 4 cols): 320px CSS × 2 = 640px needed → 650px covers it
+  // Size 5 (XL, 2 cols): unchanged at 1200px (full-width on mobile, large desktop)
+  const THUMB_WIDTHS: Record<number, number> = { 1: 300, 2: 500, 3: 650, 4: 900, 5: 1200 }
   const thumbWidth = THUMB_WIDTHS[imageSize] ?? 800
 
   const columnHeight = {

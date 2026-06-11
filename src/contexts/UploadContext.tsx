@@ -6,8 +6,8 @@ import { CheckCircle, Upload, X, AlertCircle } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-// 2 concurrent uploads — prevents browser from holding 5 × 40 MB in memory
-const CONCURRENCY  = 2
+// 4 concurrent uploads — good balance between throughput and memory pressure
+const CONCURRENCY  = 4
 const MAX_RETRIES  = 3                   // per-file (or per-chunk) retry attempts
 const CHUNK_SIZE   = 10 * 1024 * 1024   // 10 MB — multipart chunk size
 const LARGE_FILE   = 5  * 1024 * 1024   // files ≥ 5 MB use multipart
