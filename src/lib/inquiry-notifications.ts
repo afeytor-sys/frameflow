@@ -289,13 +289,13 @@ async function sendInquiryEmail(payload: InquiryEmailPayload): Promise<void> {
 
   const now = new Date()
   const dateStr = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  const uniqueId = crypto.randomUUID().slice(0, 6).toUpperCase()
 
   const { error } = await resend.emails.send({
     from: `${senderName} <info@fotonizer.com>`,
     to: payload.to,
     replyTo: payload.replyTo,
-    subject: `Neue Anfrage von ${name} · ${dateStr} ${timeStr}`,
+    subject: `Neue Anfrage von ${name} · ${dateStr} [${uniqueId}]`,
     html,
     headers: {
       'X-Entity-Ref-ID': `inquiry-${Date.now()}`,

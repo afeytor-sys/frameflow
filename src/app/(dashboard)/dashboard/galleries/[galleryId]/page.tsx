@@ -12,7 +12,7 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
   // Fetch gallery with project + client data in one query
   const { data: gallery } = await supabase
     .from('galleries')
-    .select('*, project:projects(id, title, client_token, custom_slug, photographer_id, client:clients(full_name, email))')
+    .select('*, share_token, custom_slug, project:projects(id, title, client_token, custom_slug, photographer_id, client:clients(full_name, email))')
     .eq('id', galleryId)
     .single()
 
@@ -82,6 +82,8 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
       currentSlug={project?.custom_slug ?? null}
       clientToken={project?.client_token ?? null}
       studioName={studioName}
+      galleryShareToken={(gallery as unknown as { share_token?: string | null }).share_token ?? null}
+      galleryCustomSlug={project ? null : (gallery as unknown as { custom_slug?: string | null }).custom_slug ?? null}
     />
   )
 }

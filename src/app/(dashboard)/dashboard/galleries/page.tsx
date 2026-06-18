@@ -19,8 +19,12 @@ interface Gallery {
   photo_count?: number
   cover_url?: string | null
   cover_photo_id?: string | null
+  // From project (project-linked galleries)
   client_token?: string | null
   custom_slug?: string | null
+  // Own fields (project-less galleries)
+  share_token?: string | null
+  gallery_custom_slug?: string | null
   project_id?: string | null
   password?: string | null
   guest_password?: string | null
@@ -36,6 +40,8 @@ interface ShareModalState {
   clientToken?: string | null
   currentSlug?: string | null
   projectId?: string | null
+  galleryShareToken?: string | null
+  galleryCustomSlug?: string | null
 }
 
 interface CoverPickerState {
@@ -196,7 +202,7 @@ export default function GalleriesPage() {
       const { data } = await supabase
         .from('galleries')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .select('id, title, status, view_count, download_count, password, guest_password, cover_photo_id, project_id, project:projects(id, title, client_token, custom_slug, client:clients(full_name))' as any)
+        .select('id, title, status, view_count, download_count, password, guest_password, cover_photo_id, project_id, share_token, custom_slug, project:projects(id, title, client_token, custom_slug, client:clients(full_name))' as any)
         .eq('photographer_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -225,18 +231,22 @@ export default function GalleriesPage() {
           }
         } catch {}
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const gAny = g as any
         return {
           ...g,
           photo_count: photoCount,
           cover_url: coverUrl,
           cover_photo_id: coverPhotoId || null,
+          // Project-linked slugs/tokens
           client_token: proj?.client_token || null,
           custom_slug: proj?.custom_slug || null,
-          project_id: proj?.id || (g as unknown as { project_id?: string }).project_id || null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          password: (g as any).password || null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          guest_password: (g as any).guest_password || null,
+          // Gallery's own share token + slug (for project-less galleries)
+          share_token: gAny.share_token || null,
+          gallery_custom_slug: gAny.custom_slug || null,
+          project_id: proj?.id || gAny.project_id || null,
+          password: gAny.password || null,
+          guest_password: gAny.guest_password || null,
         }
       }))
 
@@ -404,18 +414,24 @@ export default function GalleriesPage() {
 
             const handleShare = (e: React.MouseEvent) => {
               e.preventDefault(); e.stopPropagation()
-              if (!gallery.client_token) { toast.error(t.errorNoToken); return }
-              const slug = gallery.custom_slug || gallery.client_token
-              const url = `${window.location.origin}/gallery/${slug}`
+              const hasProject = !!gallery.client_token
+              // For project-less galleries use gallery's own share_token/custom_slug
+              const effectiveSlug = hasProject
+                ? (gallery.custom_slug || gallery.client_token!)
+                : (gallery.gallery_custom_slug || gallery.share_token!)
+              if (!effectiveSlug) { toast.error(t.errorNoToken); return }
+              const url = `${window.location.origin}/gallery/${effectiveSlug}`
               setShareModal({
                 galleryId: gallery.id,
                 url,
                 password: gallery.password || null,
                 guestPassword: gallery.guest_password || null,
                 title: gallery.title,
-                clientToken: gallery.client_token,
+                clientToken: gallery.client_token || null,
                 currentSlug: gallery.custom_slug || null,
                 projectId: gallery.project_id || null,
+                galleryShareToken: gallery.share_token || null,
+                galleryCustomSlug: gallery.gallery_custom_slug || null,
               })
             }
 
@@ -536,13 +552,23 @@ export default function GalleriesPage() {
         clientToken={shareModal?.clientToken || null}
         currentSlug={shareModal?.currentSlug || null}
         projectId={shareModal?.projectId || null}
+        galleryShareToken={shareModal?.galleryShareToken || null}
+        galleryCustomSlug={shareModal?.galleryCustomSlug || null}
         onSlugChange={(newSlug) => {
           const base = window.location.origin
-          const url = newSlug ? `${base}/gallery/${newSlug}` : `${base}/gallery/${shareModal?.clientToken}`
-          setShareModal(prev => prev ? { ...prev, currentSlug: newSlug, url } : prev)
-          setGalleries(prev => prev.map(g =>
-            g.project_id === shareModal?.projectId ? { ...g, custom_slug: newSlug || null } : g
-          ))
+          const hasProject = !!shareModal?.projectId
+          const fallbackToken = hasProject ? shareModal?.clientToken : shareModal?.galleryShareToken
+          const url = newSlug ? `${base}/gallery/${newSlug}` : `${base}/gallery/${fallbackToken}`
+          setShareModal(prev => prev ? {
+            ...prev,
+            url,
+            ...(hasProject ? { currentSlug: newSlug } : { galleryCustomSlug: newSlug }),
+          } : prev)
+          setGalleries(prev => prev.map(g => {
+            if (hasProject && g.project_id === shareModal?.projectId) return { ...g, custom_slug: newSlug || null }
+            if (!hasProject && g.id === shareModal?.galleryId) return { ...g, gallery_custom_slug: newSlug || null }
+            return g
+          }))
         }}
       />
 

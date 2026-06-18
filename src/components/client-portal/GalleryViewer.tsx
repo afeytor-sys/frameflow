@@ -38,7 +38,7 @@ interface Photo {
 
 interface Props {
   galleryId: string
-  projectId: string
+  projectId: string | null
   galleryTitle: string
   clientName: string
   clientEmail?: string
@@ -90,17 +90,21 @@ const LAYOUT_OPTIONS: { key: GalleryLayout; icon: React.ElementType; label: stri
   { key: 'columns',  icon: Columns2,      label: 'Spalten' },
 ]
 
-// Thumbnail fetch widths: each step matches the CSS column width × 2 (retina)
-// Size 3 default (4 cols on lg): 320px CSS × 2 = 640px → 650px
-const THUMB_WIDTHS: Record<number, number> = { 1: 300, 2: 500, 3: 650, 4: 900, 5: 1200 }
+// Thumbnail fetch widths: each step matches the CSS column width × DPR (retina).
+// Size 3 default (lg:grid-cols-4, 1248px content): 307px CSS × 2 DPR = 614px → 650px.
+const THUMB_WIDTHS: Record<number, number> = { 1: 300, 2: 460, 3: 650, 4: 860, 5: 1100 }
+
+// Per-size WebP quality. Sizes 1-2 are tiny on screen; 3 is the calibrated default;
+// 4-5 serve larger images where users expect more detail so we stay at 80.
+const THUMB_QUALITIES: Record<number, number> = { 1: 78, 2: 78, 3: 82, 4: 80, 5: 80 }
 
 // ── Image URL helpers ────────────────────────────────────────────────
 // Always use storage_url — thumbnail_url equals storage_url anyway (no
 // separate thumbnail generation). getPhotoUrl applies Cloudflare Image
 // Resizing for photos.fotonizer.com URLs, delivering WebP at the right size.
-// width is driven by the imageSize slider; default matches imageSize=3 (650px)
-function getThumbnailUrl(photo: Photo, width = 650): string {
-  return getPhotoUrl(photo.storage_url, width, 82, 'cover', 1)
+// width + quality are driven by the imageSize slider.
+function getThumbnailUrl(photo: Photo, width = 650, quality = 82): string {
+  return getPhotoUrl(photo.storage_url, width, quality, 'cover', 1)
 }
 
 function getLightboxUrl(photo: Photo): string {
@@ -114,6 +118,7 @@ interface PhotoCardProps {
   index: number
   className?: string
   thumbWidth: number
+  thumbQuality: number
   showTagMenu: string | null
   tagsEnabled: boolean
   downloadEnabled: boolean
@@ -128,7 +133,7 @@ interface PhotoCardProps {
 
 const PhotoCard = memo(function PhotoCard({
   photo, index, className,
-  thumbWidth, showTagMenu,
+  thumbWidth, thumbQuality, showTagMenu,
   tagsEnabled, downloadEnabled, canMarkPrivate,
   onLightbox, onToggleFavorite, onSetTag, onDownload, onTogglePrivate, onToggleTagMenu,
 }: PhotoCardProps) {
@@ -155,7 +160,7 @@ const PhotoCard = memo(function PhotoCard({
         </>
       ) : (
         <LazyImage
-          src={getThumbnailUrl(photo, thumbWidth)}
+          src={getThumbnailUrl(photo, thumbWidth, thumbQuality)}
           alt={photo.filename}
           className="w-full h-full photo-img-hover"
           priority={index < 8}
@@ -236,6 +241,7 @@ const PhotoCard = memo(function PhotoCard({
   prev.photo.is_private === next.photo.is_private &&
   prev.index === next.index &&
   prev.thumbWidth === next.thumbWidth &&
+  prev.thumbQuality === next.thumbQuality &&
   // Only re-render if THIS card's open/closed state actually changed,
   // not whenever any other card's tag menu opens.
   (prev.showTagMenu === prev.photo.id) === (next.showTagMenu === next.photo.id) &&
@@ -284,6 +290,7 @@ interface MasonryCardProps {
   photo: Photo
   index: number
   thumbWidth: number
+  thumbQuality: number
   showTagMenu: string | null
   tagsEnabled: boolean
   downloadEnabled: boolean
@@ -298,7 +305,7 @@ interface MasonryCardProps {
 
 const MasonryCard = memo(function MasonryCard({
   photo, index,
-  thumbWidth, showTagMenu,
+  thumbWidth, thumbQuality, showTagMenu,
   tagsEnabled, downloadEnabled, canMarkPrivate,
   onLightbox, onToggleFavorite, onSetTag, onDownload, onTogglePrivate, onToggleTagMenu,
 }: MasonryCardProps) {
@@ -328,7 +335,7 @@ const MasonryCard = memo(function MasonryCard({
       ) : (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={getThumbnailUrl(photo, thumbWidth)}
+          src={getThumbnailUrl(photo, thumbWidth, thumbQuality)}
           alt={photo.filename}
           loading={index < 8 ? 'eager' : 'lazy'}
           decoding="async"
@@ -415,6 +422,7 @@ const MasonryCard = memo(function MasonryCard({
   prev.photo.is_private === next.photo.is_private &&
   prev.index === next.index &&
   prev.thumbWidth === next.thumbWidth &&
+  prev.thumbQuality === next.thumbQuality &&
   (prev.showTagMenu === prev.photo.id) === (next.showTagMenu === next.photo.id) &&
   prev.tagsEnabled === next.tagsEnabled &&
   prev.downloadEnabled === next.downloadEnabled &&
@@ -624,6 +632,7 @@ export default function GalleryViewer({
   }[imageSize] ?? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
 
   const thumbWidth = THUMB_WIDTHS[imageSize] ?? 800
+  const thumbQuality = THUMB_QUALITIES[imageSize] ?? 82
 
   const columnHeight = {
     1: 'h-48',
@@ -1457,6 +1466,7 @@ export default function GalleryViewer({
               photo={photo}
               index={index}
               thumbWidth={thumbWidth}
+              thumbQuality={thumbQuality}
               showTagMenu={showTagMenu}
               tagsEnabled={tagsEnabled}
               downloadEnabled={downloadEnabled}
@@ -1480,6 +1490,7 @@ export default function GalleryViewer({
               index={index}
               className="aspect-square"
               thumbWidth={thumbWidth}
+              thumbQuality={thumbQuality}
               showTagMenu={showTagMenu}
               tagsEnabled={tagsEnabled}
               downloadEnabled={downloadEnabled}
@@ -1503,6 +1514,7 @@ export default function GalleryViewer({
               index={index}
               className={cn('w-full', columnHeight)}
               thumbWidth={thumbWidth}
+              thumbQuality={thumbQuality}
               showTagMenu={showTagMenu}
               tagsEnabled={tagsEnabled}
               downloadEnabled={downloadEnabled}

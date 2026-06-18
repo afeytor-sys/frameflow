@@ -37,20 +37,51 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     project = byToken
   }
 
-  if (!project) return {}
+  // Try direct gallery lookup (project-less galleries)
+  let directGalleryMeta: { id: string; title: string; cover_photo_id: string | null; photographer_id: string } | null = null
+  if (!project) {
+    const { data: gBySlug } = await supabase
+      .from('galleries')
+      .select('id, title, cover_photo_id, photographer_id')
+      .eq('custom_slug', token)
+      .single()
+    directGalleryMeta = gBySlug
+    if (!directGalleryMeta) {
+      const { data: gByToken } = await supabase
+        .from('galleries')
+        .select('id, title, cover_photo_id, photographer_id')
+        .eq('share_token', token)
+        .single()
+      directGalleryMeta = gByToken
+    }
+  }
 
-  const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string } | null
+  if (!project && !directGalleryMeta) return {}
 
-  const { data: galleries } = await supabase
-    .from('galleries')
-    .select('id, title, cover_photo_id')
-    .eq('project_id', project.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
+  let photographer: { studio_name: string | null; full_name: string } | null = null
+  let gallery: { id: string; title: string; cover_photo_id: string | null } | null = null
 
-  const gallery = galleries?.[0] ?? null
-  const galleryTitle = gallery?.title || project.title || 'Galerie'
+  if (project) {
+    photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string } | null
+    const { data: galleries } = await supabase
+      .from('galleries')
+      .select('id, title, cover_photo_id')
+      .eq('project_id', project.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+    gallery = galleries?.[0] ?? null
+  } else {
+    gallery = directGalleryMeta
+    const { data: ph } = await supabase
+      .from('photographers')
+      .select('studio_name, full_name')
+      .eq('id', directGalleryMeta!.photographer_id)
+      .single()
+    photographer = ph
+  }
+
+  const galleryTitle = gallery?.title || project?.title || 'Galerie'
   const studioName = photographer?.studio_name || photographer?.full_name || 'Fotonizer'
 
   let ogImageUrl: string | null = null
@@ -116,33 +147,83 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     project = byToken
   }
 
-  if (!project) notFound()
-
-  const photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string; logo_url: string | null } | null
-  const client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string; email?: string | null } | null
-
-  // Fetch active gallery with photos
-  const { data: allGalleries } = await supabase
-    .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y')
-    .eq('project_id', project.id)
-    .order('created_at', { ascending: false })
-
-  type GalleryRow = NonNullable<typeof allGalleries>[number]
-  let gallery: GalleryRow | null = null
-  if (allGalleries && allGalleries.length > 0) {
-    const sorted = [
-      ...allGalleries.filter(g => g.status === 'active'),
-      ...allGalleries.filter(g => g.status !== 'active'),
-    ]
-    for (const g of sorted) {
-      const { count } = await supabase
-        .from('photos')
-        .select('id', { count: 'exact', head: true })
-        .eq('gallery_id', g.id)
-      if ((count ?? 0) > 0) { gallery = g; break }
+  // Try direct gallery share_token / custom_slug for project-less galleries
+  let directGalleryId: string | null = null
+  let directPhotographerId: string | null = null
+  if (!project) {
+    const { data: gBySlug } = await supabase
+      .from('galleries')
+      .select('id, photographer_id')
+      .eq('custom_slug', token)
+      .single()
+    if (gBySlug) { directGalleryId = gBySlug.id; directPhotographerId = gBySlug.photographer_id }
+    if (!directGalleryId) {
+      const { data: gByToken } = await supabase
+        .from('galleries')
+        .select('id, photographer_id')
+        .eq('share_token', token)
+        .single()
+      if (gByToken) { directGalleryId = gByToken.id; directPhotographerId = gByToken.photographer_id }
     }
-    if (!gallery) gallery = allGalleries[0]
+    if (!directGalleryId) notFound()
+  }
+
+  let photographer: { studio_name: string | null; full_name: string; logo_url: string | null } | null = null
+  let client: { full_name: string; email?: string | null } | null = null
+
+  if (project) {
+    photographer = (Array.isArray(project.photographer) ? project.photographer[0] : project.photographer) as { studio_name: string | null; full_name: string; logo_url: string | null } | null
+    client = (Array.isArray(project.client) ? project.client[0] : project.client) as { full_name: string; email?: string | null } | null
+  } else {
+    const { data: ph } = await supabase
+      .from('photographers')
+      .select('studio_name, full_name, logo_url')
+      .eq('id', directPhotographerId!)
+      .single()
+    photographer = ph
+    client = null
+  }
+
+  // Fetch gallery
+  const gallerySelectCols = 'id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y'
+
+  type GalleryRow = {
+    id: string; title: string; description: string | null; status: string
+    download_enabled: boolean; watermark: boolean; design_theme: string
+    password: string | null; guest_password: string | null; cover_photo_id: string | null
+    tags_enabled: string[] | null; cover_focal_x: number | null; cover_focal_y: number | null
+  }
+
+  let gallery: GalleryRow | null = null
+
+  if (project) {
+    const { data: allGalleries } = await supabase
+      .from('galleries')
+      .select(gallerySelectCols)
+      .eq('project_id', project.id)
+      .order('created_at', { ascending: false })
+
+    if (allGalleries && allGalleries.length > 0) {
+      const sorted = [
+        ...allGalleries.filter(g => g.status === 'active'),
+        ...allGalleries.filter(g => g.status !== 'active'),
+      ]
+      for (const g of sorted) {
+        const { count } = await supabase
+          .from('photos')
+          .select('id', { count: 'exact', head: true })
+          .eq('gallery_id', g.id)
+        if ((count ?? 0) > 0) { gallery = g as GalleryRow; break }
+      }
+      if (!gallery) gallery = allGalleries[0] as GalleryRow
+    }
+  } else {
+    const { data: g } = await supabase
+      .from('galleries')
+      .select(gallerySelectCols)
+      .eq('id', directGalleryId!)
+      .single()
+    gallery = g as GalleryRow | null
   }
 
   // Fetch each batch of newer columns in its own query so one missing column
@@ -226,12 +307,12 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
   const theme = getTheme(gallery.design_theme || 'classic-white')
 
-  const shootDate = (project as { shoot_date?: string | null }).shoot_date
+  const shootDate = (project as { shoot_date?: string | null } | null)?.shoot_date ?? null
   const formattedDate = shootDate
     ? new Date(shootDate).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
 
-  const heroTitle = gallery.title || project.title
+  const heroTitle = gallery.title || project?.title || 'Galerie'
 
   // Separate public (non-private) vs all photos
   const publicPhotos = allPhotos.filter(p => !p.is_private)
@@ -489,8 +570,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
           ) : (
             <GalleryViewer
               galleryId={gallery!.id}
-              projectId={project!.id}
-              galleryTitle={gallery!.title || project!.title || 'Galerie'}
+              projectId={project?.id ?? null}
+              galleryTitle={gallery!.title || project?.title || 'Galerie'}
               clientName={client?.full_name || ''}
               clientEmail={client?.email ?? undefined}
               initialPhotos={sortedPhotos}

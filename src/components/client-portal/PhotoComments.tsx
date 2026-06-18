@@ -12,7 +12,7 @@ interface Comment {
 
 interface Props {
   photoId: string
-  projectId: string
+  projectId: string | null
   token: string
   clientName: string
   commentsEnabled: boolean

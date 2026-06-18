@@ -258,6 +258,7 @@ export async function POST(req: NextRequest) {
         booked_time: booked_time.slice(0, 5),
         durationMinutes: bt.duration_minutes,
         locationType: bt.location_type,
+        locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
         depositAmount: deposit_amount,
         payment_reference,
         meetLink: google_meet_link,
@@ -286,6 +287,7 @@ export async function POST(req: NextRequest) {
           booked_time: booked_time.slice(0, 5),
           durationMinutes: bt.duration_minutes,
           locationType: bt.location_type,
+          locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
           meetLink: google_meet_link,
           confirmUrl,
           portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/b/booking/${booking.id}`,
@@ -357,6 +359,20 @@ function buildNewBookingEmail(data: {
 }
 
 
+function buildLocationBlock(locationText: string): string {
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F0FDF4;border-radius:12px;border:1px solid #BBF7D0;">
+    <tr><td style="padding:16px 20px;">
+      <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#15803D;">📍 Treffpunkt</p>
+      <p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#14532D;line-height:1.5;">${esc(locationText)}</p>
+      <a href="${mapsUrl}" style="display:inline-block;padding:9px 18px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.02em;">
+        In Google Maps öffnen →
+      </a>
+    </td></tr>
+  </table>`
+}
+
 function buildClientConfirmationEmail(data: {
   clientName: string
   studioName: string
@@ -365,6 +381,7 @@ function buildClientConfirmationEmail(data: {
   booked_time: string
   durationMinutes: number
   locationType: string
+  locationText: string | null
   depositAmount: number | null
   payment_reference: string | null
   meetLink: string | null
@@ -399,7 +416,11 @@ function buildClientConfirmationEmail(data: {
       </table>`
     : ''
 
-  const extraParts = [depositBlock, meetBlock].filter(Boolean).join('<div style="height:12px;"></div>')
+  const locationBlock = data.locationText && data.locationType !== 'online'
+    ? buildLocationBlock(data.locationText)
+    : ''
+
+  const extraParts = [depositBlock, meetBlock, locationBlock].filter(Boolean).join('<div style="height:12px;"></div>')
 
   return bookingEmailShell({
     studioName: data.studioName,
@@ -430,6 +451,7 @@ function buildClientReminderEmail(data: {
   booked_time: string
   durationMinutes: number
   locationType: string
+  locationText: string | null
   meetLink: string | null
   confirmUrl: string
   portalUrl: string
@@ -449,6 +471,12 @@ function buildClientReminderEmail(data: {
       </table>`
     : ''
 
+  const locationBlock = data.locationText && data.locationType !== 'online'
+    ? buildLocationBlock(data.locationText)
+    : ''
+
+  const extraParts = [meetBlock, locationBlock].filter(Boolean).join('<div style="height:12px;"></div>')
+
   return bookingEmailShell({
     studioName: data.studioName,
     heading: 'Dein Termin<br>steht bevor.',
@@ -463,7 +491,7 @@ function buildClientReminderEmail(data: {
       { label: 'Dauer',     value: data.durationMinutes + ' Minuten' },
       { label: 'Ort',       value: locationLabel[data.locationType] ?? data.locationType },
     ],
-    extraBlock: meetBlock || undefined,
+    extraBlock: extraParts || undefined,
     footerLine: `Bereitgestellt von ${data.studioName}`,
   })
 }

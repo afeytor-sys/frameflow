@@ -18,10 +18,13 @@ interface Props {
   clientName?: string
   clientEmail?: string | null
   coverPhotoUrl?: string
-  // Slug editing
+  // Slug editing — project-based galleries use projectId + clientToken
   projectId?: string | null
   currentSlug?: string | null
   clientToken?: string | null
+  // Project-less galleries use their own share_token + custom_slug
+  galleryShareToken?: string | null
+  galleryCustomSlug?: string | null
   onSlugChange?: (newSlug: string) => void
 }
 
@@ -52,6 +55,8 @@ export default function GalleryShareModal({
   projectId,
   currentSlug,
   clientToken,
+  galleryShareToken,
+  galleryCustomSlug,
   onSlugChange,
 }: Props) {
   const [mounted, setMounted] = useState(false)
@@ -66,29 +71,43 @@ export default function GalleryShareModal({
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
 
-  // Slug editing
-  const [slug, setSlug] = useState(currentSlug ?? '')
+  // Slug editing — initialise from whichever source is available
+  const initialSlug = currentSlug ?? galleryCustomSlug ?? ''
+  const [slug, setSlug] = useState(initialSlug)
   const [editingSlug, setEditingSlug] = useState(false)
-  const [slugDraft, setSlugDraft] = useState(currentSlug ?? '')
+  const [slugDraft, setSlugDraft] = useState(initialSlug)
   const [savingSlug, setSavingSlug] = useState(false)
 
   // Compute the live gallery URL based on current slug
   const baseOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+  // Fallback chain: custom slug → project client_token → gallery share_token → prop url
+  const fallbackToken = clientToken ?? galleryShareToken ?? null
   const liveGalleryUrl = slug
     ? `${baseOrigin}/gallery/${slug}`
-    : clientToken
-      ? `${baseOrigin}/gallery/${clientToken}`
+    : fallbackToken
+      ? `${baseOrigin}/gallery/${fallbackToken}`
       : galleryUrl
 
   const saveSlug = async () => {
-    if (!projectId) return
+    if (!projectId && !galleryId) return
     const cleaned = toSlug(slugDraft)
     setSavingSlug(true)
     const supabase = createClient()
-    const { error } = await supabase
-      .from('projects')
-      .update({ custom_slug: cleaned || null })
-      .eq('id', projectId)
+    let error: { code?: string } | null = null
+    if (projectId) {
+      const { error: e } = await supabase
+        .from('projects')
+        .update({ custom_slug: cleaned || null })
+        .eq('id', projectId)
+      error = e
+    } else {
+      // Project-less gallery: save slug directly on the gallery row
+      const { error: e } = await supabase
+        .from('galleries')
+        .update({ custom_slug: cleaned || null })
+        .eq('id', galleryId!)
+      error = e
+    }
     if (error) {
       if (error.code === '23505') toast.error('Dieser Link ist bereits vergeben')
       else toast.error('Fehler beim Speichern')
@@ -113,6 +132,10 @@ export default function GalleryShareModal({
       setShowEmailModal(false)
       setEmailSent(false)
       setEmailMessage('Deine Galerie ist bereit! Klicke auf den Button unten, um deine Fotos anzusehen.')
+      const freshSlug = currentSlug ?? galleryCustomSlug ?? ''
+      setSlug(freshSlug)
+      setSlugDraft(freshSlug)
+      setEditingSlug(false)
       // Pre-fill with passed email or fetch from DB
       if (clientEmail) {
         setShareEmail(clientEmail)
@@ -120,7 +143,7 @@ export default function GalleryShareModal({
         setShareEmail('')
       }
     }
-  }, [open, clientEmail])
+  }, [open, clientEmail, currentSlug, galleryCustomSlug])
 
   // Fetch client email from gallery → project → client when galleryId is available
   useEffect(() => {
@@ -422,7 +445,7 @@ export default function GalleryShareModal({
             </p>
 
             {/* Slug editor (inline) */}
-            {projectId && editingSlug ? (
+            {(projectId || galleryShareToken) && editingSlug ? (
               <div className="space-y-2 mb-2">
                 <div
                   className="flex items-center rounded-xl overflow-hidden"
@@ -486,8 +509,8 @@ export default function GalleryShareModal({
                   {liveGalleryUrl}
                 </span>
               </div>
-              {/* Edit slug button — only if projectId is provided */}
-              {projectId && !editingSlug && (
+              {/* Edit slug button — for project-linked and project-less galleries */}
+              {(projectId || galleryShareToken) && !editingSlug && (
                 <button
                   onClick={() => { setSlugDraft(slug); setEditingSlug(true) }}
                   title="Link anpassen"

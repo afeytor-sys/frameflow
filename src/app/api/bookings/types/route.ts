@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const {
     title, description, duration_minutes = 60, location_type = 'external',
+    location_text = null,
     price = 0, currency = 'EUR', availability_type = 'recurring',
     buffer_minutes = 0, max_advance_days = 60, min_notice_hours = 24,
     questions = [], anzahlung_enabled = false, anzahlung_type, anzahlung_amount,
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
     .insert({
       photographer_id: user.id,
       slug, title: title.trim(), description, duration_minutes, location_type,
+      location_text: location_text || null,
       price, currency, availability_type, buffer_minutes, max_advance_days,
       min_notice_hours, questions, specific_slots,
       anzahlung_enabled,

@@ -98,6 +98,9 @@ interface Props {
   currentSlug?: string | null
   clientToken?: string | null
   studioName?: string | null
+  // Own share fields for project-less galleries
+  galleryShareToken?: string | null
+  galleryCustomSlug?: string | null
 }
 
 // Focal point crosshair — shared by desktop and mobile pickers
@@ -251,7 +254,7 @@ function SortablePhoto({
   )
 }
 
-export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName, currentSlug, clientToken, studioName }: Props) {
+export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName, currentSlug, clientToken, studioName, galleryShareToken, galleryCustomSlug }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [sections, setSections] = useState<Section[]>([])
@@ -654,10 +657,13 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
   const getGalleryUrl = () => {
     if (publicGalleryUrl) return publicGalleryUrl
-    // Extract token from clientUrl: /client/[token]
-    if (!clientUrl) return window.location.origin
-    const token = clientUrl.split('/client/')[1]?.split('/')[0]
-    return token ? `${window.location.origin}/gallery/${token}` : `${clientUrl}/gallery`
+    // Project-linked: prefer custom slug, then client_token
+    const projectToken = currentSlug || clientToken
+    if (projectToken) return `${window.location.origin}/gallery/${projectToken}`
+    // Project-less gallery: use gallery's own slug / share_token
+    const galleryToken = galleryCustomSlug || galleryShareToken
+    if (galleryToken) return `${window.location.origin}/gallery/${galleryToken}`
+    return window.location.origin
   }
 
   const shareGallery = () => setShareModal(true)
@@ -864,6 +870,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         projectId={projectId}
         currentSlug={currentSlug}
         clientToken={clientToken}
+        galleryShareToken={galleryShareToken}
+        galleryCustomSlug={galleryCustomSlug}
         studioName={studioName || undefined}
         coverPhotoUrl={(() => {
           const cover = gallery.cover_photo_id ? photos.find(p => p.id === gallery.cover_photo_id) : null
