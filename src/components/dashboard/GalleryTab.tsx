@@ -130,10 +130,8 @@ const SortablePhoto = memo(function SortablePhoto({
   isCover,
   sectionLabel,
   onSelect,
-  onDelete,
-  onTogglePrivate,
-  onSetCover,
   onContextMenu,
+  onHoverSelect,
   onDragStartSection,
   onDragEndSection,
 }: {
@@ -142,10 +140,8 @@ const SortablePhoto = memo(function SortablePhoto({
   isCover: boolean
   sectionLabel?: string
   onSelect: (id: string, shiftKey?: boolean) => void
-  onDelete: (id: string) => void
-  onTogglePrivate: (id: string) => void
-  onSetCover: (id: string) => void
   onContextMenu: (id: string, x: number, y: number) => void
+  onHoverSelect: (id: string) => void
   onDragStartSection?: (id: string) => void
   onDragEndSection?: () => void
 }) {
@@ -168,6 +164,7 @@ const SortablePhoto = memo(function SortablePhoto({
         if ((e.target as HTMLElement).closest('button')) return
         onSelect(photo.id, e.shiftKey)
       }}
+      onMouseEnter={() => onHoverSelect(photo.id)}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu(photo.id, e.clientX, e.clientY)
@@ -201,65 +198,12 @@ const SortablePhoto = memo(function SortablePhoto({
           decoding="async"
         />
       )}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all pointer-events-none" />
-      <button
-        onClick={(e) => { e.stopPropagation(); onSelect(photo.id, e.shiftKey) }}
-        className={cn(
-          'absolute top-2 left-2 w-5 h-5 rounded border-2 transition-all',
-          selected ? 'bg-[#C8A882] border-[#C8A882]' : 'bg-white/80 border-white opacity-0 group-hover:opacity-100'
-        )}
-      >
-        {selected && (
-          <svg className="w-3 h-3 text-white mx-auto" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </button>
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-2 right-2 w-6 h-6 bg-black/40 rounded flex items-center justify-center cursor-grab opacity-0 group-hover:opacity-100 transition-all"
-      >
-        <GripVertical className="w-3.5 h-3.5 text-white" />
-      </div>
-      {/* Bottom-left indicators */}
-      <div className="absolute bottom-2 left-2 flex items-center gap-1 pointer-events-none">
-        {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-white fill-white drop-shadow" />}
-        {photo.is_private && <EyeOff className="w-3.5 h-3.5 text-white drop-shadow" />}
-        {isCover && <Star className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B] drop-shadow" />}
-      </div>
       {/* Set label badge — shown in "Alle" view */}
       {sectionLabel && (
         <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-none max-w-[80%] truncate pointer-events-none" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}>
           {sectionLabel}
         </div>
       )}
-      {/* Bottom-right actions */}
-      <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-        {/* Set as cover */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onSetCover(photo.id) }}
-          title={isCover ? 'Ist Titelbild' : 'Als Titelbild setzen'}
-          className={cn('w-6 h-6 rounded flex items-center justify-center transition-all', isCover ? 'bg-[#F59E0B]' : 'bg-black/50')}
-        >
-          <Star className={cn('w-3 h-3', isCover ? 'text-white fill-white' : 'text-white')} />
-        </button>
-        {/* Toggle private */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onTogglePrivate(photo.id) }}
-          title={photo.is_private ? 'Privat (nur Kunden-PW)' : 'Öffentlich machen'}
-          className={cn('w-6 h-6 rounded flex items-center justify-center transition-all', photo.is_private ? 'bg-[#8B5CF6]' : 'bg-black/50')}
-        >
-          {photo.is_private ? <EyeOff className="w-3 h-3 text-white" /> : <Eye className="w-3 h-3 text-white" />}
-        </button>
-        {/* Delete */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(photo.id) }}
-          className="w-6 h-6 bg-[#E84C1A]/80 rounded flex items-center justify-center"
-        >
-          <Trash2 className="w-3 h-3 text-white" />
-        </button>
-      </div>
     </div>
   )
 }, (prev, next) =>
@@ -487,6 +431,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       return new Set([id])
     })
     setContextMenu({ x, y })
+  }, [])
+
+  // Ctrl/Cmd hover-select: hold Ctrl/Cmd and move mouse over photos to select them
+  const isCtrlHeldRef = useRef(false)
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.ctrlKey || e.metaKey) isCtrlHeldRef.current = true }
+    const up = (e: KeyboardEvent) => { if (!e.ctrlKey && !e.metaKey) isCtrlHeldRef.current = false }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
+  }, [])
+  const handlePhotoHoverSelect = useCallback((id: string) => {
+    if (!isCtrlHeldRef.current) return
+    setSelected(prev => { const next = new Set(prev); next.add(id); return next })
   }, [])
 
   const deleteSelected = async () => {
@@ -2160,24 +2118,15 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           {activePhotos.slice(0, visibleCount).map(photo => {
             const sectionName = activeSection === 'all' ? sections.find(s => s.id === photo.section_id)?.title : undefined
             return (
-              <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all cursor-pointer" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}
-                onClick={(e) => { if ((e.target as HTMLElement).closest('button')) return; toggleSelect(photo.id, e.shiftKey) }}
+              <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg transition-all cursor-pointer" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}
+                onClick={(e) => toggleSelect(photo.id, e.shiftKey)}
+                onMouseEnter={() => handlePhotoHoverSelect(photo.id)}
                 onContextMenu={(e) => { e.preventDefault(); handlePhotoContextMenu(photo.id, e.clientX, e.clientY) }}
               >
-                <button onClick={(e) => { e.stopPropagation(); toggleSelect(photo.id, e.shiftKey) }} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
-                  {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </button>
                 <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
                 <span className="text-[13px] flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{photo.filename}</span>
                 {sectionName && <span className="text-[11px] px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{sectionName}</span>}
                 <span className="text-[11px] flex-shrink-0 tabular-nums" style={{ color: 'var(--text-muted)' }}>{formatBytes(photo.file_size)}</span>
-                {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 flex-shrink-0" />}
-                {photo.is_private && <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => setCoverPhoto(photo.id)} className={cn('w-6 h-6 rounded flex items-center justify-center', gallery.cover_photo_id === photo.id ? 'bg-[#F59E0B]' : '')} style={{ border: '1px solid var(--border-color)' }}><Star className="w-3 h-3" style={{ color: gallery.cover_photo_id === photo.id ? '#fff' : 'var(--text-muted)' }} /></button>
-                  <button onClick={() => togglePhotoPrivate(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ border: '1px solid var(--border-color)' }}>{photo.is_private ? <EyeOff className="w-3 h-3" style={{ color: '#8B5CF6' }} /> : <Eye className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}</button>
-                  <button onClick={() => deletePhoto(photo.id)} className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(232,76,26,0.1)', border: '1px solid rgba(232,76,26,0.2)' }}><Trash2 className="w-3 h-3 text-[#E84C1A]" /></button>
-                </div>
               </div>
             )
           })}
@@ -2187,7 +2136,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <SortableContext items={activePhotos.map(p => p.id)} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
               {activePhotos.slice(0, visibleCount).map(photo => (
-                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={toggleSelect} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onContextMenu={handlePhotoContextMenu} onDragStartSection={handleDragStartSection} onDragEndSection={handleDragEndSection} />
+                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={toggleSelect} onContextMenu={handlePhotoContextMenu} onHoverSelect={handlePhotoHoverSelect} onDragStartSection={handleDragStartSection} onDragEndSection={handleDragEndSection} />
               ))}
             </div>
           </SortableContext>
