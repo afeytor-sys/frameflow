@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -123,8 +123,8 @@ function FocalCrosshair({ x, y }: { x: number; y: number }) {
   )
 }
 
-// Sortable photo item
-function SortablePhoto({
+// Sortable photo item — wrapped in memo so only the photos whose props actually changed re-render
+const SortablePhoto = memo(function SortablePhoto({
   photo,
   selected,
   isCover,
@@ -133,6 +133,7 @@ function SortablePhoto({
   onDelete,
   onTogglePrivate,
   onSetCover,
+  onContextMenu,
   onDragStartSection,
   onDragEndSection,
 }: {
@@ -144,6 +145,7 @@ function SortablePhoto({
   onDelete: (id: string) => void
   onTogglePrivate: (id: string) => void
   onSetCover: (id: string) => void
+  onContextMenu: (id: string, x: number, y: number) => void
   onDragStartSection?: (id: string) => void
   onDragEndSection?: () => void
 }) {
@@ -162,8 +164,16 @@ function SortablePhoto({
       draggable={true}
       onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; onDragStartSection?.(photo.id) }}
       onDragEnd={() => onDragEndSection?.()}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button')) return
+        onSelect(photo.id, e.shiftKey)
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onContextMenu(photo.id, e.clientX, e.clientY)
+      }}
       className={cn(
-        'relative group rounded-lg overflow-hidden border-2 transition-all',
+        'relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer',
         selected ? 'border-[#C8A882]' : isCover ? 'border-[#F59E0B]' : 'border-transparent'
       )}
     >
@@ -191,9 +201,9 @@ function SortablePhoto({
           decoding="async"
         />
       )}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all pointer-events-none" />
       <button
-        onClick={(e) => onSelect(photo.id, e.shiftKey)}
+        onClick={(e) => { e.stopPropagation(); onSelect(photo.id, e.shiftKey) }}
         className={cn(
           'absolute top-2 left-2 w-5 h-5 rounded border-2 transition-all',
           selected ? 'bg-[#C8A882] border-[#C8A882]' : 'bg-white/80 border-white opacity-0 group-hover:opacity-100'
@@ -213,7 +223,7 @@ function SortablePhoto({
         <GripVertical className="w-3.5 h-3.5 text-white" />
       </div>
       {/* Bottom-left indicators */}
-      <div className="absolute bottom-2 left-2 flex items-center gap-1">
+      <div className="absolute bottom-2 left-2 flex items-center gap-1 pointer-events-none">
         {photo.is_favorite && <Heart className="w-3.5 h-3.5 text-white fill-white drop-shadow" />}
         {photo.is_private && <EyeOff className="w-3.5 h-3.5 text-white drop-shadow" />}
         {isCover && <Star className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B] drop-shadow" />}
@@ -228,7 +238,7 @@ function SortablePhoto({
       <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
         {/* Set as cover */}
         <button
-          onClick={() => onSetCover(photo.id)}
+          onClick={(e) => { e.stopPropagation(); onSetCover(photo.id) }}
           title={isCover ? 'Ist Titelbild' : 'Als Titelbild setzen'}
           className={cn('w-6 h-6 rounded flex items-center justify-center transition-all', isCover ? 'bg-[#F59E0B]' : 'bg-black/50')}
         >
@@ -236,7 +246,7 @@ function SortablePhoto({
         </button>
         {/* Toggle private */}
         <button
-          onClick={() => onTogglePrivate(photo.id)}
+          onClick={(e) => { e.stopPropagation(); onTogglePrivate(photo.id) }}
           title={photo.is_private ? 'Privat (nur Kunden-PW)' : 'Öffentlich machen'}
           className={cn('w-6 h-6 rounded flex items-center justify-center transition-all', photo.is_private ? 'bg-[#8B5CF6]' : 'bg-black/50')}
         >
@@ -244,7 +254,7 @@ function SortablePhoto({
         </button>
         {/* Delete */}
         <button
-          onClick={() => onDelete(photo.id)}
+          onClick={(e) => { e.stopPropagation(); onDelete(photo.id) }}
           className="w-6 h-6 bg-[#E84C1A]/80 rounded flex items-center justify-center"
         >
           <Trash2 className="w-3 h-3 text-white" />
@@ -252,7 +262,12 @@ function SortablePhoto({
       </div>
     </div>
   )
-}
+}, (prev, next) =>
+  prev.photo === next.photo &&
+  prev.selected === next.selected &&
+  prev.isCover === next.isCover &&
+  prev.sectionLabel === next.sectionLabel
+)
 
 export default function GalleryTab({ projectId, photographerId, clientUrl, publicGalleryUrl, gallery: initialGallery, photos: initialPhotos, showWatermark, canUploadFile, maxStorageBytes, storageUsedBytes, onStorageLimitReached, clientEmail, clientName, currentSlug, clientToken, studioName, galleryShareToken, galleryCustomSlug }: Props) {
   const [gallery, setGallery] = useState<Gallery | null>(initialGallery)
@@ -292,6 +307,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [globalDragOver, setGlobalDragOver] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [showMoveToSet, setShowMoveToSet] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [showCoverPicker, setShowCoverPicker] = useState(false)
   const [showFocalModal, setShowFocalModal] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -458,6 +474,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   }
   const selectAll = () => setSelected(new Set(photos.map((p) => p.id)))
   const clearSelection = () => setSelected(new Set())
+
+  // Stable drag handlers so SortablePhoto memo comparator works
+  const handleDragStartSection = useCallback((id: string) => { draggingPhotoRef.current = id }, [])
+  const handleDragEndSection = useCallback(() => { draggingPhotoRef.current = null }, [])
+
+  // Right-click context menu: if photo not in current selection, switch to just that photo
+  const handlePhotoContextMenu = useCallback((id: string, x: number, y: number) => {
+    setSelected(prev => {
+      if (prev.has(id)) return prev
+      lastSelectedRef.current = id
+      return new Set([id])
+    })
+    setContextMenu({ x, y })
+  }, [])
 
   const deleteSelected = async () => {
     if (!confirm(`Really delete ${selected.size} ${selected.size === 1 ? 'photo' : 'photos'}?`)) return
@@ -1871,6 +1901,73 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         </>
       )}
 
+      {/* ── Right-click context menu ── */}
+      {contextMenu && typeof document !== 'undefined' && createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={() => setContextMenu(null)}
+            onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }}
+          />
+          <div
+            className="fixed z-[9999] rounded-xl overflow-hidden py-1"
+            style={{
+              left: Math.min(contextMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 800) - 230),
+              top: Math.min(contextMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 600) - 320),
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+              minWidth: 210,
+            }}
+          >
+            <div className="px-3 py-2 text-[11px] font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
+              {selected.size} {selected.size === 1 ? 'Foto' : 'Fotos'} ausgewählt
+            </div>
+            {sections.length > 0 && (
+              <>
+                <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                  Verschieben zu
+                </div>
+                <button
+                  onClick={() => { assignPhotosToSection(null); setContextMenu(null) }}
+                  className="w-full text-left px-3 py-2 text-[13px] transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  Kein Set (allgemein)
+                </button>
+                {sections.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { assignPhotosToSection(s.id); setContextMenu(null) }}
+                    className="w-full text-left px-3 py-2 text-[13px] font-medium transition-colors flex items-center justify-between"
+                    style={{ color: 'var(--text-primary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <span>{s.title}</span>
+                    <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{photos.filter(p => p.section_id === s.id).length}</span>
+                  </button>
+                ))}
+                <div className="h-px mx-2 my-1" style={{ background: 'var(--border-color)' }} />
+              </>
+            )}
+            <button
+              onClick={() => { setContextMenu(null); deleteSelected() }}
+              className="w-full text-left px-3 py-2 text-[13px] font-medium transition-colors flex items-center gap-2"
+              style={{ color: '#E84C1A' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(232,76,26,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Löschen
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+
       {/* ── Client Favorites List (compact) ── */}
       {(() => {
         const favoritePhotos = photos.filter(p => p.is_favorite)
@@ -2063,8 +2160,11 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           {activePhotos.slice(0, visibleCount).map(photo => {
             const sectionName = activeSection === 'all' ? sections.find(s => s.id === photo.section_id)?.title : undefined
             return (
-              <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}>
-                <button onClick={(e) => toggleSelect(photo.id, e.shiftKey)} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
+              <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg group transition-all cursor-pointer" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}
+                onClick={(e) => { if ((e.target as HTMLElement).closest('button')) return; toggleSelect(photo.id, e.shiftKey) }}
+                onContextMenu={(e) => { e.preventDefault(); handlePhotoContextMenu(photo.id, e.clientX, e.clientY) }}
+              >
+                <button onClick={(e) => { e.stopPropagation(); toggleSelect(photo.id, e.shiftKey) }} className={cn('w-4 h-4 rounded border-2 flex-shrink-0 transition-all flex items-center justify-center', selected.has(photo.id) ? 'bg-[#C8A882] border-[#C8A882]' : 'border-[var(--border-color)] opacity-0 group-hover:opacity-100')}>
                   {selected.has(photo.id) && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
                 <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
@@ -2087,7 +2187,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <SortableContext items={activePhotos.map(p => p.id)} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
               {activePhotos.slice(0, visibleCount).map(photo => (
-                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={(id, shift) => toggleSelect(id, shift)} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onDragStartSection={id => { draggingPhotoRef.current = id }} onDragEndSection={() => { draggingPhotoRef.current = null }} />
+                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={toggleSelect} onDelete={deletePhoto} onTogglePrivate={togglePhotoPrivate} onSetCover={setCoverPhoto} onContextMenu={handlePhotoContextMenu} onDragStartSection={handleDragStartSection} onDragEndSection={handleDragEndSection} />
               ))}
             </div>
           </SortableContext>
