@@ -131,7 +131,7 @@ const SortablePhoto = memo(function SortablePhoto({
   sectionLabel,
   onSelect,
   onContextMenu,
-  onHoverSelect,
+  onPaintSelect,
   onDragStartSection,
   onDragEndSection,
 }: {
@@ -141,7 +141,7 @@ const SortablePhoto = memo(function SortablePhoto({
   sectionLabel?: string
   onSelect: (id: string, shiftKey?: boolean) => void
   onContextMenu: (id: string, x: number, y: number) => void
-  onHoverSelect: (id: string, ctrlKey: boolean, metaKey: boolean) => void
+  onPaintSelect: (id: string) => void
   onDragStartSection?: (id: string) => void
   onDragEndSection?: () => void
 }) {
@@ -160,11 +160,22 @@ const SortablePhoto = memo(function SortablePhoto({
       draggable={true}
       onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; onDragStartSection?.(photo.id) }}
       onDragEnd={() => onDragEndSection?.()}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest('button')) return
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault() // blocks the click event so there's no toggle conflict
+          onPaintSelect(photo.id)
+        }
+      }}
+      onMouseEnter={(e) => {
+        // only paint-select while mouse button is held — never during scroll or plain hover
+        if (e.buttons > 0 && (e.ctrlKey || e.metaKey)) onPaintSelect(photo.id)
+      }}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('button')) return
+        if (e.ctrlKey || e.metaKey) return // handled by onMouseDown
         onSelect(photo.id, e.shiftKey)
       }}
-      onMouseEnter={(e) => onHoverSelect(photo.id, e.ctrlKey, e.metaKey)}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu(photo.id, e.clientX, e.clientY)
@@ -433,9 +444,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     setContextMenu({ x, y })
   }, [])
 
-  // Ctrl/Cmd hover-select: reads key state directly from the mouseenter event — no stale ref risk
-  const handlePhotoHoverSelect = useCallback((id: string, ctrlKey: boolean, metaKey: boolean) => {
-    if (!ctrlKey && !metaKey) return
+  // Paint-select: add photo to selection (called from mousedown+Cmd or mouseenter while dragging+Cmd)
+  const handlePhotoPaintSelect = useCallback((id: string) => {
     setSelected(prev => { const next = new Set(prev); next.add(id); return next })
   }, [])
 
@@ -2111,8 +2121,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             const sectionName = activeSection === 'all' ? sections.find(s => s.id === photo.section_id)?.title : undefined
             return (
               <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg transition-all cursor-pointer" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}
-                onClick={(e) => toggleSelect(photo.id, e.shiftKey)}
-                onMouseEnter={(e) => handlePhotoHoverSelect(photo.id, e.ctrlKey, e.metaKey)}
+                onMouseDown={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); handlePhotoPaintSelect(photo.id) } }}
+                onMouseEnter={(e) => { if (e.buttons > 0 && (e.ctrlKey || e.metaKey)) handlePhotoPaintSelect(photo.id) }}
+                onClick={(e) => { if (e.ctrlKey || e.metaKey) return; toggleSelect(photo.id, e.shiftKey) }}
                 onContextMenu={(e) => { e.preventDefault(); handlePhotoContextMenu(photo.id, e.clientX, e.clientY) }}
               >
                 <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
@@ -2128,7 +2139,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
           <SortableContext items={activePhotos.map(p => p.id)} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1">
               {activePhotos.slice(0, visibleCount).map(photo => (
-                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={toggleSelect} onContextMenu={handlePhotoContextMenu} onHoverSelect={handlePhotoHoverSelect} onDragStartSection={handleDragStartSection} onDragEndSection={handleDragEndSection} />
+                <SortablePhoto key={photo.id} photo={photo} selected={selected.has(photo.id)} isCover={gallery.cover_photo_id === photo.id} sectionLabel={activeSection === 'all' && photo.section_id ? sections.find(s => s.id === photo.section_id)?.title : undefined} onSelect={toggleSelect} onContextMenu={handlePhotoContextMenu} onPaintSelect={handlePhotoPaintSelect} onDragStartSection={handleDragStartSection} onDragEndSection={handleDragEndSection} />
               ))}
             </div>
           </SortableContext>
