@@ -141,7 +141,7 @@ const SortablePhoto = memo(function SortablePhoto({
   sectionLabel?: string
   onSelect: (id: string, shiftKey?: boolean) => void
   onContextMenu: (id: string, x: number, y: number) => void
-  onHoverSelect: (id: string) => void
+  onHoverSelect: (id: string, ctrlKey: boolean, metaKey: boolean) => void
   onDragStartSection?: (id: string) => void
   onDragEndSection?: () => void
 }) {
@@ -164,7 +164,7 @@ const SortablePhoto = memo(function SortablePhoto({
         if ((e.target as HTMLElement).closest('button')) return
         onSelect(photo.id, e.shiftKey)
       }}
-      onMouseEnter={() => onHoverSelect(photo.id)}
+      onMouseEnter={(e) => onHoverSelect(photo.id, e.ctrlKey, e.metaKey)}
       onContextMenu={(e) => {
         e.preventDefault()
         onContextMenu(photo.id, e.clientX, e.clientY)
@@ -433,17 +433,9 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     setContextMenu({ x, y })
   }, [])
 
-  // Ctrl/Cmd hover-select: hold Ctrl/Cmd and move mouse over photos to select them
-  const isCtrlHeldRef = useRef(false)
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => { if (e.ctrlKey || e.metaKey) isCtrlHeldRef.current = true }
-    const up = (e: KeyboardEvent) => { if (!e.ctrlKey && !e.metaKey) isCtrlHeldRef.current = false }
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
-  }, [])
-  const handlePhotoHoverSelect = useCallback((id: string) => {
-    if (!isCtrlHeldRef.current) return
+  // Ctrl/Cmd hover-select: reads key state directly from the mouseenter event — no stale ref risk
+  const handlePhotoHoverSelect = useCallback((id: string, ctrlKey: boolean, metaKey: boolean) => {
+    if (!ctrlKey && !metaKey) return
     setSelected(prev => { const next = new Set(prev); next.add(id); return next })
   }, [])
 
@@ -2120,7 +2112,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
             return (
               <div key={photo.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg transition-all cursor-pointer" style={{ background: selected.has(photo.id) ? 'rgba(196,164,124,0.08)' : 'transparent', border: selected.has(photo.id) ? '1px solid rgba(196,164,124,0.2)' : '1px solid transparent' }}
                 onClick={(e) => toggleSelect(photo.id, e.shiftKey)}
-                onMouseEnter={() => handlePhotoHoverSelect(photo.id)}
+                onMouseEnter={(e) => handlePhotoHoverSelect(photo.id, e.ctrlKey, e.metaKey)}
                 onContextMenu={(e) => { e.preventDefault(); handlePhotoContextMenu(photo.id, e.clientX, e.clientY) }}
               >
                 <img src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 80, 70, 'cover')} alt={photo.filename} className="w-9 h-9 rounded-md object-cover flex-shrink-0" loading="lazy" />
