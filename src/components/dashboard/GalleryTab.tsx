@@ -403,13 +403,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
 
   const toggleSelect = (id: string, shiftKey?: boolean) => {
     if (shiftKey && lastSelectedRef.current) {
-      // Find all visible photos in order (sections + unsectioned)
-      const allVisible: string[] = []
-      sections.forEach(s => {
-        photos.filter(p => p.section_id === s.id).forEach(p => allVisible.push(p.id))
-      })
-      photos.filter(p => !p.section_id).forEach(p => allVisible.push(p.id))
-
+      // Use the same order the grid is showing — activePhotosRef is updated each render
+      const allVisible = activePhotosRef.current.map(p => p.id)
       const lastIdx = allVisible.indexOf(lastSelectedRef.current)
       const currIdx = allVisible.indexOf(id)
       if (lastIdx !== -1 && currIdx !== -1) {
@@ -642,6 +637,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const DASH_LIMIT = 50
   const [visibleCount, setVisibleCount] = useState(DASH_LIMIT)
 
+  // Ref that always reflects the currently displayed photo order, used by toggleSelect
+  // so shift+click range matches exactly what's visible in the grid
+  const activePhotosRef = useRef<Photo[]>([])
+
   // ── Share Modal state ──────────────────────────────────────────────────────
   const [shareModal, setShareModal] = useState(false)
 
@@ -813,6 +812,8 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
         ? unsectionedPhotos
         : photos.filter(p => p.section_id === activeSection)
   )
+  // Keep the ref in sync so toggleSelect's shift+click range matches the grid order
+  activePhotosRef.current = activePhotos
   const currentTheme = getTheme(selectedTheme)
   const currentTypo = getTypographyPreset(typographyPreset)
 
