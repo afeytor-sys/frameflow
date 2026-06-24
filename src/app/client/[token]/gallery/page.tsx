@@ -79,11 +79,21 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     )
   }
 
-  const { data: photos } = await supabase
-    .from('photos')
-    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
-    .eq('gallery_id', gallery.id)
-    .order('display_order', { ascending: true })
+  // Paginate to bypass Supabase's 1000-row default limit
+  const allPhotos: typeof photos = []
+  const PAGE = 1000
+  for (let from = 0; ; from += PAGE) {
+    const { data: page } = await supabase
+      .from('photos')
+      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
+      .eq('gallery_id', gallery.id)
+      .order('display_order', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (!page || page.length === 0) break
+    allPhotos.push(...page)
+    if (page.length < PAGE) break
+  }
+  const photos = allPhotos
 
   const { data: sections } = await supabase
     .from('gallery_sections')
@@ -91,7 +101,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
-  const sortedPhotos = (photos || []).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+  const sortedPhotos = photos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
   const gallerySections = sections || []
 
   // Hero image: use cover_photo_id if set, otherwise first photo

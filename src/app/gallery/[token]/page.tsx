@@ -267,24 +267,37 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
     )
   }
 
-  // Try to fetch photos with is_private column; fall back if column doesn't exist yet
-  let rawPhotos: { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; is_private?: boolean }[] = []
-  const { data: photosWithPrivate, error: photosError } = await supabase
-    .from('photos')
-    .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private, section_id')
-    .eq('gallery_id', gallery.id)
-    .order('display_order', { ascending: true })
-
-  if (photosError) {
-    // Fallback: select without is_private (column may not exist yet)
-    const { data: photosFallback } = await supabase
+  // Paginate to bypass Supabase's 1000-row default limit
+  type RawPhoto = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; is_private?: boolean; section_id?: string | null }
+  let rawPhotos: RawPhoto[] = []
+  const PG = 1000
+  let fetchError = false
+  for (let from = 0; ; from += PG) {
+    const { data: page, error: pageErr } = await supabase
       .from('photos')
-      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
+      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, is_private, section_id')
       .eq('gallery_id', gallery.id)
       .order('display_order', { ascending: true })
-    rawPhotos = (photosFallback || []).map(p => ({ ...p, is_private: false }))
-  } else {
-    rawPhotos = (photosWithPrivate || []).map(p => ({ ...p, is_private: p.is_private === null ? undefined : p.is_private }))
+      .range(from, from + PG - 1)
+    if (pageErr) { fetchError = true; break }
+    if (!page || page.length === 0) break
+    rawPhotos.push(...page.map(p => ({ ...p, is_private: p.is_private === null ? undefined : p.is_private })))
+    if (page.length < PG) break
+  }
+  if (fetchError) {
+    // Fallback: select without is_private column
+    rawPhotos = []
+    for (let from = 0; ; from += PG) {
+      const { data: page } = await supabase
+        .from('photos')
+        .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
+        .eq('gallery_id', gallery.id)
+        .order('display_order', { ascending: true })
+        .range(from, from + PG - 1)
+      if (!page || page.length === 0) break
+      rawPhotos.push(...page.map(p => ({ ...p, is_private: false })))
+      if (page.length < PG) break
+    }
   }
 
   const { data: gallerySections } = await supabase
