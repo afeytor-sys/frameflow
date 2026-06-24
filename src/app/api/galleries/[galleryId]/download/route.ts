@@ -43,13 +43,20 @@ export async function GET(
     .update({ download_count: (gallery.download_count ?? 0) + 1 })
     .eq('id', galleryId)
 
-  const { data: photos } = await supabase
-    .from('photos')
-    .select('storage_url, filename')
-    .eq('gallery_id', galleryId)
-    .order('display_order', { ascending: true })
+  const photos: { storage_url: string; filename: string }[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data: page } = await supabase
+      .from('photos')
+      .select('storage_url, filename')
+      .eq('gallery_id', galleryId)
+      .order('display_order', { ascending: true })
+      .range(from, from + 999)
+    if (!page || page.length === 0) break
+    photos.push(...page)
+    if (page.length < 1000) break
+  }
 
-  if (!photos?.length) {
+  if (!photos.length) {
     return new Response(JSON.stringify({ error: 'No photos found' }), {
       status: 404,
       headers: { 'Content-Type': 'application/json' },

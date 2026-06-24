@@ -64,13 +64,28 @@ export async function POST(
     .eq('id', jobId)
 
   try {
-    const [{ data: gallery }, { data: allPhotos }, { data: job }] = await Promise.all([
+    // Paginate photos to bypass Supabase's 1000-row default limit
+    const fetchAllPhotos = async () => {
+      const all: { id: string; storage_url: string; filename: string; file_size: number }[] = []
+      const PG = 1000
+      for (let from = 0; ; from += PG) {
+        const { data: page, error } = await supabase
+          .from('photos')
+          .select('id, storage_url, filename, file_size')
+          .eq('gallery_id', galleryId)
+          .order('display_order', { ascending: true })
+          .range(from, from + PG - 1)
+        if (error) throw error
+        if (!page || page.length === 0) break
+        all.push(...page)
+        if (page.length < PG) break
+      }
+      return all
+    }
+
+    const [{ data: gallery }, allPhotos, { data: job }] = await Promise.all([
       supabase.from('galleries').select('title').eq('id', galleryId).single(),
-      supabase
-        .from('photos')
-        .select('id, storage_url, filename, file_size')
-        .eq('gallery_id', galleryId)
-        .order('display_order', { ascending: true }),
+      fetchAllPhotos(),
       supabase
         .from('gallery_download_jobs')
         .select('email, download_token, parts, email_sent_at')
