@@ -80,7 +80,8 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   }
 
   // Paginate to bypass Supabase's 1000-row default limit
-  const allPhotos: typeof photos = []
+  type PhotoRow = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; section_id: string | null }
+  const photos: PhotoRow[] = []
   const PAGE = 1000
   for (let from = 0; ; from += PAGE) {
     const { data: page } = await supabase
@@ -90,10 +91,9 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
       .order('display_order', { ascending: true })
       .range(from, from + PAGE - 1)
     if (!page || page.length === 0) break
-    allPhotos.push(...page)
+    photos.push(...(page as PhotoRow[]))
     if (page.length < PAGE) break
   }
-  const photos = allPhotos
 
   const { data: sections } = await supabase
     .from('gallery_sections')
