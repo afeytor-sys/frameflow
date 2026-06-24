@@ -45,13 +45,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ galleries: [] })
   }
 
-  // Fetch photos for all galleries in one query, ordered by display_order
+  // Fetch photos for all galleries with pagination to bypass Supabase's 1000-row limit
   const galleryIds = galleriesRaw.map(g => g.id)
-  const { data: allPhotos } = await service
-    .from('photos')
-    .select('id, gallery_id, storage_url, thumbnail_url, filename, display_order, is_favorite, is_private, file_size, section_id')
-    .in('gallery_id', galleryIds)
-    .order('display_order', { ascending: true })
+  const allPhotos: { id: string; gallery_id: string; storage_url: string; thumbnail_url: string | null; filename: string; display_order: number; is_favorite: boolean; is_private: boolean; file_size: number; section_id: string | null }[] = []
+  const PG = 1000
+  for (let from = 0; ; from += PG) {
+    const { data: page } = await service
+      .from('photos')
+      .select('id, gallery_id, storage_url, thumbnail_url, filename, display_order, is_favorite, is_private, file_size, section_id')
+      .in('gallery_id', galleryIds)
+      .order('display_order', { ascending: true })
+      .range(from, from + PG - 1)
+    if (!page || page.length === 0) break
+    allPhotos.push(...page)
+    if (page.length < PG) break
+  }
 
   // Group photos by gallery_id
   const photosByGallery: Record<string, typeof allPhotos> = {}
