@@ -9,22 +9,26 @@ export async function DELETE(
   { params }: { params: Promise<{ galleryId: string }> },
 ) {
   const { galleryId } = await params
-  const supabase = await createClient()
 
+  // Get the authenticated user via cookie (needs user client)
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // photographer_id on galleries IS the auth user.id — one query is enough
-  const { data: gallery } = await supabase
+  // Use service client to bypass RLS for all DB operations
+  const service = createServiceClient()
+
+  // Verify ownership: galleries.photographer_id = auth user ID
+  const { data: gallery } = await service
     .from('galleries')
     .select('id')
     .eq('id', galleryId)
     .eq('photographer_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!gallery) return Response.json({ error: 'Forbidden' }, { status: 403 })
 
-  const service = createServiceClient()
+  // Delete all jobs for this gallery
   const { error } = await service
     .from('gallery_download_jobs')
     .delete()
