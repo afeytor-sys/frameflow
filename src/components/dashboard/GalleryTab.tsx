@@ -1006,10 +1006,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                       <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{date}</span>
                       <button
                         onClick={async () => {
-                          await supabase.from('gallery_download_jobs').delete().eq('id', job.id)
-                          setDownloadJobs(prev => prev.filter(j => j.id !== job.id))
+                          await fetch(`/api/galleries/${gallery.id}/download/jobs`, { method: 'DELETE' })
+                          setDownloadJobs([])
                         }}
-                        title="Download-Job löschen"
+                        title="Alle Download-Jobs löschen (erzwingt neuen ZIP)"
                         className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity"
                         style={{ color: '#EF4444' }}
                       >
