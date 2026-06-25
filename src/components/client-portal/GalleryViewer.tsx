@@ -1053,7 +1053,7 @@ export default function GalleryViewer({
       {/* ── Download banner — prominent CTA, visible before photos ── */}
       {downloadEnabled && photos.length > 0 && (dlState === 'idle' || dlState === 'asking-email' || dlState === 'submitting' || dlState === 'error' || dlState === 'sent') && (
         <div
-          className="mb-5 rounded-2xl flex items-center justify-between gap-4 px-5 py-4"
+          className="mb-5 mx-4 sm:mx-5 rounded-2xl flex items-center justify-between gap-4 px-5 py-4"
           style={{
             background: theme ? `${theme.surface}` : '#F5F4F1',
             border: `1px solid ${theme?.border ?? '#E8E4DC'}`,
@@ -1111,7 +1111,7 @@ export default function GalleryViewer({
 
       {/* ── Sets navigation bar ── */}
       {sections.length > 0 && (
-        <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar px-4 sm:px-5">
           {/* "Alle Fotos" pill */}
           <button
             onClick={() => setActiveSection(null)}
@@ -1233,7 +1233,7 @@ export default function GalleryViewer({
 
       {/* ── Toolbar ── */}
       <div
-        className="flex flex-wrap items-center justify-between gap-3 mb-6 px-4 py-3 rounded-2xl sticky top-4 z-20"
+        className="flex flex-wrap items-center justify-between gap-3 mb-6 mx-3 sm:mx-4 px-4 py-3 rounded-2xl sticky top-4 z-20"
         style={{
           background: tbBg,
           border: `1px solid ${tbBorder}`,

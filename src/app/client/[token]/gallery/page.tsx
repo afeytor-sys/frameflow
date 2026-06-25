@@ -209,7 +209,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
       </div>
 
       {/* ── GALLERY CONTENT ── */}
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 16px 64px' }}>
+      <div style={{ padding: '32px 0 64px' }}>
         {sortedPhotos.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '96px 0' }}>
             <Images style={{ width: 40, height: 40, color: theme.textMuted, margin: '0 auto 16px', opacity: 0.4 }} />
