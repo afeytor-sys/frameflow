@@ -1066,10 +1066,10 @@ export default function GalleryViewer({
                   <Check className="w-4 h-4" style={{ color: '#2A7A5A' }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-bold leading-snug" style={{ color: theme?.text ?? '#111110' }}>
+                  <p className="text-[16px] font-bold leading-snug" style={{ color: theme?.text ?? '#111110' }}>
                     Anfrage erhalten!
                   </p>
-                  <p className="text-[12px] leading-snug mt-0.5" style={{ color: theme?.textMuted ?? '#7A7670' }}>
+                  <p className="text-[15px] leading-snug mt-0.5" style={{ color: theme?.textMuted ?? '#7A7670' }}>
                     Download-Link wird an <strong>{dlEmail}</strong> geschickt
                   </p>
                 </div>
@@ -1085,10 +1085,10 @@ export default function GalleryViewer({
                   <Download className="w-4 h-4" style={{ color: '#C4A47C' }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-bold leading-snug" style={{ color: theme?.text ?? '#111110' }}>
+                  <p className="text-[16px] font-bold leading-snug" style={{ color: theme?.text ?? '#111110' }}>
                     Alle {photos.length} Fotos herunterladen
                   </p>
-                  <p className="text-[12px] leading-snug mt-0.5 hidden sm:block" style={{ color: theme?.textMuted ?? '#7A7670' }}>
+                  <p className="text-[15px] leading-snug mt-0.5 hidden sm:block" style={{ color: theme?.textMuted ?? '#7A7670' }}>
                     Du erhältst einen Download-Link per E-Mail
                   </p>
                 </div>
@@ -1096,7 +1096,7 @@ export default function GalleryViewer({
               <button
                 onClick={downloadAll}
                 disabled={dlState === 'submitting'}
-                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
+                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[16px] font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
                 style={{ background: '#C4A47C', boxShadow: '0 2px 12px rgba(196,164,124,0.35)' }}
               >
                 {dlState === 'submitting'
@@ -1116,7 +1116,7 @@ export default function GalleryViewer({
           <button
             onClick={() => setActiveSection(null)}
             className={cn(
-              'flex-shrink-0 px-4 py-2 sm:py-1.5 rounded-full text-[14px] sm:text-[12.5px] font-semibold transition-all',
+              'flex-shrink-0 px-4 py-2 sm:py-1.5 rounded-full text-[17px] sm:text-[15px] font-semibold transition-all',
               activeSection === null
                 ? 'text-white'
                 : 'hover:opacity-80'
@@ -1152,7 +1152,7 @@ export default function GalleryViewer({
                   <button
                     onClick={() => setActiveSection(isActive ? null : sec.id)}
                     className={cn(
-                      'px-4 py-2 sm:py-1.5 rounded-full text-[14px] sm:text-[12.5px] font-semibold transition-all',
+                      'px-4 py-2 sm:py-1.5 rounded-full text-[17px] sm:text-[15px] font-semibold transition-all',
                       isActive ? 'text-white' : 'hover:opacity-80'
                     )}
                     style={isActive
@@ -1161,7 +1161,7 @@ export default function GalleryViewer({
                     }
                   >
                     {sec.title}
-                    <span className="ml-1.5 text-[12px] sm:text-[10px] opacity-50">
+                    <span className="ml-1.5 text-[15px] sm:text-[12.5px] opacity-50">
                       {sectionCounts[sec.id] ?? 0}
                     </span>
                   </button>
@@ -1244,7 +1244,7 @@ export default function GalleryViewer({
         {/* Left: photo count + filters */}
         <div className="flex items-center gap-3 flex-wrap">
           <span
-            className="text-[13px] font-semibold hidden sm:block"
+            className="text-[16px] font-semibold hidden sm:block"
             style={{ color: tbTextHover, letterSpacing: '-0.01em' }}
           >
             {photoCountLabel}
@@ -1256,7 +1256,7 @@ export default function GalleryViewer({
           {!isPublic && (
             <button
               onClick={() => setFilterTag(filterTag === 'favorite' ? null : 'favorite')}
-              className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-[13.5px] sm:text-[12px] font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-[17px] sm:text-[15px] font-semibold transition-all"
               style={{
                 background: filterTag === 'favorite' ? '#EF444415' : 'transparent',
                 color: filterTag === 'favorite' ? '#EF4444' : tbText,
@@ -1273,7 +1273,7 @@ export default function GalleryViewer({
             <div className="relative">
               <button
                 onClick={() => setShowTagFilters(!showTagFilters)}
-                className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-[13.5px] sm:text-[12px] font-semibold transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full text-[17px] sm:text-[15px] font-semibold transition-all"
                 style={{
                   background: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C15' : 'transparent',
                   color: showTagFilters || (filterTag && filterTag !== 'favorite') ? '#C4A47C' : tbText,
@@ -1367,7 +1367,7 @@ export default function GalleryViewer({
                 key={key}
                 onClick={() => setSortOrder(key)}
                 title={key === 'manual' ? 'Manuelle Reihenfolge' : key === 'name-asc' ? 'Name A→Z' : 'Name Z→A'}
-                className="px-3 sm:px-2 h-10 sm:h-8 rounded-lg flex items-center justify-center text-[13px] sm:text-[11px] font-semibold transition-all"
+                className="px-3 sm:px-2 h-10 sm:h-8 rounded-lg flex items-center justify-center text-[16px] sm:text-[14px] font-semibold transition-all"
                 style={{
                   background: sortOrder === key ? '#FFFFFF' : 'transparent',
                   color: sortOrder === key ? '#111110' : tbText,
