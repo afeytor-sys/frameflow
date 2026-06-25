@@ -99,21 +99,30 @@ export default {
         return Response.json({ ok: true, jobId, totalParts: existingCount, skipped: true })
       }
 
-      const [{ data: allPhotos, error: photosErr }, { data: gallery }] = await Promise.all([
-        supabase
+      // Paginate to bypass Supabase's 1000-row default limit
+      const allPhotos: { id: string; storage_url: string; filename: string; file_size: number }[] = []
+      const PG = 1000
+      for (let from = 0; ; from += PG) {
+        const { data: page, error: pageErr } = await supabase
           .from('photos')
           .select('id, storage_url, filename, file_size')
           .eq('gallery_id', galleryId)
-          .order('display_order', { ascending: true }),
-        supabase
-          .from('galleries')
-          .select('title')
-          .eq('id', galleryId)
-          .single(),
-      ])
+          .order('display_order', { ascending: true })
+          .range(from, from + PG - 1)
+        if (pageErr) throw new Error(`Photos fetch error: ${pageErr.message}`)
+        if (!page || page.length === 0) break
+        allPhotos.push(...page)
+        if (page.length < PG) break
+      }
 
-      if (photosErr || !allPhotos?.length) {
-        throw new Error(`No photos: ${photosErr?.message ?? 'empty gallery'}`)
+      const { data: gallery } = await supabase
+        .from('galleries')
+        .select('title')
+        .eq('id', galleryId)
+        .single()
+
+      if (!allPhotos.length) {
+        throw new Error('No photos: empty gallery')
       }
 
       const baseTitle = (gallery?.title ?? 'gallery')
