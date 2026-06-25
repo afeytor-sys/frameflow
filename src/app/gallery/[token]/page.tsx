@@ -385,7 +385,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', fontFamily: typo.fontFamily, letterSpacing: typo.subtitleTracking, marginTop: 14, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
+              <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 'clamp(1.5rem, 2.8vw, 2.6rem)', fontFamily: typo.fontFamily, letterSpacing: typo.subtitleTracking, marginTop: 14, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none', textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}>
                 {formattedDate}
               </p>
             )}
@@ -417,7 +417,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
                 {heroTitle}
               </h1>
               {formattedDate && (
-                <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: typo.fontFamily, fontSize: '0.64rem', letterSpacing: typo.subtitleTracking, marginTop: 14, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>
+                <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.75)', fontFamily: typo.fontFamily, fontSize: 'clamp(1.6rem, 3vw, 2.8rem)', letterSpacing: typo.subtitleTracking, marginTop: 14, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>
                   {formattedDate}
                 </p>
               )}
@@ -447,7 +447,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p className="hero-date-in" style={{ color: theme.textMuted, fontFamily: typo.fontFamily, fontSize: '0.62rem', letterSpacing: typo.subtitleTracking, marginTop: 16, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>
+              <p className="hero-date-in" style={{ color: theme.text, fontFamily: typo.fontFamily, fontSize: 'clamp(2rem, 4.5vw, 4rem)', opacity: 0.75, letterSpacing: typo.subtitleTracking, marginTop: 16, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>
                 {formattedDate}
               </p>
             )}
@@ -478,7 +478,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.28)', fontFamily: typo.fontFamily, fontSize: '0.58rem', letterSpacing: '0.28em', marginTop: 16, textTransform: 'uppercase' }}>
+              <p className="hero-date-in" style={{ color: 'rgba(255,255,255,0.75)', fontFamily: typo.fontFamily, fontSize: 'clamp(1.3rem, 2.2vw, 2.2rem)', letterSpacing: '0.04em', marginTop: 16, textTransform: 'none' }}>
                 {formattedDate}
               </p>
             )}
@@ -511,7 +511,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p style={{ color: theme.textMuted, fontFamily: typo.fontFamily, fontSize: '0.68rem', letterSpacing: typo.subtitleTracking, marginTop: 10, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>{formattedDate}</p>
+              <p style={{ color: theme.text, fontFamily: typo.fontFamily, fontSize: 'clamp(1.8rem, 3.5vw, 3rem)', opacity: 0.75, letterSpacing: typo.subtitleTracking, marginTop: 10, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>{formattedDate}</p>
             )}
           </div>
         </div>
@@ -532,7 +532,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
             {heroTitle}
           </h1>
           {formattedDate && (
-            <p style={{ color: theme.textMuted, fontFamily: typo.fontFamily, fontSize: '0.68rem', letterSpacing: typo.subtitleTracking, marginTop: 12, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>{formattedDate}</p>
+            <p style={{ color: theme.text, fontFamily: typo.fontFamily, fontSize: 'clamp(1.5rem, 3vw, 2.4rem)', opacity: 0.75, letterSpacing: typo.subtitleTracking, marginTop: 12, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>{formattedDate}</p>
           )}
         </div>
       )
@@ -560,7 +560,7 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
               {heroTitle}
             </h1>
             {formattedDate && (
-              <p style={{ color: theme.textMuted, fontFamily: typo.fontFamily, fontSize: '0.68rem', letterSpacing: typo.subtitleTracking, marginTop: 10, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>{formattedDate}</p>
+              <p style={{ color: theme.text, fontFamily: typo.fontFamily, fontSize: 'clamp(1.4rem, 2.8vw, 2.2rem)', opacity: 0.75, letterSpacing: typo.subtitleTracking, marginTop: 10, textTransform: typo.subtitleUppercase ? 'uppercase' : 'none' }}>{formattedDate}</p>
             )}
           </div>
         </div>
