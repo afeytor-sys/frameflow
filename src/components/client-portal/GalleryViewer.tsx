@@ -616,20 +616,20 @@ export default function GalleryViewer({
   }
 
   const gridCols = {
-    1: 'grid-cols-6',
-    2: 'grid-cols-5',
-    3: 'grid-cols-4',
-    4: 'grid-cols-3',
-    5: 'grid-cols-2',
-  }[imageSize] || 'grid-cols-4'
+    1: 'grid-cols-4 sm:grid-cols-6 lg:grid-cols-8',
+    2: 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-7',
+    3: 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5',
+    4: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
+    5: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  }[imageSize] || 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5'
 
   const masonryGridCols = {
-    1: 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-6',
-    2: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5',
-    3: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
-    4: 'grid-cols-2 sm:grid-cols-3',
-    5: 'grid-cols-2',
-  }[imageSize] ?? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+    1: 'grid-cols-4 sm:grid-cols-6 lg:grid-cols-8',
+    2: 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-7',
+    3: 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5',
+    4: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',
+    5: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  }[imageSize] ?? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5'
 
   const thumbWidth = THUMB_WIDTHS[imageSize] ?? 800
   const thumbQuality = THUMB_QUALITIES[imageSize] ?? 82
@@ -1057,7 +1057,6 @@ export default function GalleryViewer({
           style={{
             background: theme ? `${theme.surface}` : '#F5F4F1',
             border: `1px solid ${theme?.border ?? '#E8E4DC'}`,
-            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
           }}
         >
           {dlState === 'sent' ? (
@@ -1112,7 +1111,7 @@ export default function GalleryViewer({
 
       {/* ── Sets navigation bar ── */}
       {sections.length > 0 && (
-        <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+        <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar">
           {/* "Alle Fotos" pill */}
           <button
             onClick={() => setActiveSection(null)}
@@ -1162,7 +1161,7 @@ export default function GalleryViewer({
                     }
                   >
                     {sec.title}
-                    <span className="ml-1.5 text-[16px] sm:text-[14px] opacity-60" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="ml-1.5 text-[16px] sm:text-[14px] opacity-60" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}>
                       {sectionCounts[sec.id] ?? 0}
                     </span>
                   </button>
@@ -1240,7 +1239,6 @@ export default function GalleryViewer({
           border: `1px solid ${tbBorder}`,
           backdropFilter: 'blur(12px)',
           boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         }}
       >
         {/* Left: photo count + filters */}
