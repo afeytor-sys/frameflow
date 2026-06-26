@@ -16,12 +16,16 @@ export async function GET(req: NextRequest) {
   // Jobs older than 6 min that haven't finished — the worker had 5 min to run
   const stuckCutoff = new Date(Date.now() - 6 * 60 * 1000).toISOString()
 
+  // Only resume 'pending' jobs — the worker changes status to 'processing' within
+  // seconds of being triggered, so any job still 'pending' after 6 min is truly stuck.
+  // 'processing' jobs may still be actively running (Vercel worker has 5-min limit);
+  // the /prepare route already handles stuck processing jobs when the user re-clicks.
   const { data: stuckJobs } = await supabase
     .from('gallery_download_jobs')
     .select('id, gallery_id, status, processed_parts, total_parts')
-    .in('status', ['processing', 'pending'])
+    .eq('status', 'pending')
     .gt('expires_at', now)
-    .lt('updated_at', stuckCutoff)
+    .lt('created_at', stuckCutoff)
     .limit(5)
 
   if (!stuckJobs?.length) {
@@ -33,12 +37,7 @@ export async function GET(req: NextRequest) {
   let resumed = 0
 
   for (const job of stuckJobs) {
-    // Reset to pending so the worker re-accepts the job
-    await supabase
-      .from('gallery_download_jobs')
-      .update({ status: 'pending' })
-      .eq('id', job.id)
-      .in('status', ['processing', 'pending'])
+    // Job is already 'pending' — just trigger the worker directly
 
     const url = cfWorkerUrl
       ? cfWorkerUrl
