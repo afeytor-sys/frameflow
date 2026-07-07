@@ -7,6 +7,7 @@ import ProjectTabs from '@/components/dashboard/ProjectTabs'
 import QRCodeModal from '@/components/dashboard/QRCodeModal'
 import SlugEditor from '@/components/dashboard/SlugEditor'
 import DeleteProjectButton from '@/components/dashboard/DeleteProjectButton'
+import SendPortalEmailButton from '@/components/dashboard/SendPortalEmailButton'
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -211,7 +212,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   baseUrl={`${protocol}://${host}`}
                 />
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <SendPortalEmailButton
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  clientEmail={client.email}
+                  clientName={client.full_name}
+                  studioName={photographer?.studio_name || photographer?.full_name || null}
+                  portalUrl={clientUrl!}
+                  portalPassword={project.portal_password as string | null}
+                  portalSections={project.portal_sections as Record<string, boolean> | null}
+                />
                 <QRCodeModal clientUrl={clientUrl!} projectTitle={project.title} />
               </div>
             </div>
