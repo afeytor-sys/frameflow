@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   ClipboardList, ArrowUpRight, CheckCircle2, Send, FolderOpen,
   Plus, Sparkles, ChevronRight, ClipboardCheck, PenLine, BookmarkCheck, Trash2,
-  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, Calendar, Search, Pencil, Eye,
+  X, AlignLeft, List, ToggleLeft, CheckSquare, ChevronDown, ChevronUp, Calendar, Search, Pencil, Eye,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getQuestionnaireTemplatesForLocale, type Question } from '@/lib/questionnaireTemplates'
@@ -283,6 +283,17 @@ export default function QuestionnairesPage() {
 
   const builderRemoveQuestion = (id: string) => {
     setBuilderQuestions(prev => prev.filter(q => q.id !== id))
+  }
+
+  const builderMoveQuestion = (id: string, direction: 'up' | 'down') => {
+    setBuilderQuestions(prev => {
+      const index = prev.findIndex(q => q.id === id)
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (index === -1 || targetIndex < 0 || targetIndex >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[targetIndex]] = [next[targetIndex], next[index]]
+      return next
+    })
   }
 
   const openEditTemplate = (tpl: CustomTemplate) => {
@@ -902,7 +913,7 @@ export default function QuestionnairesPage() {
           onClick={e => { if (e.target === e.currentTarget) { setBuilderOpen(false); setEditingTemplateId(null) } }}
         >
           <div
-            className="modal-glass w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+            className="modal-glass w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl"
           >
             <div className="flex items-center justify-between p-5 sticky top-0 z-10" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)' }}>
               <div>
@@ -975,6 +986,26 @@ export default function QuestionnairesPage() {
                         className="flex-1 bg-transparent text-[13px] outline-none font-medium"
                         style={{ color: 'var(--text-primary)' }}
                       />
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => builderMoveQuestion(q.id, 'up')}
+                          disabled={idx === 0}
+                          className="w-6 h-6 rounded flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed"
+                          style={{ color: 'var(--text-muted)' }}
+                          title={locale === 'de' ? 'Nach oben verschieben' : 'Move up'}
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => builderMoveQuestion(q.id, 'down')}
+                          disabled={idx === builderQuestions.length - 1}
+                          className="w-6 h-6 rounded flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed"
+                          style={{ color: 'var(--text-muted)' }}
+                          title={locale === 'de' ? 'Nach unten verschieben' : 'Move down'}
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                       <button onClick={() => builderRemoveQuestion(q.id)} className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ color: '#C43B2C' }}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

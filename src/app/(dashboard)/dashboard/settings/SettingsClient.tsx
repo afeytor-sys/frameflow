@@ -4,6 +4,7 @@ import { useLocale } from '@/hooks/useLocale'
 import { dashboardT } from '@/lib/dashboardTranslations'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Building2, Palette, Bell, CreditCard, Zap, Link2, Mail, Calendar, CheckCircle2, XCircle, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -50,7 +51,8 @@ const PHOTO_TYPES = [
 export default function SettingsClient({ photographer, userId }: Props) {
   const locale = useLocale()
   const ts = dashboardT(locale).settingsPage
-  const [activeTab, setActiveTab] = useState('profile')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'profile')
   const [saving, setSaving] = useState(false)
 
   // Profile form

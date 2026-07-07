@@ -32,11 +32,13 @@ const TYPE_ICONS: Record<string, string> = {
   photo_downloaded: '📥',
   gallery_downloaded: '📦',
   favorite_marked: '❤️',
+  calendar_sync_failed: '📅',
 }
 
 function getNotificationUrl(type: string, projectId: string | null): string {
   if (type === 'new_inquiry') return '/dashboard/inbox'
   if (type === 'new_booking') return '/dashboard/booking-types'
+  if (type === 'calendar_sync_failed') return '/dashboard/settings?tab=integrations'
 
   if (!projectId) {
     const fallbacks: Record<string, string> = {

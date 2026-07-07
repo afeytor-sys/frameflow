@@ -474,6 +474,10 @@ export default function GalleryViewer({
   const [dlToken, setDlToken]   = useState<string | null>(null)
   const [dlJobId, setDlJobId]   = useState<string | null>(null)
   const dlPollRef               = useRef<ReturnType<typeof setInterval> | null>(null)
+  // ── Single photo email gate ──────────────────────────────────────
+  const [photoEmailModal, setPhotoEmailModal] = useState<Photo | null>(null)
+  const [photoEmailInput, setPhotoEmailInput] = useState('')
+  const [photoEmailSubmitting, setPhotoEmailSubmitting] = useState(false)
   const [filterTag, setFilterTag] = useState<PhotoTag | 'favorite' | null>(null)
   const [showTagMenu, setShowTagMenu] = useState<string | null>(null)
   const [showTagFilters, setShowTagFilters] = useState(false)
@@ -663,10 +667,10 @@ export default function GalleryViewer({
 
   // ── Body scroll lock ─────────────────────────────────────────────
   useEffect(() => {
-    const locked = lightboxIndex !== null || presentMode || showFavoriteNameModal
+    const locked = lightboxIndex !== null || presentMode || showFavoriteNameModal || photoEmailModal !== null
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [lightboxIndex, presentMode, showFavoriteNameModal])
+  }, [lightboxIndex, presentMode, showFavoriteNameModal, photoEmailModal])
 
   // ── Slideshow auto-advance ───────────────────────────────────────
   useEffect(() => {
@@ -820,16 +824,42 @@ export default function GalleryViewer({
   }, [supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Download ─────────────────────────────────────────────────────
-  const downloadPhoto = async (photo: Photo) => {
+  const LS_PHOTO_EMAIL = 'ff_client_email'
+
+  const executePhotoDownload = useCallback(async (photo: Photo, email: string) => {
     try {
+      localStorage.setItem(LS_PHOTO_EMAIL, email)
       const a = document.createElement('a')
       a.href = `/api/photos/${photo.id}/download`
       a.download = photo.filename
       a.click()
+      fetch(`/api/galleries/${galleryId}/log-photo-download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, photo_id: photo.id, filename: photo.filename }),
+      }).catch(() => {})
       try { await supabase.rpc('increment_photo_download_count', { gallery_id: galleryId }) } catch {}
       notifyPhotographer(galleryId, 'photo_downloaded', clientName || 'Visitante', photo.filename)
     } catch { toast.error('Download fehlgeschlagen') }
-  }
+  }, [galleryId, clientName, supabase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const downloadPhoto = useCallback((photo: Photo) => {
+    const storedEmail = clientEmail || localStorage.getItem(LS_PHOTO_EMAIL) || ''
+    if (storedEmail) {
+      executePhotoDownload(photo, storedEmail)
+    } else {
+      setPhotoEmailInput('')
+      setPhotoEmailModal(photo)
+    }
+  }, [clientEmail, executePhotoDownload])
+
+  const submitPhotoEmail = useCallback(async () => {
+    if (!photoEmailModal || !photoEmailInput.includes('@')) return
+    setPhotoEmailSubmitting(true)
+    await executePhotoDownload(photoEmailModal, photoEmailInput)
+    setPhotoEmailSubmitting(false)
+    setPhotoEmailModal(null)
+  }, [photoEmailModal, photoEmailInput, executePhotoDownload])
 
   const startDlPolling = useCallback((jobId: string) => {
     if (dlPollRef.current) clearInterval(dlPollRef.current)
@@ -898,7 +928,7 @@ export default function GalleryViewer({
   const handleLightbox   = useCallback((index: number) => { setLightboxLoaded(false); setLightboxIndex(index) }, [])
   const handleToggleFav  = toggleFavorite
   const handleSetTag     = setTag
-  const handleDownload   = useCallback((photo: Photo) => { downloadPhoto(photo) }, [galleryId, clientName]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleDownload   = downloadPhoto
   const handleTogglePriv = togglePrivate
   const handleTagMenu    = useCallback((id: string | null) => { setShowTagMenu(id) }, [])
 
@@ -970,6 +1000,52 @@ export default function GalleryViewer({
                 style={{ background: '#F5F4F1', color: '#7A7670' }}
               >
                 Überspringen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Single photo email gate modal ── */}
+      {photoEmailModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 pt-6 pb-2">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ background: '#F5F4F1' }}>
+                <Download className="w-6 h-6 text-[#111110]" />
+              </div>
+              <h3 className="text-[17px] font-bold text-[#111110] mb-1" style={{ letterSpacing: '-0.02em' }}>
+                Foto herunterladen
+              </h3>
+              <p className="text-[13px] text-[#7A7670] mb-4">
+                Gib deine E-Mail-Adresse ein — sie wird nur für deinen Fotografen gespeichert.
+              </p>
+              <p className="text-[11px] text-[#7A7670] mb-3 truncate font-medium">{photoEmailModal.filename}</p>
+              <input
+                autoFocus
+                type="email"
+                value={photoEmailInput}
+                onChange={e => setPhotoEmailInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && photoEmailInput.includes('@')) submitPhotoEmail() }}
+                placeholder="deine@email.de"
+                className="w-full px-4 py-3 text-[14px] border border-[#E8E4DC] rounded-xl focus:outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/15 transition-all"
+              />
+            </div>
+            <div className="flex gap-2 px-6 py-4">
+              <button
+                onClick={submitPhotoEmail}
+                disabled={photoEmailSubmitting || !photoEmailInput.includes('@')}
+                className="flex-1 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-50 transition-all"
+                style={{ background: '#111110' }}
+              >
+                {photoEmailSubmitting ? 'Lädt…' : 'Herunterladen'}
+              </button>
+              <button
+                onClick={() => setPhotoEmailModal(null)}
+                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                style={{ background: '#F5F4F1', color: '#7A7670' }}
+              >
+                Abbrechen
               </button>
             </div>
           </div>

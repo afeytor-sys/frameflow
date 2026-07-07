@@ -240,121 +240,142 @@ export default function GalleryShareModal({
   // ── Email sub-modal ──────────────────────────────────────────────────────
   const emailModal = showEmailModal ? createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: 10001, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
+      className="fixed inset-0 flex items-center justify-center p-4 sm:p-6"
+      style={{ zIndex: 10001, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
       onClick={() => setShowEmailModal(false)}
     >
       <div
-        className="modal-glass w-full max-w-lg rounded-2xl overflow-hidden"
+        className="modal-glass w-full rounded-2xl overflow-hidden flex flex-col"
+        style={{ maxWidth: 720, maxHeight: '92vh' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4"
+          className="flex items-center justify-between px-7 py-5 flex-shrink-0"
           style={{ borderBottom: '1px solid var(--border-color, #E8E4DC)' }}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: 'rgba(196,164,124,0.12)' }}
             >
-              <Mail className="w-4 h-4" style={{ color: '#C4A47C' }} />
+              <Mail className="w-5 h-5" style={{ color: '#C4A47C' }} />
             </div>
             <div>
-              <p className="text-[14px] font-bold" style={{ color: 'var(--text-primary, #111110)', letterSpacing: '-0.01em' }}>
+              <p className="text-[17px] font-black" style={{ color: 'var(--text-primary, #111110)', letterSpacing: '-0.02em' }}>
                 Per E-Mail senden
               </p>
-              <p className="text-[11px]" style={{ color: 'var(--text-muted, #7A7670)' }}>
+              <p className="text-[12px]" style={{ color: 'var(--text-muted, #7A7670)' }}>
                 {galleryTitle}
               </p>
             </div>
           </div>
           <button
             onClick={() => setShowEmailModal(false)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all"
             style={{ color: 'var(--text-muted, #7A7670)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover, #F5F4F1)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Email input */}
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted, #7A7670)' }}>
-              E-Mail-Adresse
-            </label>
-            <input
-              type="email"
-              value={shareEmail}
-              onChange={e => setShareEmail(e.target.value)}
-              placeholder="kunde@email.com"
-              autoFocus
-              className="w-full px-3.5 py-2.5 rounded-xl text-[13px] outline-none transition-all"
-              style={{
-                background: 'var(--bg-hover, #F5F4F1)',
-                border: '1px solid var(--border-color, #E8E4DC)',
-                color: 'var(--text-primary, #111110)',
-              }}
-            />
-          </div>
+        {/* Body — two column layout on wider screens */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="grid sm:grid-cols-2 gap-0 h-full">
 
-          {/* Email preview card — message editable inline */}
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: 'var(--text-muted, #7A7670)' }}>
-              Vorschau · <span className="normal-case tracking-normal font-normal">Text bearbeitbar</span>
-            </label>
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid var(--border-color, #E8E4DC)', background: 'var(--bg-page, #FAFAF8)' }}
-            >
-              {/* Preview header */}
-              <div className="px-4 py-3" style={{ background: '#1A1A18' }}>
-                <p className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: '#C4A47C' }}>
-                  {studioName || 'Dein Studio'}
-                </p>
+            {/* Left: form fields */}
+            <div className="p-7 space-y-5 border-r" style={{ borderColor: 'var(--border-color, #E8E4DC)' }}>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted, #7A7670)' }}>
+                  E-Mail-Adresse
+                </label>
+                <input
+                  type="email"
+                  value={shareEmail}
+                  onChange={e => setShareEmail(e.target.value)}
+                  placeholder="kunde@email.com"
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition-all"
+                  style={{
+                    background: 'var(--bg-hover, #F5F4F1)',
+                    border: '1px solid var(--border-color, #E8E4DC)',
+                    color: 'var(--text-primary, #111110)',
+                  }}
+                />
               </div>
-              {/* Preview body */}
-              <div className="px-4 py-3 space-y-3">
-                <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary, #111110)', letterSpacing: '-0.01em' }}>
-                  📸 {galleryTitle}
-                </p>
-                {/* Editable message */}
+
+              <div className="flex-1">
+                <label className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-2" style={{ color: 'var(--text-muted, #7A7670)' }}>
+                  Nachricht
+                </label>
                 <textarea
                   value={emailMessage}
                   onChange={e => setEmailMessage(e.target.value)}
-                  rows={3}
-                  className="w-full resize-none outline-none text-[12px] leading-relaxed bg-transparent"
+                  rows={10}
+                  className="w-full resize-none outline-none leading-relaxed"
+                  placeholder="Schreib hier deine persönliche Nachricht an den Kunden…"
                   style={{
-                    color: 'var(--text-muted, #7A7670)',
-                    border: '1px dashed rgba(196,164,124,0.4)',
-                    borderRadius: 8,
-                    padding: '6px 8px',
+                    background: 'var(--bg-hover, #F5F4F1)',
+                    border: '1px solid var(--border-color, #E8E4DC)',
+                    borderRadius: 12,
+                    padding: '14px 16px',
                     fontFamily: 'inherit',
+                    fontSize: 14,
+                    color: 'var(--text-primary, #111110)',
+                    lineHeight: 1.7,
                   }}
                 />
-                {/* CTA button preview */}
-                <div
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white"
-                  style={{ background: '#1A1A18' }}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Galerie öffnen →
+              </div>
+            </div>
+
+            {/* Right: email preview */}
+            <div className="p-7">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-3" style={{ color: 'var(--text-muted, #7A7670)' }}>
+                Vorschau
+              </p>
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{ border: '1px solid var(--border-color, #E8E4DC)', background: 'var(--bg-page, #FAFAF8)' }}
+              >
+                {/* Preview header */}
+                <div className="px-5 py-4" style={{ background: '#1A1A18' }}>
+                  <p className="text-[12px] font-bold tracking-[0.1em] uppercase" style={{ color: '#C4A47C' }}>
+                    {studioName || 'Dein Studio'}
+                  </p>
                 </div>
-                {/* Password preview */}
-                {galleryPassword && (
+                {/* Preview body */}
+                <div className="px-5 py-5 space-y-4">
+                  <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary, #111110)', letterSpacing: '-0.01em' }}>
+                    📸 {galleryTitle}
+                  </p>
+                  <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-muted, #7A7670)' }}>
+                    {emailMessage || <span className="italic opacity-50">Deine Nachricht erscheint hier…</span>}
+                  </p>
+                  {/* CTA button preview */}
                   <div
-                    className="px-3 py-2.5 rounded-lg"
-                    style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.2)' }}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white"
+                    style={{ background: '#1A1A18' }}
                   >
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: '#9A9590' }}>
-                      🔒 Passwort
-                    </p>
-                    <p className="text-[14px] font-mono font-bold tracking-widest" style={{ color: '#1A1A18' }}>
-                      {galleryPassword}
-                    </p>
+                    <ExternalLink className="w-4 h-4" />
+                    Galerie öffnen →
                   </div>
-                )}
+                  {/* Password preview */}
+                  {galleryPassword && (
+                    <div
+                      className="px-4 py-3 rounded-xl"
+                      style={{ background: 'rgba(196,164,124,0.08)', border: '1px solid rgba(196,164,124,0.2)' }}
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: '#9A9590' }}>
+                        🔒 Passwort
+                      </p>
+                      <p className="text-[18px] font-mono font-bold tracking-widest" style={{ color: '#1A1A18' }}>
+                        {galleryPassword}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -362,12 +383,12 @@ export default function GalleryShareModal({
 
         {/* Footer actions */}
         <div
-          className="flex gap-2.5 px-5 py-4"
+          className="flex gap-3 px-7 py-5 flex-shrink-0"
           style={{ borderTop: '1px solid var(--border-color, #E8E4DC)' }}
         >
           <button
             onClick={() => setShowEmailModal(false)}
-            className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-all"
+            className="px-6 py-3 rounded-xl text-[14px] font-semibold transition-all"
             style={{
               background: 'var(--bg-hover, #F5F4F1)',
               color: 'var(--text-muted, #7A7670)',
@@ -379,10 +400,10 @@ export default function GalleryShareModal({
           <button
             onClick={sendEmail}
             disabled={sendingEmail || !shareEmail.trim()}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold text-white disabled:opacity-40 transition-all"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
             style={{
               background: emailSent ? '#10B981' : '#C4A47C',
-              boxShadow: emailSent ? '0 1px 8px rgba(16,185,129,0.25)' : '0 1px 8px rgba(196,164,124,0.20)',
+              boxShadow: emailSent ? '0 2px 12px rgba(16,185,129,0.25)' : '0 2px 12px rgba(196,164,124,0.25)',
             }}
           >
             {sendingEmail

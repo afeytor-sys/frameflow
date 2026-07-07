@@ -189,6 +189,17 @@ export async function POST(req: NextRequest) {
           google_meet_link: meetLink,
         })
         .eq('id', booking.id)
+    } else {
+      // Had tokens but sync failed — notify photographer to reconnect
+      serviceSupabase.from('notifications').insert({
+        photographer_id: photographer.id,
+        type: 'calendar_sync_failed',
+        title_de: 'Google Kalender nicht synchronisiert',
+        title_en: 'Google Calendar not synced',
+        body_de: `Die Buchung von ${client_name} wurde gespeichert, aber nicht in den Kalender eingetragen. Bitte verbinde Google Kalender erneut in den Einstellungen.`,
+        body_en: `Booking for ${client_name} was saved but could not be added to your calendar. Please reconnect Google Calendar in Settings.`,
+        client_name,
+      }).then(({ error }) => { if (error) console.error('[booking] calendar sync failed notification error:', error) })
     }
   }
 

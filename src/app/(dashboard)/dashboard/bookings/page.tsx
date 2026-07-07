@@ -219,6 +219,7 @@ export default function BookingsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [photographerId, setPhotographerId] = useState<string | null>(null)
+  const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null)
 
   const [form, setForm] = useState({
     title: '',
@@ -257,17 +258,30 @@ export default function BookingsPage() {
       if (!user) return
       setPhotographerId(user.id)
 
-      const { data } = await supabase
-        .from('projects')
-        .select('id, title, shoot_date, location, status, client:clients(full_name)')
-        .eq('photographer_id', user.id)
-        .not('shoot_date', 'is', null)
-        .order('shoot_date', { ascending: true })
+      const [bookingsRes, calRes] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id, title, shoot_date, location, status, client:clients(full_name)')
+          .eq('photographer_id', user.id)
+          .not('shoot_date', 'is', null)
+          .order('shoot_date', { ascending: true }),
+        supabase
+          .from('photographers')
+          .select('google_calendar_access_token, google_calendar_refresh_token')
+          .eq('id', user.id)
+          .single(),
+      ])
 
-      setBookings((data || []).map(p => ({
+      setBookings(((bookingsRes.data || []).map(p => ({
         ...p,
         client: Array.isArray(p.client) ? p.client[0] || null : p.client,
-      })) as Booking[])
+      }))) as Booking[])
+
+      if (calRes.data) {
+        setCalendarConnected(
+          !!(calRes.data.google_calendar_access_token || calRes.data.google_calendar_refresh_token)
+        )
+      }
       setLoading(false)
     }
     load()
@@ -470,6 +484,23 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-6 animate-in">
+      {/* Google Calendar disconnected banner */}
+      {calendarConnected === false && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-[13px]" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#92400E' }}>
+          <CalendarDays className="w-4 h-4 flex-shrink-0" style={{ color: '#F59E0B' }} />
+          <span className="flex-1">
+            <strong>Google Kalender nicht verbunden</strong> — Neue Bookings werden nicht automatisch synchronisiert.
+          </span>
+          <a
+            href="/dashboard/settings?tab=integrations"
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:opacity-80"
+            style={{ background: 'rgba(245,158,11,0.15)', color: '#92400E' }}
+          >
+            Verbinden →
+          </a>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
