@@ -99,14 +99,27 @@ export default {
         return Response.json({ ok: true, jobId, totalParts: existingCount, skipped: true })
       }
 
+      // Guest-scoped jobs (is_guest=true) must exclude private photos — the
+      // same filter the on-screen Gäste view applies — otherwise a guest
+      // download would leak photos hidden from them on screen.
+      const { data: jobRow, error: jobErr } = await supabase
+        .from('gallery_download_jobs')
+        .select('is_guest')
+        .eq('id', jobId)
+        .single()
+      if (jobErr) throw new Error(`Job fetch error: ${jobErr.message}`)
+      const isGuest = !!jobRow?.is_guest
+
       // Paginate to bypass Supabase's 1000-row default limit
       const allPhotos: { id: string; storage_url: string; filename: string; file_size: number }[] = []
       const PG = 1000
       for (let from = 0; ; from += PG) {
-        const { data: page, error: pageErr } = await supabase
+        let query = supabase
           .from('photos')
           .select('id, storage_url, filename, file_size')
           .eq('gallery_id', galleryId)
+        if (isGuest) query = query.eq('is_private', false)
+        const { data: page, error: pageErr } = await query
           .order('display_order', { ascending: true })
           .range(from, from + PG - 1)
         if (pageErr) throw new Error(`Photos fetch error: ${pageErr.message}`)
