@@ -250,7 +250,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   // Comment count
   const [commentCount, setCommentCount] = useState(0)
   // Download jobs (for email list)
-  interface DownloadJob { id: string; email: string; created_at: string; status: string; parts: unknown[] | null }
+  interface DownloadJob { id: string; email: string; created_at: string; status: string; parts: unknown[] | null; is_guest: boolean }
   const [downloadJobs, setDownloadJobs] = useState<DownloadJob[]>([])
   const [showDownloadList, setShowDownloadList] = useState(false)
   // Single photo download activity
@@ -351,7 +351,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     // Fetch download jobs (email list)
     supabase
       .from('gallery_download_jobs')
-      .select('id, email, created_at, status, parts')
+      .select('id, email, created_at, status, parts, is_guest')
       .eq('gallery_id', gallery.id)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -1021,6 +1021,14 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                     <div key={job.id} className="flex items-center gap-3 px-4 py-2.5">
                       <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusColor }} />
                       <span className="text-[12px] font-medium flex-1 truncate" style={{ color: 'var(--text-primary)' }}>{job.email}</span>
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                        style={job.is_guest
+                          ? { background: 'rgba(107,114,128,0.1)', color: '#6B7280' }
+                          : { background: 'rgba(139,92,246,0.1)', color: '#8B5CF6' }}
+                      >
+                        {job.is_guest ? 'Gast' : 'Kunde'}
+                      </span>
                       {job.status === 'ready' && partCount > 1 && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
                           {partCount} Teile

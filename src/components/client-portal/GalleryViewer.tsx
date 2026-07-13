@@ -882,6 +882,10 @@ export default function GalleryViewer({
 
   useEffect(() => () => { if (dlPollRef.current) clearInterval(dlPollRef.current) }, [])
 
+  // Gäste-password view (public, without Kunden-level access): the ZIP must
+  // only ever contain the same non-private photos already shown on screen.
+  const isGuestDownload = isPublic && !canMarkPrivate
+
   const submitDownloadRequest = async (email: string) => {
     setDlState('submitting')
     setDlError(null)
@@ -889,7 +893,7 @@ export default function GalleryViewer({
       const res = await fetch(`/api/galleries/${galleryId}/download/prepare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, isGuest: isGuestDownload }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Fehler')

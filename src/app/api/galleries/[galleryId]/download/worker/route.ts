@@ -64,15 +64,20 @@ export async function POST(
     .eq('id', jobId)
 
   try {
-    // Paginate photos to bypass Supabase's 1000-row default limit
-    const fetchAllPhotos = async () => {
+    // Paginate photos to bypass Supabase's 1000-row default limit.
+    // Guest-scoped jobs (is_guest=true) must exclude private photos — the
+    // same filter the on-screen Gäste view applies — otherwise a guest
+    // download would leak photos hidden from them on screen.
+    const fetchAllPhotos = async (isGuest: boolean) => {
       const all: { id: string; storage_url: string; filename: string; file_size: number }[] = []
       const PG = 1000
       for (let from = 0; ; from += PG) {
-        const { data: page, error } = await supabase
+        let query = supabase
           .from('photos')
           .select('id, storage_url, filename, file_size')
           .eq('gallery_id', galleryId)
+        if (isGuest) query = query.eq('is_private', false)
+        const { data: page, error } = await query
           .order('display_order', { ascending: true })
           .range(from, from + PG - 1)
         if (error) throw error
@@ -83,14 +88,15 @@ export async function POST(
       return all
     }
 
-    const [{ data: gallery }, allPhotos, { data: job }] = await Promise.all([
+    const { data: job } = await supabase
+      .from('gallery_download_jobs')
+      .select('email, download_token, parts, email_sent_at, is_guest')
+      .eq('id', jobId)
+      .single()
+
+    const [{ data: gallery }, allPhotos] = await Promise.all([
       supabase.from('galleries').select('title').eq('id', galleryId).single(),
-      fetchAllPhotos(),
-      supabase
-        .from('gallery_download_jobs')
-        .select('email, download_token, parts, email_sent_at')
-        .eq('id', jobId)
-        .single(),
+      fetchAllPhotos(!!job?.is_guest),
     ])
 
     if (!allPhotos?.length) throw new Error('No photos found for this gallery')

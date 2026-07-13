@@ -15,8 +15,9 @@ export async function POST(
   { params }: { params: Promise<{ galleryId: string }> },
 ) {
   const { galleryId } = await params
-  const body = await req.json().catch(() => ({})) as { email?: string }
+  const body = await req.json().catch(() => ({})) as { email?: string; isGuest?: boolean }
   const email = (body.email ?? '').trim()
+  const isGuest = !!body.isGuest
 
   if (!email || !email.includes('@')) {
     return Response.json({ error: 'Valid email required' }, { status: 400 })
@@ -68,10 +69,15 @@ export async function POST(
   // ── 1. ZIPs already exist — create a new independent job for this client ──
   // Each client gets their own token/link. Previous clients' links stay valid.
   // The existing R2 ZIP files are reused — no reprocessing needed.
+  // Scoped by is_guest: a guest (public-only) ZIP must never be reused for an
+  // owner request and vice versa, otherwise a guest could receive a stale ZIP
+  // built before some photos were marked private, or an owner could receive
+  // an incomplete one missing private photos.
   const { data: readyJob } = await service
     .from('gallery_download_jobs')
     .select('id, parts')
     .eq('gallery_id', galleryId)
+    .eq('is_guest', isGuest)
     .eq('status', 'ready')
     .gt('expires_at', now)
     .order('created_at', { ascending: false })
@@ -108,6 +114,7 @@ export async function POST(
       .from('gallery_download_jobs')
       .insert({
         gallery_id: galleryId,
+        is_guest: isGuest,
         status: 'ready',
         expires_at: tokenExpiresAt,
         email,
@@ -130,6 +137,7 @@ export async function POST(
     .from('gallery_download_jobs')
     .select('id')
     .eq('gallery_id', galleryId)
+    .eq('is_guest', isGuest)
     .in('status', ['pending', 'processing'])
     .gt('expires_at', now)
     .gt('created_at', stuckCutoff)   // younger than 10 min → still running
@@ -153,6 +161,7 @@ export async function POST(
     .from('gallery_download_jobs')
     .select('id, parts')
     .eq('gallery_id', galleryId)
+    .eq('is_guest', isGuest)
     .eq('status', 'processing')
     .gt('expires_at', now)
     .lt('created_at', stuckCutoff)   // older than 10 min → stuck
@@ -175,6 +184,7 @@ export async function POST(
     .from('gallery_download_jobs')
     .insert({
       gallery_id: galleryId,
+      is_guest: isGuest,
       status: 'pending',
       expires_at: tokenExpiresAt,
       email,
