@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light" />
   <meta name="supported-color-schemes" content="light" />
-  <title>Re: your inquiry</title>
+  <title>Antwort von ${senderName}</title>
   <style>:root { color-scheme: light; } body { color-scheme: light; }</style>
 </head>
 <body style="margin:0;padding:0;background:#F2F1EE;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color-scheme:light;">
@@ -116,11 +116,6 @@ export async function POST(req: NextRequest) {
           <!-- Body -->
           <tr>
             <td style="padding:36px 40px 28px;">
-              <p style="margin:0 0 20px;font-size:14px;color:#3A3A38;line-height:1.6;">
-                Hallo ${conversation.lead_name},<br />
-                du hast eine neue Antwort auf deine Anfrage erhalten.
-              </p>
-
               <!-- Reply content — plain, like a normal email -->
               <div style="font-size:15px;color:#1A1A18;line-height:1.75;white-space:pre-wrap;">${escapedContent}</div>
             </td>
@@ -162,13 +157,25 @@ export async function POST(req: NextRequest) {
         const htmlWithPixel = html +
           `\n<img src="${appUrl}/track/open/msg/${message.id}" width="1" height="1" style="display:none" alt="" />`
 
+        // Stable per-conversation thread anchor: every reply in this conversation
+        // shares the same subject + References/In-Reply-To, so mail clients (and BCC
+        // copies landing in the photographer's own inbox) group replies per-client
+        // instead of collapsing every conversation into one generic thread.
+        const threadRootId = `<frameflow-conv-${conversationId}@fotonizer.com>`
+        const thisMessageId = `<frameflow-msg-${message.id}@fotonizer.com>`
+
         const { error: emailError } = await resend.emails.send({
           from: `${senderName} <info@fotonizer.com>`,
           to: conversation.lead_email,
           replyTo: photographerEmail ?? undefined,
           bcc: photographerEmail ?? undefined,
-          subject: 'Re: your inquiry',
+          subject: `Re: Deine Anfrage – ${conversation.lead_name}`,
           html: htmlWithPixel,
+          headers: {
+            'Message-ID': thisMessageId,
+            'In-Reply-To': threadRootId,
+            'References': threadRootId,
+          },
         })
 
         if (emailError) {

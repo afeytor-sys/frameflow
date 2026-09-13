@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { waitUntil } from '@vercel/functions'
 import { createBookingEvent } from '@/lib/googleCalendar'
 import { bookingEmailShell } from '@/lib/bookingEmailShell'
 
@@ -165,20 +166,26 @@ export async function POST(req: NextRequest) {
   let google_meet_link: string | null = null
   if (photographer.google_calendar_access_token || photographer.google_calendar_refresh_token) {
     const isOnline = bt.location_type === 'online'
-    const { eventId, meetLink } = await createBookingEvent(
-      photographer,
-      {
-        bookingId: booking.id,
-        title: `${bt.title} — ${client_name}`,
-        description: `Kunde: ${client_name} (${client_email})${notes ? `\n${notes}` : ''}`,
-        date: booked_date,
-        startTime: booked_time.slice(0, 5),
-        durationMinutes: bt.duration_minutes,
-        location: bt.location_type === 'studio' ? 'Studio' : undefined,
-        isOnline,
-      },
-      serviceSupabase,
-    )
+    const bookingEventData = {
+      bookingId: booking.id,
+      title: `${bt.title} — ${client_name}`,
+      description: `Kunde: ${client_name} (${client_email})${notes ? `\n${notes}` : ''}`,
+      date: booked_date,
+      startTime: booked_time.slice(0, 5),
+      durationMinutes: bt.duration_minutes,
+      location: bt.location_type === 'studio' ? 'Studio' : undefined,
+      isOnline,
+    }
+
+    let { eventId, meetLink } = await createBookingEvent(photographer, bookingEventData, serviceSupabase)
+
+    // Retry once on transient failure (e.g. Google API hiccup) — bookings without a
+    // deposit go straight to 'confirmed' and never get a second sync attempt at
+    // manual-confirm time, so this is their only other chance.
+    if (!eventId && !meetLink) {
+      await new Promise(r => setTimeout(r, 1000))
+      ;({ eventId, meetLink } = await createBookingEvent(photographer, bookingEventData, serviceSupabase))
+    }
 
     if (eventId || meetLink) {
       google_meet_link = meetLink
@@ -191,15 +198,19 @@ export async function POST(req: NextRequest) {
         .eq('id', booking.id)
     } else {
       // Had tokens but sync failed — notify photographer to reconnect
-      serviceSupabase.from('notifications').insert({
-        photographer_id: photographer.id,
-        type: 'calendar_sync_failed',
-        title_de: 'Google Kalender nicht synchronisiert',
-        title_en: 'Google Calendar not synced',
-        body_de: `Die Buchung von ${client_name} wurde gespeichert, aber nicht in den Kalender eingetragen. Bitte verbinde Google Kalender erneut in den Einstellungen.`,
-        body_en: `Booking for ${client_name} was saved but could not be added to your calendar. Please reconnect Google Calendar in Settings.`,
-        client_name,
-      }).then(({ error }) => { if (error) console.error('[booking] calendar sync failed notification error:', error) })
+      waitUntil(
+        Promise.resolve(
+          serviceSupabase.from('notifications').insert({
+            photographer_id: photographer.id,
+            type: 'calendar_sync_failed',
+            title_de: 'Google Kalender nicht synchronisiert',
+            title_en: 'Google Calendar not synced',
+            body_de: `Die Buchung von ${client_name} wurde gespeichert, aber nicht in den Kalender eingetragen. Bitte verbinde Google Kalender erneut in den Einstellungen.`,
+            body_en: `Booking for ${client_name} was saved but could not be added to your calendar. Please reconnect Google Calendar in Settings.`,
+            client_name,
+          })
+        ).then(({ error }) => { if (error) console.error('[booking] calendar sync failed notification error:', error) })
+      )
     }
   }
 
@@ -212,7 +223,7 @@ export async function POST(req: NextRequest) {
       .single(),
     serviceSupabase
       .from('automation_settings')
-      .select('notify_inapp_new_booking, notify_email_new_booking')
+      .select('notify_inapp_new_booking, notify_email_new_booking, reminder_booking_online')
       .eq('photographer_id', photographer.id)
       .maybeSingle(),
   ])
@@ -233,64 +244,42 @@ export async function POST(req: NextRequest) {
 
     // In-app notification
     if (notifPrefs?.notify_inapp_new_booking !== false) {
-      serviceSupabase.from('notifications').insert({
-        photographer_id: photographer.id,
-        type: 'new_booking',
-        title_de: `Neue Buchung: ${client_name}`,
-        title_en: `New booking: ${client_name}`,
-        body_de: `${client_name} hat ${bt.title} für ${shootDate} gebucht.`,
-        body_en: `${client_name} booked ${bt.title} for ${shootDate}.`,
-        client_name,
-      }).then(({ error }) => { if (error) console.error('Notification insert error:', error) })
+      waitUntil(
+        Promise.resolve(
+          serviceSupabase.from('notifications').insert({
+            photographer_id: photographer.id,
+            type: 'new_booking',
+            title_de: `Neue Buchung: ${client_name}`,
+            title_en: `New booking: ${client_name}`,
+            body_de: `${client_name} hat ${bt.title} für ${shootDate} gebucht.`,
+            body_en: `${client_name} booked ${bt.title} for ${shootDate}.`,
+            client_name,
+          })
+        ).then(({ error }) => { if (error) console.error('Notification insert error:', error) })
+      )
     }
 
     // Email to photographer
     if (notifPrefs?.notify_email_new_booking !== false && toEmail) {
-      resend.emails.send({
-        from: 'Fotonizer <noreply@fotonizer.com>',
-        to: toEmail,
-        subject: `Neue Buchungsanfrage: ${bt.title} — ${client_name}`,
-        html: buildNewBookingEmail({ studioName, btTitle: bt.title, clientName: client_name, clientEmail: client_email, shootDate, booked_time: booked_time.slice(0, 5), depositAmount: deposit_amount, payment_reference, meetLink: google_meet_link, questions: bt.questions ?? [], answers }),
-      }).catch(e => console.error('Booking email error:', e))
+      waitUntil(
+        resend.emails.send({
+          from: 'Fotonizer <noreply@fotonizer.com>',
+          to: toEmail,
+          subject: `Neue Buchungsanfrage: ${bt.title} — ${client_name}`,
+          html: buildNewBookingEmail({ studioName, btTitle: bt.title, clientName: client_name, clientEmail: client_email, shootDate, booked_time: booked_time.slice(0, 5), depositAmount: deposit_amount, payment_reference, meetLink: google_meet_link, questions: bt.questions ?? [], answers }),
+        }).catch(e => console.error('Booking email error:', e))
+      )
     }
 
     // Email to client — always sent
-    resend.emails.send({
-      from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
-      to: client_email.trim().toLowerCase(),
-      bcc: toEmail || undefined,
-      replyTo: toEmail || undefined,
-      subject: `Deine Buchung: ${bt.title} am ${shootDate}`,
-      html: buildClientConfirmationEmail({
-        clientName: client_name,
-        studioName,
-        btTitle: bt.title,
-        shootDate,
-        booked_time: booked_time.slice(0, 5),
-        durationMinutes: bt.duration_minutes,
-        locationType: bt.location_type,
-        locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
-        depositAmount: deposit_amount,
-        payment_reference,
-        meetLink: google_meet_link,
-        confirmUrl,
-        requiresDeposit: status === 'pending',
-        questions: bt.questions ?? [],
-        answers,
-      }),
-    }).catch(e => console.error('Client confirmation email error:', e))
-
-    // Schedule 24h reminder to client
-    const shootDateTime = new Date(`${booked_date}T${booked_time.slice(0, 5)}:00`)
-    const reminderAt = new Date(shootDateTime.getTime() - 24 * 60 * 60 * 1000)
-    if (reminderAt > new Date()) {
-      serviceSupabase.from('scheduled_emails').insert({
-        photographer_id: photographer.id,
-        scheduled_at: reminderAt.toISOString(),
-        to_email: client_email.trim().toLowerCase(),
-        to_name: client_name,
-        subject: `Dein Termin: ${bt.title} am ${shootDate}`,
-        html_body: buildClientReminderEmail({
+    waitUntil(
+      resend.emails.send({
+        from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
+        to: client_email.trim().toLowerCase(),
+        bcc: toEmail || undefined,
+        replyTo: toEmail || undefined,
+        subject: `Deine Buchung: ${bt.title} am ${shootDate}`,
+        html: buildClientConfirmationEmail({
           clientName: client_name,
           studioName,
           btTitle: bt.title,
@@ -299,13 +288,51 @@ export async function POST(req: NextRequest) {
           durationMinutes: bt.duration_minutes,
           locationType: bt.location_type,
           locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
+          depositAmount: deposit_amount,
+          payment_reference,
           meetLink: google_meet_link,
           confirmUrl,
-          portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/b/booking/${booking.id}`,
+          requiresDeposit: status === 'pending',
+          questions: bt.questions ?? [],
+          answers,
         }),
-        type: 'booking_reminder',
-        reference_id: booking.id,
-      }).then(({ error }) => { if (error) console.error('Reminder schedule error:', error) })
+      }).catch(e => console.error('Client confirmation email error:', e))
+    )
+
+    // Schedule 24h reminder to client — for online (video call) bookings this is
+    // gated by its own toggle (automation_settings.reminder_booking_online), separate
+    // from the project shoot reminder_7d/reminder_1d settings.
+    const isOnlineBookingType = bt.location_type === 'online'
+    const reminderWanted = !isOnlineBookingType || notifPrefs?.reminder_booking_online !== false
+    const shootDateTime = new Date(`${booked_date}T${booked_time.slice(0, 5)}:00`)
+    const reminderAt = new Date(shootDateTime.getTime() - 24 * 60 * 60 * 1000)
+    if (reminderWanted && reminderAt > new Date()) {
+      waitUntil(
+        Promise.resolve(
+          serviceSupabase.from('scheduled_emails').insert({
+            photographer_id: photographer.id,
+            scheduled_at: reminderAt.toISOString(),
+            to_email: client_email.trim().toLowerCase(),
+            to_name: client_name,
+            subject: `Dein Termin: ${bt.title} am ${shootDate}`,
+            html_body: buildClientReminderEmail({
+              clientName: client_name,
+              studioName,
+              btTitle: bt.title,
+              shootDate,
+              booked_time: booked_time.slice(0, 5),
+              durationMinutes: bt.duration_minutes,
+              locationType: bt.location_type,
+              locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
+              meetLink: google_meet_link,
+              confirmUrl,
+              portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/b/booking/${booking.id}`,
+            }),
+            type: 'booking_reminder',
+            reference_id: booking.id,
+          })
+        ).then(({ error }) => { if (error) console.error('Reminder schedule error:', error) })
+      )
     }
   }
 

@@ -92,6 +92,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
     email_gallery_delivered: true,
     reminder_7d: true,
     reminder_1d: true,
+    reminder_booking_online: true,
   })
   const [autoLoaded, setAutoLoaded] = useState(false)
 
@@ -143,6 +144,7 @@ export default function SettingsClient({ photographer, userId }: Props) {
             email_gallery_delivered: data.email_gallery_delivered ?? true,
             reminder_7d: data.reminder_7d ?? true,
             reminder_1d: data.reminder_1d ?? true,
+            reminder_booking_online: data.reminder_booking_online ?? true,
           })
           setNotifSettings({
             notify_inapp_new_booking: data.notify_inapp_new_booking ?? true,
@@ -860,6 +862,34 @@ export default function SettingsClient({ photographer, userId }: Props) {
                     </div>
                   )
                 })}
+              </div>
+
+              {/* Booking (video call) reminder — separate from project shoot reminders above */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B] mb-2">
+                  {isDE ? 'Buchungs-Erinnerung (Video Call)' : 'Booking Reminder (Video Call)'}
+                </p>
+                {(() => {
+                  const enabled = autoSettings.reminder_booking_online
+                  return (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E8E8E4]">
+                      <div>
+                        <p className="text-sm font-medium text-[#1A1A1A]">
+                          {isDE ? '1 Tag vorher' : '1 day before'}
+                        </p>
+                        <p className="text-xs text-[#6B6B6B] mt-0.5">
+                          {isDE ? 'Erinnerung 1 Tag vor einem Video-Call-Termin (z. B. Erstgespräch)' : 'Reminder 1 day before a video call appointment (e.g. first consultation)'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setAutoSettings(prev => ({ ...prev, reminder_booking_online: !prev.reminder_booking_online }))}
+                        className={cn('w-9 h-5 rounded-full relative transition-colors flex-shrink-0', enabled ? 'bg-[#3DBA6F]' : 'bg-[#E8E8E4]')}
+                      >
+                        <div className={cn('absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all', enabled ? 'left-4' : 'left-0.5')} />
+                      </button>
+                    </div>
+                  )
+                })()}
               </div>
 
               <button
