@@ -40,13 +40,22 @@ export async function DELETE(
   // Verify the photo belongs to this photographer's gallery. Galleries carry
   // their own photographer_id directly (project_id is optional — migration 101 —
   // so checking ownership via the linked project misses project-less galleries).
+  // Disambiguated embed: photos↔galleries has two FK paths — the normal
+  // photos.gallery_id → galleries.id, and the reverse galleries.cover_photo_id
+  // → photos.id (migration 052). Without naming the FK explicitly, PostgREST
+  // can't pick one and errors (PGRST201), which the code below then
+  // misreports as "Photo not found" — silently 404ing every single delete.
   const { data: photo, error: fetchError } = await supabase
     .from('photos')
-    .select('id, storage_url, gallery:galleries(photographer_id)')
+    .select('id, storage_url, gallery:galleries!photos_gallery_id_fkey(photographer_id)')
     .eq('id', photoId)
     .single()
 
-  if (fetchError || !photo) {
+  if (fetchError) {
+    console.error(`[Photo Delete] Lookup query failed for photo ${photoId}:`, fetchError)
+    return NextResponse.json({ error: fetchError.message }, { status: 500 })
+  }
+  if (!photo) {
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
   }
 
