@@ -83,9 +83,22 @@ export async function DELETE(
   }
 
   // ── Delete from database ─────────────────────────────────────────────────
-  const { error: dbError } = await supabase.from('photos').delete().eq('id', photoId)
+  // Supabase/Postgres RLS quirk: if the DELETE policy doesn't match, the
+  // query still comes back with no error — it just deletes 0 rows. Without
+  // .select() to check what was actually deleted, that silent no-op looks
+  // identical to success and the photo just... stays there.
+  const { data: deletedRows, error: dbError } = await supabase
+    .from('photos')
+    .delete()
+    .eq('id', photoId)
+    .select('id')
+
   if (dbError) {
     return NextResponse.json({ error: dbError.message }, { status: 500 })
+  }
+  if (!deletedRows || deletedRows.length === 0) {
+    console.error(`[Photo Delete] DELETE affected 0 rows for photo ${photoId} — ownership check passed (photographerId ${photographerId}) but the DB delete didn't match. Likely an RLS policy mismatch.`)
+    return NextResponse.json({ error: 'Delete did not remove the photo (permission mismatch)' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
