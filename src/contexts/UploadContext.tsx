@@ -416,20 +416,33 @@ export function UploadProvider({ children }: { children: ReactNode }) {
               ? await uploadLarge(file, galleryId)
               : await uploadSmall(file, galleryId)
 
-            // Delete old photo if replacing
+            // Delete old photo if replacing. If this fails (and isn't just
+            // "already gone" from a previous attempt), abort instead of
+            // inserting the new row — otherwise both rows survive with the
+            // same filename, which is exactly the duplicate this is meant
+            // to resolve. Throwing here retries the whole file, including
+            // the delete.
             const old = replaceMap?.get(file.name)
             if (old) {
-              try {
-                const delRes = await fetch(`/api/photos/${old.id}/delete`, {
-                  method: 'DELETE',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ storageUrl: old.storage_url }),
-                })
-                if (!delRes.ok) {
-                  console.error(`[upload] failed to delete old photo ${old.id} being replaced by ${file.name}:`, await delRes.text().catch(() => delRes.statusText))
-                }
-              } catch (err) {
-                console.error(`[upload] failed to delete old photo ${old.id} being replaced by ${file.name}:`, err)
+              // This attempt's own upload is about to be abandoned (retried
+              // fresh next loop) — track it for orphan cleanup rather than
+              // leaving it dangling in storage with no DB row.
+              const trackOrphan = () => {
+                const r2Key = publicUrl.replace(/^https?:\/\/[^/]+\//, '')
+                if (r2Key) orphanQueue.current.push(r2Key)
+              }
+              const delRes = await fetch(`/api/photos/${old.id}/delete`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ storageUrl: old.storage_url }),
+              }).catch((err) => {
+                trackOrphan()
+                throw new UploadError(`Failed to delete old photo being replaced: ${err}`, 'photos.delete', 0)
+              })
+              if (!delRes.ok && delRes.status !== 404) {
+                const body = await delRes.text().catch(() => delRes.statusText)
+                trackOrphan()
+                throw new UploadError(`Failed to delete old photo being replaced: ${body}`, 'photos.delete', delRes.status)
               }
             }
 
