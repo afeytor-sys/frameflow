@@ -276,8 +276,8 @@ export default function GalleriesPage() {
     e.preventDefault()
     e.stopPropagation()
     if (!confirm(t.deleteConfirm)) return
-    const { error } = await supabase.from('galleries').delete().eq('id', galleryId)
-    if (error) { toast.error(t.deleteError); return }
+    const res = await fetch(`/api/galleries/${galleryId}/delete`, { method: 'DELETE' })
+    if (!res.ok) { toast.error(t.deleteError); return }
     setGalleries(prev => prev.filter(g => g.id !== galleryId))
     toast.success(t.deleteSuccess)
   }

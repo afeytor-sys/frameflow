@@ -94,9 +94,9 @@ export default function DeleteProjectButton({ projectId, projectTitle, locale = 
     if (opts.rechnungen) await supabase.from('invoices').delete().eq('project_id', projectId)
     if (opts.vertraege) await supabase.from('contracts').delete().eq('project_id', projectId)
     if (opts.formulare) await supabase.from('questionnaires').delete().eq('project_id', projectId)
-    const { error } = await supabase.from('projects').delete().eq('id', projectId)
+    const res = await fetch(`/api/projects/${projectId}/delete`, { method: 'DELETE' })
     setDeleting(false)
-    if (error) { toast.error(de ? 'Fehler beim Löschen' : 'Error deleting'); return }
+    if (!res.ok) { toast.error(de ? 'Fehler beim Löschen' : 'Error deleting'); return }
     toast.success(de ? 'Projekt gelöscht' : 'Project deleted')
     router.push('/dashboard/projects')
   }

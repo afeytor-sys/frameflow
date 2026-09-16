@@ -419,11 +419,18 @@ export function UploadProvider({ children }: { children: ReactNode }) {
             // Delete old photo if replacing
             const old = replaceMap?.get(file.name)
             if (old) {
-              await fetch(`/api/photos/${old.id}/delete`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ storageUrl: old.storage_url }),
-              }).catch(() => {})
+              try {
+                const delRes = await fetch(`/api/photos/${old.id}/delete`, {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ storageUrl: old.storage_url }),
+                })
+                if (!delRes.ok) {
+                  console.error(`[upload] failed to delete old photo ${old.id} being replaced by ${file.name}:`, await delRes.text().catch(() => delRes.statusText))
+                }
+              } catch (err) {
+                console.error(`[upload] failed to delete old photo ${old.id} being replaced by ${file.name}:`, err)
+              }
             }
 
             // Register in DB

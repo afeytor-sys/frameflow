@@ -461,31 +461,48 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const deleteSelected = async () => {
     if (!confirm(`Really delete ${selected.size} ${selected.size === 1 ? 'photo' : 'photos'}?`)) return
     const ids = Array.from(selected)
-    await Promise.all(ids.map(async (id) => {
+    const results = await Promise.all(ids.map(async (id) => {
       const photo = photos.find((p) => p.id === id)
       try {
-        await fetch(`/api/photos/${id}/delete`, {
+        const res = await fetch(`/api/photos/${id}/delete`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ storageUrl: photo?.storage_url || '' }),
         })
-      } catch {}
+        return { id, ok: res.ok }
+      } catch {
+        return { id, ok: false }
+      }
     }))
-    setPhotos((prev) => prev.filter((p) => !ids.includes(p.id)))
+    const deletedIds = results.filter((r) => r.ok).map((r) => r.id)
+    const failedCount = results.length - deletedIds.length
+    setPhotos((prev) => prev.filter((p) => !deletedIds.includes(p.id)))
     setSelected(new Set())
-    toast.success(`${ids.length} ${ids.length === 1 ? 'photo' : 'photos'} deleted`)
+    if (deletedIds.length > 0) {
+      toast.success(`${deletedIds.length} ${deletedIds.length === 1 ? 'photo' : 'photos'} deleted`)
+    }
+    if (failedCount > 0) {
+      toast.error(`${failedCount} ${failedCount === 1 ? 'photo' : 'photos'} could not be deleted`)
+    }
   }
 
   const deletePhoto = async (id: string) => {
     if (!confirm('Really delete this photo?')) return
     const photo = photos.find((p) => p.id === id)
     try {
-      await fetch(`/api/photos/${id}/delete`, {
+      const res = await fetch(`/api/photos/${id}/delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storageUrl: photo?.storage_url || '' }),
       })
-    } catch {}
+      if (!res.ok) {
+        toast.error('Photo could not be deleted')
+        return
+      }
+    } catch {
+      toast.error('Photo could not be deleted')
+      return
+    }
     setPhotos((prev) => prev.filter((p) => p.id !== id))
     toast.success('Photo deleted')
   }

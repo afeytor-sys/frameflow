@@ -37,10 +37,12 @@ export async function DELETE(
     // storageUrl is optional — we can still delete the DB record
   }
 
-  // Verify the photo belongs to this photographer's gallery
+  // Verify the photo belongs to this photographer's gallery. Galleries carry
+  // their own photographer_id directly (project_id is optional — migration 101 —
+  // so checking ownership via the linked project misses project-less galleries).
   const { data: photo, error: fetchError } = await supabase
     .from('photos')
-    .select('id, storage_url, gallery:galleries(project:projects(photographer_id))')
+    .select('id, storage_url, gallery:galleries(photographer_id)')
     .eq('id', photoId)
     .single()
 
@@ -48,12 +50,10 @@ export async function DELETE(
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
   }
 
-  // Type-safe access to nested photographer_id
   const gallery = Array.isArray(photo.gallery) ? photo.gallery[0] : photo.gallery
-  const project = gallery && (Array.isArray((gallery as { project: unknown }).project) ? ((gallery as { project: unknown[] }).project)[0] : (gallery as { project: unknown }).project)
-  const photographerId = project && (project as { photographer_id: string }).photographer_id
+  const photographerId = gallery?.photographer_id
 
-  if (photographerId !== user.id) {
+  if (!photographerId || photographerId !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

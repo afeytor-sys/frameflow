@@ -338,8 +338,8 @@ export default function ProjectTabs({ project, contracts, galleries: initialGall
 
   const deleteGallery = async (id: string) => {
     if (!confirm('Really delete gallery? All photos will also be deleted.')) return
-    const { error } = await supabase.from('galleries').delete().eq('id', id)
-    if (error) { toast.error('Error deleting'); return }
+    const res = await fetch(`/api/galleries/${id}/delete`, { method: 'DELETE' })
+    if (!res.ok) { toast.error('Error deleting'); return }
     setGalleries(prev => prev.filter(g => g.id !== id))
     toast.success('Gallery deleted')
   }
