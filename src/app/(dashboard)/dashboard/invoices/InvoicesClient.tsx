@@ -480,7 +480,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
   const [projectList, setProjectList] = useState<Project[]>(projects)
   const [showNew, setShowNew] = useState(false)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'sent' | 'paid' | 'overdue'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'not_paid' | 'draft' | 'sent' | 'paid' | 'overdue'>('all')
   const [saving, setSaving] = useState(false)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [sendingId, setSendingId] = useState<string | null>(null)
@@ -831,13 +831,20 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
           </div>
           {/* Status filter pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            {(['all', 'draft', 'sent', 'paid', 'overdue'] as const).map(f => {
-              const count = f === 'all' ? invoices.length : invoices.filter(i => i.status === f).length
+            {(['all', 'not_paid', 'draft', 'sent', 'paid', 'overdue'] as const).map(f => {
+              const count = f === 'all'
+                ? invoices.length
+                : f === 'not_paid'
+                  ? invoices.filter(i => i.status !== 'paid').length
+                  : invoices.filter(i => i.status === f).length
               if (f !== 'all' && count === 0) return null
-              const cfg = f !== 'all' ? STATUS_CONFIG[f] : null
+              const cfg = f !== 'all' && f !== 'not_paid' ? STATUS_CONFIG[f] : null
               const label = f === 'all'
                 ? (locale === 'de' ? 'Alle' : 'All')
-                : cfg!.label
+                : f === 'not_paid'
+                  ? (locale === 'de' ? 'Nicht bezahlt' : 'Not paid')
+                  : cfg!.label
+              const activeColor = f === 'all' ? '#F97316' : f === 'not_paid' ? '#C2410C' : cfg!.color
               const active = statusFilter === f
               return (
                 <button
@@ -845,7 +852,7 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
                   onClick={() => setStatusFilter(f)}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
                   style={{
-                    background: active ? (f === 'all' ? '#F97316' : cfg!.color) : 'var(--bg-surface)',
+                    background: active ? activeColor : 'var(--bg-surface)',
                     color: active ? '#fff' : 'var(--text-muted)',
                     border: active ? 'none' : '1px solid var(--border-color)',
                   }}
@@ -863,7 +870,8 @@ export default function InvoicesClient({ invoices: initial, projects, photograph
       {(() => {
         const q = search.trim().toLowerCase()
         const filtered = invoices.filter(inv => {
-          const matchStatus = statusFilter === 'all' || inv.status === statusFilter
+          const matchStatus = statusFilter === 'all'
+            || (statusFilter === 'not_paid' ? inv.status !== 'paid' : inv.status === statusFilter)
           if (!matchStatus) return false
           if (!q) return true
           const name = getClientName(inv.project).toLowerCase()
