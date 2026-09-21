@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
+import { generateInvoicePdf } from '@/lib/invoicePdf'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
           title,
           client_url,
           photographer_id,
-          client:clients(full_name, email)
+          portal_password,
+          client:clients(full_name, email, company_name, address_street, address_zip, address_city, address_country)
         )
       `)
       .eq('id', invoiceId)
@@ -49,7 +51,14 @@ export async function POST(request: NextRequest) {
       title: string
       client_url: string
       photographer_id: string
-      client: { full_name: string; email: string } | { full_name: string; email: string }[]
+      portal_password: string | null
+      client: {
+        full_name: string; email: string; company_name: string | null
+        address_street: string | null; address_zip: string | null; address_city: string | null; address_country: string | null
+      } | {
+        full_name: string; email: string; company_name: string | null
+        address_street: string | null; address_zip: string | null; address_city: string | null; address_country: string | null
+      }[]
     }
 
     if (project.photographer_id !== user.id) {
@@ -67,13 +76,14 @@ export async function POST(request: NextRequest) {
     // Fetch photographer info
     const { data: photographer } = await supabase
       .from('photographers')
-      .select('full_name, studio_name, email, notification_email')
+      .select('full_name, studio_name, email, notification_email, company_name, address_street, address_zip, address_city, address_country, phone, website, tax_number, bank_account_holder, bank_name, bank_iban, bank_bic')
       .eq('id', user.id)
       .single()
 
     const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
     const notifEmail = photographer?.notification_email || photographer?.email || undefined
     const portalUrl = project.client_url || `${process.env.NEXT_PUBLIC_SITE_URL}/client`
+    const portalPassword = project.portal_password || null
 
     const amountFormatted = formatEur(invoice.amount)
     const dueDateFormatted = invoice.due_date
@@ -117,6 +127,52 @@ export async function POST(request: NextRequest) {
           <td colspan="4" style="padding:8px 0 4px;font-size:13px;font-weight:700;text-align:right;color:#111110;border-top:1px solid #E8E4DC;">Gesamtbetrag</td>
           <td style="padding:8px 0 4px;font-size:15px;font-weight:800;text-align:right;color:#C4A47C;letter-spacing:-0.02em;">${amountFormatted}</td>
         </tr>`
+
+    // ── Build PDF attachment ──────────────────────────────────────────────
+    // Prefer the invoice's own snapshot (captured at creation time) so a
+    // photographer's later profile edits don't retroactively change an
+    // already-issued invoice — falls back to live data for older invoices
+    // created before snapshots existed.
+    const phSnapshot = invoice.photographer_snapshot as Record<string, string | null> | null
+    const clSnapshot = invoice.client_snapshot as Record<string, string | null> | null
+
+    const pdfBytes = await generateInvoicePdf({
+      invoiceNumber: invoice.invoice_number,
+      createdAt: invoice.created_at,
+      dueDate: invoice.due_date,
+      description: invoice.description,
+      taxStatus,
+      taxRate,
+      subtotalCents,
+      taxCents,
+      totalCents: invoice.amount,
+      items: invoiceItems,
+      sender: {
+        studio_name: phSnapshot?.studio_name ?? photographer?.studio_name,
+        full_name: phSnapshot?.full_name ?? photographer?.full_name,
+        company_name: phSnapshot?.company_name ?? photographer?.company_name,
+        address_street: phSnapshot?.address_street ?? photographer?.address_street,
+        address_zip: phSnapshot?.address_zip ?? photographer?.address_zip,
+        address_city: phSnapshot?.address_city ?? photographer?.address_city,
+        address_country: phSnapshot?.address_country ?? photographer?.address_country,
+        phone: phSnapshot?.phone ?? photographer?.phone,
+        website: phSnapshot?.website ?? photographer?.website,
+        email: phSnapshot?.email ?? photographer?.email,
+        tax_number: phSnapshot?.tax_number ?? photographer?.tax_number,
+        bank_account_holder: phSnapshot?.bank_account_holder ?? photographer?.bank_account_holder,
+        bank_name: phSnapshot?.bank_name ?? photographer?.bank_name,
+        bank_iban: phSnapshot?.bank_iban ?? photographer?.bank_iban,
+        bank_bic: phSnapshot?.bank_bic ?? photographer?.bank_bic,
+      },
+      client: {
+        full_name: clSnapshot?.full_name ?? clientName,
+        company_name: clSnapshot?.company_name ?? clientRaw?.company_name ?? null,
+        address_street: clSnapshot?.address_street ?? clientRaw?.address_street ?? null,
+        address_zip: clSnapshot?.address_zip ?? clientRaw?.address_zip ?? null,
+        address_city: clSnapshot?.address_city ?? clientRaw?.address_city ?? null,
+        address_country: clSnapshot?.address_country ?? clientRaw?.address_country ?? null,
+      },
+    })
 
     const { error: emailError } = await resend.emails.send({
       from: `${studioName} via Fotonizer <noreply@fotonizer.com>`,
@@ -208,6 +264,21 @@ export async function POST(request: NextRequest) {
                   </td>
                 </tr>
               </table>
+
+              ${portalPassword ? `
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:16px;">
+                <tr>
+                  <td align="center" style="background:#F8F7F4;border:1px solid #E8E4DC;border-radius:10px;padding:12px 16px;">
+                    <p style="margin:0;font-size:12px;color:#7A7670;">
+                      Portal-Passwort: <strong style="color:#111110;font-family:monospace;letter-spacing:0.02em;">${portalPassword}</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>` : ''}
+
+              <p style="margin:16px 0 0;font-size:12px;color:#B0ACA6;text-align:center;">
+                Die Rechnung findest du auch als PDF im Anhang.
+              </p>
             </td>
           </tr>
 
@@ -233,6 +304,10 @@ export async function POST(request: NextRequest) {
 </body>
 </html>
       `,
+      attachments: [{
+        filename: `Rechnung-${invoice.invoice_number || invoiceId}.pdf`,
+        content: Buffer.from(pdfBytes),
+      }],
     })
 
     if (emailError) {
