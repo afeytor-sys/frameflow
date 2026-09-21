@@ -30,7 +30,7 @@ export default async function QuotesPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('projects')
-      .select('id, title, client:clients(full_name, email, address_street, address_zip, address_city, address_country, company_name)')
+      .select('id, title, client:clients(full_name, email, address, company_name)')
       .eq('photographer_id', user.id)
       .order('created_at', { ascending: false }),
     supabase

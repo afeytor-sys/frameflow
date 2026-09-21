@@ -52,11 +52,8 @@ export interface Client {
   project_type: string | null
   notes: string | null
   status: ClientStatus
-  // migration 020: address fields
-  address_street: string | null
-  address_city: string | null
-  address_zip: string | null
-  address_country: string | null
+  // migration 020: single free-text address field (not split street/zip/city/country)
+  address: string | null
   // migration 066: company name
   company_name: string | null
   created_at: string

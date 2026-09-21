@@ -70,10 +70,7 @@ export async function POST(req: NextRequest) {
     full_name: string | null
     company_name: string | null
     email: string | null
-    address_street: string | null
-    address_zip: string | null
-    address_city: string | null
-    address_country: string | null
+    address: string | null
   }
   let clientRow: ClientRow | null = null
 
@@ -91,11 +88,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (projectRow.client_id) {
-      const { data } = await service
+      // clients only has a single free-text `address` column, not split
+      // street/zip/city/country fields.
+      const { data, error: clientErr } = await service
         .from('clients')
-        .select('full_name, company_name, email, address_street, address_zip, address_city, address_country')
+        .select('full_name, company_name, email, address')
         .eq('id', projectRow.client_id)
         .maybeSingle()
+      if (clientErr) console.error('[create-invoice] client lookup:', clientErr)
       clientRow = data as ClientRow | null
     }
   }
@@ -164,10 +164,10 @@ export async function POST(req: NextRequest) {
     full_name: clientRow.full_name ?? '',
     company_name: clientRow.company_name ?? null,
     email: clientRow.email ?? null,
-    address_street: clientRow.address_street ?? null,
-    address_zip: clientRow.address_zip ?? null,
-    address_city: clientRow.address_city ?? null,
-    address_country: clientRow.address_country ?? null,
+    address_street: clientRow.address ?? null,
+    address_zip: null,
+    address_city: null,
+    address_country: null,
   } : null
 
   // ── Insert invoice ────────────────────────────────────────────────────────

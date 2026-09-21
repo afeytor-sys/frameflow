@@ -36,13 +36,14 @@ export async function POST(request: NextRequest) {
           client_url,
           photographer_id,
           portal_password,
-          client:clients(full_name, email, company_name, address_street, address_zip, address_city, address_country)
+          client:clients(full_name, email, company_name, address)
         )
       `)
       .eq('id', invoiceId)
       .single()
 
     if (invoiceError || !invoice) {
+      console.error('[invoices/send] invoice lookup failed:', invoiceError)
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
@@ -53,11 +54,9 @@ export async function POST(request: NextRequest) {
       photographer_id: string
       portal_password: string | null
       client: {
-        full_name: string; email: string; company_name: string | null
-        address_street: string | null; address_zip: string | null; address_city: string | null; address_country: string | null
+        full_name: string; email: string; company_name: string | null; address: string | null
       } | {
-        full_name: string; email: string; company_name: string | null
-        address_street: string | null; address_zip: string | null; address_city: string | null; address_country: string | null
+        full_name: string; email: string; company_name: string | null; address: string | null
       }[]
     }
 
@@ -167,10 +166,13 @@ export async function POST(request: NextRequest) {
       client: {
         full_name: clSnapshot?.full_name ?? clientName,
         company_name: clSnapshot?.company_name ?? clientRaw?.company_name ?? null,
-        address_street: clSnapshot?.address_street ?? clientRaw?.address_street ?? null,
-        address_zip: clSnapshot?.address_zip ?? clientRaw?.address_zip ?? null,
-        address_city: clSnapshot?.address_city ?? clientRaw?.address_city ?? null,
-        address_country: clSnapshot?.address_country ?? clientRaw?.address_country ?? null,
+        // clients only has a single free-text `address` column (no split
+        // street/zip/city/country) — put it on the street line, the other
+        // lines just stay empty.
+        address_street: clSnapshot?.address_street ?? clientRaw?.address ?? null,
+        address_zip: clSnapshot?.address_zip ?? null,
+        address_city: clSnapshot?.address_city ?? null,
+        address_country: clSnapshot?.address_country ?? null,
       },
     })
 
