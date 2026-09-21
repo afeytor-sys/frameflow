@@ -306,7 +306,11 @@ export async function POST(request: NextRequest) {
       `,
       attachments: [{
         filename: `Rechnung-${invoice.invoice_number || invoiceId}.pdf`,
-        content: Buffer.from(pdfBytes),
+        // Resend's SDK JSON.stringifies the request body without converting
+        // Buffer to base64 itself — passing a raw Buffer serializes to
+        // {"type":"Buffer","data":[...]}, which the API rejects. Must be a
+        // base64 string.
+        content: Buffer.from(pdfBytes).toString('base64'),
       }],
     })
 
