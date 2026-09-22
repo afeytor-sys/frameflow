@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
           title,
           client_url,
           photographer_id,
+          portal_password,
           client:clients(full_name, email)
         )
       `)
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       title: string
       client_url: string
       photographer_id: string
+      portal_password: string | null
       client: { full_name: string; email: string } | { full_name: string; email: string }[]
     }
 
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
     const studioName = photographer?.studio_name || photographer?.full_name || 'Your photographer'
     const notifEmail = photographer?.notification_email || photographer?.email || undefined
     const portalUrl = project.client_url || `${process.env.NEXT_PUBLIC_SITE_URL}/client`
+    const portalPassword = project.portal_password || null
 
     const amountFormatted = formatEur(invoice.amount)
     const dueDateFormatted = invoice.due_date
@@ -208,6 +211,17 @@ export async function POST(request: NextRequest) {
                   </td>
                 </tr>
               </table>
+
+              ${portalPassword ? `
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-top:16px;">
+                    <p style="margin:0;font-size:12px;color:#7A7670;">
+                      Portal-Passwort: <strong style="color:#111110;font-family:monospace;letter-spacing:0.02em;">${portalPassword}</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>` : ''}
             </td>
           </tr>
 
