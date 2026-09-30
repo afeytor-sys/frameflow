@@ -229,6 +229,47 @@ export function reminder7dEmail(data: EmailData) {
   return { subject, html: emailWrapper(body, studioName, locale) }
 }
 
+// ── 6. Gallery Expiring Soon ─────────────────────────────────────────────────
+interface GalleryExpiringData {
+  studioName: string
+  clientName: string
+  galleryTitle: string
+  galleryUrl: string
+  expiryDateFormatted: string
+  locale: Locale
+}
+
+export function galleryExpiringEmail(data: GalleryExpiringData) {
+  const { studioName, clientName, galleryTitle, galleryUrl, expiryDateFormatted, locale } = data
+  const isDE = locale === 'de'
+
+  const subject = isDE
+    ? `Deine Galerie "${galleryTitle}" ist nur noch bis ${expiryDateFormatted} online`
+    : `Your gallery "${galleryTitle}" is online only until ${expiryDateFormatted}`
+
+  const body = isDE ? `
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Deine Galerie läuft bald ab.</h1>
+    <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
+      Hallo ${clientName}, deine Galerie <strong style="color:#111110;">${galleryTitle}</strong> ist nur noch bis <strong style="color:#111110;">${expiryDateFormatted}</strong> online.
+    </p>
+    <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
+      Danach ist sie nicht mehr erreichbar. Wenn du sie länger behalten möchtest, melde dich einfach bei mir — einfach auf diese E-Mail antworten.
+    </p>
+    ${ctaButton(galleryUrl, 'Galerie ansehen')}
+  ` : `
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111110;letter-spacing:-0.02em;">Your gallery is expiring soon.</h1>
+    <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
+      Hello ${clientName}, your gallery <strong style="color:#111110;">${galleryTitle}</strong> is online only until <strong style="color:#111110;">${expiryDateFormatted}</strong>.
+    </p>
+    <p style="margin:0 0 16px;font-size:15px;color:#7A7670;line-height:1.6;">
+      After that it won't be reachable anymore. If you'd like to keep it online longer, just get in touch — simply reply to this email.
+    </p>
+    ${ctaButton(galleryUrl, 'View gallery')}
+  `
+
+  return { subject, html: emailWrapper(body, studioName, locale) }
+}
+
 // ── 5. Shooting Reminder 2 days ───────────────────────────────────────────────
 export function reminder1dEmail(data: EmailData) {
   const { studioName, clientName, projectTitle, portalUrl, shootDate, locale } = data

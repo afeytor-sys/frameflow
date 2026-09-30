@@ -67,6 +67,7 @@ export default async function GalleryDetailPage({ params }: { params: Promise<{ 
         download_enabled: (gallery.download_enabled as boolean) ?? true,
         comments_enabled: (gallery.comments_enabled as boolean) ?? true,
         expires_at: (gallery.expires_at as string | null) ?? null,
+        client_email: (gallery.client_email as string | null) ?? null,
         view_count: (gallery.view_count as number) ?? 0,
         download_count: (gallery.download_count as number) ?? 0,
         photo_download_count: (gallery.photo_download_count as number | null) ?? undefined,

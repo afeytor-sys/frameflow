@@ -185,13 +185,14 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   }
 
   // Fetch gallery
-  const gallerySelectCols = 'id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y'
+  const gallerySelectCols = 'id, title, description, status, download_enabled, watermark, design_theme, password, guest_password, cover_photo_id, tags_enabled, cover_focal_x, cover_focal_y, expires_at'
 
   type GalleryRow = {
     id: string; title: string; description: string | null; status: string
     download_enabled: boolean; watermark: boolean; design_theme: string
     password: string | null; guest_password: string | null; cover_photo_id: string | null
     tags_enabled: string[] | null; cover_focal_x: number | null; cover_focal_y: number | null
+    expires_at: string | null
   }
 
   let gallery: GalleryRow | null = null
@@ -263,6 +264,18 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
         </div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: emptyTheme.text, letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
         <p style={{ color: emptyTheme.textMuted, fontSize: '0.875rem' }}>Die Fotos werden bald verfügbar sein.</p>
+      </div>
+    )
+  }
+
+  if (gallery.expires_at && new Date(gallery.expires_at) < new Date()) {
+    return (
+      <div style={{ minHeight: '100vh', background: emptyTheme.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: emptyTheme.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Images style={{ width: 28, height: 28, color: emptyTheme.textMuted }} />
+        </div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: emptyTheme.text, letterSpacing: '-0.02em' }}>Galerie abgelaufen</h2>
+        <p style={{ color: emptyTheme.textMuted, fontSize: '0.875rem', maxWidth: 360 }}>Diese Galerie ist nicht mehr verfügbar. Bitte kontaktiere deinen Fotografen, wenn du weiterhin Zugriff benötigst.</p>
       </div>
     )
   }

@@ -34,7 +34,7 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
   // Fetch all galleries for this project, prefer active ones with photos
   const { data: allGalleries, error: galleryError } = await supabase
     .from('galleries')
-    .select('id, title, description, status, download_enabled, watermark, design_theme, tags_enabled, cover_photo_id')
+    .select('id, title, description, status, download_enabled, watermark, design_theme, tags_enabled, cover_photo_id, expires_at')
     .eq('project_id', project.id)
     .order('created_at', { ascending: false })
 
@@ -72,6 +72,21 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
         </div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Galerie wird vorbereitet</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 24 }}>Your photographer will upload your photos soon.</p>
+        <Link href={`/client/${token}`} style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <ArrowLeft style={{ width: 16, height: 16 }} /> Back to portal
+        </Link>
+      </div>
+    )
+  }
+
+  if (gallery.expires_at && new Date(gallery.expires_at) < new Date()) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Images style={{ width: 28, height: 28, color: 'var(--text-muted)' }} />
+        </div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Galerie abgelaufen</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 24, maxWidth: 360 }}>Diese Galerie ist nicht mehr verfügbar. Bitte kontaktiere deinen Fotografen, wenn du weiterhin Zugriff benötigst.</p>
         <Link href={`/client/${token}`} style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <ArrowLeft style={{ width: 16, height: 16 }} /> Back to portal
         </Link>

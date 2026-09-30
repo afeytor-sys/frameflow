@@ -66,6 +66,7 @@ interface Gallery {
   download_enabled: boolean
   comments_enabled: boolean
   expires_at: string | null
+  client_email?: string | null
   view_count: number
   download_count: number
   photo_download_count?: number
@@ -286,6 +287,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [settingsGuestPassword, setSettingsGuestPassword] = useState(gallery?.guest_password || '')
   const [showGuestPassword, setShowGuestPassword] = useState(false)
   const [settingsExpiry, setSettingsExpiry] = useState(gallery?.expires_at?.split('T')[0] || '')
+  const [settingsClientEmail, setSettingsClientEmail] = useState(gallery?.client_email || '')
   const [selectedTheme, setSelectedTheme] = useState(gallery?.design_theme || 'classic-white')
   const [focalX, setFocalX] = useState(gallery?.cover_focal_x ?? 50)
   const [focalY, setFocalY] = useState(gallery?.cover_focal_y ?? 50)
@@ -598,6 +600,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       download_enabled: settingsDownload,
       comments_enabled: settingsComments,
       expires_at: settingsExpiry ? new Date(settingsExpiry).toISOString() : null,
+      client_email: settingsClientEmail.trim() || null,
       design_theme: selectedTheme,
       tags_enabled: enabledTags,
       cover_focal_x: focalX,
@@ -613,7 +616,7 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
     // hero_style / spacing_density / typography_preset are included directly —
     // they've been in the schema since migrations 095–096 and must save reliably.
     const coreFields = ['title', 'description', 'download_enabled', 'comments_enabled',
-      'expires_at', 'design_theme', 'tags_enabled', 'password', 'guest_password',
+      'expires_at', 'client_email', 'design_theme', 'tags_enabled', 'password', 'guest_password',
       'cover_photo_id', 'cover_focal_x', 'cover_focal_y',
       'hero_style', 'spacing_density', 'typography_preset']
     const coreUpdate: Record<string, unknown> = {}
@@ -1181,7 +1184,20 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Ablaufdatum (optional)</label>
                   <input type="date" value={settingsExpiry} onChange={(e) => setSettingsExpiry(e.target.value)} className="input-base" />
+                  {gallery.expires_at && new Date(gallery.expires_at) < new Date() && (
+                    <p className="text-[11px] mt-1 font-medium" style={{ color: '#C43B2C' }}>
+                      ⚠️ Abgelaufen am {new Date(gallery.expires_at).toLocaleDateString('de-DE')} — Kunde hat keinen Zugriff mehr. Datum ändern oder leeren, um die Galerie zu reaktivieren.
+                    </p>
+                  )}
                 </div>
+                {!projectId && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
+                      E-Mail des Kunden <span className="font-normal opacity-60">(für Ablauf-Erinnerung)</span>
+                    </label>
+                    <input type="email" value={settingsClientEmail} onChange={(e) => setSettingsClientEmail(e.target.value)} placeholder="kunde@beispiel.de" className="input-base" />
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-4 flex-wrap">
                 {[

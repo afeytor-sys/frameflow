@@ -19,6 +19,7 @@ interface Gallery {
   download_enabled: boolean
   comments_enabled: boolean
   expires_at: string | null
+  client_email?: string | null
   view_count: number
   download_count: number
   photo_download_count?: number
