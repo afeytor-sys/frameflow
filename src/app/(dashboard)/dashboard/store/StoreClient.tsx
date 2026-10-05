@@ -332,17 +332,48 @@ export default function StoreClient({
 
       {tab === 'coupons' && (
         <div className="space-y-6">
-          <div className="rounded-xl border p-5 space-y-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-surface)' }}>
-            <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Neuer Gutschein</p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <input className="input-base" placeholder="Code, z.B. SOMMER20" value={cCode} onChange={e => setCCode(e.target.value)} />
-              <select className="input-base" value={cType} onChange={e => setCType(e.target.value as 'percent' | 'fixed')}>
-                <option value="percent">Prozent (%)</option>
-                <option value="fixed">Festbetrag (€)</option>
-              </select>
-              <input className="input-base" placeholder={cType === 'percent' ? 'z.B. 20' : 'z.B. 50'} inputMode="decimal" value={cValue} onChange={e => setCValue(e.target.value)} />
-              <input className="input-base" type="date" value={cUntil} onChange={e => setCUntil(e.target.value)} title="Gültig bis (optional)" />
-              <input className="input-base" placeholder="Max. Einlösungen (optional)" inputMode="numeric" value={cMax} onChange={e => setCMax(e.target.value)} />
+          <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-surface)' }}>
+            <div>
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Neuer Gutschein</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                Ein Gutschein ist ein Code, den dein Kunde im Store eingibt, um einen Rabatt auf sein Album zu bekommen.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Code</label>
+                <input className="input-base" placeholder="z.B. SOMMER20" value={cCode} onChange={e => setCCode(e.target.value)} />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Das Wort, das der Kunde eintippt. Groß-/Kleinschreibung egal.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Art des Rabatts</label>
+                <select className="input-base" value={cType} onChange={e => setCType(e.target.value as 'percent' | 'fixed')}>
+                  <option value="percent">Prozent (%)</option>
+                  <option value="fixed">Festbetrag (€)</option>
+                </select>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {cType === 'percent' ? 'Ein Prozentsatz vom Preis, z.B. 20 = 20 % Rabatt.' : 'Ein fester Betrag in Euro, z.B. 50 = 50 € Rabatt.'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                  {cType === 'percent' ? 'Rabatt in %' : 'Rabatt in €'}
+                </label>
+                <input className="input-base" placeholder={cType === 'percent' ? 'z.B. 20' : 'z.B. 50'} inputMode="decimal" value={cValue} onChange={e => setCValue(e.target.value)} />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {cType === 'percent' ? 'Zahl zwischen 1 und 100.' : 'Der Betrag, der vom Preis abgezogen wird.'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gültig bis (optional)</label>
+                <input className="input-base" type="date" value={cUntil} onChange={e => setCUntil(e.target.value)} />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Nach diesem Datum funktioniert der Code nicht mehr. Leer lassen = unbegrenzt.</p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Maximale Einlösungen (optional)</label>
+                <input className="input-base" placeholder="z.B. 10" inputMode="numeric" value={cMax} onChange={e => setCMax(e.target.value)} />
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>Wie oft der Code insgesamt benutzt werden darf, z.B. 1 für einen Einmal-Code. Leer lassen = unbegrenzt.</p>
+              </div>
             </div>
             <button onClick={createCoupon} className="px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: 'var(--accent)' }}>Gutschein erstellen</button>
           </div>
