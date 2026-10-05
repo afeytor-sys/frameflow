@@ -32,6 +32,9 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('Deutschland')
   const [couponCode, setCouponCode] = useState('')
+  const [applied, setApplied] = useState<{ code: string; discountCents: number } | null>(null)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [checkingCoupon, setCheckingCoupon] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<OrderResult | null>(null)
@@ -60,6 +63,33 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
     })
   }
 
+  const applyCoupon = async () => {
+    setCouponError(null)
+    if (!couponCode.trim()) return setCouponError('Bitte einen Code eingeben.')
+    if (!variantId) return setCouponError('Bitte zuerst eine Variante wählen.')
+    setCheckingCoupon(true)
+    const res = await fetch(`/api/store/${photographerSlug}/${productSlug}/coupon`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variantId, couponCode }),
+    })
+    const json = await res.json().catch(() => ({}))
+    setCheckingCoupon(false)
+    if (!res.ok) {
+      setApplied(null)
+      return setCouponError(json.error || 'Gutschein konnte nicht angewendet werden.')
+    }
+    setApplied({ code: json.code, discountCents: json.discountCents })
+  }
+
+  const removeCoupon = () => {
+    setApplied(null)
+    setCouponCode('')
+    setCouponError(null)
+  }
+
+  const finalTotal = selected ? selected.price_cents - (applied?.discountCents ?? 0) : null
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -69,7 +99,7 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         variantId,
-        couponCode: couponCode.trim() || undefined,
+        couponCode: applied?.code || undefined,
         clientName: name,
         clientEmail: email,
         shipping: { street, zip, city, country },
@@ -125,7 +155,7 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
                 <label key={v.id} className="rounded-xl border p-4 cursor-pointer flex items-center justify-between"
                   style={{ borderColor: variantId === v.id ? '#C4A47C' : '#E8E4DC', background: '#fff' }}>
                   <span className="flex items-center gap-3">
-                    <input type="radio" name="variant" checked={variantId === v.id} onChange={() => setVariantId(v.id)} />
+                    <input type="radio" name="variant" checked={variantId === v.id} onChange={() => { setVariantId(v.id); setApplied(null) }} />
                     <span style={{ color: '#111110' }}>{v.label}</span>
                   </span>
                   <span className="font-bold" style={{ color: '#111110' }}>{euro(v.price_cents)}</span>
@@ -169,13 +199,40 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
 
           <section className="space-y-3">
             <h2 className="font-bold" style={{ color: '#111110' }}>{data.photos.length > 0 ? '4' : '3'}. Gutschein (optional)</h2>
-            <input className="input-base max-w-xs" placeholder="Gutscheincode" value={couponCode} onChange={e => setCouponCode(e.target.value)} />
+            {applied ? (
+              <div className="flex items-center justify-between rounded-xl border px-4 py-3 max-w-md" style={{ borderColor: '#2A9B68', background: '#fff' }}>
+                <p className="text-sm" style={{ color: '#2A9B68' }}>
+                  Gutschein <strong className="font-mono">{applied.code}</strong> angewendet (−{euro(applied.discountCents)})
+                </p>
+                <button type="button" onClick={removeCoupon} className="text-xs underline" style={{ color: '#7A7670' }}>Entfernen</button>
+              </div>
+            ) : (
+              <div className="flex gap-2 max-w-md">
+                <input
+                  className="input-base flex-1"
+                  placeholder="Gutscheincode"
+                  value={couponCode}
+                  onChange={e => { setCouponCode(e.target.value); setCouponError(null) }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon() } }}
+                />
+                <button type="button" onClick={applyCoupon} disabled={checkingCoupon}
+                  className="px-4 rounded-lg text-sm font-semibold text-white disabled:opacity-50" style={{ background: '#111110' }}>
+                  {checkingCoupon ? '…' : 'Anwenden'}
+                </button>
+              </div>
+            )}
+            {couponError && <p className="text-sm" style={{ color: '#C43B2C' }}>{couponError}</p>}
           </section>
 
           <div className="rounded-xl border p-5 flex items-center justify-between" style={{ borderColor: '#E8E4DC', background: '#fff' }}>
-            <div>
+            <div className="space-y-1">
+              {selected && applied && (
+                <p className="text-sm" style={{ color: '#7A7670' }}>
+                  Preis {euro(selected.price_cents)} · Rabatt −{euro(applied.discountCents)}
+                </p>
+              )}
               <p className="text-sm" style={{ color: '#7A7670' }}>Gesamtbetrag (inkl. MwSt.)</p>
-              <p className="text-xl font-black" style={{ color: '#111110' }}>{selected ? euro(selected.price_cents) : '—'}</p>
+              <p className="text-xl font-black" style={{ color: '#111110' }}>{finalTotal !== null ? euro(finalTotal) : '—'}</p>
             </div>
             <button type="submit" disabled={submitting || !selected} className="px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50" style={{ background: '#111110' }}>
               {submitting ? 'Wird gesendet…' : 'Jetzt bestellen'}
