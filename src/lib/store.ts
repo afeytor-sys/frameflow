@@ -48,3 +48,32 @@ export async function findCoupon(
 export function paymentReference(orderId: string) {
   return `SHOP-${orderId.slice(0, 8).toUpperCase()}`
 }
+
+export type GalleryStoreBanner = { href: string; title: string; fromCents: number }
+
+// The active store product linked to a gallery, for the "Album bestellen" banner.
+export async function getGalleryStoreBanner(
+  supabase: SupabaseClient,
+  galleryId: string,
+): Promise<GalleryStoreBanner | null> {
+  const { data } = await supabase
+    .from('store_products')
+    .select('slug, title, photographer:photographers(slug), store_product_variants(price_cents)')
+    .eq('gallery_id', galleryId)
+    .eq('active', true)
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+
+  const photographer = Array.isArray(data.photographer) ? data.photographer[0] : data.photographer
+  if (!photographer?.slug) return null
+
+  const prices = ((data.store_product_variants ?? []) as { price_cents: number }[]).map(v => v.price_cents)
+  if (prices.length === 0) return null
+
+  return {
+    href: `/s/${photographer.slug}/${data.slug}`,
+    title: data.title,
+    fromCents: Math.min(...prices),
+  }
+}

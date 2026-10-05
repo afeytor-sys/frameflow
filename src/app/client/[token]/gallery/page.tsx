@@ -5,6 +5,8 @@ import { ArrowLeft, Images, Download, Heart, Share2 } from 'lucide-react'
 import { getPhotoUrl } from '@/lib/utils'
 import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme } from '@/lib/galleryThemes'
+import { getGalleryStoreBanner } from '@/lib/store'
+import StoreBanner from '@/components/client-portal/StoreBanner'
 
 export default async function ClientGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -136,6 +138,8 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
 
   const heroTitle = gallery.title || project.title
 
+  const storeBanner = await getGalleryStoreBanner(supabase, gallery.id)
+
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: theme.fontFamily }}>
       {theme.fontImport && <link rel="stylesheet" href={theme.fontImport} />}
@@ -222,6 +226,8 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
           )}
         </div>
       </div>
+
+      {storeBanner && <StoreBanner banner={storeBanner} />}
 
       {/* ── GALLERY CONTENT ── */}
       <div style={{ padding: '32px 0 64px' }}>

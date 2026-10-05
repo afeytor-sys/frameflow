@@ -6,6 +6,8 @@ import GalleryViewer from '@/components/client-portal/GalleryViewer'
 import { getTheme, getSpacingGap, getTypographyPreset } from '@/lib/galleryThemes'
 import type { SpacingDensity } from '@/lib/galleryThemes'
 import GalleryPasswordGate from './GalleryPasswordGate'
+import { getGalleryStoreBanner } from '@/lib/store'
+import StoreBanner from '@/components/client-portal/StoreBanner'
 import { getPhotoUrl } from '@/lib/utils'
 import type { Metadata } from 'next'
 
@@ -586,6 +588,8 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
 
         {heroBlock}
 
+        {storeBanner && <StoreBanner banner={storeBanner} />}
+
         {/* ── GALLERY CONTENT ── */}
         <div style={{ padding: '32px 0 64px' }}>
           {sortedPhotos.length === 0 ? (
@@ -652,5 +656,6 @@ export default async function PublicGalleryPage({ params }: { params: Promise<{ 
   }
 
   // No password: show only non-private photos publicly
+  const storeBanner = await getGalleryStoreBanner(supabase, gallery.id)
   return renderGallery(publicPhotos)
 }
