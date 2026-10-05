@@ -28,6 +28,7 @@ import {
   Calculator,
   CalendarDays,
   Sparkles,
+  ShoppingBag,
   X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -85,6 +86,7 @@ export default function DashboardSidebar({ photographer, mobileOpen = false, onM
     { key: 'projects',       href: '/dashboard/projects',     icon: FolderOpen,      label: locale === 'de' ? 'Projekte' : 'Projects', plans: null, activeColor: '#F59E0B', activeBg: 'rgba(245,158,11,0.12)' },
     { key: 'inbox',          href: '/dashboard/inbox',        icon: Inbox,           label: 'Inbox',          plans: null,             activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
     { key: 'booking-types',  href: '/dashboard/booking-types', icon: CalendarDays,  label: locale === 'de' ? 'Buchungstypen' : 'Booking Types', plans: null, activeColor: '#6366F1', activeBg: 'rgba(99,102,241,0.12)' },
+    { key: 'store',          href: '/dashboard/store',        icon: ShoppingBag,     label: 'Store',          plans: null,             activeColor: '#EC4899', activeBg: 'rgba(236,72,153,0.12)' },
     { key: 'forms',          href: '/dashboard/forms',        icon: FormInput,       label: locale === 'de' ? 'Formulare' : 'Forms',   plans: null, activeColor: '#06B6D4', activeBg: 'rgba(6,182,212,0.12)' },
     { key: 'contracts',      href: '/dashboard/contracts',    icon: FileText,        label: s.contracts,      plans: null,             activeColor: '#8B5CF6', activeBg: 'rgba(139,92,246,0.12)' },
     { key: 'galleries',      href: '/dashboard/galleries',    icon: Images,          label: s.galleries,      plans: null,             activeColor: '#10B981', activeBg: 'rgba(16,185,129,0.12)' },
