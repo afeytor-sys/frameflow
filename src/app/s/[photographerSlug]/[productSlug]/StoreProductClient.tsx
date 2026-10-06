@@ -39,10 +39,15 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<OrderResult | null>(null)
 
+  const [loadError, setLoadError] = useState(false)
+
   useEffect(() => {
-    fetch(`/api/store/${photographerSlug}/${productSlug}`)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000)
+    fetch(`/api/store/${photographerSlug}/${productSlug}`, { signal: controller.signal })
       .then(r => {
-        if (!r.ok) { setNotFound(true); return null }
+        if (r.status === 404) { setNotFound(true); return null }
+        if (!r.ok) { setLoadError(true); return null }
         return r.json()
       })
       .then((json: Data | null) => {
@@ -50,7 +55,9 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
         setData(json)
         if (json.variants[0]) setVariantId(json.variants[0].id)
       })
-      .catch(() => setNotFound(true))
+      .catch(() => setLoadError(true))
+      .finally(() => clearTimeout(timer))
+    return () => { clearTimeout(timer); controller.abort() }
   }, [photographerSlug, productSlug])
 
   const selected = useMemo(() => data?.variants.find(v => v.id === variantId) ?? null, [data, variantId])
@@ -114,6 +121,16 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
 
   if (notFound) {
     return <Shell><p className="text-center py-20" style={{ color: '#7A7670' }}>Dieses Angebot ist nicht verfügbar.</p></Shell>
+  }
+  if (loadError) {
+    return (
+      <Shell>
+        <div className="text-center py-20 space-y-3">
+          <p style={{ color: '#111110' }}>Das Angebot konnte gerade nicht geladen werden.</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg text-sm text-white" style={{ background: '#111110' }}>Erneut versuchen</button>
+        </div>
+      </Shell>
+    )
   }
   if (!data) {
     return <Shell><p className="text-center py-20" style={{ color: '#7A7670' }}>Lädt…</p></Shell>
