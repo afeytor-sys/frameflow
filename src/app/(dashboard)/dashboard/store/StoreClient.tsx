@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 type Variant = { id: string; label: string; price_cents: number; sort_order: number }
+type Extra = { id: string; label: string; price_cents: number; sort_order: number }
 type Product = {
   id: string
   slug: string
@@ -13,6 +14,7 @@ type Product = {
   active: boolean
   gallery_id: string | null
   store_product_variants: Variant[]
+  store_product_extras: Extra[]
 }
 type Order = {
   id: string
@@ -83,6 +85,7 @@ export default function StoreClient({
   const [saving, setSaving] = useState(false)
 
   // New variant inputs per product
+  const [extraDraft, setExtraDraft] = useState<Record<string, { label: string; price: string }>>({})
   const [variantDraft, setVariantDraft] = useState<Record<string, { label: string; price: string }>>({})
 
   // New coupon form
@@ -113,7 +116,7 @@ export default function StoreClient({
       .single()
     setSaving(false)
     if (error) return toast.error(error.message.includes('duplicate') ? 'Es gibt schon ein Produkt mit diesem Namen.' : 'Fehler beim Erstellen.')
-    setProducts(prev => [{ ...(data as Omit<Product, 'store_product_variants'>), store_product_variants: [] }, ...prev])
+    setProducts(prev => [{ ...(data as Omit<Product, 'store_product_variants' | 'store_product_extras'>), store_product_variants: [], store_product_extras: [] }, ...prev])
     setNewTitle(''); setNewDesc(''); setNewGallery('')
     toast.success('Produkt erstellt')
   }
@@ -159,6 +162,37 @@ export default function StoreClient({
     if (error) return toast.error('Fehler')
     setProducts(prev => prev.map(p => p.id === productId
       ? { ...p, store_product_variants: p.store_product_variants.filter(v => v.id !== variantId) }
+      : p))
+  }
+
+  const addExtra = async (productId: string) => {
+    const d = extraDraft[productId]
+    if (!d?.label.trim() || !d?.price) return toast.error('Bezeichnung und Preis angeben.')
+    const cents = Math.round(parseFloat(d.price.replace(',', '.')) * 100)
+    if (!Number.isFinite(cents) || cents < 0) return toast.error('Ungültiger Preis.')
+    const product = products.find(p => p.id === productId)
+    const { data, error } = await supabase
+      .from('store_product_extras')
+      .insert({
+        product_id: productId,
+        label: d.label.trim(),
+        price_cents: cents,
+        sort_order: product?.store_product_extras.length ?? 0,
+      })
+      .select('id, label, price_cents, sort_order')
+      .single()
+    if (error) return toast.error('Fehler beim Hinzufügen')
+    setProducts(prev => prev.map(p => p.id === productId
+      ? { ...p, store_product_extras: [...p.store_product_extras, data as Extra] }
+      : p))
+    setExtraDraft(prev => ({ ...prev, [productId]: { label: '', price: '' } }))
+  }
+
+  const deleteExtra = async (productId: string, extraId: string) => {
+    const { error } = await supabase.from('store_product_extras').delete().eq('id', extraId)
+    if (error) return toast.error('Fehler')
+    setProducts(prev => prev.map(p => p.id === productId
+      ? { ...p, store_product_extras: p.store_product_extras.filter(x => x.id !== extraId) }
       : p))
   }
 
@@ -287,6 +321,27 @@ export default function StoreClient({
                   <input className="input-base" placeholder="z.B. 35 Seiten" value={variantDraft[p.id]?.label ?? ''} onChange={e => setVariantDraft(prev => ({ ...prev, [p.id]: { label: e.target.value, price: prev[p.id]?.price ?? '' } }))} />
                   <input className="input-base" placeholder="Preis €" inputMode="decimal" value={variantDraft[p.id]?.price ?? ''} onChange={e => setVariantDraft(prev => ({ ...prev, [p.id]: { label: prev[p.id]?.label ?? '', price: e.target.value } }))} />
                   <button onClick={() => addVariant(p.id)} className="px-4 rounded-lg text-sm font-semibold text-white" style={{ background: 'var(--accent)' }}>Hinzufügen</button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Extras (optional)</p>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  Zusätzliche Optionen, die der Kunde dazubuchen kann, z.B. „Geschenkbox“ oder „+10 Seiten“. Der Preis wird zum Gesamtbetrag addiert.
+                </p>
+                {p.store_product_extras.map(x => (
+                  <div key={x.id} className="flex items-center justify-between text-sm py-2 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-primary)' }}>{x.label}</span>
+                    <span className="flex items-center gap-4">
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>+ {euro(x.price_cents)}</span>
+                      <button onClick={() => deleteExtra(p.id, x.id)} className="text-xs" style={{ color: '#C43B2C' }}>Entfernen</button>
+                    </span>
+                  </div>
+                ))}
+                <div className="flex gap-2 pt-2">
+                  <input className="input-base" placeholder="z.B. Geschenkbox" value={extraDraft[p.id]?.label ?? ''} onChange={e => setExtraDraft(prev => ({ ...prev, [p.id]: { label: e.target.value, price: prev[p.id]?.price ?? '' } }))} />
+                  <input className="input-base" placeholder="Preis €" inputMode="decimal" value={extraDraft[p.id]?.price ?? ''} onChange={e => setExtraDraft(prev => ({ ...prev, [p.id]: { label: prev[p.id]?.label ?? '', price: e.target.value } }))} />
+                  <button onClick={() => addExtra(p.id)} className="px-4 rounded-lg text-sm font-semibold text-white" style={{ background: 'var(--accent)' }}>Hinzufügen</button>
                 </div>
               </div>
             </div>

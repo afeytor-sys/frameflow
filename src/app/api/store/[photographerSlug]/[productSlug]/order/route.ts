@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { applyDiscount, checkCouponUsable, findCoupon, paymentReference, type Coupon } from '@/lib/store'
+import { applyDiscount, checkCouponUsable, findCoupon, paymentReference, resolveExtras, type Coupon } from '@/lib/store'
 
 // Public: a client places an order for a store product.
 // All prices are computed here from the database — the client only sends a variant id.
@@ -12,7 +12,8 @@ export async function POST(
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
 
-  const { variantId, couponCode, clientName, clientEmail, shipping, favoritePhotoIds } = body as {
+  const { variantId, extraIds, couponCode, clientName, clientEmail, shipping, favoritePhotoIds } = body as {
+    extraIds?: string[]
     variantId?: string
     couponCode?: string
     clientName?: string
@@ -61,7 +62,8 @@ export async function POST(
     if (problem) return NextResponse.json({ error: problem }, { status: 400 })
   }
 
-  const subtotal = variant.price_cents
+  const extras = await resolveExtras(supabase, product.id, extraIds ?? [])
+  const subtotal = variant.price_cents + extras.reduce((sum, e) => sum + e.price_cents, 0)
   const discount = applyDiscount(subtotal, coupon)
   const total = subtotal - discount
   const orderId = crypto.randomUUID()
@@ -83,6 +85,7 @@ export async function POST(
       country: shipping.country.trim(),
     },
     favorite_photo_ids: Array.isArray(favoritePhotoIds) ? favoritePhotoIds : [],
+    extras,
     subtotal_cents: subtotal,
     discount_cents: discount,
     total_cents: total,

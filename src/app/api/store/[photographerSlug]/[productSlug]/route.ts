@@ -31,6 +31,12 @@ export async function GET(
     .eq('product_id', product.id)
     .order('sort_order', { ascending: true })
 
+  const { data: extras } = await supabase
+    .from('store_product_extras')
+    .select('id, label, price_cents, sort_order')
+    .eq('product_id', product.id)
+    .order('sort_order', { ascending: true })
+
   let photos: { id: string; thumbnail_url: string | null; storage_url: string; filename: string }[] = []
   if (product.gallery_id) {
     const { data } = await supabase
@@ -47,6 +53,7 @@ export async function GET(
     studioName: photographer.studio_name || photographer.full_name,
     product: { id: product.id, title: product.title, description: product.description, coverUrl: product.cover_url },
     variants: variants ?? [],
+    extras: extras ?? [],
     photos,
   })
 }

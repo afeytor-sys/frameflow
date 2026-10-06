@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 
 type Variant = { id: string; label: string; price_cents: number }
 type Photo = { id: string; thumbnail_url: string | null; storage_url: string; filename: string }
+type Extra = { id: string; label: string; price_cents: number }
 type Data = {
   studioName: string | null
   product: { id: string; title: string; description: string | null; coverUrl: string | null }
   variants: Variant[]
+  extras: Extra[]
   photos: Photo[]
 }
 type OrderResult = {
@@ -24,6 +26,7 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
   const [data, setData] = useState<Data | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [variantId, setVariantId] = useState('')
+  const [extraIds, setExtraIds] = useState<Set<string>>(new Set())
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -62,6 +65,20 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
 
   const selected = useMemo(() => data?.variants.find(v => v.id === variantId) ?? null, [data, variantId])
 
+  const toggleExtra = (id: string) => {
+    setExtraIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+    setApplied(null)
+  }
+
+  const extrasTotal = useMemo(() => {
+    if (!data) return 0
+    return data.extras.filter(x => extraIds.has(x.id)).reduce((sum, x) => sum + x.price_cents, 0)
+  }, [data, extraIds])
+
   const toggleFavorite = (id: string) => {
     setFavorites(prev => {
       const next = new Set(prev)
@@ -78,7 +95,7 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
     const res = await fetch(`/api/store/${photographerSlug}/${productSlug}/coupon`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ variantId, couponCode }),
+      body: JSON.stringify({ variantId, extraIds: Array.from(extraIds), couponCode }),
     })
     const json = await res.json().catch(() => ({}))
     setCheckingCoupon(false)
@@ -95,7 +112,8 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
     setCouponError(null)
   }
 
-  const finalTotal = selected ? selected.price_cents - (applied?.discountCents ?? 0) : null
+  const baseTotal = selected ? selected.price_cents + extrasTotal : null
+  const finalTotal = baseTotal !== null ? baseTotal - (applied?.discountCents ?? 0) : null
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,6 +124,7 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         variantId,
+        extraIds: Array.from(extraIds),
         couponCode: applied?.code || undefined,
         clientName: name,
         clientEmail: email,
@@ -214,6 +233,27 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
             </div>
           </section>
 
+          {data.extras.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="font-bold" style={{ color: '#111110' }}>Zusatzoptionen (optional)</h2>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {data.extras.map(x => {
+                  const on = extraIds.has(x.id)
+                  return (
+                    <label key={x.id} className="rounded-xl border p-4 cursor-pointer flex items-center justify-between"
+                      style={{ borderColor: on ? '#C4A47C' : '#E8E4DC', background: '#fff' }}>
+                      <span className="flex items-center gap-3">
+                        <input type="checkbox" checked={on} onChange={() => toggleExtra(x.id)} />
+                        <span style={{ color: '#111110' }}>{x.label}</span>
+                      </span>
+                      <span className="font-bold" style={{ color: '#111110' }}>+ {euro(x.price_cents)}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
           <section className="space-y-3">
             <h2 className="font-bold" style={{ color: '#111110' }}>{data.photos.length > 0 ? '4' : '3'}. Gutschein (optional)</h2>
             {applied ? (
@@ -243,9 +283,12 @@ export default function StoreProductClient({ photographerSlug, productSlug }: { 
 
           <div className="rounded-xl border p-5 flex items-center justify-between" style={{ borderColor: '#E8E4DC', background: '#fff' }}>
             <div className="space-y-1">
+              {selected && extrasTotal > 0 && !applied && (
+                <p className="text-sm" style={{ color: '#7A7670' }}>Album {euro(selected.price_cents)} + Extras {euro(extrasTotal)}</p>
+              )}
               {selected && applied && (
                 <p className="text-sm" style={{ color: '#7A7670' }}>
-                  Preis {euro(selected.price_cents)} · Rabatt −{euro(applied.discountCents)}
+                  Preis {euro(baseTotal ?? 0)} · Rabatt −{euro(applied.discountCents)}
                 </p>
               )}
               <p className="text-sm" style={{ color: '#7A7670' }}>Gesamtbetrag (inkl. MwSt.)</p>

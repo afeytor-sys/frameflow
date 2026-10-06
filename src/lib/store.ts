@@ -77,3 +77,20 @@ export async function getGalleryStoreBanner(
     fromCents: Math.min(...prices),
   }
 }
+
+export type ExtraLine = { label: string; price_cents: number }
+
+// Loads the chosen extras of a product from the database. Ids that don't belong to the product are ignored.
+export async function resolveExtras(
+  supabase: SupabaseClient,
+  productId: string,
+  extraIds: string[],
+): Promise<ExtraLine[]> {
+  if (!Array.isArray(extraIds) || extraIds.length === 0) return []
+  const { data } = await supabase
+    .from('store_product_extras')
+    .select('id, label, price_cents')
+    .eq('product_id', productId)
+    .in('id', extraIds)
+  return ((data ?? []) as { label: string; price_cents: number }[]).map(e => ({ label: e.label, price_cents: e.price_cents }))
+}

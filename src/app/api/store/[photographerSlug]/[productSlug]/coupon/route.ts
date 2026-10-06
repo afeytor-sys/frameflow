@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { applyDiscount, checkCouponUsable, findCoupon } from '@/lib/store'
+import { applyDiscount, checkCouponUsable, findCoupon, resolveExtras } from '@/lib/store'
 
 // Public: preview a coupon against a variant without creating an order.
 export async function POST(
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { photographerSlug, productSlug } = await params
   const body = await req.json().catch(() => null)
-  const { variantId, couponCode } = (body ?? {}) as { variantId?: string; couponCode?: string }
+  const { variantId, extraIds, couponCode } = (body ?? {}) as { variantId?: string; extraIds?: string[]; couponCode?: string }
 
   if (!variantId || !couponCode?.trim()) {
     return NextResponse.json({ error: 'Bitte einen Gutscheincode eingeben.' }, { status: 400 })
@@ -46,11 +46,13 @@ export async function POST(
   const problem = checkCouponUsable(coupon)
   if (problem) return NextResponse.json({ error: problem }, { status: 400 })
 
-  const discountCents = applyDiscount(variant.price_cents, coupon)
+  const extras = await resolveExtras(supabase, product.id, extraIds ?? [])
+  const subtotal = variant.price_cents + extras.reduce((sum, e) => sum + e.price_cents, 0)
+  const discountCents = applyDiscount(subtotal, coupon)
   return NextResponse.json({
     code: coupon.code,
-    subtotalCents: variant.price_cents,
+    subtotalCents: subtotal,
     discountCents,
-    totalCents: variant.price_cents - discountCents,
+    totalCents: subtotal - discountCents,
   })
 }

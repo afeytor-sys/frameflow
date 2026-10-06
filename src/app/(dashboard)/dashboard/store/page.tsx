@@ -19,7 +19,7 @@ export default async function StorePage() {
   const [{ data: products }, { data: galleries }, { data: orders }, { data: coupons }] = await Promise.all([
     supabase
       .from('store_products')
-      .select('id, slug, title, description, active, gallery_id, store_product_variants(id, label, price_cents, sort_order)')
+      .select('id, slug, title, description, active, gallery_id, store_product_variants(id, label, price_cents, sort_order), store_product_extras(id, label, price_cents, sort_order)')
       .eq('photographer_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
