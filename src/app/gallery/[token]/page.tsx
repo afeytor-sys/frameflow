@@ -389,6 +389,11 @@ async function renderPublicGalleryPage(params: Promise<{ token: string }>) {
     ? ((gallery as { tags_enabled?: string[] | null }).tags_enabled?.length ?? 0) > 0
     : true
 
+  // Must be declared before renderGallery is defined/called below — galleries
+  // with a password call renderGallery well before the end of this function,
+  // and renderGallery's body reads storeBanner from this closure.
+  const storeBanner = await getGalleryStoreBanner(supabase, gallery.id)
+
   function renderGallery(sortedPhotos: typeof allPhotos, fullAccess = false) {
     // Search cover in ALL photos (not just sortedPhotos) so private cover photos
     // still work as hero image without being exposed in the public photo list
@@ -692,6 +697,5 @@ async function renderPublicGalleryPage(params: Promise<{ token: string }>) {
   }
 
   // No password: show only non-private photos publicly
-  const storeBanner = await getGalleryStoreBanner(supabase, gallery.id)
   return renderGallery(publicPhotos)
 }
