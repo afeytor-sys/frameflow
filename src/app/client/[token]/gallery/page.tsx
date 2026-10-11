@@ -9,6 +9,26 @@ import { getGalleryStoreBanner } from '@/lib/store'
 import StoreBanner from '@/components/client-portal/StoreBanner'
 
 export default async function ClientGalleryPage({ params }: { params: Promise<{ token: string }> }) {
+  // Long chain of sequential, unguarded Supabase calls below — a single
+  // transient failure anywhere throws and crashes the whole page with a
+  // generic Next.js error screen. Catch it and show something actionable.
+  try {
+    return await renderClientGalleryPage(params)
+  } catch (err) {
+    console.error('[client/[token]/gallery] page render failed:', err)
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Images style={{ width: 28, height: 28, color: 'var(--text-muted)' }} />
+        </div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Galerie konnte nicht geladen werden</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', maxWidth: 360 }}>Bitte lade die Seite in ein paar Sekunden neu.</p>
+      </div>
+    )
+  }
+}
+
+async function renderClientGalleryPage(params: Promise<{ token: string }>) {
   const { token } = await params
   const supabase = createServiceClient()
 

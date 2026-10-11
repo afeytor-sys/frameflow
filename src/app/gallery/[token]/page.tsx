@@ -130,6 +130,28 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
 }
 
 export default async function PublicGalleryPage({ params }: { params: Promise<{ token: string }> }) {
+  // The body below makes a long chain of sequential, unguarded Supabase calls.
+  // A single transient failure anywhere in that chain (Supabase has had brief
+  // instability before) throws and crashes the whole page with a generic
+  // Next.js error screen. Catch it here and show something a client can
+  // actually act on instead.
+  try {
+    return await renderPublicGalleryPage(params)
+  } catch (err) {
+    console.error('[gallery/[token]] page render failed:', err)
+    return (
+      <div style={{ minHeight: '100vh', background: '#F8F7F4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#F0EEE9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <Images style={{ width: 28, height: 28, color: '#9A9590' }} />
+        </div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: '#111110', letterSpacing: '-0.02em' }}>Galerie konnte nicht geladen werden</h2>
+        <p style={{ color: '#7A7670', fontSize: '0.875rem', maxWidth: 360 }}>Bitte lade die Seite in ein paar Sekunden neu. Falls es weiterhin nicht klappt, kontaktiere deinen Fotografen.</p>
+      </div>
+    )
+  }
+}
+
+async function renderPublicGalleryPage(params: Promise<{ token: string }>) {
   const { token } = await params
   const supabase = createServiceClient()
 
