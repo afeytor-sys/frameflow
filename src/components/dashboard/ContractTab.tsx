@@ -319,6 +319,29 @@ export default function ContractTab({
     setSaving(false)
   }
 
+  // For photographers who share the contract via the client portal link
+  // instead of the in-app "Send to client" email — just reflects reality
+  // in the status badge, no email is sent.
+  const handleMarkAsSent = async (contract: Contract) => {
+    setSaving(true)
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('contracts')
+      .update({ status: 'sent', sent_at: new Date().toISOString() })
+      .eq('id', contract.id)
+
+    if (error) {
+      toast.error('Error updating status')
+    } else {
+      setContracts((prev) =>
+        prev.map((c) => c.id === contract.id ? { ...c, status: 'sent' as const, sent_at: new Date().toISOString() } : c)
+      )
+      setActiveContract((prev) => prev ? { ...prev, status: 'sent', sent_at: new Date().toISOString() } : prev)
+      toast.success('Als gesendet markiert')
+    }
+    setSaving(false)
+  }
+
   const handleSend = async (contract: Contract) => {
     if (!clientEmail) {
       toast.error('No email address found for this client')
@@ -813,6 +836,19 @@ export default function ContractTab({
                     Planen
                   </button>
                 )}
+                {/* For photographers who share the portal link directly instead of using Send to client */}
+                <button
+                  onClick={() => handleMarkAsSent(activeContract)}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                  style={{ border: '1px solid var(--border-color)', color: 'var(--text-muted)', background: 'transparent' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  title="Nutze das, wenn du den Vertrag über den Portal-Link geteilt hast, statt über Send to client"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Als gesendet markieren
+                </button>
                 {/* Scheduled badge */}
                 {scheduledAt && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.20)' }}>
