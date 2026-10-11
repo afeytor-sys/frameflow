@@ -18,6 +18,20 @@ import type { Metadata } from 'next'
 export const revalidate = 60
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  // Same unguarded-Supabase-chain risk as the page body below: if this
+  // throws, Next.js fails the whole route, not just the metadata — a
+  // transient failure here would crash the page even with the page body
+  // itself wrapped in try/catch. Metadata is non-critical, so on any
+  // failure just fall back to no metadata rather than taking the page down.
+  try {
+    return await buildGalleryMetadata(params)
+  } catch (err) {
+    console.error('[gallery/[token]] generateMetadata failed:', err)
+    return {}
+  }
+}
+
+async function buildGalleryMetadata(params: Promise<{ token: string }>): Promise<Metadata> {
   const { token } = await params
   const supabase = createServiceClient()
 
