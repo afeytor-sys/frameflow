@@ -13,6 +13,7 @@ interface BookingType {
   description: string | null
   duration_minutes: number
   location_type: 'studio' | 'external' | 'online'
+  location_text: string | null
   price: number
   currency: string
   availability_type: 'recurring' | 'slots' | 'request'
@@ -329,9 +330,22 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                       <Clock className="w-4 h-4 flex-shrink-0 text-gray-400" />
                       <span>{bt.duration_minutes} Minuten</span>
                     </div>
-                    <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#374151' }}>
-                      {bt.location_type === 'online' ? <Video className="w-4 h-4 flex-shrink-0 text-gray-400" /> : <MapPin className="w-4 h-4 flex-shrink-0 text-gray-400" />}
-                      <span>{LOCATION_LABEL[bt.location_type]}</span>
+                    <div className="flex items-start gap-2.5 text-[13px]" style={{ color: '#374151' }}>
+                      {bt.location_type === 'online' ? <Video className="w-4 h-4 flex-shrink-0 text-gray-400 mt-0.5" /> : <MapPin className="w-4 h-4 flex-shrink-0 text-gray-400 mt-0.5" />}
+                      <div className="min-w-0">
+                        <span>{LOCATION_LABEL[bt.location_type]}</span>
+                        {bt.location_type !== 'online' && bt.location_text && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-[12px] mt-0.5 font-medium underline underline-offset-2"
+                            style={{ color: '#C9A96E' }}
+                          >
+                            {bt.location_text} →
+                          </a>
+                        )}
+                      </div>
                     </div>
                     {bt.price > 0 && (
                       <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#C9A96E' }}>
@@ -380,6 +394,17 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                   <div className="px-4 py-3.5" style={{ borderBottom: '1px solid #F3F4F6' }}>
                     <p className="font-bold text-[13px]" style={{ color: '#111' }}>{formatDate(selectedDate)}</p>
                     <p className="text-[11px] text-gray-400 mt-0.5">{bt.duration_minutes} Min. · {LOCATION_LABEL[bt.location_type]}</p>
+                    {bt.location_type !== 'online' && bt.location_text && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block text-[11px] mt-1 font-medium underline underline-offset-2"
+                        style={{ color: '#C9A96E' }}
+                      >
+                        📍 {bt.location_text}
+                      </a>
+                    )}
                   </div>
 
                   <div className="p-4">
@@ -443,6 +468,17 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                   {selectedDate && formatDate(selectedDate)} um {selectedTime} Uhr
                 </p>
                 <p className="text-[12px] text-gray-500">{bt.title} · {bt.duration_minutes} Min.</p>
+                {bt.location_type !== 'online' && bt.location_text && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-[12px] mt-0.5 font-medium underline underline-offset-2"
+                    style={{ color: '#C9A96E' }}
+                  >
+                    📍 {bt.location_text}
+                  </a>
+                )}
               </div>
             </div>
 
