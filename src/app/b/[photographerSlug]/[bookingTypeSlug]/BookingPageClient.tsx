@@ -14,6 +14,7 @@ interface BookingType {
   duration_minutes: number
   location_type: 'studio' | 'external' | 'online'
   location_text: string | null
+  location_map_url: string | null
   price: number
   currency: string
   availability_type: 'recurring' | 'slots' | 'request'
@@ -76,6 +77,21 @@ const LOCATION_LABEL: Record<string, string> = {
   studio: 'Studio',
   external: 'Outdoor / Extern',
   online: 'Online (Google Meet)',
+}
+
+// Prefer the photographer's explicit Maps link (points at the exact spot);
+// fall back to a text search from the meeting point name.
+function mapsUrl(bt: { location_map_url: string | null; location_text: string | null }): string | null {
+  if (bt.location_map_url) return bt.location_map_url
+  if (bt.location_text) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`
+  return null
+}
+
+// No-API-key embed: a plain Google Maps iframe searching the meeting point
+// name. Always built from the name (not the link), since short links like
+// maps.app.goo.gl can't be framed.
+function mapsEmbedUrl(locationText: string | null): string | null {
+  return locationText ? `https://www.google.com/maps?q=${encodeURIComponent(locationText)}&output=embed` : null
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -336,7 +352,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                         <span>{LOCATION_LABEL[bt.location_type]}</span>
                         {bt.location_type !== 'online' && bt.location_text && (
                           <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`}
+                            href={mapsUrl(bt) ?? undefined}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block text-[12px] mt-0.5 font-medium underline underline-offset-2"
@@ -347,6 +363,19 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                         )}
                       </div>
                     </div>
+                    {bt.location_type !== 'online' && mapsEmbedUrl(bt.location_text) && (
+                      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #F3F4F6' }}>
+                        <iframe
+                          src={mapsEmbedUrl(bt.location_text) ?? undefined}
+                          width="100%"
+                          height="140"
+                          style={{ border: 0, display: 'block' }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title="Treffpunkt auf der Karte"
+                        />
+                      </div>
+                    )}
                     {bt.price > 0 && (
                       <div className="flex items-center gap-2.5 text-[13px]" style={{ color: '#C9A96E' }}>
                         <Euro className="w-4 h-4 flex-shrink-0" />
@@ -396,7 +425,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                     <p className="text-[11px] text-gray-400 mt-0.5">{bt.duration_minutes} Min. · {LOCATION_LABEL[bt.location_type]}</p>
                     {bt.location_type !== 'online' && bt.location_text && (
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`}
+                        href={mapsUrl(bt) ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block text-[11px] mt-1 font-medium underline underline-offset-2"
@@ -470,7 +499,7 @@ export default function BookingPageClient({ photographer, bookingType: bt }: Pro
                 <p className="text-[12px] text-gray-500">{bt.title} · {bt.duration_minutes} Min.</p>
                 {bt.location_type !== 'online' && bt.location_text && (
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bt.location_text)}`}
+                    href={mapsUrl(bt) ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block text-[12px] mt-0.5 font-medium underline underline-offset-2"

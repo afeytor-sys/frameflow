@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
   const {
     title, description, duration_minutes = 60, location_type = 'external',
     location_text = null,
+    location_map_url = null,
     price = 0, currency = 'EUR', availability_type = 'recurring',
     buffer_minutes = 0, max_advance_days = 60, min_notice_hours = 24,
     questions = [], anzahlung_enabled = false, anzahlung_type, anzahlung_amount,
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       photographer_id: user.id,
       slug, title: title.trim(), description, duration_minutes, location_type,
       location_text: location_text || null,
+      location_map_url: location_map_url || null,
       price, currency, availability_type, buffer_minutes, max_advance_days,
       min_notice_hours, questions, specific_slots,
       anzahlung_enabled,

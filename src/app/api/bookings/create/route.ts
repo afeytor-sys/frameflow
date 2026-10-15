@@ -288,6 +288,7 @@ export async function POST(req: NextRequest) {
           durationMinutes: bt.duration_minutes,
           locationType: bt.location_type,
           locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
+          locationMapUrl: (bt as unknown as { location_map_url?: string | null }).location_map_url ?? null,
           depositAmount: deposit_amount,
           payment_reference,
           meetLink: google_meet_link,
@@ -324,6 +325,7 @@ export async function POST(req: NextRequest) {
               durationMinutes: bt.duration_minutes,
               locationType: bt.location_type,
               locationText: (bt as unknown as { location_text?: string | null }).location_text ?? null,
+              locationMapUrl: (bt as unknown as { location_map_url?: string | null }).location_map_url ?? null,
               meetLink: google_meet_link,
               confirmUrl,
               portalUrl: `${process.env.NEXT_PUBLIC_APP_URL}/b/booking/${booking.id}`,
@@ -397,8 +399,8 @@ function buildNewBookingEmail(data: {
 }
 
 
-function buildLocationBlock(locationText: string): string {
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`
+function buildLocationBlock(locationText: string, locationMapUrl?: string | null): string {
+  const mapsUrl = locationMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#F0FDF4;border-radius:12px;border:1px solid #BBF7D0;">
     <tr><td style="padding:16px 20px;">
@@ -420,6 +422,7 @@ function buildClientConfirmationEmail(data: {
   durationMinutes: number
   locationType: string
   locationText: string | null
+  locationMapUrl: string | null
   depositAmount: number | null
   payment_reference: string | null
   meetLink: string | null
@@ -455,7 +458,7 @@ function buildClientConfirmationEmail(data: {
     : ''
 
   const locationBlock = data.locationText && data.locationType !== 'online'
-    ? buildLocationBlock(data.locationText)
+    ? buildLocationBlock(data.locationText, data.locationMapUrl)
     : ''
 
   const extraParts = [depositBlock, meetBlock, locationBlock].filter(Boolean).join('<div style="height:12px;"></div>')
@@ -490,6 +493,7 @@ function buildClientReminderEmail(data: {
   durationMinutes: number
   locationType: string
   locationText: string | null
+  locationMapUrl: string | null
   meetLink: string | null
   confirmUrl: string
   portalUrl: string
@@ -510,7 +514,7 @@ function buildClientReminderEmail(data: {
     : ''
 
   const locationBlock = data.locationText && data.locationType !== 'online'
-    ? buildLocationBlock(data.locationText)
+    ? buildLocationBlock(data.locationText, data.locationMapUrl)
     : ''
 
   const extraParts = [meetBlock, locationBlock].filter(Boolean).join('<div style="height:12px;"></div>')

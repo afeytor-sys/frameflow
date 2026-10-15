@@ -27,6 +27,7 @@ interface BookingType {
   duration_minutes: number
   location_type: 'studio' | 'external' | 'online'
   location_text: string | null
+  location_map_url: string | null
   price: number
   currency: string
   availability_type: 'recurring' | 'slots' | 'request'
@@ -93,6 +94,7 @@ const DEFAULT_FORM: Omit<BookingType, 'id' | 'booking_recurring_availability'> =
   duration_minutes: 60,
   location_type: 'external',
   location_text: '',
+  location_map_url: '',
   price: 0,
   currency: 'EUR',
   availability_type: 'recurring',
@@ -178,6 +180,7 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
       duration_minutes: bt.duration_minutes,
       location_type: bt.location_type,
       location_text: bt.location_text ?? '',
+      location_map_url: bt.location_map_url ?? '',
       price: bt.price / 100,
       currency: bt.currency,
       availability_type: bt.availability_type,
@@ -764,20 +767,37 @@ export default function BookingTypesClient({ photographer, initialBookingTypes }
                   </div>
 
                   {form.location_type !== 'online' && (
-                    <div>
-                      <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                        Treffpunkt / Adresse
-                      </label>
-                      <input
-                        className="w-full px-3 py-2 rounded-xl text-[14px]"
-                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                        value={form.location_text ?? ''}
-                        onChange={e => setForm(f => ({ ...f, location_text: e.target.value }))}
-                        placeholder="z.B. Mauerpark, Berlin oder Kurfürstendamm 1, 10719 Berlin"
-                      />
-                      <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                        Wird in der Buchungsbestätigung und Erinnerung als Google Maps Link angezeigt.
-                      </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                          Treffpunkt Name
+                        </label>
+                        <input
+                          className="w-full px-3 py-2 rounded-xl text-[14px]"
+                          style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                          value={form.location_text ?? ''}
+                          onChange={e => setForm(f => ({ ...f, location_text: e.target.value }))}
+                          placeholder="z.B. Mauerpark, Berlin oder Kurfürstendamm 1, 10719 Berlin"
+                        />
+                        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                          Wird als Adresse angezeigt und für die Mini-Karte verwendet.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                          Google Maps Link (optional)
+                        </label>
+                        <input
+                          className="w-full px-3 py-2 rounded-xl text-[14px]"
+                          style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                          value={form.location_map_url ?? ''}
+                          onChange={e => setForm(f => ({ ...f, location_map_url: e.target.value }))}
+                          placeholder="z.B. https://maps.app.goo.gl/..."
+                        />
+                        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                          Wird in der Buchungsbestätigung, Erinnerung und auf der Buchungsseite als &quot;In Google Maps öffnen&quot; verlinkt. Leer lassen, um stattdessen automatisch nach dem Treffpunkt-Namen zu suchen.
+                        </p>
+                      </div>
                     </div>
                   )}
 
