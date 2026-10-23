@@ -780,22 +780,29 @@ export default function ContractTab({
               </button>
             )}
 
+            {/* Editing is allowed any time before the contract is signed — a
+                client who already viewed/received it may still spot something
+                that needs changing. */}
+            {activeContract.status !== 'signed' && (
+              <button
+                onClick={() => handleUpdate(activeContract)}
+                disabled={saving}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                style={{
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                title={activeContract.status !== 'draft' ? 'Vertrag wurde bereits geteilt — Änderungen gelten sofort auf dem Portal-Link' : undefined}
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            )}
+
             {activeContract.status === 'draft' && (
               <>
-                <button
-                  onClick={() => handleUpdate(activeContract)}
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                  style={{
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    background: 'transparent',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
                 <button
                   onClick={() => {
                     setPendingSendContract(activeContract)
@@ -1013,7 +1020,7 @@ export default function ContractTab({
             return baseContent
           })()}
           onChange={setContent}
-          editable={activeContract.status === 'draft'}
+          editable={activeContract.status !== 'signed'}
         />
 
         {/* ── Photographer signature block ── */}
