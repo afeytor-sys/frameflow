@@ -4,12 +4,13 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
+import Highlight from '@tiptap/extension-highlight'
 import { Mark } from '@tiptap/core'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
-  Undo, Redo, Braces,
+  Undo, Redo, Braces, Highlighter,
 } from 'lucide-react'
 
 // ── TipTap extension: recognises <span class="contract-variable"> ─────────
@@ -186,6 +187,7 @@ export default function ContractEditor({
       }),
       Placeholder.configure({ placeholder }),
       Link.configure({ openOnClick: false }),
+      Highlight.configure({ HTMLAttributes: { style: 'background-color:#FDE68A;border-radius:2px;' } }),
       ContractVariable,
     ],
     content,
@@ -261,8 +263,8 @@ export default function ContractEditor({
     >
       {editable && (
         <div
-          className="flex items-center gap-0.5 px-3 py-2 flex-wrap"
-          style={{ borderBottom: '1px solid var(--border-color)' }}
+          className="flex items-center gap-0.5 px-3 py-2 flex-wrap sticky top-0 z-20"
+          style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}
         >
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -277,6 +279,13 @@ export default function ContractEditor({
             title="Kursiv"
           >
             <Italic className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHighlight().run()}
+            active={editor.isActive('highlight')}
+            title="Markieren (gelb)"
+          >
+            <Highlighter className="w-3.5 h-3.5" style={editor.isActive('highlight') ? undefined : { color: '#CA8A04' }} />
           </ToolbarButton>
 
           <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
