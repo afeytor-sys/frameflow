@@ -61,6 +61,11 @@ const T = {
     createTemplate: 'Create template',
     preview: 'Preview',
     use: 'Use',
+    edit: 'Edit',
+    editTemplate: 'Edit template',
+    editTemplateDesc: 'Update your saved contract template',
+    saveChanges: 'Save changes',
+    templateUpdated: 'Template updated!',
     deleteTemplateConfirm: 'Really delete this template?',
     templateDeleted: 'Template deleted',
     createNewTemplate: 'Create new template',
@@ -106,6 +111,11 @@ const T = {
     createTemplate: 'Vorlage erstellen',
     preview: 'Vorschau',
     use: 'Verwenden',
+    edit: 'Bearbeiten',
+    editTemplate: 'Vorlage bearbeiten',
+    editTemplateDesc: 'Gespeicherte Vertragsvorlage aktualisieren',
+    saveChanges: 'Änderungen speichern',
+    templateUpdated: 'Vorlage aktualisiert!',
     deleteTemplateConfirm: 'Diese Vorlage wirklich löschen?',
     templateDeleted: 'Vorlage gelöscht',
     createNewTemplate: 'Neue Vorlage erstellen',
@@ -153,8 +163,10 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
   // Preview modal
   const [previewKey, setPreviewKey] = useState<TemplateKey | null>(null)
 
-  // New template modal
+  // New/edit template modal — editingTemplateId set means we're editing
+  // an existing user template instead of creating a new one.
   const [showNewTemplateModal, setShowNewTemplateModal] = useState(false)
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [newTplName, setNewTplName] = useState('')
   const [newTplDesc, setNewTplDesc] = useState('')
   const [newTplContent, setNewTplContent] = useState('')
@@ -213,6 +225,32 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
     router.push(`/dashboard/projects/${selectedProject}?tab=contracts`)
   }
 
+  const openNewTemplate = () => {
+    setEditingTemplateId(null)
+    setNewTplName('')
+    setNewTplDesc('')
+    setNewTplContent('')
+    setEditorKey(k => k + 1)
+    setShowNewTemplateModal(true)
+  }
+
+  const openEditTemplate = (tpl: UserTemplate) => {
+    setEditingTemplateId(tpl.id)
+    setNewTplName(tpl.name)
+    setNewTplDesc(tpl.description ?? '')
+    setNewTplContent(tpl.content)
+    setEditorKey(k => k + 1)
+    setShowNewTemplateModal(true)
+  }
+
+  const closeTemplateModal = () => {
+    setShowNewTemplateModal(false)
+    setEditingTemplateId(null)
+    setNewTplName('')
+    setNewTplDesc('')
+    setNewTplContent('')
+  }
+
   const handleDeleteUserTemplate = async (id: string) => {
     if (!confirm(t.deleteTemplateConfirm)) return
     const supabase = createClient()
@@ -221,11 +259,33 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
     toast.success(t.templateDeleted)
   }
 
-  const handleCreateTemplate = async () => {
+  const handleSaveTemplate = async () => {
     if (!newTplName.trim()) { toast.error(t.errorName); return }
     setSavingTemplate(true)
     try {
       const supabase = createClient()
+
+      if (editingTemplateId) {
+        const { data, error } = await supabase
+          .from('contract_templates')
+          .update({
+            name: newTplName.trim(),
+            description: newTplDesc.trim() || null,
+            content: newTplContent,
+          })
+          .eq('id', editingTemplateId)
+          .select().single()
+        if (error) {
+          toast.error(`${t.errorSaving}: ${error.message}`)
+          setSavingTemplate(false)
+          return
+        }
+        setUserTemplates(prev => prev.map(tpl => tpl.id === editingTemplateId ? (data as UserTemplate) : tpl))
+        closeTemplateModal()
+        toast.success(t.templateUpdated)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setSavingTemplate(false); return }
       const { data, error } = await supabase
@@ -245,10 +305,7 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
         return
       }
       setUserTemplates(prev => [...prev, data as UserTemplate])
-      setShowNewTemplateModal(false)
-      setNewTplName('')
-      setNewTplDesc('')
-      setNewTplContent('')
+      closeTemplateModal()
       toast.success(t.successTemplateSaved)
     } catch (err) {
       console.error(err)
@@ -299,7 +356,7 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
           </p>
         </div>
         <button
-          onClick={() => setShowNewTemplateModal(true)}
+          onClick={openNewTemplate}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all hover:opacity-88 active:scale-[0.98] flex-shrink-0"
           style={{ background: 'var(--accent)', boxShadow: '0 1px 8px rgba(196,164,124,0.30)' }}
         >
@@ -344,16 +401,28 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
                       >
                         <BookMarked className="w-5 h-5" style={{ color: accent.color }} />
                       </div>
-                      <button
-                        onClick={() => handleDeleteUserTemplate(tpl.id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                        style={{ color: 'var(--text-muted)' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                        title={locale === 'de' ? 'Vorlage löschen' : 'Delete template'}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={() => openEditTemplate(tpl)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                          style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = accent.color; e.currentTarget.style.background = accent.bg }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                          title={t.editTemplate}
+                        >
+                          <PenLine className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUserTemplate(tpl.id)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                          style={{ color: 'var(--text-muted)' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = '#E84C1A'; e.currentTarget.style.background = 'rgba(232,76,26,0.10)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                          title={locale === 'de' ? 'Vorlage löschen' : 'Delete template'}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{tpl.name}</p>
@@ -397,7 +466,7 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Create new template card */}
           <button
-            onClick={() => setShowNewTemplateModal(true)}
+            onClick={openNewTemplate}
             className="rounded-xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01] text-left group"
             style={{ background: 'var(--bg-surface)', border: '2px dashed var(--border-color)' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
@@ -478,11 +547,11 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
           <div className="modal-glass w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col" style={{ height: 'min(92vh, 900px)' }}>
             <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
               <div>
-                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{t.createNewTemplate}</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.createNewTemplateDesc}</p>
+                <h2 className="font-black text-[17px]" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{editingTemplateId ? t.editTemplate : t.createNewTemplate}</h2>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{editingTemplateId ? t.editTemplateDesc : t.createNewTemplateDesc}</p>
               </div>
               <button
-                onClick={() => setShowNewTemplateModal(false)}
+                onClick={closeTemplateModal}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
@@ -531,16 +600,16 @@ export default function TemplatesClient({ userTemplates: initialUserTemplates, p
             </div>
 
             <div className="flex gap-3 px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setShowNewTemplateModal(false)} className="btn-secondary flex-1">{t.cancel}</button>
+              <button onClick={closeTemplateModal} className="btn-secondary flex-1">{t.cancel}</button>
               <button
-                onClick={handleCreateTemplate}
+                onClick={handleSaveTemplate}
                 disabled={savingTemplate || !newTplName.trim()}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40 transition-all hover:opacity-90"
                 style={{ background: 'var(--accent)' }}
               >
                 {savingTemplate
                   ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><BookMarked className="w-4 h-4" />{t.saveTemplate}</>
+                  : <><BookMarked className="w-4 h-4" />{editingTemplateId ? t.saveChanges : t.saveTemplate}</>
                 }
               </button>
             </div>
