@@ -76,10 +76,21 @@ describe('sanitizeHiddenFieldValue', () => {
     expect(sanitizeHiddenFieldValue('google\nads\t\r')).toBe('google ads')
   })
 
-  it('truncates to 200 characters', () => {
+  it('strips HTML tags', () => {
+    expect(sanitizeHiddenFieldValue('<script>alert(1)</script>')).toBe('alert(1)')
+    expect(sanitizeHiddenFieldValue('<b>google</b>-ads')).toBe('google-ads')
+    expect(sanitizeHiddenFieldValue('<img src=x onerror=alert(1)>')).toBe('')
+  })
+
+  it('neutralizes stray/incomplete angle brackets', () => {
+    expect(sanitizeHiddenFieldValue('google-ads<')).toBe('google-ads')
+    expect(sanitizeHiddenFieldValue('>google-ads')).toBe('google-ads')
+  })
+
+  it('truncates to 100 characters', () => {
     const raw = 'a'.repeat(500)
     const result = sanitizeHiddenFieldValue(raw)
-    expect(result.length).toBe(200)
+    expect(result.length).toBe(100)
   })
 })
 
@@ -128,7 +139,15 @@ describe('resolveHiddenFieldValues', () => {
   it('sanitizes the resolved value (trims and truncates)', () => {
     const longValue = 'x'.repeat(300)
     const resolved = resolveHiddenFieldValues([hiddenField], params({ quelle: `  ${longValue}  ` }))
-    expect(resolved['source-field'].length).toBe(200)
+    expect(resolved['source-field'].length).toBe(100)
+  })
+
+  it('strips HTML from a value supplied via the URL parameter', () => {
+    const resolved = resolveHiddenFieldValues(
+      [hiddenField],
+      params({ quelle: '<script>alert(1)</script>google-ads' })
+    )
+    expect(resolved['source-field']).toBe('alert(1)google-ads')
   })
 
   it('ignores non-hidden fields entirely', () => {
@@ -202,6 +221,16 @@ describe('buildSubmissionMessage', () => {
       {}
     )
     expect(message).toContain('Quelle: google-ads')
+  })
+
+  it('omits the hidden field entirely when no URL parameter was present — the form still works', () => {
+    const message = buildSubmissionMessage(
+      fields,
+      { message: 'Hi there' },
+      {}
+    )
+    expect(message).toBe('Hi there')
+    expect(message).not.toContain('Quelle')
   })
 
   it('joins selected checkbox options with a comma', () => {

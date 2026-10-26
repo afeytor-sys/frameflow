@@ -76,7 +76,7 @@ export async function getFormById(formId: string): Promise<PublicForm | null> {
 }
 
 const MAX_REDIRECT_URL_LENGTH = 2000
-const MAX_HIDDEN_FIELD_VALUE_LENGTH = 200
+const MAX_HIDDEN_FIELD_VALUE_LENGTH = 100
 
 /**
  * A redirect URL must be an absolute https:// URL, no longer than 2000
@@ -96,9 +96,11 @@ export function isValidRedirectUrl(value: string | null | undefined): boolean {
   return url.protocol === 'https:'
 }
 
-/** Plain text, newlines/control characters stripped, capped at 200 characters. */
+/** Plain text only: HTML tags, stray angle brackets, newlines and control characters stripped, capped at 100 characters. */
 export function sanitizeHiddenFieldValue(raw: string): string {
   return raw
+    .replace(/<[^>]*>/g, '') // strip HTML tags
+    .replace(/[<>]/g, '') // neutralize any stray/incomplete angle brackets
     .replace(/[\r\n\t\x00-\x1F\x7F]+/g, ' ')
     .trim()
     .slice(0, MAX_HIDDEN_FIELD_VALUE_LENGTH)

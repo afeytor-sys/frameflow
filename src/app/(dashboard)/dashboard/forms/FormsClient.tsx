@@ -31,7 +31,7 @@ const FIELD_TYPES: { value: FormField['type']; label: string }[] = [
   { value: 'select',   label: 'Dropdown' },
   { value: 'radio',    label: 'Radio' },
   { value: 'checkbox', label: 'Checkbox' },
-  { value: 'hidden',   label: 'Versteckt' },
+  { value: 'hidden',   label: 'Versteckt (aus URL-Parameter)' },
 ]
 
 // Quick presets for hidden fields used for source tracking (?quelle=..., ?utm_source=..., ...)
