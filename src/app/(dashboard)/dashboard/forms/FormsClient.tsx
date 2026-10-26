@@ -134,7 +134,11 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
     setDuplicatingId(form.id)
     try {
       const fields = form.fields && form.fields.length > 0 ? form.fields : DEFAULT_FIELDS
-      const fieldsWithNewIds = fields.map(f => ({ ...f, id: crypto.randomUUID(), core: undefined }))
+      // Core fields (name, email) must keep their fixed id/core flag — the public
+      // submit flow looks them up by id, and the API requires them to be present.
+      const fieldsWithNewIds = fields.map(f =>
+        f.id === 'name' || f.id === 'email' ? f : { ...f, id: crypto.randomUUID(), core: undefined }
+      )
       const res = await fetch('/api/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { FormField } from '@/lib/forms'
-import { DEFAULT_FIELDS, buildSubmissionMessage, getPostSubmitRedirect, resolveHiddenFieldValues } from '@/lib/forms'
+import { DEFAULT_FIELDS, buildSubmissionMessage, getPostSubmitRedirect, resolveCoreFieldValue, resolveHiddenFieldValues } from '@/lib/forms'
 
 // ── Inline translations (EN / DE) ─────────────────────────────────────────
 const translations = {
@@ -137,8 +137,8 @@ export default function DynamicForm({ formId, fields: rawFields, redirectUrl }: 
     if (!fieldsValid || !privacyAccepted) return
 
     // Extract core fields for API
-    const name = values['name']?.trim() ?? ''
-    const email = values['email']?.trim() ?? ''
+    const name = resolveCoreFieldValue(fields, values, 'name')
+    const email = resolveCoreFieldValue(fields, values, 'email')
 
     // Build message: use 'message' field if present, otherwise join all non-core values
     const message = buildSubmissionMessage(fields, values, multiValues)

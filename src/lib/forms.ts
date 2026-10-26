@@ -140,6 +140,27 @@ export function getPostSubmitRedirect(redirectUrl: string | null | undefined): s
 }
 
 /**
+ * Resolves the visitor's name/email from submitted field values. Looks up
+ * the canonical 'name'/'email' field id first; falls back to the field
+ * marked `core` (for name) or typed 'email' (for email) so a submission
+ * still captures the right value even if a form's core fields ever end up
+ * with a non-canonical id (e.g. from a buggy duplicate).
+ */
+export function resolveCoreFieldValue(
+  fields: FormField[],
+  values: Record<string, string>,
+  which: 'name' | 'email'
+): string {
+  const direct = values[which]?.trim()
+  if (direct) return direct
+
+  const fallbackField = fields.find(f =>
+    which === 'email' ? f.type === 'email' : f.core === true && f.type !== 'email'
+  )
+  return fallbackField ? (values[fallbackField.id]?.trim() ?? '') : ''
+}
+
+/**
  * Builds the flattened inquiry message from all non-core field values,
  * matching the "Label: value" convention already used by email
  * notifications and the inbox view. The dedicated 'message' field (if any)
@@ -152,7 +173,7 @@ export function buildSubmissionMessage(
 ): string {
   const messageParts: string[] = []
   for (const field of fields) {
-    if (field.id === 'name' || field.id === 'email') continue
+    if (field.id === 'name' || field.id === 'email' || field.core) continue
     if (field.type === 'checkbox') {
       const selected = multiValues[field.id] ?? []
       if (selected.length) messageParts.push(`${field.label}: ${selected.join(', ')}`)

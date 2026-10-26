@@ -3,6 +3,7 @@ import {
   isValidRedirectUrl,
   sanitizeHiddenFieldValue,
   resolveHiddenFieldValues,
+  resolveCoreFieldValue,
   getPostSubmitRedirect,
   buildSubmissionMessage,
   type FormField,
@@ -134,6 +135,35 @@ describe('resolveHiddenFieldValues', () => {
     const textField: FormField = { id: 'name', label: 'Name', type: 'text' }
     const resolved = resolveHiddenFieldValues([textField], params({ name: 'should-not-be-read' }))
     expect(resolved).toEqual({})
+  })
+})
+
+describe('resolveCoreFieldValue', () => {
+  const canonicalFields: FormField[] = [
+    { id: 'name', label: 'Name', type: 'text', core: true },
+    { id: 'email', label: 'Email', type: 'email', core: true },
+  ]
+
+  it('reads name/email directly when the field ids are canonical', () => {
+    const values = { name: 'Jane Doe', email: 'jane@example.com' }
+    expect(resolveCoreFieldValue(canonicalFields, values, 'name')).toBe('Jane Doe')
+    expect(resolveCoreFieldValue(canonicalFields, values, 'email')).toBe('jane@example.com')
+  })
+
+  it('falls back to the core-flagged / email-typed field when ids are not canonical (e.g. a buggy duplicate)', () => {
+    const malformedFields: FormField[] = [
+      { id: 'abc-123', label: 'Name', type: 'text', core: true },
+      { id: 'def-456', label: 'Email', type: 'email', core: true },
+    ]
+    const values = { 'abc-123': 'Jane Doe', 'def-456': 'jane@example.com' }
+    expect(resolveCoreFieldValue(malformedFields, values, 'name')).toBe('Jane Doe')
+    expect(resolveCoreFieldValue(malformedFields, values, 'email')).toBe('jane@example.com')
+  })
+
+  it('returns an empty string when no matching field can be found at all', () => {
+    const noCoreFields: FormField[] = [{ id: 'xyz', label: 'Something', type: 'text' }]
+    expect(resolveCoreFieldValue(noCoreFields, {}, 'name')).toBe('')
+    expect(resolveCoreFieldValue(noCoreFields, {}, 'email')).toBe('')
   })
 })
 
