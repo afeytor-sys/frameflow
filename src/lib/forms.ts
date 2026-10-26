@@ -3,11 +3,13 @@ import { createServiceClient } from '@/lib/supabase/service'
 export interface FormField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'email' | 'tel' | 'date' | 'select' | 'radio' | 'checkbox'
+  type: 'text' | 'textarea' | 'email' | 'tel' | 'date' | 'select' | 'radio' | 'checkbox' | 'hidden'
   required?: boolean
   placeholder?: string
   core?: boolean        // core fields (name, email) cannot be deleted
   options?: string[]
+  /** For type 'hidden': the URL query parameter this field's value is read from (e.g. "quelle", "utm_source"). */
+  queryParam?: string
 }
 
 export interface PublicForm {
@@ -16,6 +18,8 @@ export interface PublicForm {
   name: string
   fields: FormField[]
   created_at: string
+  /** Optional URL to redirect the visitor's browser to after a successful submit. */
+  redirect_url: string | null
 }
 
 export interface SubmitFormPayload {
@@ -62,13 +66,108 @@ export async function getFormById(formId: string): Promise<PublicForm | null> {
 
   const { data, error } = await supabase
     .from('forms')
-    .select('id, photographer_id, name, fields, created_at')
+    .select('id, photographer_id, name, fields, created_at, redirect_url')
     .eq('id', formId)
     .single()
 
   if (error || !data) return null
 
   return data as PublicForm
+}
+
+const MAX_REDIRECT_URL_LENGTH = 2000
+const MAX_HIDDEN_FIELD_VALUE_LENGTH = 200
+
+/**
+ * A redirect URL must be an absolute https:// URL, no longer than 2000
+ * characters. This also rejects javascript:/data: URLs, since those never
+ * have the "https" protocol.
+ */
+export function isValidRedirectUrl(value: string | null | undefined): boolean {
+  if (typeof value !== 'string' || value.length === 0 || value.length > MAX_REDIRECT_URL_LENGTH) {
+    return false
+  }
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    return false
+  }
+  return url.protocol === 'https:'
+}
+
+/** Plain text, newlines/control characters stripped, capped at 200 characters. */
+export function sanitizeHiddenFieldValue(raw: string): string {
+  return raw
+    .replace(/[\r\n\t\x00-\x1F\x7F]+/g, ' ')
+    .trim()
+    .slice(0, MAX_HIDDEN_FIELD_VALUE_LENGTH)
+}
+
+interface QueryParamSource {
+  get(key: string): string | null
+}
+
+/**
+ * Resolves the values for every 'hidden' field from URL query parameters.
+ * A hidden field reads from its own `queryParam` (falling back to its `id`),
+ * so this also covers the standard utm_source/utm_medium/utm_campaign/gclid
+ * params whenever a form has a hidden field configured for them.
+ */
+export function resolveHiddenFieldValues(
+  fields: FormField[],
+  searchParams: QueryParamSource
+): Record<string, string> {
+  const resolved: Record<string, string> = {}
+  for (const field of fields) {
+    if (field.type !== 'hidden') continue
+    const paramName = field.queryParam || field.id
+    const raw = searchParams.get(paramName)
+    if (!raw) continue
+    const value = sanitizeHiddenFieldValue(raw)
+    if (value) resolved[field.id] = value
+  }
+  return resolved
+}
+
+/**
+ * Decides what should happen right after a successful submit: redirect to
+ * the form's configured URL, or fall back to the default confirmation
+ * message (null) when no URL is set or it fails validation.
+ */
+export function getPostSubmitRedirect(redirectUrl: string | null | undefined): string | null {
+  return isValidRedirectUrl(redirectUrl) ? (redirectUrl as string) : null
+}
+
+/**
+ * Builds the flattened inquiry message from all non-core field values,
+ * matching the "Label: value" convention already used by email
+ * notifications and the inbox view. The dedicated 'message' field (if any)
+ * is placed first.
+ */
+export function buildSubmissionMessage(
+  fields: FormField[],
+  values: Record<string, string>,
+  multiValues: Record<string, string[]>
+): string {
+  const messageParts: string[] = []
+  for (const field of fields) {
+    if (field.id === 'name' || field.id === 'email') continue
+    if (field.type === 'checkbox') {
+      const selected = multiValues[field.id] ?? []
+      if (selected.length) messageParts.push(`${field.label}: ${selected.join(', ')}`)
+    } else {
+      const val = values[field.id]?.trim()
+      if (val) {
+        if (field.id === 'message') {
+          messageParts.unshift(val) // message goes first
+        } else {
+          messageParts.push(`${field.label}: ${val}`)
+        }
+      }
+    }
+  }
+  return messageParts.join('\n')
 }
 
 /**

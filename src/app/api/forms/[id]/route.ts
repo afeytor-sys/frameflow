@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { FormField } from '@/lib/forms'
+import { isValidRedirectUrl, type FormField } from '@/lib/forms'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     // Parse body
     const body = await req.json()
-    const { fields } = body
+    const { fields, redirect_url } = body
 
     if (!Array.isArray(fields)) {
       return NextResponse.json({ error: 'fields must be an array' }, { status: 400 })
@@ -52,12 +52,39 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       )
     }
 
+    // Hidden fields need a query parameter to read their value from
+    const hiddenFieldMissingParam = fields.find(
+      (f: FormField) => f.type === 'hidden' && !(f.queryParam || '').trim()
+    )
+    if (hiddenFieldMissingParam) {
+      return NextResponse.json(
+        { error: `"${hiddenFieldMissingParam.label || 'A hidden field'}" needs a parameter name` },
+        { status: 400 }
+      )
+    }
+
+    // Optional redirect URL: omitted leaves it untouched; empty/null clears it;
+    // otherwise it must be a valid https:// URL
+    const update: { fields: FormField[]; redirect_url?: string | null } = { fields }
+    if (redirect_url !== undefined) {
+      if (redirect_url === null || redirect_url === '') {
+        update.redirect_url = null
+      } else if (typeof redirect_url !== 'string' || !isValidRedirectUrl(redirect_url)) {
+        return NextResponse.json(
+          { error: 'Redirect URL must be an absolute https:// URL (max 2000 characters)' },
+          { status: 400 }
+        )
+      } else {
+        update.redirect_url = redirect_url
+      }
+    }
+
     // Update
     const { data: updated, error: updateError } = await supabase
       .from('forms')
-      .update({ fields })
+      .update(update)
       .eq('id', id)
-      .select('id, photographer_id, name, fields, created_at')
+      .select('id, photographer_id, name, fields, created_at, redirect_url')
       .single()
 
     if (updateError || !updated) {

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { getFormById } from '@/lib/forms'
 import DynamicForm from '@/components/forms/DynamicForm'
 import FormSubtitle from '@/components/forms/FormSubtitle'
@@ -66,11 +67,14 @@ export default async function PublicFormPage({ params }: Props) {
             border: '1px solid var(--card-border, #e5e7eb)',
             boxShadow: 'var(--card-shadow, 0 1px 3px rgba(0,0,0,0.06))',
           }}>
-          <DynamicForm
-            formId={form.id}
-            formName={form.name}
-            fields={form.fields ?? []}
-          />
+          <Suspense fallback={null}>
+            <DynamicForm
+              formId={form.id}
+              formName={form.name}
+              fields={form.fields ?? []}
+              redirectUrl={form.redirect_url}
+            />
+          </Suspense>
         </div>
 
         {/* Footer */}

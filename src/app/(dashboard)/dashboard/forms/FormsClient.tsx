@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Plus, Copy, ExternalLink, FileText, Check, Pencil, Trash2, X, CopyPlus, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { FormField } from '@/lib/forms'
-import { DEFAULT_FIELDS } from '@/lib/forms'
+import { DEFAULT_FIELDS, isValidRedirectUrl } from '@/lib/forms'
 
 interface Form {
   id: string
@@ -12,6 +12,7 @@ interface Form {
   name: string
   fields: FormField[]
   created_at: string
+  redirect_url?: string | null
 }
 
 interface Props {
@@ -30,6 +31,16 @@ const FIELD_TYPES: { value: FormField['type']; label: string }[] = [
   { value: 'select',   label: 'Dropdown' },
   { value: 'radio',    label: 'Radio' },
   { value: 'checkbox', label: 'Checkbox' },
+  { value: 'hidden',   label: 'Versteckt' },
+]
+
+// Quick presets for hidden fields used for source tracking (?quelle=..., ?utm_source=..., ...)
+const HIDDEN_FIELD_PRESETS: { label: string; queryParam: string }[] = [
+  { label: 'Quelle',       queryParam: 'quelle' },
+  { label: 'UTM Source',   queryParam: 'utm_source' },
+  { label: 'UTM Medium',   queryParam: 'utm_medium' },
+  { label: 'UTM Campaign', queryParam: 'utm_campaign' },
+  { label: 'Google Click ID', queryParam: 'gclid' },
 ]
 
 function inputStyle(extra?: React.CSSProperties): React.CSSProperties {
@@ -71,6 +82,8 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
   // Edit fields state
   const [editingForm, setEditingForm] = useState<Form | null>(null)
   const [editFields, setEditFields] = useState<FormField[]>([])
+  const [editRedirectUrl, setEditRedirectUrl] = useState('')
+  const [redirectUrlError, setRedirectUrlError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   // Per-field option input state: fieldId → current input value
@@ -187,12 +200,16 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
     const fields = form.fields && form.fields.length > 0 ? form.fields : DEFAULT_FIELDS
     setEditingForm(form)
     setEditFields(fields.map(f => ({ ...f, options: f.options ? [...f.options] : [] })))
+    setEditRedirectUrl(form.redirect_url ?? '')
+    setRedirectUrlError(null)
     setOptionInputs({})
   }
 
   function closeEdit() {
     setEditingForm(null)
     setEditFields([])
+    setEditRedirectUrl('')
+    setRedirectUrlError(null)
     setOptionInputs({})
   }
 
@@ -253,16 +270,30 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
       return
     }
 
+    // Hidden fields need a query parameter name to read their value from
+    const missingQueryParam = editFields.find(f => f.type === 'hidden' && !(f.queryParam ?? '').trim())
+    if (missingQueryParam) {
+      toast.error(`"${missingQueryParam.label || 'A hidden field'}" braucht einen Parameter-Namen`)
+      return
+    }
+
+    const trimmedRedirectUrl = editRedirectUrl.trim()
+    if (trimmedRedirectUrl && !isValidRedirectUrl(trimmedRedirectUrl)) {
+      setRedirectUrlError('Muss eine vollständige https://-URL sein (max. 2000 Zeichen)')
+      return
+    }
+    setRedirectUrlError(null)
+
     setSaving(true)
     try {
       const res = await fetch(`/api/forms/${editingForm.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: editFields }),
+        body: JSON.stringify({ fields: editFields, redirect_url: trimmedRedirectUrl || null }),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return }
-      setForms(prev => prev.map(f => f.id === editingForm.id ? { ...f, fields: data.fields } : f))
+      setForms(prev => prev.map(f => f.id === editingForm.id ? { ...f, fields: data.fields, redirect_url: data.redirect_url } : f))
       toast.success('Fields saved!')
       closeEdit()
     } catch {
@@ -361,8 +392,32 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
             {/* Fields list */}
             <form onSubmit={handleSaveFields} className="flex flex-col flex-1 overflow-hidden">
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+
+                {/* Settings: redirect after submit */}
+                <div className="rounded-xl p-4 space-y-2"
+                  style={{ background: 'var(--bg-hover, #f5f5f3)', border: '1px solid var(--card-border)' }}>
+                  <label className="block text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    WEITERLEITUNG NACH DEM ABSENDEN (URL)
+                  </label>
+                  <input
+                    type="url"
+                    value={editRedirectUrl}
+                    onChange={e => { setEditRedirectUrl(e.target.value); setRedirectUrlError(null) }}
+                    placeholder="https://deine-seite.de/danke"
+                    style={inputStyle(redirectUrlError ? { border: '1.5px solid #ef4444' } : undefined)}
+                  />
+                  {redirectUrlError ? (
+                    <p className="text-[11px]" style={{ color: '#ef4444' }}>{redirectUrlError}</p>
+                  ) : (
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      Optional. Wenn gesetzt, wird der Besucher nach dem Absenden auf diese Seite weitergeleitet statt die Bestätigung zu sehen.
+                    </p>
+                  )}
+                </div>
+
                 {editFields.map((field, idx) => {
                   const isChoice = CHOICE_TYPES.includes(field.type)
+                  const isHidden = field.type === 'hidden'
                   return (
                     <div key={field.id}
                       className="rounded-xl p-4 space-y-3"
@@ -396,8 +451,8 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                         </div>
                       </div>
 
-                      {/* Row 2: Placeholder (hidden for choice types) */}
-                      {!isChoice && (
+                      {/* Row 2: Placeholder (hidden for choice types and hidden-type fields) */}
+                      {!isChoice && !isHidden && (
                         <div>
                           <label className="block text-[11px] font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
                             PLACEHOLDER (optional)
@@ -409,6 +464,38 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
                             placeholder="Hint text shown inside the field"
                             style={inputStyle()}
                           />
+                        </div>
+                      )}
+
+                      {/* Row 2b: Hidden field — query parameter name */}
+                      {isHidden && (
+                        <div>
+                          <label className="block text-[11px] font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
+                            PARAMETER-NAME (z. B. quelle)
+                          </label>
+                          <input
+                            type="text"
+                            value={field.queryParam ?? ''}
+                            onChange={e => updateField(idx, { queryParam: e.target.value.trim() })}
+                            placeholder="quelle"
+                            style={inputStyle()}
+                          />
+                          <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                            {HIDDEN_FIELD_PRESETS.map(preset => (
+                              <button
+                                key={preset.queryParam}
+                                type="button"
+                                onClick={() => updateField(idx, { label: field.label || preset.label, queryParam: preset.queryParam })}
+                                className="px-2 py-1 rounded-lg text-[11px] font-semibold transition-all"
+                                style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--card-border)', color: 'var(--text-secondary)' }}
+                              >
+                                {preset.queryParam}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                            Wird aus dem Link übernommen, z. B. ?{field.queryParam || 'quelle'}=google-ads — nicht sichtbar im Formular.
+                          </p>
                         </div>
                       )}
 
@@ -470,16 +557,23 @@ export default function FormsClient({ forms: initialForms, appUrl }: Props) {
 
                       {/* Row 4: Required + Delete */}
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={!!field.required}
-                            onChange={e => updateField(idx, { required: e.target.checked })}
-                            disabled={field.core}
-                            className="w-4 h-4 rounded"
-                          />
-                          <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Required</span>
-                        </label>
+                        {isHidden ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(139,92,246,0.10)', color: '#8B5CF6' }}>
+                            Versteckt
+                          </span>
+                        ) : (
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={!!field.required}
+                              onChange={e => updateField(idx, { required: e.target.checked })}
+                              disabled={field.core}
+                              className="w-4 h-4 rounded"
+                            />
+                            <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Required</span>
+                          </label>
+                        )}
 
                         {!field.core ? (
                           <button

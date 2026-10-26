@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import type { FormField } from '@/lib/forms'
-import { DEFAULT_FIELDS } from '@/lib/forms'
+import { DEFAULT_FIELDS, buildSubmissionMessage, getPostSubmitRedirect, resolveHiddenFieldValues } from '@/lib/forms'
 
 // ── Inline translations (EN / DE) ─────────────────────────────────────────
 const translations = {
@@ -46,6 +47,8 @@ interface DynamicFormProps {
   formName: string
   /** All form fields including name, email, message. Falls back to DEFAULT_FIELDS if empty. */
   fields: FormField[]
+  /** Optional URL to navigate to after a successful submit, instead of the confirmation message. */
+  redirectUrl?: string | null
 }
 
 const CHOICE_TYPES = ['select', 'radio', 'checkbox'] as const
@@ -59,9 +62,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-export default function DynamicForm({ formId, fields: rawFields }: DynamicFormProps) {
+export default function DynamicForm({ formId, fields: rawFields, redirectUrl }: DynamicFormProps) {
   const t = useT()
   const fields = rawFields && rawFields.length > 0 ? rawFields : DEFAULT_FIELDS
+  const searchParams = useSearchParams()
 
   // Single-value fields: text, email, textarea, date, tel, select, radio
   const [values, setValues] = useState<Record<string, string>>({})
@@ -74,6 +78,14 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
   const [serverError, setServerError] = useState<string | null>(null)
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [privacyError, setPrivacyError] = useState(false)
+
+  // Pre-fill hidden fields (source tracking) from the URL's query parameters.
+  useEffect(() => {
+    const hiddenValues = resolveHiddenFieldValues(fields, searchParams)
+    if (Object.keys(hiddenValues).length === 0) return
+    setValues(prev => ({ ...hiddenValues, ...prev }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function setValue(id: string, val: string) {
     setValues(prev => ({ ...prev, [id]: val }))
@@ -93,6 +105,7 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
     const newErrors: Record<string, string> = {}
 
     for (const field of fields) {
+      if (field.type === 'hidden') continue
       if (!field.required) continue
 
       if (field.type === 'checkbox') {
@@ -128,24 +141,7 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
     const email = values['email']?.trim() ?? ''
 
     // Build message: use 'message' field if present, otherwise join all non-core values
-    const messageParts: string[] = []
-    for (const field of fields) {
-      if (field.id === 'name' || field.id === 'email') continue
-      if (field.type === 'checkbox') {
-        const selected = multiValues[field.id] ?? []
-        if (selected.length) messageParts.push(`${field.label}: ${selected.join(', ')}`)
-      } else {
-        const val = values[field.id]?.trim()
-        if (val) {
-          if (field.id === 'message') {
-            messageParts.unshift(val) // message goes first
-          } else {
-            messageParts.push(`${field.label}: ${val}`)
-          }
-        }
-      }
-    }
-    const message = messageParts.join('\n')
+    const message = buildSubmissionMessage(fields, values, multiValues)
 
     setLoading(true)
     try {
@@ -159,6 +155,23 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
         setServerError(data.error ?? t.serverError)
         return
       }
+
+      // Only navigate away after the server has actually saved the inquiry.
+      const target = getPostSubmitRedirect(redirectUrl)
+      if (target) {
+        try {
+          if (window.top && window.top !== window.self) {
+            window.top.location.assign(target)
+          } else {
+            window.location.assign(target)
+          }
+        } catch {
+          // Cross-origin iframe: can't reach the top window, navigate this frame instead.
+          window.location.assign(target)
+        }
+        return
+      }
+
       setSubmitted(true)
     } catch {
       setServerError(t.networkError)
@@ -189,6 +202,7 @@ export default function DynamicForm({ formId, fields: rawFields }: DynamicFormPr
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {fields.map(field => {
+        if (field.type === 'hidden') return null
         const err = errors[field.id]
         const hasOptions = field.options && field.options.length > 0
         const borderColor = err ? '#ef4444' : 'var(--card-border, #e5e7eb)'

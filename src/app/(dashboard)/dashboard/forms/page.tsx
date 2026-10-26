@@ -12,7 +12,7 @@ export default async function FormsPage() {
 
   const { data: forms } = await supabase
     .from('forms')
-    .select('id, photographer_id, name, fields, created_at')
+    .select('id, photographer_id, name, fields, created_at, redirect_url')
     .eq('photographer_id', user.id)
     .order('created_at', { ascending: false })
 
