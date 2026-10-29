@@ -167,6 +167,7 @@ export interface Photo {
   width: number | null
   height: number | null
   is_favorite: boolean
+  is_private: boolean
   display_order: number
   tag: string | null
   uploaded_at: string

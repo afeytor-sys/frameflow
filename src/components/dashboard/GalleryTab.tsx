@@ -248,6 +248,10 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
   const [favoriteListName, setFavoriteListName] = useState<string | null>(null)
   const [downloadingFavorites, setDownloadingFavorites] = useState(false)
   const [favDownloadProgress, setFavDownloadProgress] = useState(0)
+  // Client-marked private photos
+  const [privateExpanded, setPrivateExpanded] = useState(false)
+  const [downloadingPrivate, setDownloadingPrivate] = useState(false)
+  const [privDownloadProgress, setPrivDownloadProgress] = useState(0)
   // Comment count
   const [commentCount, setCommentCount] = useState(0)
   // Download jobs (for email list)
@@ -405,6 +409,56 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
       setDownloadingFavorites(false)
       setFavDownloadProgress(0)
     }
+  }
+
+  // Download client-marked private photos as ZIP
+  const downloadPrivatePhotos = async () => {
+    const privatePhotos = photos.filter(p => p.is_private)
+    if (privatePhotos.length === 0) return
+    setDownloadingPrivate(true)
+    setPrivDownloadProgress(0)
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      const total = privatePhotos.length
+      let done = 0
+      for (let i = 0; i < privatePhotos.length; i += 5) {
+        const batch = privatePhotos.slice(i, i + 5)
+        await Promise.all(batch.map(async (photo) => {
+          try { const r = await fetch(photo.storage_url); zip.file(photo.filename, await r.blob()) } catch {}
+          done++
+          setPrivDownloadProgress(Math.round((done / total) * 100))
+        }))
+      }
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'Private Fotos.zip'
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`${total} private Fotos heruntergeladen!`)
+    } catch {
+      toast.error('Download fehlgeschlagen')
+    } finally {
+      setDownloadingPrivate(false)
+      setPrivDownloadProgress(0)
+    }
+  }
+
+  // Download the filenames of private photos as a plain-text list
+  const downloadPrivateList = () => {
+    const privatePhotos = photos.filter(p => p.is_private)
+    if (privatePhotos.length === 0) return
+    const text = privatePhotos.map(p => p.filename).join('\n')
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Private Fotos — Liste.txt'
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Liste heruntergeladen!')
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -1005,15 +1059,27 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
               </button>
               {[
                 { icon: Heart, value: photos.filter(p => p.is_favorite).length, label: 'Favoriten', color: '#EF4444' },
-                { icon: EyeOff, value: photos.filter(p => p.is_private).length, label: 'Privat', color: '#8B5CF6', title: 'Private Fotos' },
                 { icon: MessageSquare, value: commentCount, label: 'Kommentare', color: '#F59E0B' },
-              ].map(({ icon: Icon, value, label, color, title }) => (
-                <div key={label} title={title} className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              ].map(({ icon: Icon, value, label, color }) => (
+                <div key={label} className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--text-muted)' }}>
                   <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
                   <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value}</span>
                   <span>{label}</span>
                 </div>
               ))}
+              {photos.filter(p => p.is_private).length > 0 && (
+                <button
+                  onClick={() => setPrivateExpanded(v => !v)}
+                  title="Vom Kunden als privat markierte Fotos — klicken zum Ansehen"
+                  className="flex items-center gap-1 text-[12px] transition-opacity hover:opacity-70"
+                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{photos.filter(p => p.is_private).length}</span>
+                  <span>Privat</span>
+                  <ChevronDown className="w-3 h-3 ml-0.5 transition-transform" style={{ transform: privateExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -2094,6 +2160,79 @@ export default function GalleryTab({ projectId, photographerId, clientUrl, publi
                   {favoritePhotos.length > 20 && (
                     <div className="rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ width: 48, height: 48, background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
                       +{favoritePhotos.length - 20}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* ── Client-marked Private Photos (compact) ── */}
+      {(() => {
+        const privatePhotos = photos.filter(p => p.is_private)
+        if (privatePhotos.length === 0) return null
+        return (
+          <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.15)' }}>
+            <div
+              className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none"
+              onClick={() => setPrivateExpanded(v => !v)}
+            >
+              <EyeOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+              <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Private Fotos
+              </span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+                {privatePhotos.length}
+              </span>
+              <span className="text-[11px] hidden sm:inline" style={{ color: 'var(--text-muted)' }}>
+                Vom Kunden markiert — nur mit Kunden-Passwort sichtbar
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); downloadPrivateList() }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                >
+                  <List className="w-3 h-3" />Liste
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); downloadPrivatePhotos() }}
+                  disabled={downloadingPrivate}
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg text-white disabled:opacity-50"
+                  style={{ background: '#111110' }}
+                >
+                  {downloadingPrivate
+                    ? <><Loader2 className="w-3 h-3 animate-spin" />{privDownloadProgress > 0 ? `${privDownloadProgress}%` : '...'}</>
+                    : <><Download className="w-3 h-3" />ZIP</>
+                  }
+                </button>
+                <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', privateExpanded ? 'rotate-180' : '')} style={{ color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+            {privateExpanded && (
+              <div className="px-3 pb-3" style={{ borderTop: '1px solid rgba(139,92,246,0.12)' }}>
+                {downloadingPrivate && privDownloadProgress > 0 && (
+                  <div className="w-full rounded-full h-1 overflow-hidden mt-2 mb-2" style={{ background: 'rgba(139,92,246,0.15)' }}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${privDownloadProgress}%`, background: '#8B5CF6' }} />
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {privatePhotos.slice(0, 20).map(photo => (
+                    <div key={photo.id} className="relative rounded-md overflow-hidden flex-shrink-0" style={{ width: 48, height: 48 }}>
+                      <img
+                        src={getPhotoUrl(photo.thumbnail_url || photo.storage_url, 100, 70, 'cover')}
+                        alt={photo.filename}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ))}
+                  {privatePhotos.length > 20 && (
+                    <div className="rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0" style={{ width: 48, height: 48, background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                      +{privatePhotos.length - 20}
                     </div>
                   )}
                 </div>
