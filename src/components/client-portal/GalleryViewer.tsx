@@ -882,9 +882,11 @@ export default function GalleryViewer({
 
   useEffect(() => () => { if (dlPollRef.current) clearInterval(dlPollRef.current) }, [])
 
-  // Gäste-password view (public, without Kunden-level access): the ZIP must
-  // only ever contain the same non-private photos already shown on screen.
-  const isGuestDownload = isPublic && !canMarkPrivate
+  // Any view without Kunden-level full access — the Gäste-password view on
+  // the dedicated gallery link, or the client portal (which has no
+  // Kunden-/Gäste-password split of its own) — must only ever download the
+  // same non-private photos already shown on screen.
+  const isGuestDownload = !canMarkPrivate
 
   const submitDownloadRequest = async (email: string) => {
     setDlState('submitting')
