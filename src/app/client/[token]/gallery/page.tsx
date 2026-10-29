@@ -117,20 +117,25 @@ async function renderClientGalleryPage(params: Promise<{ token: string }>) {
   }
 
   // Paginate to bypass Supabase's 1000-row default limit
-  type PhotoRow = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; section_id: string | null }
-  const photos: PhotoRow[] = []
+  type PhotoRow = { id: string; storage_url: string; thumbnail_url: string | null; filename: string; is_favorite: boolean; display_order: number; section_id: string | null; is_private?: boolean }
+  const rawPhotos: PhotoRow[] = []
   const PAGE = 1000
   for (let from = 0; ; from += PAGE) {
     const { data: page } = await supabase
       .from('photos')
-      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id')
+      .select('id, storage_url, thumbnail_url, filename, is_favorite, display_order, section_id, is_private')
       .eq('gallery_id', gallery.id)
       .order('display_order', { ascending: true })
       .range(from, from + PAGE - 1)
     if (!page || page.length === 0) break
-    photos.push(...(page as PhotoRow[]))
+    rawPhotos.push(...(page as PhotoRow[]).map(p => ({ ...p, is_private: p.is_private ?? undefined })))
     if (page.length < PAGE) break
   }
+  // The portal has no gallery-password gate (only the whole-portal
+  // portal_password, if set), so it can't distinguish the main client from a
+  // guest someone forwarded the link to — treat it like the guest/no-password
+  // view of the dedicated gallery link and hide photos marked private.
+  const photos: PhotoRow[] = rawPhotos.filter(p => !p.is_private)
 
   const { data: sections } = await supabase
     .from('gallery_sections')

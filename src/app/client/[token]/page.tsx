@@ -230,7 +230,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     { data: questionnaireSubmission },
   ] = await Promise.all([
     supabase.from('contracts').select('id, title, status').eq('project_id', project.id),
-    supabase.from('galleries').select('id, status, view_count, download_count, password').eq('project_id', project.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('galleries').select('id, status, view_count, download_count, password, guest_password').eq('project_id', project.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('timelines').select('id, events').eq('project_id', project.id).single(),
     supabase.from('questionnaires').select('id, sent_at').eq('project_id', project.id).order('created_at', { ascending: false }).limit(1).single(),
     supabase.from('questionnaire_submissions').select('id').eq('project_id', project.id).limit(1).single(),
@@ -259,7 +259,10 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const meetingPoint: string | null = meetingLocations.length > 0 ? meetingLocations[0].url : null
   const portalPassword: string | null = (project as { portal_password?: string | null }).portal_password ?? null
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://frameflow.app'
-  const publicGalleryUrl = `${baseUrl}/client/${token}`
+  // The dedicated gallery link (not the portal link!) — it has its own
+  // Kunden-/Gäste-Passwort split and correctly hides photos marked private,
+  // so it's the only link that should ever be handed to guests.
+  const dedicatedGalleryUrl = `${baseUrl}/gallery/${token}`
   const portalLinks = ((project as { portal_links?: { label: string; url: string }[] | null }).portal_links ?? []).filter(l => l.url?.trim())
 
   // Portal visibility settings
@@ -793,8 +796,8 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                 Teile die Galerie mit Gästen & Familie
               </p>
               <GalleryShareButton
-                galleryUrl={publicGalleryUrl}
-                galleryPassword={(gallery as { password?: string | null }).password ?? null}
+                galleryUrl={dedicatedGalleryUrl}
+                galleryPassword={(gallery as { guest_password?: string | null }).guest_password ?? (gallery as { password?: string | null }).password ?? null}
               />
             </div>
           </div>
