@@ -11,7 +11,6 @@ interface PortalSections {
   timeline?: boolean
   treffpunkt?: boolean
   moodboard?: boolean
-  tips?: boolean
   weather?: boolean
   questionnaire?: boolean
   invoice?: boolean
@@ -36,7 +35,6 @@ const SECTION_LABELS_DE: Record<string, string> = {
   timeline: 'Zeitplan',
   treffpunkt: 'Treffpunkt',
   moodboard: 'Moodboard',
-  tips: 'Tipps',
   weather: 'Wetter',
 }
 
@@ -48,7 +46,6 @@ const SECTION_LABELS_EN: Record<string, string> = {
   timeline: 'Timeline',
   treffpunkt: 'Meeting point',
   moodboard: 'Moodboard',
-  tips: 'Tips',
   weather: 'Weather',
 }
 

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Eye, EyeOff, MessageCircle, Check, Loader2, FileText, Images,
-  Clock, MapPin, Heart, Lightbulb, CloudSun, ExternalLink, Lock,
+  Clock, MapPin, Heart, CloudSun, ExternalLink, Lock,
   Link2, Plus, Trash2, GripVertical, ClipboardList, Globe, Bookmark, X, Receipt,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -17,7 +17,6 @@ type PortalSections = {
   timeline: boolean
   treffpunkt: boolean
   moodboard: boolean
-  tips: boolean
   weather: boolean
   questionnaire: boolean
   invoice: boolean
@@ -29,7 +28,6 @@ const DEFAULT_SECTIONS: PortalSections = {
   timeline: true,
   treffpunkt: true,
   moodboard: false,
-  tips: true,
   weather: true,
   questionnaire: true,
   invoice: false,
@@ -157,7 +155,6 @@ export default function PortalSettingsTab({ projectId, clientToken, initialSecti
     { key: 'gallery',       label: tp.sections.gallery,       description: tp.sections.galleryDesc,       icon: Images,       color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
     { key: 'timeline',      label: tp.sections.timeline,      description: tp.sections.timelineDesc,      icon: Clock,        color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
     { key: 'treffpunkt',    label: tp.sections.treffpunkt,    description: tp.sections.treffpunktDesc,    icon: MapPin,       color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
-    { key: 'tips',          label: tp.sections.tips,          description: tp.sections.tipsDesc,          icon: Lightbulb,    color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
     { key: 'weather',       label: tp.sections.weather,       description: tp.sections.weatherDesc,       icon: CloudSun,     color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' },
     { key: 'moodboard',     label: tp.sections.moodboard,     description: tp.sections.moodboardDesc,     icon: Heart,        color: '#C4A47C', bg: 'rgba(196,164,124,0.12)' },
     { key: 'questionnaire', label: tp.sections.questionnaire, description: tp.sections.questionnaireDesc, icon: ClipboardList, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },

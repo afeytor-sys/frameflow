@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { formatDate, daysUntil } from '@/lib/utils'
 import {
   FileText, Images, Clock, CheckCircle2, ChevronRight, PenLine,
-  Calendar, Sparkles, Camera, Sun, Shirt, MapPin, MessageCircle,
+  Calendar, Sparkles, MapPin, MessageCircle,
   ArrowRight, Star, Heart, ClipboardList, Link2, ExternalLink,
 } from 'lucide-react'
 import WeatherWidget from '@/components/client-portal/WeatherWidget'
@@ -74,15 +74,6 @@ const PT = {
       title: 'Moodboard',
       desc: 'Teile Inspirationen, Referenzbilder oder Links mit deinem Fotografen — zeige deinen Stil und deine Wünsche.',
     },
-    tips: {
-      title: 'Tipps für dein Shooting',
-      items: [
-        { title: 'Was anziehen?', text: 'Wähle Farben, die sich ergänzen. Vermeide große Logos oder Muster.' },
-        { title: 'Beste Uhrzeit', text: 'Die goldene Stunde — kurz nach Sonnenaufgang oder vor Sonnenuntergang.' },
-        { title: 'Vorbereitung', text: 'Entspann dich! Authentische Momente entstehen, wenn du dich wohlfühlst.' },
-        { title: 'Location-Tipps', text: 'Wähle einen Ort, der dir bedeutsam ist — das sieht man auf den Fotos.' },
-      ],
-    },
     empty: {
       text: 'Dein Fotograf bereitet noch alles vor.',
       sub: 'Schau bald wieder vorbei!',
@@ -90,7 +81,6 @@ const PT = {
     nextStepsCta: {
       contract: 'Jetzt unterschreiben',
       moodboard: 'Inspirationen hinzufügen',
-      prepare: 'Tipps ansehen',
       gallery: 'Fotos ansehen',
     },
     messages: {
@@ -159,15 +149,6 @@ const PT = {
       title: 'Moodboard',
       desc: 'Share inspirations, reference images or links with your photographer — show your style and wishes.',
     },
-    tips: {
-      title: 'Tips for your shoot',
-      items: [
-        { title: 'What to wear?', text: 'Choose colors that complement each other. Avoid large logos or patterns.' },
-        { title: 'Best time of day', text: 'The golden hour — shortly after sunrise or before sunset.' },
-        { title: 'Preparation', text: 'Relax! Authentic moments happen when you feel comfortable.' },
-        { title: 'Location tips', text: 'Choose a place that is meaningful to you — it shows in the photos.' },
-      ],
-    },
     empty: {
       text: 'Your photographer is still preparing everything.',
       sub: 'Check back soon!',
@@ -175,7 +156,6 @@ const PT = {
     nextStepsCta: {
       contract: 'Sign now',
       moodboard: 'Add inspirations',
-      prepare: 'View tips',
       gallery: 'View photos',
     },
     messages: {
@@ -273,7 +253,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
     timeline:      rawSections?.timeline      !== false,
     treffpunkt:    rawSections?.treffpunkt    !== false,
     moodboard:     rawSections?.moodboard     === true,
-    tips:          rawSections?.tips          !== false,
     weather:       rawSections?.weather       !== false,
     questionnaire: rawSections?.questionnaire !== false,
     invoice:       rawSections?.invoice       === true,
@@ -315,7 +294,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
   const nextSteps = [
     { key: 'contract',  label: t.contract.title,       done: contractSigned,  show: !!latestContract,                       href: `/client/${token}/contract`,     cta: t.nextStepsCta.contract },
     { key: 'moodboard', label: t.moodboard.title,      done: false,           show: show.moodboard && !isPostShooting,      href: undefined,                       cta: t.nextStepsCta.moodboard },
-    { key: 'prepare',   label: t.tips.title,           done: isPostShooting,  show: days !== null && days <= 14 && days >= 0, href: undefined,                     cta: t.nextStepsCta.prepare },
     { key: 'gallery',   label: t.gallery.title,        done: false,           show: !!gallery,                              href: `/client/${token}/gallery`,      cta: t.nextStepsCta.gallery },
   ].filter(s => s.show)
 
@@ -814,39 +792,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
               <p className="text-[19px]" style={{ color: 'var(--text-secondary)' }}>{t.moodboard.desc}</p>
             </div>
             <MoodBoard projectId={project.id} token={token} />
-          </div>
-        )}
-
-        {/* ── TIPS FOR YOUR SHOOT ── */}
-        {show.tips && !isPostShooting && (
-          <div className="animate-in-delay-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Camera className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-              <h2 className="font-bold text-[19px]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                {t.tips.title}
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {t.tips.items.map((tip, i) => {
-                const icons = [
-                  <Shirt key="shirt" className="w-5 h-5" />,
-                  <Sun key="sun" className="w-5 h-5" />,
-                  <Sparkles key="sparkles" className="w-5 h-5" />,
-                  <MapPin key="mappin" className="w-5 h-5" />,
-                ]
-                return (
-                  <div key={i} className="rounded-xl p-4"
-                    style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2.5"
-                      style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>
-                      {icons[i]}
-                    </div>
-                    <p className="font-bold text-[15.5px] mb-1" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
-                    <p className="text-[17.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tip.text}</p>
-                  </div>
-                )
-              })}
-            </div>
           </div>
         )}
 
