@@ -6,7 +6,7 @@ interface Props {
   params: Promise<{ photographerSlug: string; bookingTypeSlug: string; bookingId: string }>
 }
 
-export const metadata = { title: 'Buchung bestätigt — Fotonizer' }
+export const metadata = { title: 'Deine Buchung — Fotonizer' }
 
 export default async function BookingConfirmPage({ params }: Props) {
   const { bookingId, photographerSlug } = await params
@@ -24,7 +24,7 @@ export default async function BookingConfirmPage({ params }: Props) {
   // Fetch photographer (bank details only shown if deposit pending)
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('full_name, studio_name, logo_url, bank_account_holder, bank_name, bank_iban, bank_bic, slug')
+    .select('full_name, studio_name, logo_url, bank_account_holder, bank_name, bank_iban, bank_bic, slug, email, notification_email')
     .eq('id', booking.photographer_id)
     .maybeSingle()
 
@@ -56,6 +56,7 @@ export default async function BookingConfirmPage({ params }: Props) {
         bankName: photographer.bank_name,
         bankIban: photographer.bank_iban,
         bankBic: photographer.bank_bic,
+        email: photographer.email || photographer.notification_email || null,
       }}
     />
   )

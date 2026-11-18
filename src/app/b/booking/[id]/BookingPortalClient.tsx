@@ -2,6 +2,8 @@
 
 import { Calendar, Clock, MapPin, Video, User, FileText } from 'lucide-react'
 import Image from 'next/image'
+import { useState } from 'react'
+import BookingClientActions from '@/components/client-portal/BookingClientActions'
 
 const STATUS_DE: Record<string, { label: string; bg: string; color: string }> = {
   pending:          { label: 'Warten auf Anzahlung', bg: '#FEF3C7', color: '#D97706' },
@@ -44,13 +46,15 @@ interface Props {
     studioName: string
     logoUrl: string | null
     locale: string
+    email: string | null
   }
 }
 
 export default function BookingPortalClient({ booking, bookingType, photographer }: Props) {
   const de = photographer.locale !== 'en'
   const STATUS_MAP = de ? STATUS_DE : STATUS_EN
-  const st = STATUS_MAP[booking.status] ?? STATUS_MAP.pending
+  const [status, setStatus] = useState(booking.status)
+  const st = STATUS_MAP[status] ?? STATUS_MAP.pending
 
   const dateLabel = new Date(booking.booked_date + 'T00:00:00').toLocaleDateString(
     de ? 'de-DE' : 'en-US',
@@ -182,6 +186,20 @@ export default function BookingPortalClient({ booking, bookingType, photographer
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mt-5">
+          <BookingClientActions
+            bookingId={booking.id}
+            status={status}
+            bookedDate={booking.booked_date}
+            bookedTime={booking.booked_time}
+            bookingTitle={bookingType.title}
+            isOnline={isOnline}
+            photographerEmail={photographer.email}
+            de={de}
+            onCancelled={() => setStatus('cancelled')}
+          />
         </div>
 
         {/* Footer */}

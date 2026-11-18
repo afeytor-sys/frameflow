@@ -22,7 +22,7 @@ export default async function BookingPortalPage({ params }: Props) {
 
   const { data: photographer } = await supabase
     .from('photographers')
-    .select('full_name, studio_name, logo_url, locale')
+    .select('full_name, studio_name, logo_url, locale, email, notification_email')
     .eq('id', booking.photographer_id)
     .maybeSingle()
 
@@ -64,6 +64,7 @@ export default async function BookingPortalPage({ params }: Props) {
         studioName: photographer.studio_name || photographer.full_name || '',
         logoUrl: photographer.logo_url ?? null,
         locale: photographer.locale ?? 'de',
+        email: photographer.email || photographer.notification_email || null,
       }}
     />
   )

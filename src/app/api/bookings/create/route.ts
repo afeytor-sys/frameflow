@@ -465,11 +465,17 @@ function buildClientConfirmationEmail(data: {
 
   return bookingEmailShell({
     studioName: data.studioName,
-    heading: 'Deine Buchung<br>ist eingegangen.',
+    heading: 'Danke für<br>deine Buchung!',
     subheading: `Hallo ${data.clientName}.`,
-    body: data.requiresDeposit
-      ? 'Überweise bitte die Anzahlung, um deinen Termin zu sichern.'
-      : 'Der Fotograf wird deine Anfrage in Kürze bestätigen.',
+    body: [
+      data.requiresDeposit
+        ? 'Überweise bitte die Anzahlung, um deinen Termin zu sichern.'
+        : 'Dein Termin ist fest eingetragen. Wir freuen uns auf dich!',
+      data.locationType === 'online'
+        ? 'Bitte sei ein paar Minuten vor Beginn im Meeting, damit alles wie geplant läuft.'
+        : 'Bitte sei mindestens 10 Minuten vor Beginn da, damit alles wie geplant läuft.',
+      'Falls du nicht kommen kannst, kannst du den Termin über „Buchung ansehen" stornieren.',
+    ].join('<br><br>'),
     ctaUrl: data.confirmUrl,
     ctaLabel: 'Buchung ansehen',
     infoRows: [

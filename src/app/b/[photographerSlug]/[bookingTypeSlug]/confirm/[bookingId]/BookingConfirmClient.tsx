@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { CheckCircle2, Clock, Calendar, Video, Copy, Check, Upload, X, CalendarPlus } from 'lucide-react'
+import { CheckCircle2, Clock, Calendar, Video, Copy, Check, Upload, X, CalendarPlus, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import BookingClientActions from '@/components/client-portal/BookingClientActions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ interface PhotographerInfo {
   bankName: string | null
   bankIban: string | null
   bankBic: string | null
+  email: string | null
 }
 
 interface Props {
@@ -90,11 +92,13 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
   const [marking, setMarking] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [proofFile, setProofFile] = useState<File | null>(null)
+  const [status, setStatus] = useState(booking.status)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
+  const isCancelled = status === 'cancelled'
+  const isConfirmed = status === 'confirmed' || status === 'completed'
   const requiresDeposit = !!booking.deposit_amount && booking.deposit_amount > 0
-  const showBankDetails = requiresDeposit && !depositMarked && !isConfirmed
+  const showBankDetails = requiresDeposit && !depositMarked && !isConfirmed && !isCancelled
 
   const downloadIcs = () => {
     const ics = generateIcs(booking, bookingType, photographer.studioName)
@@ -164,33 +168,35 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
               style={{
-                background: isConfirmed ? '#ECFDF5' : depositMarked ? '#EFF6FF' : '#FFF7ED',
+                background: isCancelled ? '#FEF2F2' : isConfirmed ? '#ECFDF5' : depositMarked ? '#EFF6FF' : '#FFF7ED',
               }}
             >
-              <CheckCircle2
-                className="w-6 h-6"
-                style={{ color: isConfirmed ? '#10B981' : depositMarked ? '#3B82F6' : '#F59E0B' }}
-              />
+              {isCancelled ? (
+                <XCircle className="w-6 h-6" style={{ color: '#DC2626' }} />
+              ) : (
+                <CheckCircle2
+                  className="w-6 h-6"
+                  style={{ color: isConfirmed ? '#10B981' : depositMarked ? '#3B82F6' : '#F59E0B' }}
+                />
+              )}
             </div>
             <div>
               <h1 className="font-black text-[20px] mb-1" style={{ letterSpacing: '-0.03em', color: '#111' }}>
-                {isConfirmed
-                  ? 'Buchung bestätigt!'
-                  : depositMarked
+                {isCancelled
+                  ? 'Termin storniert'
+                  : depositMarked && !isConfirmed
                     ? 'Zahlung gemeldet!'
-                    : requiresDeposit
-                      ? 'Buchungsanfrage eingegangen'
-                      : 'Buchungsanfrage eingegangen'
+                    : 'Danke für deine Buchung!'
                 }
               </h1>
               <p className="text-[13px] text-gray-500">
-                {isConfirmed
-                  ? 'Dein Termin ist bestätigt. Du erhältst eine Bestätigungsmail.'
-                  : depositMarked
-                    ? 'Wir haben deine Meldung erhalten. Der Fotograf wird nach Eingang des Geldes bestätigen.'
-                    : requiresDeposit
-                      ? `Bitte überweise die Anzahlung, damit dein Termin reserviert wird.`
-                      : 'Der Fotograf wird deine Anfrage in Kürze bestätigen.'
+                {isCancelled
+                  ? 'Dein Termin wurde storniert. Bei Fragen melde dich gern per E-Mail.'
+                  : isConfirmed
+                    ? 'Dein Termin ist fest eingetragen. Wir freuen uns auf dich!'
+                    : depositMarked
+                      ? 'Danke! Sobald die Zahlung eingegangen ist, wird dein Termin bestätigt.'
+                      : 'Bitte überweise die Anzahlung, damit dein Termin reserviert ist.'
                 }
               </p>
             </div>
@@ -222,7 +228,7 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
           </div>
 
           {/* Add to calendar */}
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid #F3F4F6' }}>
+          {!isCancelled && <div className="mt-4 pt-4" style={{ borderTop: '1px solid #F3F4F6' }}>
             <button
               onClick={downloadIcs}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold transition-colors hover:bg-gray-50 border border-gray-200"
@@ -231,7 +237,7 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
               <CalendarPlus className="w-4 h-4 text-gray-400" />
               Zum Kalender hinzufügen
             </button>
-          </div>
+          </div>}
         </div>
 
         {/* Bank details card — only shown if deposit required and not yet marked */}
@@ -322,7 +328,7 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
         )}
 
         {/* Deposit paid confirmation */}
-        {depositMarked && !isConfirmed && (
+        {depositMarked && !isConfirmed && !isCancelled && (
           <div className="bg-blue-50 rounded-2xl border border-blue-100 p-5 mb-5">
             <p className="text-[13px] text-blue-700">
               <strong>Was passiert als nächstes?</strong> Der Fotograf prüft den Eingang der Zahlung und bestätigt deinen Termin. Du erhältst eine E-Mail-Bestätigung.
@@ -331,7 +337,7 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
         )}
 
         {/* Confirmed details */}
-        {isConfirmed && booking.google_meet_link && bookingType.location_type === 'online' && (
+        {isConfirmed && !isCancelled && booking.google_meet_link && bookingType.location_type === 'online' && (
           <div className="bg-green-50 rounded-2xl border border-green-100 p-5">
             <p className="font-semibold text-green-800 mb-2">Online-Termin</p>
             <a
@@ -344,6 +350,19 @@ export default function BookingConfirmClient({ booking, bookingType, photographe
             </a>
           </div>
         )}
+
+        <div className="mt-5">
+          <BookingClientActions
+            bookingId={booking.id}
+            status={status}
+            bookedDate={booking.booked_date}
+            bookedTime={booking.booked_time}
+            bookingTitle={bookingType.title}
+            isOnline={bookingType.location_type === 'online'}
+            photographerEmail={photographer.email}
+            onCancelled={() => setStatus('cancelled')}
+          />
+        </div>
 
         <p className="text-center text-[11px] text-gray-400 mt-10">Powered by Fotonizer</p>
       </div>
