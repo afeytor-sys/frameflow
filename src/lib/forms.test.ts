@@ -211,7 +211,7 @@ describe('buildSubmissionMessage', () => {
       { message: 'Hi there', 'event-date': '2026-06-01' },
       {}
     )
-    expect(message).toBe('Hi there\nEvent date: 2026-06-01')
+    expect(message).toBe('Hi there\nEvent date: 01.06.2026')
   })
 
   it('includes a hidden field resolved from a URL parameter', () => {

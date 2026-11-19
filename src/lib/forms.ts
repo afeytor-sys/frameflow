@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { formatIsoDateEU } from '@/lib/euDate'
 
 export interface FormField {
   id: string
@@ -180,7 +181,8 @@ export function buildSubmissionMessage(
       const selected = multiValues[field.id] ?? []
       if (selected.length) messageParts.push(`${field.label}: ${selected.join(', ')}`)
     } else {
-      const val = values[field.id]?.trim()
+      const raw = values[field.id]?.trim()
+      const val = raw && field.type === 'date' ? formatIsoDateEU(raw) : raw
       if (val) {
         if (field.id === 'message') {
           messageParts.unshift(val) // message goes first

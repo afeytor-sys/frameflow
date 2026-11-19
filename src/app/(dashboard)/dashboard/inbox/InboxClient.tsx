@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast'
 import { useLocale } from '@/hooks/useLocale'
 import { createClient } from '@/lib/supabase/client'
+import { replaceIsoDatesEU } from '@/lib/euDate'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -991,7 +992,7 @@ export default function InboxClient({ conversations: initialConversations, photo
                           opacity: msg.id.startsWith('optimistic-') ? 0.7 : 1,
                         }}
                       >
-                        {msg.content}
+                        {isLead ? replaceIsoDatesEU(msg.content) : msg.content}
                       </div>
                       <div className={`flex items-center gap-1.5 mt-1 ${isLead ? 'justify-start' : 'justify-end'}`}>
                         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
